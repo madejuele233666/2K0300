@@ -41,6 +41,11 @@
     "verifier_evidence_path",
     "agent_table_path"
   ],
+  "output_path_ownership_notes": [
+    "findings_path and verifier_evidence_path are persistence targets for verifier-authored payloads.",
+    "agent_table_path is caller-owned state and must not be treated as verifier-authored output.",
+    "verifier execution metadata such as final_state does not by itself determine resumable."
+  ],
   "verifier_evidence_required": [
     "review_goal",
     "review_phase",

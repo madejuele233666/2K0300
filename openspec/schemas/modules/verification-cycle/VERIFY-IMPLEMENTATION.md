@@ -61,6 +61,12 @@ The caller must also maintain:
 
 - `agent-table.json`
 
+Ownership rule:
+
+- the verifier owns only findings and verifier-evidence payloads
+- `agent-table.json` is caller-owned state and MUST NOT be treated as verifier-authored output
+- `final_state` and other verifier execution metadata do not by themselves decide `resumable`
+
 `findings.json` must expose top-level:
 
 - subject key (`change` or `target_ref`)

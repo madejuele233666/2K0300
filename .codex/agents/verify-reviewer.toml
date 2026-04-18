@@ -41,6 +41,12 @@ Input contract:
   - `findings_path`
   - `verifier_evidence_path`
   - `agent_table_path`
+- `output_paths` are caller-owned persistence targets, not verifier-owned
+  outputs.
+- The verifier MUST NOT write, mutate, or claim authorship of
+  `agent_table_path`.
+- `agent_table_path` exists only so the caller can reconcile verifier results
+  into caller-maintained agent state after orchestration.
 - Expect `findings_contract = "shared-findings-v1"` for this workflow.
 - Do not require or rely on full parent conversation transcript.
 - Treat full parent conversation inheritance as invalid verifier input.
@@ -93,6 +99,10 @@ Output requirements:
 - `end_at` MUST be greater than or equal to `start_at`.
 - The caller may persist `findings` and `verifier_evidence` into separate
   output files, but the final verifier result MUST carry both payloads.
+- The verifier's own authoritative payload is limited to `verdict`,
+  `findings`, and `verifier_evidence`.
+- Do not state or imply that you wrote `agent-table.json`; that file is caller
+  maintained even when its path is present in the invocation envelope.
 - Do not return markdown-only summaries as the final result.
 - Every finding must be machine-consumable.
 

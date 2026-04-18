@@ -121,6 +121,12 @@ Checkpoint acceptance requires authoritative:
 - verifier execution evidence JSON
 - agent-table JSON
 
+Ownership split:
+
+- verifier-subagent authority covers only findings JSON and verifier execution evidence JSON
+- caller authority covers `agent-table.json`
+- callers may pass `agent_table_path` in `output_paths`, but the verifier must not claim it as a verifier-authored artifact
+
 Minimum findings fields:
 
 - `change` or `target_ref`
