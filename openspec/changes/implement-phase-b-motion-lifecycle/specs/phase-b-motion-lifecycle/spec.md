@@ -70,6 +70,7 @@ The lifecycle parameters SHALL mean:
 #### Scenario: Baseline re-arm after fault requires explicit reset intent
 - **WHEN** the runtime is in `FAIL_SAFE_LATCHED` after a safety fault
 - **THEN** it SHALL remain latched until the safety gate returns clear, `motion_fault_rearm_hold_ms` has elapsed, and `reset_fault_requested=true`
+- **AND** the default product lifecycle SHALL source `reset_fault_requested` from a product-owned operator reset request on the accepted runtime entrypoint, with the Phase B baseline binding owned by `new/user/main.cpp`
 - **AND** the default product lifecycle SHALL NOT silently re-arm itself without that reset intent
 
 ### Requirement: Restart Requires Explicit Reset Boundaries
@@ -98,6 +99,11 @@ Phase B fail-safe behavior SHALL not end at transient veto suppression alone. Th
 - **THEN** the logs and runtime contract SHALL identify that automation as test harness behavior
 - **AND** the automation SHALL be allowed to synthesize reset intent only after the baseline latch-clear and hold-time conditions are satisfied
 - **AND** the default product lifecycle SHALL still define a non-automatic baseline re-arm path
+
+#### Scenario: Phase B baseline re-arm is invoked explicitly and does not exit the process
+- **WHEN** the product runtime is latched in `FAIL_SAFE_LATCHED` and an operator requests a baseline reset
+- **THEN** the accepted Phase B baseline SHALL treat that request as a dedicated re-arm trigger handled by `new/user/main.cpp` rather than as stop/exit automation
+- **AND** the baseline binding for that trigger SHALL be `SIGUSR1` until a richer project-owned operator interface replaces it
 
 ### Requirement: Fault Injection Uses The Product Runtime Entry Point
 Phase B verification SHALL exercise drop-frame, IMU-invalid, encoder-invalid, and low-voltage fault paths through bounded hooks on the existing runtime entrypoint rather than through a separate product binary or alternate runtime flow.

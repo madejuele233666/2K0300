@@ -389,12 +389,14 @@ Stack Equivalent:
 - per-cycle command delta clamp -> `motion_pwm_step_limit`
 - stop completion threshold -> `motion_stop_ms` + `motion_stop_encoder_threshold`
 - post-fault baseline re-arm -> `MotionIntent.reset_fault_requested`
+- baseline product reset trigger -> `SIGUSR1` handled in `new/user/main.cpp`, mapped to `MotionIntent.reset_fault_requested`
 - test-only auto-reset override -> harness-owned env interpreted by `main.cpp` or runtime harness glue
 
 Named Deliverables:
 
 - updated `specs/phase-b-motion-lifecycle/spec.md`
 - aligned `design.md` transition semantics
+- `new/user/main.cpp` baseline fault-reset input binding
 - unchanged-but-now-constrained `tasks.md` parameter list
 
 Failure Semantics:
@@ -463,7 +465,7 @@ Failure Semantics:
 
 - unsupported env value: ignore safely and emit diagnosable warning or stay on normal path
 - injected invalid sample: runtime returns to fail-safe/latched path instead of continuing to drive
-- fault recovery automation disabled: operator/manual reset remains required
+- fault recovery automation disabled: `SIGUSR1`-backed product reset remains required and stays distinct from harness env
 
 Boundary Examples:
 
@@ -471,6 +473,7 @@ Boundary Examples:
 - `LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=10`
 - `LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=7`
 - `LS2K_FORCE_LOW_VOLTAGE=true`
+- wrapper harness context: automation and fault-injection env block is recorded separately from runtime markers in smoke logs / verification notes
 
 Contrast Structure:
 
