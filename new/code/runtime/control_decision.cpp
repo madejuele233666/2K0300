@@ -44,12 +44,16 @@ ControlCycleObservation ObserveControlCycle(const ControlCycleInputs& inputs) {
     ControlCycleObservation observation{};
     observation.veto_active = inputs.gate.veto_active;
     observation.veto_reason = inputs.gate.veto_reason;
+    observation.motion_phase = inputs.motion_phase;
+    observation.hold_disarmed = inputs.hold_disarmed;
     observation.requested_nonzero_output = IsNonZeroDriveCommand(inputs.command);
     observation.applied_left_pwm = inputs.command.left_pwm;
     observation.applied_right_pwm = inputs.command.right_pwm;
 
     if (inputs.apply_suppressed_by_profile) {
         observation.apply_outcome = ControlApplyOutcome::kSuppressedByProfile;
+    } else if (inputs.hold_disarmed) {
+        observation.apply_outcome = ControlApplyOutcome::kHeldDisarmedApplied;
     } else if (!inputs.apply_ok) {
         observation.apply_outcome = ControlApplyOutcome::kApplyFailed;
     } else if (inputs.command.emergency_stop) {
@@ -108,6 +112,8 @@ const char* ToString(ControlApplyOutcome outcome) {
             return "not_requested";
         case ControlApplyOutcome::kSuppressedByProfile:
             return "suppressed_by_profile";
+        case ControlApplyOutcome::kHeldDisarmedApplied:
+            return "held_disarmed_applied";
         case ControlApplyOutcome::kEmergencyStopApplied:
             return "emergency_stop_applied";
         case ControlApplyOutcome::kZeroCommandApplied:

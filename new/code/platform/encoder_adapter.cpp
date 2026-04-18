@@ -2,6 +2,7 @@
 #include "platform/true_ls2k0300/bridge.hpp"
 #include "platform/true_ls2k0300/vendor_paths.hpp"
 
+#include <cstdlib>
 #include <string>
 
 namespace ls2k::platform {
@@ -9,6 +10,27 @@ namespace {
 
 constexpr int kLeftEncoderDirectionSign = 1;
 constexpr int kRightEncoderDirectionSign = -1;
+
+int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
+    const char* value = std::getenv(key);
+    if (value == nullptr || value[0] == '\0') {
+        return 0;
+    }
+    try {
+        const int parsed = std::stoi(value);
+        if (parsed > 0) {
+            return parsed;
+        }
+    } catch (...) {
+    }
+    port::EmitRateLimited(diagnostics,
+                          {port::DiagnosticLevel::kWarning,
+                           "encoder.inject.invalid_env",
+                           std::string("ignoring invalid fault-injection interval for ") + key + "=" + value,
+                           now_ms},
+                          1000);
+    return 0;
+}
 
 class EncoderAdapter final : public port::IEncoderAdapter {
 public:
@@ -73,6 +95,19 @@ public:
             return out;
         }
 
+        ++read_count_;
+        const int inject_invalid_every_n = ReadPositiveIntervalEnv(
+            "LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N", diagnostics, out.capture_time_ms);
+        if (inject_invalid_every_n > 0 && read_count_ % static_cast<uint64_t>(inject_invalid_every_n) == 0) {
+            port::EmitRateLimited(diagnostics,
+                                  {port::DiagnosticLevel::kWarning,
+                                   "encoder.inject.invalid",
+                                   "injecting bounded Phase B invalid-encoder fault on the accepted runtime entrypoint",
+                                   out.capture_time_ms},
+                                  1000);
+            return out;
+        }
+
         const true_ls2k0300::EncoderCounts counts = true_ls2k0300::ReadEncoderCounts();
         if (!counts.valid) {
             port::EmitRateLimited(diagnostics,
@@ -114,6 +149,7 @@ private:
     bool ready_ = false;
     bool adaptation_hook_ = false;
     std::string hook_name_ = "direct-match";
+    uint64_t read_count_ = 0;
 };
 
 }  // namespace

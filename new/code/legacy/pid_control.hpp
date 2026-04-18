@@ -9,6 +9,7 @@ namespace ls2k::legacy {
 class LegacyPidControl {
 public:
     void Configure(const port::RuntimeParameters& params);
+    void Reset();
 
     float ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last);
     float ComputeGyroTurn(float w_target, float gyro_z);

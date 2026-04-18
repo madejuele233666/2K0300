@@ -6,14 +6,23 @@
 
 ## 1. 阶段目标
 
-让车辆在真实地面上完成低速、可控、可恢复的闭环运动。
+让车辆在真实地面上完成低速、可控、可恢复、可解释的闭环运动。
 
-这一阶段的目标不是“跑得快”，而是验证：
+这一阶段的目标不是“跑得快”，而是验证下面这条 project-owned 生命周期：
 
-1. 车辆会动
-2. 车辆按期望方向修正
-3. 车辆可以安全停车
-4. 异常时会进入 fail-safe
+1. `DISARMED`
+2. `START_REQUESTED`
+3. `SPINUP`
+4. `RUNNING`
+5. `STOPPING`
+6. `FAIL_SAFE_LATCHED`
+
+并且验证：
+
+1. 车辆从显式 start intent 才能进入运动生命周期，而不是“进程活着就默认能跑”
+2. 起步和停车是可重复、可审查的 lifecycle 行为，而不是偶然的 PWM 突变
+3. 异常时会进入 fail-safe latch，恢复时必须经过明确 reset intent
+4. smoke / bounded automation 只是 test harness，不是长期产品语义
 
 ## 1A. 本阶段继承的控制与安全原则
 
@@ -23,6 +32,18 @@
 2. 低速实车阶段仍然以 fail-safe 优先，而不是以“先跑起来”为优先。
 3. 本阶段验证的是方向、速度、恢复能力，不是比赛成绩。
 4. 任何实车异常都必须能立刻回退到可人工接管状态。
+
+## 1C. Phase B lifecycle contract
+
+本阶段默认运行时契约如下：
+
+1. `new/code/runtime/motion_supervisor.*` 是生命周期唯一 owner。
+2. `new/code/platform/*` 只负责 vendor-facing 归一化和受限 fault injection，不负责运动状态机。
+3. `control.veto.*` 只表示真实 safety blocker；`control.apply.hold_disarmed` 用来表示“安全门已开，但当前仍故意不出力”。
+4. 产品运行时的基线 reset 触发是 `SIGUSR1`，用于把 `FAIL_SAFE_LATCHED` 映射到 `reset_fault_requested`。
+5. 产品运行时的基线 start 触发保持在 accepted runtime entrypoint 上；当前实现使用 `SIGUSR2` 作为最小可用 operator-owned start intent。
+6. `LS2K_AUTO_START`、`LS2K_AUTO_START_DELAY_MS`、`LS2K_AUTO_STOP_AFTER_MS`、`LS2K_AUTO_RESET_FAULT`、`LS2K_MAX_FRAMES` 只作为 harness-owned 自动化入口使用。
+7. `run_remote_smoke.sh` 产出的日志头必须单独记录 `harness_context_begin ... harness_context_end`，不能只靠 runtime marker 反推测试注入条件。
 
 ## 1B. `old_2` 对本阶段的补充约束
 
@@ -68,18 +89,25 @@
 
 ```bash
 (cd new/user && ./build.sh)
-(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-start-stop.log ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b1-static-safety.log SMOKE_ENABLE_MOTOR=0 SMOKE_AUTO_START=0 SMOKE_MAX_FRAMES=20 ./run_remote_smoke.sh)
 ```
 
 预期 marker：
 
+- `main.harness_context`
 - `startup.complete`
+- `control.start`
+- `motion.start.requested`
+- `motion.stop.requested`
+- `motion.stop.complete`
+- `main.exit.ready`
 - `shutdown.complete`
 
 证据文件：
 
-- `phase-b-static-safety.md`
-- `phase-b-start-stop.log`
+- `new/verification/phase-b-b1-static-safety.md`
+- `phase-b-b1-static-safety.log`
+- `phase-b-b1-manual-lifecycle.log`
 
 失败回退方向：
 
@@ -113,18 +141,23 @@
 
 ```bash
 (cd new/user && ./build.sh)
-(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-half-load.log SMOKE_ENABLE_MOTOR=1 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b2-half-load.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_MAX_FRAMES=120 ./run_remote_smoke.sh)
 ```
 
 预期 marker：
 
-- `control.start`
-- `control.veto`
+- `main.harness_context`
+- `motion.phase.transition`
+- `motion.spinup.enter`
+- `motion.spinup.complete`
+- `control.apply.drive`
+- `control.apply.command`
+- `motion.stop.complete`
 
 证据文件：
 
-- `phase-b-half-load.log`
-- `phase-b-half-load.md`
+- `phase-b-b2-half-load.log`
+- `new/verification/phase-b-b2-half-load.md`
 - `phase-b-half-load.mp4`
 
 失败回退方向：
@@ -164,19 +197,23 @@
 
 ```bash
 (cd new/user && ./build.sh)
-(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-straight-run.log SMOKE_ENABLE_MOTOR=1 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b3-straight-run.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_MAX_FRAMES=180 ./run_remote_smoke.sh)
 ```
 
 预期 marker：
 
-- `control.start`
-- `control.veto`
-- `imu.detect`
-- `encoder.baseline`
+- `motion.spinup.enter`
+- `motion.spinup.complete`
+- `control.apply.drive`
+- `control.apply.command`
+- `imu.sample.summary`
+- `encoder.delta.summary`
+- `motion.stop.complete`
 
 证据文件：
 
-- `phase-b-straight-run.log`
+- `phase-b-b3-straight-run.log`
+- `new/verification/phase-b-b3-straight-run.md`
 - `phase-b-straight-run.mp4`
 - `phase-b-straight-tuning.md`
 
@@ -216,17 +253,22 @@
 
 ```bash
 (cd new/user && ./build.sh)
-(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-turn-run.log SMOKE_ENABLE_MOTOR=1 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b4-turn-run.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_MAX_FRAMES=220 ./run_remote_smoke.sh)
 ```
 
 预期 marker：
 
-- `control.start`
-- `control.veto`
+- `motion.spinup.enter`
+- `motion.spinup.complete`
+- `control.apply.command`
+- `encoder.delta.summary`
+- `motion.stop.requested`
+- `motion.stop.complete`
 
 证据文件：
 
-- `phase-b-turn-run.log`
+- `phase-b-b4-turn-run.log`
+- `new/verification/phase-b-b4-turn-run.md`
 - `phase-b-turn-run.mp4`
 - `phase-b-turn-analysis.md`
 
@@ -264,22 +306,29 @@
 
 ```bash
 (cd new/user && ./build.sh)
-(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-fault-injection.log SMOKE_ENABLE_MOTOR=1 ./run_remote_smoke.sh)
-(cd new/user && LS2K_ALLOW_DEGRADED_STARTUP=1 LS2K_PROFILE_PATH=../config/hardware_profile.json LS2K_PARAMS_PATH=../config/default_params.json LS2K_MAX_FRAMES=40 ../out/new >> ../verification/phase-b-fault-injection.log 2>&1)
-(cd new/user && LS2K_FORCE_LOW_VOLTAGE=true LS2K_PROFILE_PATH=../config/hardware_profile.json LS2K_PARAMS_PATH=../config/default_params.json LS2K_MAX_FRAMES=40 ../out/new >> ../verification/phase-b-fault-injection.log 2>&1)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b5-drop-frame.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_AUTO_RESET_FAULT=1 SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N=5 SMOKE_MAX_FRAMES=120 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b5-imu-invalid.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_AUTO_RESET_FAULT=1 SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N=10 SMOKE_MAX_FRAMES=120 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b5-encoder-invalid.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_AUTO_RESET_FAULT=1 SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N=7 SMOKE_MAX_FRAMES=120 ./run_remote_smoke.sh)
+(cd new/user && mkdir -p ../verification && VERIFY_LOG_PATH=../verification/phase-b-b5-low-voltage.log SMOKE_ENABLE_MOTOR=1 SMOKE_AUTO_START=1 SMOKE_AUTO_START_DELAY_MS=200 SMOKE_AUTO_RESET_FAULT=1 SMOKE_FORCE_LOW_VOLTAGE=true SMOKE_MAX_FRAMES=120 ./run_remote_smoke.sh)
 ```
 
 预期 marker：
 
-- `control.veto`
-- `startup.low_voltage.force`
-- `startup.low_voltage.emergency`
-- `startup.mode.degraded`
+- `main.harness_context`
+- `perception.inject.drop_frame` / `imu.inject.invalid` / `encoder.inject.invalid` / `power.low_voltage.injected`
+- `control.veto.*`
+- `motion.failsafe.latched`
+- `motion.failsafe.reset_ready`
+- `motion.failsafe.reset_requested`
+- `motion.failsafe.rearmed`
 
 证据文件：
 
-- `phase-b-fault-injection.md`
-- `phase-b-fault-injection.log`
+- `new/verification/phase-b-b5-fault-injection.md`
+- `phase-b-b5-drop-frame.log`
+- `phase-b-b5-imu-invalid.log`
+- `phase-b-b5-encoder-invalid.log`
+- `phase-b-b5-low-voltage.log`
 
 失败回退方向：
 
@@ -288,11 +337,12 @@
 
 ## 3. Phase B 必须产出的证据
 
-1. 低速直线视频和对应日志
-2. 轻弯修正视频和对应日志
-3. 异常注入记录
+1. `START_REQUESTED -> SPINUP -> RUNNING -> STOPPING -> DISARMED` 的完整直线或半载证据
+2. 轻弯修正视频和对应 lifecycle 日志
+3. `FAIL_SAFE_LATCHED` 与 re-arm 记录
 4. 当前可用参数集的版本记录
 5. 测试操作步骤记录：上电、启动、测试、停车、复位
+6. 每条证据对应的 harness context block 或显式 signal 操作记录
 
 ## 4. Phase B 退出条件
 

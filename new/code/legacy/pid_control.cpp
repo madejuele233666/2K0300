@@ -11,6 +11,14 @@ void LegacyPidControl::Configure(const port::RuntimeParameters& params) {
     fuzzy_.InitMH(params.P_Mode);
 }
 
+void LegacyPidControl::Reset() {
+    camera_error_last_ = 0.0F;
+    gyro_error_last_ = 0.0F;
+    gyro_i_count_ = 0.0F;
+    speed_error_last_ = 0.0F;
+    speed_i_count_ = 0.0F;
+}
+
 float LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last) {
     const float err = perception.lateral_error;
     const float fuzzy_p = fuzzy_.DuoJiGetP(perception.highest_line, static_cast<int>(std::round(err)));

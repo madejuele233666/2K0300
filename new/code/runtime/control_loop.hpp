@@ -8,6 +8,7 @@
 #include "legacy/motor_logic.hpp"
 #include "legacy/pid_control.hpp"
 #include "port/platform_adapter.hpp"
+#include "runtime/motion_supervisor.hpp"
 #include "runtime/runtime_state.hpp"
 
 namespace ls2k::runtime {
@@ -35,11 +36,13 @@ private:
     legacy::LegacyPidControl pid_{};
     legacy::LegacyMotorLogic motor_logic_{};
     legacy::LegacyAttitudeLogic attitude_{};
+    MotionSupervisor motion_supervisor_{};
     bool have_gate_interval_ = false;
     bool last_gate_veto_ = true;
     ControlVetoReason last_gate_reason_ = ControlVetoReason::kPerceptionStale;
     uint64_t gate_interval_start_ms_ = 0;
     bool gate_interval_reported_ = false;
+    bool motion_reset_ready_reported_ = false;
 };
 
 }  // namespace ls2k::runtime

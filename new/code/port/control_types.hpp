@@ -104,6 +104,13 @@ struct RuntimeParameters {
     int control_period_ms = 5;
     int perception_stale_ms = 40;
     int pwm_limit = 9000;
+    int motion_unveto_confirm_cycles = 3;
+    int motion_spinup_ms = 600;
+    double motion_turn_limit_spinup = 0.35;
+    int motion_pwm_step_limit = 280;
+    int motion_stop_ms = 300;
+    int motion_stop_encoder_threshold = 8;
+    int motion_fault_rearm_hold_ms = 600;
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

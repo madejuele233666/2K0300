@@ -1,0 +1,40 @@
+# B-4 Turn-Run And Recovery
+
+## Command
+
+```bash
+(cd new/user && \
+  mkdir -p ../verification && \
+  VERIFY_LOG_PATH=../verification/phase-b-b4-turn-run.log \
+  SMOKE_ENABLE_MOTOR=1 \
+  SMOKE_AUTO_START=1 \
+  SMOKE_AUTO_START_DELAY_MS=200 \
+  SMOKE_MAX_FRAMES=220 \
+  ./run_remote_smoke.sh)
+```
+
+## Expected Markers
+
+- `motion.spinup.enter`
+- `motion.spinup.complete`
+- `control.apply.command`
+- `encoder.delta.summary`
+- `motion.stop.requested`
+- `motion.stop.complete`
+
+The review focus is that turn corrections stay inside the lifecycle-owned start/run/stop envelope rather than appearing as one unstructured drive burst.
+
+## Harness Context
+
+Keep the wrapper header with the exact automation env block. Add a short track note naming the bend direction, surface, and any temporary speed reduction used for the test.
+
+## Proves
+
+- Turn corrections happen while the runtime is in explicit `SPINUP` or `RUNNING`, not in an implicit post-start state.
+- Stop behavior remains controlled after a turning segment.
+
+## Does Not Prove
+
+- Full race-line quality.
+- Higher-speed scenario switching.
+- Fault recovery after a turning disturbance.

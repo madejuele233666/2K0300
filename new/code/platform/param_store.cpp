@@ -64,6 +64,16 @@ bool ReadRequiredInt(const cv::FileNode& root, const char* key, int& value) {
     return ReadIntegerValue(root[key], value);
 }
 
+void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value, bool& malformed) {
+    const cv::FileNode node = root[key];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadNumberNode(node, value)) {
+        malformed = true;
+    }
+}
+
 void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -189,6 +199,25 @@ public:
         ReadOptionalInt(root, "control_period_ms", parsed.control_period_ms, optional_malformed);
         ReadOptionalInt(root, "perception_stale_ms", parsed.perception_stale_ms, optional_malformed);
         ReadOptionalInt(root, "pwm_limit", parsed.pwm_limit, optional_malformed);
+        ReadOptionalInt(root,
+                        "motion_unveto_confirm_cycles",
+                        parsed.motion_unveto_confirm_cycles,
+                        optional_malformed);
+        ReadOptionalInt(root, "motion_spinup_ms", parsed.motion_spinup_ms, optional_malformed);
+        ReadOptionalNumber(root,
+                           "motion_turn_limit_spinup",
+                           parsed.motion_turn_limit_spinup,
+                           optional_malformed);
+        ReadOptionalInt(root, "motion_pwm_step_limit", parsed.motion_pwm_step_limit, optional_malformed);
+        ReadOptionalInt(root, "motion_stop_ms", parsed.motion_stop_ms, optional_malformed);
+        ReadOptionalInt(root,
+                        "motion_stop_encoder_threshold",
+                        parsed.motion_stop_encoder_threshold,
+                        optional_malformed);
+        ReadOptionalInt(root,
+                        "motion_fault_rearm_hold_ms",
+                        parsed.motion_fault_rearm_hold_ms,
+                        optional_malformed);
         all_ok = all_ok && !optional_malformed;
 
         if (!all_ok) {

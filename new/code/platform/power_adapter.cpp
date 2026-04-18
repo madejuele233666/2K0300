@@ -80,18 +80,26 @@ public:
         sample.capture_time_ms = port::NowMs();
         sample.threshold = ReadIntEnv("LS2K_LOW_VOLTAGE_RAW_THRESHOLD", 400);
 
+        const char* forced_raw = std::getenv("LS2K_FORCE_LOW_VOLTAGE");
         if (const std::optional<bool> forced = ReadBoolEnv("LS2K_FORCE_LOW_VOLTAGE"); forced.has_value()) {
             sample.valid = true;
             sample.emergency = *forced;
             sample.source = "forced-env";
             port::EmitRateLimited(diagnostics,
                                   {*forced ? port::DiagnosticLevel::kFailSafe : port::DiagnosticLevel::kInfo,
-                                   "startup.low_voltage.force",
+                                   "power.low_voltage.injected",
                                    std::string("forced low-voltage emergency=") +
                                        (*forced ? "true" : "false"),
                                    sample.capture_time_ms},
                                   1000);
             return sample;
+        } else if (forced_raw != nullptr && forced_raw[0] != '\0') {
+            port::EmitRateLimited(diagnostics,
+                                  {port::DiagnosticLevel::kWarning,
+                                   "power.low_voltage.invalid_env",
+                                   std::string("ignoring invalid LS2K_FORCE_LOW_VOLTAGE value=") + forced_raw,
+                                   sample.capture_time_ms},
+                                  1000);
         }
 
         const char* override_path = std::getenv("LS2K_LOW_VOLTAGE_RAW_PATH");

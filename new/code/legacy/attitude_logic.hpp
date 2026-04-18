@@ -7,6 +7,7 @@ namespace ls2k::legacy {
 
 class LegacyAttitudeLogic {
 public:
+    void Reset();
     void UpdateFromImu(const port::ImuSample& sample, float dt_sec);
     float yaw_deg() const { return yaw_deg_; }
 

@@ -22,6 +22,7 @@ private:
     port::IPowerMonitorAdapter& power_;
     RuntimeState& state_;
     port::DiagnosticSink& diagnostics_;
+    uint64_t processed_frames_ = 0;
 };
 
 }  // namespace ls2k::runtime

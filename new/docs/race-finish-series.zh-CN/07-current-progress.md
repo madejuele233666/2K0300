@@ -20,7 +20,7 @@
 
 当前记录时间点：
 
-- `2026-04-17`
+- `2026-04-18`
 
 如果后续推进了代码、板测或实车测试，这份文档也必须同步更新。
 
@@ -76,6 +76,7 @@
 - `2026-04-14` 基线文档与验证契约：已闭环
 - `2026-04-15` 的 `old_2` 吸收增量：已并入主文档，并已完成历史独立验证闭环
 - `2026-04-17` 的 Phase A 实机证据已补齐，允许进入 `Phase B`
+- `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm 与 harness context contract；板端实车证据与 source-first review 仍待完成
 
 ## 4. 已完成事项
 
@@ -141,6 +142,7 @@
 2. Phase C 的语义/策略接口还没有变成真实运行时能力。
 3. `old_2` 中高价值规则链虽然已经完成文档吸收，但尚未转译成 `new/` 的 project-owned 实现。
 4. 默认 smoke 入口已经收口为 bench-safe；后续真实电机验证必须显式 opt-in，不能再把 generic smoke 当成默认可安全上电机的回归入口。
+5. Phase B 的代码主线现在已经具备 project-owned motion lifecycle，但还没有形成板端通过的 B-1 ~ B-5 实测证据包。
 
 ## 6. 当前推荐下一步
 
@@ -153,6 +155,7 @@
 5. 进入 Phase C 时，优先把 `old_2` 的中线生成链和场景状态拆成 project-owned 接口，不要直接整体搬 `camera.cpp`。
 6. 如果代码行为与系列文档再次偏离，先修文档或代码的一侧，再继续阶段推进。
 7. 板端上传后优先先跑默认 diagnostics-only smoke；只有在验证目标明确需要真实出力时，才使用 `SMOKE_ENABLE_MOTOR=1`。
+8. 继续推进时，默认以 `new/verification/phase-b-b1-static-safety.md` 到 `phase-b-b5-fault-injection.md` 作为 Phase B evidence checklist。
 
 ## 7. 当前不该做的事
 
@@ -273,6 +276,37 @@
 2. `openspec/changes/archive/2026-04-17-close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-camera-exposure.md`
 3. `openspec/changes/archive/2026-04-17-close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-bench-pwm.md`
 4. `openspec/changes/archive/2026-04-17-close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-exit-judgment.md`
+
+### 2026-04-18
+
+类型：
+
+- 代码推进
+- 文档推进
+
+本次完成：
+
+1. 在 `runtime` 中新增 project-owned `motion_supervisor`、`motion_types`、Phase B 参数面和 runtime state，显式区分 `DISARMED`、`START_REQUESTED`、`SPINUP`、`RUNNING`、`STOPPING`、`FAIL_SAFE_LATCHED`。
+2. `control_loop` 已改成 `sample -> gate -> motion supervisor -> shaping/apply -> observation` 顺序，并补入 `control.apply.hold_disarmed`、`motion.phase.transition`、`motion.spinup.*`、`motion.stop.complete`、`motion.failsafe.*` marker。
+3. `main.cpp` 已把 start / stop / reset intent 与进程退出拆开；当前 accepted baseline 是 `SIGUSR2` start、`SIGUSR1` fault reset、signal-triggered controlled stop-before-exit。
+4. `run_remote_smoke.sh` 已记录独立 harness context block，并显式传递 `LS2K_AUTO_*`、`LS2K_MAX_FRAMES`、Phase B fault injection env。
+5. 新增 `new/verification/phase-b-b1-static-safety.md` 到 `phase-b-b5-fault-injection.md` 五份 implementation-grade Phase B notes。
+
+本次未完成：
+
+1. 还没有板端实跑 `B-1` 到 `B-5`，因此 Phase B 仍未进入可验收状态。
+2. 尚未完成 `openspec-verify-change` 和所有 checkpoint review 的 authoritative pass 证据。
+
+阶段状态变化：
+
+- 仍停留在 Phase B；从“仅有文档目标”推进到“代码主线已具备 motion lifecycle contract，但板端证据未闭环”。
+
+关联证据：
+
+1. `new/code/runtime/motion_supervisor.cpp`
+2. `new/user/main.cpp`
+3. `new/user/run_remote_smoke.sh`
+4. `new/verification/phase-b-b5-fault-injection.md`
 
 ## 10. 后续记录模板
 

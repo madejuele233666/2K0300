@@ -2,6 +2,7 @@
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <array>
+#include <cstdlib>
 #include <cstdint>
 #include <cmath>
 #include <string>
@@ -16,6 +17,27 @@ constexpr float kAccelFilterNewWeight = 0.9F;
 constexpr float kAccelFilterOldWeight = 0.1F;
 constexpr int kImuBiasCalibrationSamples = 32;
 constexpr uint32_t kImuContinuityEvidenceSamples = 32;
+
+int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
+    const char* value = std::getenv(key);
+    if (value == nullptr || value[0] == '\0') {
+        return 0;
+    }
+    try {
+        const int parsed = std::stoi(value);
+        if (parsed > 0) {
+            return parsed;
+        }
+    } catch (...) {
+    }
+    port::EmitRateLimited(diagnostics,
+                          {port::DiagnosticLevel::kWarning,
+                           "imu.inject.invalid_env",
+                           std::string("ignoring invalid fault-injection interval for ") + key + "=" + value,
+                           now_ms},
+                          1000);
+    return 0;
+}
 
 const char* ImuTypeName(uint8_t imu_type) {
     switch (imu_type) {
@@ -89,6 +111,24 @@ public:
                                    "imu.hook.read",
                                    "imu adaptation hook selected with no concrete phase-1 implementation: " +
                                        hook_name_,
+                                   out.capture_time_ms},
+                                  1000);
+            return out;
+        }
+
+        ++read_count_;
+        const int inject_invalid_every_n =
+            ReadPositiveIntervalEnv("LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N", diagnostics, out.capture_time_ms);
+        if (inject_invalid_every_n > 0 && read_count_ % static_cast<uint64_t>(inject_invalid_every_n) == 0) {
+            if (valid_streak_ > 0) {
+                continuity_reported_ = false;
+            }
+            valid_streak_ = 0;
+            ++invalid_streak_;
+            port::EmitRateLimited(diagnostics,
+                                  {port::DiagnosticLevel::kWarning,
+                                   "imu.inject.invalid",
+                                   "injecting bounded Phase B invalid-IMU fault on the accepted runtime entrypoint",
                                    out.capture_time_ms},
                                   1000);
             return out;
@@ -231,6 +271,7 @@ private:
     uint32_t valid_streak_ = 0;
     uint32_t invalid_streak_ = 0;
     bool continuity_reported_ = false;
+    uint64_t read_count_ = 0;
 };
 
 }  // namespace

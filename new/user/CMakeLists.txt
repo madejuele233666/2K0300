@@ -74,6 +74,7 @@ set(NEW_SRCS
     ../code/legacy/camera_logic.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/perception_frontend.cpp
+    ../code/runtime/motion_supervisor.cpp
     ../code/runtime/control_decision.cpp
     ../code/runtime/control_loop.cpp
     ../code/runtime/shutdown.cpp

@@ -2,6 +2,10 @@
 
 namespace ls2k::legacy {
 
+void LegacyAttitudeLogic::Reset() {
+    yaw_deg_ = 0.0F;
+}
+
 void LegacyAttitudeLogic::UpdateFromImu(const port::ImuSample& sample, float dt_sec) {
     if (!sample.valid) {
         return;

@@ -18,6 +18,14 @@ PARAMS_SOURCE="${LS2K_PARAMS_PATH:-${WORK_DIR}/../config/default_params.json}"
 PROFILE_SOURCE="${LS2K_PROFILE_PATH:-${WORK_DIR}/../config/hardware_profile.json}"
 SMOKE_MAX_FRAMES="${SMOKE_MAX_FRAMES:-400}"
 SMOKE_ENABLE_MOTOR="${SMOKE_ENABLE_MOTOR:-0}"
+SMOKE_AUTO_START="${SMOKE_AUTO_START:-1}"
+SMOKE_AUTO_START_DELAY_MS="${SMOKE_AUTO_START_DELAY_MS:-200}"
+SMOKE_AUTO_STOP_AFTER_MS="${SMOKE_AUTO_STOP_AFTER_MS:-0}"
+SMOKE_AUTO_RESET_FAULT="${SMOKE_AUTO_RESET_FAULT:-0}"
+SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N="${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N:-${LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N:-0}}"
+SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N="${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N:-${LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N:-0}}"
+SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N="${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N:-${LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N:-0}}"
+SMOKE_FORCE_LOW_VOLTAGE="${SMOKE_FORCE_LOW_VOLTAGE:-${LS2K_FORCE_LOW_VOLTAGE:-}}"
 
 mkdir -p "$(dirname "${VERIFY_LOG}")"
 
@@ -30,6 +38,17 @@ write_header() {
         echo "profile_source=${PROFILE_SOURCE}"
         echo "smoke_enable_motor=${SMOKE_ENABLE_MOTOR}"
         echo "true_vendor_root=${TRUE_VENDOR_ROOT}"
+        echo "harness_context_begin"
+        echo "LS2K_AUTO_START=${SMOKE_AUTO_START}"
+        echo "LS2K_AUTO_START_DELAY_MS=${SMOKE_AUTO_START_DELAY_MS}"
+        echo "LS2K_AUTO_STOP_AFTER_MS=${SMOKE_AUTO_STOP_AFTER_MS}"
+        echo "LS2K_AUTO_RESET_FAULT=${SMOKE_AUTO_RESET_FAULT}"
+        echo "LS2K_MAX_FRAMES=${SMOKE_MAX_FRAMES}"
+        echo "LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}"
+        echo "LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N}"
+        echo "LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N}"
+        echo "LS2K_FORCE_LOW_VOLTAGE=${SMOKE_FORCE_LOW_VOLTAGE:-unset}"
+        echo "harness_context_end"
     } >"${VERIFY_LOG}"
 }
 
@@ -49,14 +68,29 @@ prepare_smoke_profile() {
 smoke_runtime_env() {
     local params_path="$1"
     local profile_path="$2"
+    local prefix=""
     if [[ "${SMOKE_ENABLE_MOTOR}" == "1" ]]; then
-        printf 'LS2K_PARAMS_PATH=%s LS2K_PROFILE_PATH=%s LS2K_MAX_FRAMES=%s' \
-            "${params_path}" "${profile_path}" "${SMOKE_MAX_FRAMES}"
-        return 0
+        prefix=""
+    else
+        prefix="LS2K_ALLOW_DEGRADED_STARTUP=1 "
     fi
 
-    printf 'LS2K_ALLOW_DEGRADED_STARTUP=1 LS2K_PARAMS_PATH=%s LS2K_PROFILE_PATH=%s LS2K_MAX_FRAMES=%s' \
-        "${params_path}" "${profile_path}" "${SMOKE_MAX_FRAMES}"
+    printf '%sLS2K_PARAMS_PATH=%s LS2K_PROFILE_PATH=%s LS2K_MAX_FRAMES=%s LS2K_AUTO_START=%s LS2K_AUTO_START_DELAY_MS=%s LS2K_AUTO_STOP_AFTER_MS=%s LS2K_AUTO_RESET_FAULT=%s' \
+        "${prefix}" "${params_path}" "${profile_path}" "${SMOKE_MAX_FRAMES}" \
+        "${SMOKE_AUTO_START}" "${SMOKE_AUTO_START_DELAY_MS}" "${SMOKE_AUTO_STOP_AFTER_MS}" "${SMOKE_AUTO_RESET_FAULT}"
+
+    if [[ "${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}" != "0" ]]; then
+        printf ' LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=%s' "${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}"
+    fi
+    if [[ "${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N}" != "0" ]]; then
+        printf ' LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=%s' "${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N}"
+    fi
+    if [[ "${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N}" != "0" ]]; then
+        printf ' LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=%s' "${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N}"
+    fi
+    if [[ -n "${SMOKE_FORCE_LOW_VOLTAGE}" ]]; then
+        printf ' LS2K_FORCE_LOW_VOLTAGE=%s' "${SMOKE_FORCE_LOW_VOLTAGE}"
+    fi
 }
 
 run_remote() {
@@ -133,6 +167,9 @@ run_remote() {
 
     if [[ "${remote_status}" -ne 0 ]]; then
         return "${remote_status}"
+    fi
+    if [[ "${copy_status}" -ne 0 ]]; then
+        return "${copy_status}"
     fi
     return 0
 }
