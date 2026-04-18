@@ -1,0 +1,55 @@
+== runtime smoke 2026-04-15T14:33:13Z ==
+board=root@192.168.255.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][8762494] starting ls2k migration runtime
+[INFO][profile.loaded][8762495] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][8762496] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][8762496] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][8762496] direct-match:imu-core-device-detect
+[INFO][profile.encoder][8762496] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][8762496] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][8762496] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][8762496] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][8762497] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][8762497] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2348 threshold=400
+[INFO][startup.low_voltage.clear][8762497] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][8762771] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][8762773] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][8762773] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][encoder.init][8762773] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][motor.init][8762773] motor initialized through true_ls2k0300 bridge: left_pwm=/dev/zf_device_pwm_motor_1, right_pwm=/dev/zf_device_pwm_motor_2, left_gpio=/dev/zf_driver_gpio_motor_1, right_gpio=/dev/zf_driver_gpio_motor_2
+[INFO][startup.complete][8762773] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][8762773] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][8762773] control loop started with PIT-equivalent periodic callback
+[WARN][encoder.baseline][8762781] encoder baseline established; first absolute sample is not emitted as a delta
+[FAIL_SAFE][control.veto][8762781] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][8762781] dominant control veto reason: perception_stale
+[FAIL_SAFE][control.apply.emergency_stop][8762781] emergency-stop command applied to keep actuators fail-safe
+[INFO][control.command.requested_nonzero][8763088] non-zero differential-drive command requested
+[INFO][control.apply.drive][8763088] drive command applied to motor adapter
+[INFO][control.arm.transition][8763088] actuator armed state transitioned from disarmed to armed (apply_outcome=drive_command_applied)
+[INFO][startup.low_voltage.raw][8763498] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2332 threshold=400
+[INFO][control.command.requested_nonzero][8764094] non-zero differential-drive command requested
+[INFO][control.apply.drive][8764094] drive command applied to motor adapter
+[INFO][startup.low_voltage.raw][8764498] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2344 threshold=400
+[INFO][control.command.requested_nonzero][8765099] non-zero differential-drive command requested
+[INFO][control.apply.drive][8765099] drive command applied to motor adapter
+[INFO][startup.low_voltage.raw][8765499] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2339 threshold=400
+[INFO][control.command.requested_nonzero][8766104] non-zero differential-drive command requested
+[INFO][control.apply.drive][8766104] drive command applied to motor adapter
+[INFO][main.frame_limit][8766396] bounded runtime loop reached LS2K_MAX_FRAMES=400
+[INFO][timer.stop][8766399] timer bridge stopped
+[INFO][camera.shutdown][8766399] camera adapter shutdown complete
+[INFO][imu.shutdown][8766399] imu adapter shutdown complete
+[INFO][encoder.shutdown][8766399] encoder adapter shutdown complete
+[INFO][motor.shutdown][8766399] motor adapter shutdown complete
+[INFO][shutdown.complete][8766399] actuators disabled and resources released
+[INFO][main.exit][8766399] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

@@ -1,0 +1,114 @@
+{
+  "session_id": "ecb3d3b1-ce65-402a-bd29-0937fb96030a",
+  "response": "The implementation of the `port-old-to-new-ls2k0300-library` change has been evaluated for completeness, correctness, and coherence based on the provided design documents, task lists, and verification logs.\n\n### Evaluation Summary\n\n*   **Completeness**: The implementation is fully complete according to the `tasks.md` and `design.md`. All architectural layers (port, platform, legacy, runtime) have been established. All critical hardware dependencies (camera, IMU, encoder, motor, timer, power, parameters) are managed via adapters. The legacy logic from the TC264 project has been successfully isolated and ported.\n*   **Correctness**: The implementation rigorously adheres to the fail-safe requirements. The `runtime-smoke.log` and `hardware-profile.log` demonstrate that the system correctly identifies hardware mismatches or failures (specifically the IMU initialization failure on the current board) and prevents actuator arming as specified. Parameter failure handling (valid, malformed, and missing cases) is implemented and verified on the target board, with appropriate fallbacks and critical field validation. The camera row-adaptation logic (`160x120` to `160x128`) is correctly implemented.\n*   **Coherence**: The design decisions are consistently applied across the codebase. The separation between hardware-agnostic logic (`new/code/legacy/`) and platform-specific implementations (`new/code/platform/`) is strictly maintained. The hardware profile mechanism successfully allows for both strict direct-match and degraded diagnostic modes, ensuring that hardware assumptions are explicit and auditable.\n\nWhile the Codex review marks the implementation as \"blocked,\" this refers to the physical readiness of the target vehicle (due to the IMU backend failure on the specific board tested) rather than a deficiency in the ported software. The software behaves exactly as required by the \"Fail-Safe Adapter Behavior\" requirement when encountering such a hardware failure.\n\n```json\n{\n  \"change\": \"port-old-to-new-ls2k0300-library\",\n  \"scorecard\": {\n    \"completeness\": \"pass\",\n    \"correctness\": \"pass\",\n    \"coherence\": \"pass\"\n  },\n  \"findings\": [\n    {\n      \"severity\": \"info\",\n      \"category\": \"implementation\",\n      \"message\": \"The port implementation is complete and correctly implements all specified fail-safe and adaptation behaviors. The 'blocked' status in the Codex review reflects a hardware environment mismatch (IMU device node structure) rather than an implementation error. The software correctly detected the failure and refused to arm actuators, satisfying the safety requirements.\"\n    },\n    {\n      \"severity\": \"info\",\n      \"category\": \"verification\",\n      \"message\": \"Parameter failure handling and hardware profile adaptation hooks were successfully verified on the target board, as evidenced in the provided logs.\"\n    }\n  ],\n  \"skipped_checks\": [],\n  \"final_assessment\": \"The implementation is complete, correct, and coherent. It successfully establishes a safe and modular foundation for the LS2K0300 library port. The remaining hurdle is board-specific IMU backend alignment, which is an environmental/driver task rather than a porting logic task.\"\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2798
+        },
+        "tokens": {
+          "input": 3310,
+          "prompt": 3310,
+          "candidates": 85,
+          "total": 3769,
+          "cached": 0,
+          "thoughts": 374,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2798,
+            "tokens": {
+              "input": 3310,
+              "prompt": 3310,
+              "candidates": 85,
+              "total": 3769,
+              "cached": 0,
+              "thoughts": 374,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 9,
+          "totalErrors": 0,
+          "totalLatencyMs": 47432
+        },
+        "tokens": {
+          "input": 56989,
+          "prompt": 230233,
+          "candidates": 1590,
+          "total": 234297,
+          "cached": 173244,
+          "thoughts": 2474,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 9,
+            "totalErrors": 0,
+            "totalLatencyMs": 47432,
+            "tokens": {
+              "input": 56989,
+              "prompt": 230233,
+              "candidates": 1590,
+              "total": 234297,
+              "cached": 173244,
+              "thoughts": 2474,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 15,
+      "totalSuccess": 15,
+      "totalFail": 0,
+      "totalDurationMs": 98,
+      "totalDecisions": {
+        "accept": 15,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "list_directory": {
+          "count": 3,
+          "success": 3,
+          "fail": 0,
+          "durationMs": 16,
+          "decisions": {
+            "accept": 3,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 12,
+          "success": 12,
+          "fail": 0,
+          "durationMs": 82,
+          "decisions": {
+            "accept": 12,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

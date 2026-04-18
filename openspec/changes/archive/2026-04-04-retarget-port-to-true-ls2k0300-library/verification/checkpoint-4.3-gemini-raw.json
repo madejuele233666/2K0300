@@ -1,0 +1,114 @@
+{
+  "session_id": "3e5f2c77-3ec3-4f93-8a04-ce009905676e",
+  "response": "Based on the verification artifacts and directory structure, checkpoint 4.3 for `retarget-port-to-true-ls2k0300-library` is successful. Both the subagent and Gemini reviews report a \"pass\" for the implementation mode. The superseded change `port-old-to-new-ls2k0300-library` has been correctly moved to `openspec/changes/archive/2026-04-04-port-old-to-new-ls2k0300-library/` and is no longer present in the active changes directory, ensuring it is no longer the candidate for future acceptance.\n\n```json\n{\n  \"change\": \"retarget-port-to-true-ls2k0300-library\",\n  \"mode\": \"implementation\",\n  \"final_assessment\": \"pass\",\n  \"findings\": []\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 3031
+        },
+        "tokens": {
+          "input": 3389,
+          "prompt": 3389,
+          "candidates": 118,
+          "total": 3886,
+          "cached": 0,
+          "thoughts": 379,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 3031,
+            "tokens": {
+              "input": 3389,
+              "prompt": 3389,
+              "candidates": 118,
+              "total": 3886,
+              "cached": 0,
+              "thoughts": 379,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 4,
+          "totalErrors": 0,
+          "totalLatencyMs": 24281
+        },
+        "tokens": {
+          "input": 22447,
+          "prompt": 52014,
+          "candidates": 627,
+          "total": 54730,
+          "cached": 29567,
+          "thoughts": 2089,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 4,
+            "totalErrors": 0,
+            "totalLatencyMs": 24281,
+            "tokens": {
+              "input": 22447,
+              "prompt": 52014,
+              "candidates": 627,
+              "total": 54730,
+              "cached": 29567,
+              "thoughts": 2089,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 8,
+      "totalSuccess": 8,
+      "totalFail": 0,
+      "totalDurationMs": 81,
+      "totalDecisions": {
+        "accept": 8,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "list_directory": {
+          "count": 3,
+          "success": 3,
+          "fail": 0,
+          "durationMs": 21,
+          "decisions": {
+            "accept": 3,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 5,
+          "success": 5,
+          "fail": 0,
+          "durationMs": 60,
+          "decisions": {
+            "accept": 5,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

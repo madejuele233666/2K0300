@@ -1,0 +1,126 @@
+{
+  "session_id": "93376fb3-32fa-4ffc-a537-753fca2b61c9",
+  "response": "{\n  \"verdict\": \"pass\",\n  \"findings\": [],\n  \"notes\": [\n    \"No direct or indirect adapter leakage detected in port headers; all platform-specific library (LS2K0300) usage is encapsulated within implementation files and gated behind __has_include.\",\n    \"Composition-root discipline is maintained in new/user/main.cpp, which handles wiring via a PlatformBundle and hands off to project-owned contracts.\",\n    \"Startup fail-safe behavior is correctly implemented in new/code/runtime/startup.cpp, ensuring actuators are only armed if critical parameters are applied and adapters are ready.\",\n    \"Hardware-profile markers and modes (direct-match, adaptation-hook, disabled) are explicitly handled in adapters and documented in new/docs/hardware-matrix.md.\",\n    \"Camera-contract enforcement (160x120 -> 160x128 adaptation) is correctly implemented in new/code/platform/camera_adapter.cpp with appropriate geometry markers.\",\n    \"Foreground-perception publication is performed outside PIT callback in new/code/runtime/perception_frontend.cpp as required.\",\n    \"LS2K0300 stack equivalence is documented and verified in the provided codex review and confirmed by code analysis.\"\n  ]\n}",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2595
+        },
+        "tokens": {
+          "input": 3326,
+          "prompt": 3326,
+          "candidates": 88,
+          "total": 3811,
+          "cached": 0,
+          "thoughts": 397,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2595,
+            "tokens": {
+              "input": 3326,
+              "prompt": 3326,
+              "candidates": 88,
+              "total": 3811,
+              "cached": 0,
+              "thoughts": 397,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 15,
+          "totalErrors": 0,
+          "totalLatencyMs": 64614
+        },
+        "tokens": {
+          "input": 48621,
+          "prompt": 254335,
+          "candidates": 1849,
+          "total": 259072,
+          "cached": 205714,
+          "thoughts": 2888,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 15,
+            "totalErrors": 0,
+            "totalLatencyMs": 64614,
+            "tokens": {
+              "input": 48621,
+              "prompt": 254335,
+              "candidates": 1849,
+              "total": 259072,
+              "cached": 205714,
+              "thoughts": 2888,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 36,
+      "totalSuccess": 36,
+      "totalFail": 0,
+      "totalDurationMs": 523,
+      "totalDecisions": {
+        "accept": 36,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "glob": {
+          "count": 17,
+          "success": 17,
+          "fail": 0,
+          "durationMs": 398,
+          "decisions": {
+            "accept": 17,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "list_directory": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 5,
+          "decisions": {
+            "accept": 1,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 18,
+          "success": 18,
+          "fail": 0,
+          "durationMs": 120,
+          "decisions": {
+            "accept": 18,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

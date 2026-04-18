@@ -1,0 +1,44 @@
+== runtime smoke 2026-04-15T12:29:10Z ==
+board=root@192.168.255.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][1320108] starting ls2k migration runtime
+[INFO][profile.loaded][1320114] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][1320115] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][1320115] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][1320115] direct-match:imu-core-device-detect
+[INFO][profile.encoder][1320115] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][1320115] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][1320115] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][1320115] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][1320115] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][1320115] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2374 threshold=400
+[INFO][startup.low_voltage.clear][1320116] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][1320396] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][1320398] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][1320398] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][encoder.init][1320398] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][motor.init][1320398] motor initialized through true_ls2k0300 bridge: left_pwm=/dev/zf_device_pwm_motor_1, right_pwm=/dev/zf_device_pwm_motor_2, left_gpio=/dev/zf_driver_gpio_motor_1, right_gpio=/dev/zf_driver_gpio_motor_2
+[INFO][startup.complete][1320399] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][1320399] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][1320399] control loop started with PIT-equivalent periodic callback
+[WARN][encoder.baseline][1320406] encoder baseline established; first absolute sample is not emitted as a delta
+[FAIL_SAFE][control.veto][1320406] vetoing actuator update due to stale perception or invalid sensor data
+[INFO][startup.low_voltage.raw][1321120] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2346 threshold=400
+[INFO][startup.low_voltage.raw][1322120] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2359 threshold=400
+[INFO][startup.low_voltage.raw][1323120] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2326 threshold=400
+[INFO][main.frame_limit][1324025] bounded runtime loop reached LS2K_MAX_FRAMES=400
+[INFO][timer.stop][1324026] timer bridge stopped
+[INFO][camera.shutdown][1324026] camera adapter shutdown complete
+[INFO][imu.shutdown][1324026] imu adapter shutdown complete
+[INFO][encoder.shutdown][1324026] encoder adapter shutdown complete
+[INFO][motor.shutdown][1324026] motor adapter shutdown complete
+[INFO][shutdown.complete][1324026] actuators disabled and resources released
+[INFO][main.exit][1324026] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

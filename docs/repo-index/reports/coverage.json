@@ -1,0 +1,34 @@
+{
+  "contract": "repo-index-v1",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "generated_at": "2026-04-09T17:30:00+08:00",
+  "governed_scopes": [
+    "workflow-schema-surface",
+    "workflow-agent-surface"
+  ],
+  "scope_results": [
+    {
+      "governed_scope": "workflow-schema-surface",
+      "covered_entries": [
+        "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+        "openspec/schemas/ai-enforced-workflow/schema.yaml",
+        "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/templates/design.md",
+        "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+      ],
+      "missing_entries": [],
+      "coverage_status": "complete"
+    },
+    {
+      "governed_scope": "workflow-agent-surface",
+      "covered_entries": [
+        ".codex/agents/verify-reviewer.toml",
+        ".codex/agents/index-maintainer.toml"
+      ],
+      "missing_entries": [],
+      "coverage_status": "complete"
+    }
+  ],
+  "coverage_status": "complete"
+}

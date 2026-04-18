@@ -1,0 +1,43 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "The design-generation contract is incomplete for governed verification. `schema.yaml` and `templates/design.md` require coverage/saturation evidence, but they do not require the governed-only execution-evidence fields that `verify-sequence/default` makes mandatory. A governed `STANDARD` or `STRICT` design can therefore satisfy the template while omitting `index_contract`, `index_manifest_path`, `index_preflight_report_path`, `index_mode`, `deep_scanned_paths`, and `deep_scan_reasons`.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/schema.yaml:173-238 defines the Independent Verifier Plan, but its review-completion requirement ends at `verifier_output_path/reviewed_paths/skipped_paths/reviewed_axes/unreviewed_axes/coverage_status/saturation_status/early_stop_reason?/skip_reasons?`. openspec/schemas/ai-enforced-workflow/templates/design.md:97-115 and :117-199 mirror that omission. The shared verifier contract requires governed execution evidence `index_contract/index_manifest_path/index_preflight_report_path/index_mode/deep_scanned_paths/deep_scan_reasons` at openspec/schemas/ai-enforced-workflow/verification-sequence.md:108-114, and the change design itself already treats those fields as required at openspec/changes/introduce-index-aware-verifier-workflow/design.md:331-345.",
+      "recommendation": "Update both the `design` artifact instruction in `schema.yaml` and `templates/design.md` so governed verification plans explicitly require the governed-only execution-evidence fields alongside the existing review-completion fields.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "The task-generation contract is internally inconsistent. The normative task instruction and checkpoint prose in `schema.yaml` omit governed-only execution-evidence fields, while `templates/tasks.md` and `verify-sequence/default` require them. That leaves the schema guidance weaker than the template and permits governed checkpoint tasks that miss mandatory fields.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/schema.yaml:279-291 and :320-350 require review-completion evidence, `output_paths`, routing, and retry policy, but do not require `index_contract/index_manifest_path/index_preflight_report_path/index_mode/deep_scanned_paths/deep_scan_reasons`. openspec/schemas/ai-enforced-workflow/templates/tasks.md:36-37 does require those governed-only fields, and openspec/schemas/ai-enforced-workflow/verification-sequence.md:108-114 makes them mandatory for governed execution evidence.",
+      "recommendation": "Align the `tasks` instruction text in `schema.yaml` with `templates/tasks.md` and `verify-sequence/default` by explicitly requiring the governed-only execution-evidence fields in both the general task requirements and the checkpoint-format prose.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-003",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "design",
+      "problem": "The implementation-verification section of `templates/design.md` states the wrong pass continuation target. It says a successful implementation verification continues to `implementation_verify` while implementation work exists, which contradicts the shared continuation policy.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/templates/design.md:190-193 says `Continuation target on pass: implementation_verify while implementation work already exists; otherwise archive/report completion according to caller flow`. The shared rule in openspec/schemas/ai-enforced-workflow/verification-sequence.md:374-380 says successful implementation verification returns to the active caller flow automatically, with default continuation `archive/report completion` unless verification is still executing inside apply/repair. The change design already uses the shared-sequence wording at openspec/changes/introduce-index-aware-verifier-workflow/design.md:681.",
+      "recommendation": "Change the implementation-verification continuation text in `templates/design.md` to match `verify-sequence/default`: successful implementation verification should return to the caller flow, with default continuation `archive/report completion` unless execution is still inside apply/repair.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

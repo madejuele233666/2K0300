@@ -1,0 +1,40 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "mode": "implementation",
+  "risk_tier": "STRICT",
+  "sequence_ref": "verify-sequence/default",
+  "reviewer_agent": ".codex/agents/verify-reviewer.toml",
+  "runtime_profile": {
+    "model": "gpt-5.4",
+    "reasoning_effort": "high",
+    "fallback_order": [
+      "gpt-5.4/high",
+      "gpt-5.4/medium",
+      "gpt-5.3-codex/medium"
+    ]
+  },
+  "evidence_paths_or_diff_scope": [
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    ".codex/agents/verify-reviewer.toml",
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    "openspec/schemas/ai-enforced-workflow/templates/design.md",
+    "openspec/schemas/ai-enforced-workflow/templates/tasks.md",
+    ".codex/skills/openspec-apply-change/SKILL.md",
+    ".codex/skills/openspec-artifact-verify/SKILL.md",
+    ".codex/skills/openspec-verify-change/SKILL.md",
+    ".codex/skills/openspec-repair-change/SKILL.md",
+    ".codex/skills/openspec-propose/SKILL.md",
+    ".codex/skills/openspec-ff-change/SKILL.md",
+    ".codex/skills/openspec-continue-change/SKILL.md",
+    "openspec/changes/introduce-verify-subagent-workflow/proposal.md",
+    "openspec/changes/introduce-verify-subagent-workflow/design.md",
+    "openspec/changes/introduce-verify-subagent-workflow/specs/**/*.md"
+  ],
+  "findings_contract": "shared-findings-v1",
+  "retry_policy": {
+    "artifact_rerun_budget": 2,
+    "implementation_auto_fix_budget": 2
+  },
+  "final_assessment": "pass",
+  "findings": []
+}

@@ -1,0 +1,33 @@
+{
+  "contract": "repo-index-v1",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "generated_at": "2026-04-09T17:30:00+08:00",
+  "governed_scopes": [
+    "workflow-schema-surface",
+    "workflow-agent-surface"
+  ],
+  "updated_entries": [
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/templates/tasks.md",
+      "kind": "file",
+      "card_path": "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__tasks.md.yaml",
+      "status": "updated"
+    }
+  ],
+  "unchanged_entries": [
+    {
+      "path": ".codex/agents/verify-reviewer.toml",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/.codex__agents__verify-reviewer.toml.yaml",
+      "status": "unchanged"
+    },
+    {
+      "path": ".codex/agents/index-maintainer.toml",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/.codex__agents__index-maintainer.toml.yaml",
+      "status": "unchanged"
+    }
+  ],
+  "failed_entries": [],
+  "refresh_reason": "refresh-after-tasks-template-contract-block-repair"
+}

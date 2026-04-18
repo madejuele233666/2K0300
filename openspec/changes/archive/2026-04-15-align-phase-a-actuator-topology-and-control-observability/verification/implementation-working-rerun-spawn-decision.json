@@ -1,0 +1,18 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "align-phase-a-actuator-topology-and-control-observability",
+  "phase": "implementation_verify",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "session_unresumable",
+  "decision": "allow",
+  "recorded_at": "2026-04-15T14:03:46Z",
+  "prior_session": {
+    "agent_id": "019d9169-d138-7e71-b64a-0dc0c97b1e81",
+    "session_role": "working",
+    "reuse_blocker": "session_completed_unresumable"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/verification/implementation-working-findings.pass1.json",
+    "verifier_evidence_path": "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/verification/implementation-working-evidence.pass1.json"
+  }
+}

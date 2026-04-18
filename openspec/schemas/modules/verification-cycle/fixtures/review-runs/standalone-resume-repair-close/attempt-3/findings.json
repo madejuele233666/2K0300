@@ -1,0 +1,5 @@
+{
+  "target_ref": "workflow:standalone-resume-repair-close",
+  "verdict": "pass",
+  "findings": []
+}

@@ -1,0 +1,25 @@
+{
+  "Speed_base": 77.0,
+  "JWJC": 1.0,
+  "circle_k": 1.1,
+  "circle_b": 35.0,
+  "road_k": 1.15,
+  "road_b": 55.0,
+  "see_max": 35.0,
+  "PID_TURN_CAMERA": {
+    "D": 5.0
+  },
+  "PID_TURN_GYRO_CAMERA": {
+    "D": 9.0
+  },
+  "Straight_permit": 1.0,
+  "island_point": 25.0,
+  "island_delay": 500.0,
+  "circle_k_err": 0.0,
+  "P_Mode": 3,
+  "exp_light": 65,
+  "emergency_threshold": 40,
+  "control_period_ms": 5,
+  "perception_stale_ms": 40,
+  "pwm_limit": 9000
+}

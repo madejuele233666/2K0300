@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "pass_with_warnings",
+  "findings": [
+    {
+      "id": "F001-refreshed-entries-semantics-ambiguous",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "specs",
+      "problem": "The preflight contract allows optional `refreshed_entries`, but the artifacts do not define whether that field must mirror the canonical refresh report, list only entries relevant to the active checkpoint surface, or list only entries that directly triggered refresh. Checkpoint 1 already demonstrates the ambiguity: the authoritative preflight report records only `openspec/schemas/ai-enforced-workflow/index-sequence.md`, while the canonical refresh report records several updated entries including `openspec/schemas/ai-enforced-workflow/schema.yaml`. That leaves downstream consumers unable to interpret `refreshed_entries` deterministically.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/index-sequence.md:65-95` defines `refreshed_entries` as an optional preflight field but gives no semantics for its scope. `openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-1/attempt-1/artifact-index-preflight.json:29-34` records `governed_scopes=[\"workflow-schema-surface\"]` and `refreshed_entries=[\"openspec/schemas/ai-enforced-workflow/index-sequence.md\"]`. `docs/repo-index/reports/refresh.json:9-51` records additional updated entries for the same refresh cycle, including `openspec/schemas/ai-enforced-workflow/schema.yaml`.",
+      "recommendation": "Define `refreshed_entries` normatively in the preflight contract. Either require it to mirror the authoritative refresh report subset for the active checkpoint surface, or remove the field from checkpoint preflight evidence and rely on `refresh_report_path` plus `reason` for refresh provenance.",
+      "redirect_layer": "specs",
+      "blocking": false,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002-stage-count-mismatch-in-design",
+      "severity": "SUGGESTION",
+      "dimension": "Coherence",
+      "artifact": "design",
+      "problem": "The Independent Verification Plan labels the verification flow as a \"Two-stage flow\" but then enumerates Stage 0 preflight, Stage 1 verifier review, and Stage 2 Gemini review. That wording understates the actual phase count for STRICT checkpoints and can confuse readers about whether Gemini is part of the governed checkpoint contract.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/design.md:455-458` says `Two-stage flow:` and then lists `Stage 0`, `Stage 1`, and `Stage 2`.",
+      "recommendation": "Rename this to `Three-stage flow` or renumber the phases so the heading matches the enumerated verification stages.",
+      "redirect_layer": "design",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

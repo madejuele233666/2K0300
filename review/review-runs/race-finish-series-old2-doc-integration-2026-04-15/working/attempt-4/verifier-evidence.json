@@ -1,0 +1,113 @@
+{
+  "target_ref": "workflow:race-finish-series-old2-doc-integration-2026-04-15",
+  "review_goal": "implementation_correctness",
+  "review_pass_type": "working",
+  "risk_tier": "STANDARD",
+  "template_id": "standalone-old2-doc-integration-working-4",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-gpt5-reviewer",
+  "start_at": "2026-04-15T10:57:30Z",
+  "end_at": "2026-04-15T10:59:07Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "working_evidence_only",
+  "verifier_output_path": "working/attempt-4/findings.json",
+  "same_session_baseline_reused": true,
+  "prior_working_attempt": "working/attempt-3",
+  "reopen_source": {
+    "session_role": "challenger",
+    "agent_id": "codex-gpt5-challenger-reviewer",
+    "findings_path": "challenger/attempt-1/findings.json",
+    "verifier_evidence_path": "challenger/attempt-1/verifier-evidence.json",
+    "reason_code": "challenger_reopen"
+  },
+  "reviewed_paths": [
+    "new/docs/race-finish-series.zh-CN/README.md",
+    "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+    "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+    "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+    "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+    "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+    "new/docs/race-finish-series.zh-CN/07-current-progress.md",
+    "old_2/project/code/camera.cpp",
+    "old_2/project/code/motor.cpp",
+    "old_2/project/code/isr.cpp",
+    "old_2/project/user/main.cpp",
+    "old_2/project/code/key.cpp",
+    "old_2/project/code/save.cpp",
+    "old_2/libraries/zf_device/zf_device_uvc.cpp",
+    "old_2/project/code/class_thread_wrapper.h",
+    "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md",
+    "openspec/schemas/modules/review-loop/bin/review_loop_guard.py",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/challenger/attempt-1/findings.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/challenger/attempt-1/verifier-evidence.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/challenger/attempt-1/spawn-decision.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-1/verifier-evidence.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/findings.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/verifier-evidence.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-3/findings.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-3/verifier-evidence.json",
+    "review/race-finish-series-docs/working-findings.json",
+    "review/race-finish-series-docs/working-verifier-evidence.json",
+    "review/race-finish-series-docs/challenger-findings.json",
+    "review/race-finish-series-docs/challenger-verifier-evidence.json"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Correctness",
+    "Completeness",
+    "Coherence",
+    "source-attribution accuracy",
+    "mainline integration vs detached appendix",
+    "migration-boundary discipline",
+    "progress-claim cross-check",
+    "run-artifact guard compatibility"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "review_scope": {
+    "mode": "paths",
+    "value": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+      "new/docs/race-finish-series.zh-CN/07-current-progress.md"
+    ],
+    "target_description": "Reopened working-pass review of the documentation integration that absorbs useful parts of old_2/ into race-finish-series.zh-CN/, after the final artifact repair to challenger source_review paths.",
+    "acceptance_reference_paths": [
+      "old_2/project/code/camera.cpp",
+      "old_2/project/code/motor.cpp",
+      "old_2/project/code/isr.cpp",
+      "old_2/project/user/main.cpp",
+      "old_2/project/code/key.cpp",
+      "old_2/project/code/save.cpp",
+      "old_2/libraries/zf_device/zf_device_uvc.cpp",
+      "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md"
+    ],
+    "constraints_or_invariants": [
+      "old_2 must be framed as a migration evidence source, not a new runtime workspace",
+      "docs must integrate old_2 into the mainline sections rather than append a detached appendix",
+      "reopened working review must keep the same working-session agent_id semantics"
+    ]
+  },
+  "review_coverage": {
+    "declared_surface": "same documentation target bundle plus reopened challenger and run-artifact references needed to verify the final challenger_reopen repair set",
+    "covered": true,
+    "repair_areas_rechecked": [
+      "new/docs/race-finish-series.zh-CN/07-current-progress.md",
+      "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-1/verifier-evidence.json",
+      "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/verifier-evidence.json",
+      "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/challenger/attempt-1/spawn-decision.json"
+    ],
+    "summary": [
+      "Confirmed the `07-current-progress.md` repair still correctly scopes challenger-confirmed closure to the `2026-04-14` baseline and keeps the `2026-04-15` `old_2` integration pending standalone closure.",
+      "Confirmed working attempt-1 and attempt-2 still use run-dir-relative `verifier_output_path` values.",
+      "Confirmed `challenger/attempt-1/spawn-decision.json` now uses run-dir-relative `source_review` paths (`working/attempt-2/findings.json` and `working/attempt-2/verifier-evidence.json`), resolving the previous working-level guard compatibility finding.",
+      "Reran `review_loop_guard.py` before writing this attempt and observed that the prior path-mismatch error is gone; the only remaining failures were expected transient ones caused by the absence of `working/attempt-4/*` at that moment and the fact that full module closure still requires a final challenger pass."
+    ]
+  }
+}

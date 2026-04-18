@@ -1,0 +1,21 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "fixture-openspec-artifact-gate-close",
+  "phase": "artifact_gate",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "challenger_pass",
+  "decision": "allow",
+  "recorded_at": "2026-04-16T02:16:00Z",
+  "prior_session": {
+    "agent_id": "fixture-openspec-working",
+    "session_role": "working",
+    "reuse_blocker": "policy_requires_challenger"
+  },
+  "evidence": {
+    "source_review": {
+      "agent_id": "fixture-openspec-working",
+      "findings_path": "working/attempt-2/findings.json",
+      "verifier_evidence_path": "working/attempt-2/verifier-evidence.json"
+    }
+  }
+}

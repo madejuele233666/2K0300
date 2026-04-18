@@ -1,0 +1,55 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-006",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "specs",
+      "problem": "The change capability spec still defines the old verifier invocation contract and has not been updated to the current session-oriented bundle model used by the schema, shared sequence, verifier instructions, and repaired change artifacts.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:58-82` still requires the invocation to preserve `retry_policy` and to extend with optional `rerun_context.prior_findings_path`. But the authoritative shared sequence now defines the minimal bundle as only `change / mode / risk_tier / evidence_paths_or_diff_scope / findings_contract` at `openspec/schemas/ai-enforced-workflow/verification-sequence.md:31-41`, the schema mirrors that at `openspec/schemas/ai-enforced-workflow/schema.yaml:204-205` and `openspec/schemas/ai-enforced-workflow/schema.yaml:362-368`, the design template mirrors it at `openspec/schemas/ai-enforced-workflow/templates/design.md:105-122`, and the repaired change artifacts mirror it at `openspec/changes/introduce-index-aware-verifier-workflow/design.md:563-580` and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:74-91`. The verifier agent instructions also now accept no `retry_policy` or `rerun_context` input at `/.codex/agents/verify-reviewer.toml:25-44`.",
+      "recommendation": "Repair `openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md` so its invocation contract matches the current shared sequence and repaired artifacts: remove the stale `retry_policy` and `rerun_context.prior_findings_path` requirements, or reintroduce them consistently everywhere if they are still intended.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-007",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "specs",
+      "problem": "The preflight capability spec still requires a fresh verifier start and preflight-before-review as if every rerun were a new verifier pass, which conflicts with the new same-session convergence model and conditional fresh-surface recompilation rules.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:3-5` says governed verification runs repository-index preflight before verifier review, and `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:72-79` says the final verifier still starts as a fresh `verify-reviewer` instance after refresh. The shared sequence now explicitly allows same-session reruns and only recompiles a fresh governed surface when needed at `openspec/schemas/ai-enforced-workflow/verification-sequence.md:20-25` and `openspec/schemas/ai-enforced-workflow/verification-sequence.md:332-353`. The schema mirrors that policy at `openspec/schemas/ai-enforced-workflow/schema.yaml:157-165`, `openspec/schemas/ai-enforced-workflow/schema.yaml:244-251`, and `openspec/schemas/ai-enforced-workflow/schema.yaml:352-389`, and the repaired change artifacts mirror it at `openspec/changes/introduce-index-aware-verifier-workflow/design.md:495-498` and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:117-127`.",
+      "recommendation": "Update `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md` so it distinguishes same-session convergence reruns from fresh confirmation passes and makes Stage 0 preflight conditional on fresh-surface compilation needs instead of implying a fresh verifier start before every rerun.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-008",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "The repaired change-local task plan still tells checkpoint tasks to use a shared contract 'including ... retry policy', but the shared governed verification contract block no longer defines any retry-policy field or retry-policy vocabulary.",
+      "evidence": "Each checkpoint task still says it uses the shared governed verification contract 'including the minimal bundle, `index_context`, routing target, retry policy, and review-completion fields' at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:153-153`, `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:161-161`, `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:168-168`, `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:175-175`, `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:182-182`, and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:191-191`. But the shared contract block they reference at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:61-146` defines the preflight caller contract, minimal bundle, `index_context`, `output_paths`, spawn-decision contract, caller-local runtime guardrails, continuation overrides, and review-completion fields, with no retry-policy field. The current task template likewise no longer defines retry policy as part of the shared checkpoint contract at `openspec/schemas/ai-enforced-workflow/templates/tasks.md:37-39`, and the schema checkpoint wording now speaks about routing target plus caller-local guardrails instead of retry policy at `openspec/schemas/ai-enforced-workflow/schema.yaml:361-369`.",
+      "recommendation": "Repair `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md` so checkpoint tasks reference the current shared contract vocabulary consistently, either by restoring an explicit retry-policy contract everywhere or by replacing the stale retry-policy wording with the current caller-local guardrails language.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-009",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The refreshed repository-index support artifacts are still internally stale and contradictory, so the claimed refreshed governed surface is not fully trustworthy.",
+      "evidence": "`docs/repo-index/manifest.json:80-84` and `docs/repo-index/reports/refresh.json:49-58` still mark `.codex/agents/verify-reviewer.toml` as last verified at `2026-04-09T11:04:01+08:00` and unchanged, but the actual verifier file now contains new same-session/fresh-confirmation behavior at `/.codex/agents/verify-reviewer.toml:22-58`. The refreshed template cards also still encode removed rerun-comparison semantics: `docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__design.md.yaml:7-15` and `docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__tasks.md.yaml:7-15` still describe optional rerun-comparison input, while the current templates no longer expose `rerun_context` and instead use same-session/fresh-confirmation rules at `openspec/schemas/ai-enforced-workflow/templates/design.md:40-49` and `openspec/schemas/ai-enforced-workflow/templates/tasks.md:37-39`.",
+      "recommendation": "Refresh the repository-index artifacts for the changed workflow-agent and template surfaces so manifest/report timestamps and card contents match the current verifier and template contracts before relying on the refreshed index as authoritative support evidence.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

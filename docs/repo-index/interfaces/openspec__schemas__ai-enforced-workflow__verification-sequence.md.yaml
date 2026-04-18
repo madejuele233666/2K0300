@@ -1,0 +1,59 @@
+path: openspec/schemas/ai-enforced-workflow/verification-sequence.md
+kind: interface
+owner_role: governed verifier orchestration contract
+responsibilities:
+  - Defines the stable minimal verification bundle and optional index_context handoff.
+  - Defines the checkpoint-scoped output_paths contract for findings, verifier evidence, and Gemini artifacts.
+  - Defines the canonical `agent-spawn-decision-v1` contract and the rule that same-session reruns must reuse the active verifier session unless exception policy explicitly allows a new spawn.
+  - Defines authoritative execution-evidence requirements for governed checkpoints.
+  - Forces exhaustive path and review-axis coverage before checkpoint acceptance.
+  - Requires authoritative required-path and required-axis universes from Stage 0 preflight.
+  - Validates coverage against the frozen preflight review surface instead of allowing ad hoc re-derivation during the verifier pass.
+  - Keeps same-session convergence reruns read-only and reserves fresh verifier spawns for fresh confirmation only.
+  - Blocks governed checkpoints when mandatory Gemini recovery still cannot produce a normalized report.
+  - Treats index telemetry as governed-only execution evidence while keeping nongoverned passes coherent.
+  - Defaults bypassed review axes to the standard completeness/correctness/coherence baseline plus any checkpoint-declared axes.
+  - Treats the checkpoint-specific preflight report as auxiliary verifier evidence, not part of the default reviewed-path universe.
+must_not_do:
+  - Must not move repository-index telemetry into the findings envelope.
+  - Must not allow a verifier pass to stop after the first blocker cluster by default.
+  - Must not silently re-derive a new review surface when the preflight surface is already frozen.
+  - Must not require generic rerun-comparison inputs that are no longer part of the shared invocation contract.
+governed_paths:
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+  - openspec/schemas/ai-enforced-workflow/index-sequence.md
+  - openspec/schemas/ai-enforced-workflow/schema.yaml
+  - .codex/agents/verify-reviewer.toml
+inputs:
+  - verification bundle
+  - optional index_context
+  - Gemini second-opinion policy
+outputs:
+  - authoritative findings json
+  - verifier execution evidence json
+  - repair or continuation decision
+invariants:
+  - verifier template id is verify-reviewer-inline-v2
+  - findings_contract remains shared-findings-v1
+  - governed checkpoints require repository-index preflight evidence
+  - authoritative completion requires complete and exhaustive coverage
+  - execution evidence includes verifier_output_path for authoritative findings linkage
+  - governed preflight evidence must include required_paths and required_axes
+  - validators derive completion from frozen preflight required_paths and required_axes plus reviewed_paths and reviewed_axes rather than trusting status flags alone
+  - required_axes stay within the shared review vocabulary unless the findings contract expands in the same change
+  - required_axes for bypassed review surfaces default to Completeness, Correctness, and Coherence
+  - checkpoint-specific preflight reports stay out of required_paths unless explicit policy opts in
+  - required_paths use workspace-accessible file paths
+  - a second working verifier session must not be opened while the current active working session remains reusable and unresolved
+  - missing normalized Gemini report output after allowed recovery attempts blocks the checkpoint
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - required review axes cannot be derived from active governed entries
+  - execution evidence claims complete coverage but path or axis accounting disagrees
+  - preflight reports bypassed review without later deep-scan evidence
+confidence: high
+digest: sha256:7012642fe5b0aa12e795e1ff57f6ae9457868167364a5d5db3ead5d5959386d9
+last_verified_at: 2026-04-09T15:08:00+08:00

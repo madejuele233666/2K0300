@@ -1,0 +1,26 @@
+[INFO][profile.loaded][2458059] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][2458059] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][2458059] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][2458059] direct-match:imu-core-device-detect
+[INFO][profile.encoder][2458059] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][2458059] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][2458059] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][2458059] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][2458060] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][2458060] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2412 threshold=400
+[INFO][startup.low_voltage.clear][2458060] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][2458331] camera initialized through true_ls2k0300 bridge: /dev/video0
+[FAIL_SAFE][imu.init][2458332] imu unavailable: no supported IMU name file found under /sys/bus/iio/devices
+[WARN][imu.detect][2458333] imu detection path selected: unknown source=unresolved
+[FAIL_SAFE][startup.imu.init][2458333] imu adapter initialization failed
+[FAIL_SAFE][main.startup][2458333] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][2458333] camera adapter shutdown complete
+[INFO][imu.shutdown][2458333] imu adapter shutdown complete
+[INFO][encoder.shutdown][2458333] encoder adapter shutdown complete
+[INFO][motor.shutdown][2458333] motor adapter shutdown complete
+[INFO][shutdown.complete][2458333] actuators disabled and resources released
+

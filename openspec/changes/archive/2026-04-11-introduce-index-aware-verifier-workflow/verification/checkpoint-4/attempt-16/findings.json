@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "This fresh confirmation pass cannot be treated as authoritative because the current review state does not cover the full frozen `required_paths` surface declared by the checkpoint-4 attempt-16 preflight.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-16/artifact-index-preflight.json` declares a frozen review surface of 22 `required_paths` across Completeness, Correctness, and Coherence. The current review state covered the repository-index artifacts, the repo-index cards, the governed workflow source files, and `.codex/agents/verify-reviewer.toml`, but it did not yet review these required change-local paths before finalization: `openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md`, `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md`, `openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md`, `openspec/changes/introduce-index-aware-verifier-workflow/design.md`, and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md`. `openspec/schemas/ai-enforced-workflow/verification-sequence.md` and `.codex/agents/verify-reviewer.toml` both require blocking when declared review coverage is incomplete instead of silently claiming an exhaustive result.",
+      "recommendation": "Rerun the fresh confirmation pass over the entire frozen `required_paths` set from attempt-16 and only issue a final checkpoint verdict after all declared paths and all three required axes have been reviewed exhaustively.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

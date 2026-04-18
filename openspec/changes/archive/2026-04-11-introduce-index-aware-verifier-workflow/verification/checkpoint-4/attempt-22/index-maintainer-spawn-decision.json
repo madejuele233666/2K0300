@@ -1,0 +1,32 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "introduce-index-aware-verifier-workflow",
+  "phase": "preflight",
+  "requested_agent_type": "index-maintainer",
+  "spawn_kind": "policy_required",
+  "reason_code": "index_refresh_required",
+  "decision": "allow",
+  "recorded_at": "2026-04-09T17:04:59+08:00",
+  "summary": "Checkpoint-4 repaired the governed verifier runtime profile in `.codex/agents/verify-reviewer.toml`, so the active repo-index interface card and freshness metadata for that governed interface are now stale and must be refreshed before the active verifier session can rerun on a trusted surface.",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_expected": false,
+    "reuse_attempted": false,
+    "reuse_succeeded": false,
+    "reuse_blocker": "not_applicable"
+  },
+  "policy_basis": {
+    "sequence_ref": "openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default",
+    "rule_ref": "index-refresh"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-21/findings.json",
+    "verifier_evidence_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-21/verifier-evidence.json",
+    "preflight_report_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-21/artifact-index-preflight.json"
+  },
+  "notes": [
+    "Refresh scope is limited to repo-index artifacts under docs/repo-index/ for the affected governed interface.",
+    "No new verifier session is allowed here; the active verifier remains 019d7173-e27d-76e2-8114-c649bca36ca8."
+  ]
+}

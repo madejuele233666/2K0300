@@ -1,0 +1,32 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "introduce-index-aware-verifier-workflow",
+  "phase": "preflight",
+  "requested_agent_type": "index-maintainer",
+  "spawn_kind": "policy_required",
+  "reason_code": "index_refresh_required",
+  "decision": "allow",
+  "recorded_at": "2026-04-09T17:30:00+08:00",
+  "summary": "Checkpoint-4 repaired the governed tasks template by adding a shared governed verification contract block and wiring the checkpoint scaffold to reference it, so the active repo-index card and freshness metadata for that governed template are now stale and must be refreshed before the active verifier session can rerun on a trusted surface.",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_expected": false,
+    "reuse_attempted": false,
+    "reuse_succeeded": false,
+    "reuse_blocker": "not_applicable"
+  },
+  "policy_basis": {
+    "sequence_ref": "openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default",
+    "rule_ref": "index-refresh"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-23/findings.json",
+    "verifier_evidence_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-23/verifier-evidence.json",
+    "preflight_report_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-23/artifact-index-preflight.json"
+  },
+  "notes": [
+    "Refresh scope is limited to repo-index artifacts under docs/repo-index/ for the affected governed template.",
+    "No new verifier session is allowed here; the active verifier remains 019d7184-3b9e-74e1-b55e-b7a88421be7c."
+  ]
+}

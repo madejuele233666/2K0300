@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/transition-resolver/contracts/working-session-normalization-v1.json",
+  "contract": "working-session-normalization-v1",
+  "required": [
+    "active_working_agent_id",
+    "active_challenger_agent_id",
+    "session_open",
+    "resumable",
+    "exception_reason",
+    "send_input_ready",
+    "resume_probe_attempted",
+    "resume_probe_result"
+  ],
+  "resume_probe_results": [
+    "not_attempted",
+    "resumable",
+    "unresumable",
+    "agent_not_found",
+    "tooling_error"
+  ],
+  "exception_reasons": [
+    "",
+    "agent_not_found",
+    "session_completed_unresumable",
+    "tooling_recovery"
+  ],
+  "rules": [
+    "session_open=true requires active_working_agent_id and send_input_ready=true.",
+    "session_open=true forbids resumable=true and forbids exception_reason.",
+    "resumable=true requires active_working_agent_id, resume_probe_attempted=true, and resume_probe_result=resumable.",
+    "exception_reason=session_completed_unresumable requires active_working_agent_id, resume_probe_attempted=true, and resume_probe_result=unresumable.",
+    "exception_reason=agent_not_found requires active_working_agent_id, resume_probe_attempted=true, and resume_probe_result=agent_not_found.",
+    "exception_reason=tooling_recovery requires active_working_agent_id, resume_probe_attempted=true, and resume_probe_result=tooling_error.",
+    "ordinary working_rerun requires an active working baseline; missing active_working_agent_id is a caller-state error, not a fresh-spawn shortcut.",
+    "observational states such as wait_agent status=completed or verifier_evidence.final_state=completed are advisory only and must not by themselves imply session_completed_unresumable."
+  ],
+  "notes": [
+    "This contract is caller-side normalization evidence for transition-resolver-input-v1.session.",
+    "The normalizer must derive exception_reason mechanically from explicit reuse checks instead of inferring it from prose or terminal-looking observer state."
+  ]
+}

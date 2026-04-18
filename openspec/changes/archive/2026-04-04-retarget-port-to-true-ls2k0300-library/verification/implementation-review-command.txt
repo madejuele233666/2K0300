@@ -1,0 +1,3 @@
+local_review_shell_template=verify-reviewer-shell-v1
+local_review_command=codex exec --skip-git-repo-check --cd /home/madejuele/projects/2K0300 --json -
+gemini_command=./openspec/bin/gemini_capture.sh --prompt \"$(cat /tmp/retarget_implementation_verify_gemini_prompt.txt)\" --raw-path \"openspec/changes/retarget-port-to-true-ls2k0300-library/verification/implementation-gemini-raw.json\" --report-path \"openspec/changes/retarget-port-to-true-ls2k0300-library/verification/implementation-gemini-report.json\" --max-attempts 2 --require-json-response

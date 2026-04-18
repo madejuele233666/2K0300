@@ -1,0 +1,56 @@
+== runtime smoke 2026-04-12T14:15:29Z ==
+board=root@10.100.170.226
+binary=/home/root/run_skip_imu_encoder_profile.sh
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][886982] starting ls2k migration runtime
+[INFO][profile.loaded][886983] hardware profile loaded from /home/root/hardware_profile.skip-imu-encoder.json
+[INFO][params.loaded][886984] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][886984] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][886984] disabled:imu-core-device-detect
+[INFO][profile.encoder][886984] disabled:absolute-count-delta-baseline
+[INFO][profile.motor][886984] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][886984] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][886984] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.imu.degraded][886984] imu profile is disabled:imu-core-device-detect (allowed only in degraded startup mode)
+[WARN][startup.profile.encoder.degraded][886984] encoder profile is disabled:absolute-count-delta-baseline (allowed only in degraded startup mode)
+[INFO][params.critical.apply][886984] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][886984] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][886984] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2434 threshold=400
+[INFO][startup.low_voltage.clear][886985] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][887262] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.disabled][887263] imu subsystem disabled by hardware profile
+[WARN][startup.imu.disabled.degraded][887263] imu is disabled by profile and degraded startup mode is enabled
+[INFO][encoder.disabled][887263] encoder subsystem disabled by hardware profile
+[WARN][startup.encoder.disabled.degraded][887263] encoder is disabled by profile and degraded startup mode is enabled
+[INFO][motor.init][887263] motor initialized through true_ls2k0300 bridge: left_pwm=/dev/zf_device_pwm_motor_1, right_pwm=/dev/zf_device_pwm_motor_2, left_gpio=/dev/zf_driver_gpio_motor_1, right_gpio=/dev/zf_driver_gpio_motor_2
+[INFO][startup.complete][887263] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][887263] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][887263] control loop started with PIT-equivalent periodic callback
+[FAIL_SAFE][control.veto][887269] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.emergency_stop.failed][887270] motor PWM write failed: /dev/zf_device_pwm_motor_1
+[FAIL_SAFE][motor.apply.unavailable][887275] motor apply requested while motor adapter not ready
+[INFO][startup.low_voltage.raw][887984] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2428 threshold=400
+[FAIL_SAFE][control.veto][888272] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.apply.unavailable][888278] motor apply requested while motor adapter not ready
+[INFO][startup.low_voltage.raw][888985] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2432 threshold=400
+[FAIL_SAFE][control.veto][889276] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.apply.unavailable][889282] motor apply requested while motor adapter not ready
+[INFO][startup.low_voltage.raw][889989] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2427 threshold=400
+[FAIL_SAFE][control.veto][890279] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.apply.unavailable][890284] motor apply requested while motor adapter not ready
+[INFO][main.frame_limit][890882] bounded runtime loop reached LS2K_MAX_FRAMES=400
+[INFO][timer.stop][890886] timer bridge stopped
+[WARN][motor.disable.failed][890886] motor PWM write failed: /dev/zf_device_pwm_motor_1
+[INFO][camera.shutdown][890887] camera adapter shutdown complete
+[INFO][imu.shutdown][890887] imu adapter shutdown complete
+[INFO][encoder.shutdown][890887] encoder adapter shutdown complete
+[INFO][motor.shutdown][890887] motor adapter shutdown complete
+[INFO][shutdown.complete][890887] actuators disabled and resources released
+[INFO][main.exit][890887] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

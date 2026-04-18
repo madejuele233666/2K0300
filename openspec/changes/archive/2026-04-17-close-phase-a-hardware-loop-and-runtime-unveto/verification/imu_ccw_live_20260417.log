@@ -1,0 +1,79 @@
+[INFO][main.start][7053885] starting ls2k migration runtime
+[INFO][profile.loaded][7053887] hardware profile loaded from /home/root/hardware_profile_diagnostics_motor_disabled.json
+[INFO][params.loaded][7053887] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][7053887] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][7053887] direct-match:imu-core-device-detect
+[INFO][profile.encoder][7053887] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][7053887] disabled:phase1-diagnostic-no-output
+[INFO][profile.timer][7053887] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][7053887] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.motor.degraded][7053887] motor profile is disabled:phase1-diagnostic-no-output (allowed only in degraded startup mode)
+[INFO][params.critical.apply][7053887] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][7053888] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][7053888] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2310 threshold=400
+[INFO][startup.low_voltage.clear][7053888] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][7054160] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][7054161] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][7054161] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][7054203] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][7054204] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][7054204] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right
+[INFO][motor.disabled][7054204] motor subsystem disabled by hardware profile
+[WARN][startup.motor.disabled.degraded][7054204] motor is disabled by profile and degraded startup mode is enabled
+[INFO][startup.complete][7054204] startup validated required adapters and applied critical params
+[WARN][control.start.degraded.motor_disabled][7054204] degraded startup keeps control loop running with motor disabled; actuators stay disarmed
+[INFO][timer.start.pit][7054204] timer started with true_ls2k0300 pit bridge
+[FAIL_SAFE][control.arm.motor_disabled][7054204[INFO][control.start][7054206] control loop started with PIT-equivalent periodic callback
+[INFO][imu.sample.summary][7054212] imu normalized sample acc_z=-4.843073mps2 gyro_z=0.000831radps valid_streak=1
+[WARN][encoder.baseline][7054214] encoder baseline established; first absolute sample is not emitted as a delta and logical right-wheel sign is normalized at the adapter boundary
+] motor profile is disabled; control loop stays diagnostics-only with actuators disarmed
+[FAIL_SAFE][control.veto][7054214] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][7054214] dominant control veto reason: perception_stale
+[WARN][control.apply.suppressed][7054214] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7054222] logical encoder delta left=0 right=0 mean=0 diff=0
+[WARN][control.veto.sustained][7054416] control remained vetoed for 202 ms with dominant reason=perception_stale
+[INFO][imu.continuity.ready][7054422] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][control.veto.interval.closed][7054518] previous veto interval closed after 304 ms (reason=perception_stale)
+[INFO][control.command.requested_nonzero][7054518] non-zero differential-drive command requested
+[INFO][control.unveto.sustained][7054721] control remained non-veto for 203 ms; actuator path stayed eligible for drive application
+[INFO][startup.low_voltage.raw][7054888] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2309 threshold=400
+[INFO][imu.sample.summary][7055218] imu normalized sample acc_z=-4.840776mps2 gyro_z=-0.021515radps valid_streak=142
+[WARN][control.apply.suppressed][7055219] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7055226] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][7055522] non-zero differential-drive command requested
+[INFO][startup.low_voltage.raw][7055888] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2305 threshold=400
+[INFO][imu.sample.summary][7056221] imu normalized sample acc_z=-4.870613mps2 gyro_z=-0.756808radps valid_streak=281
+[WARN][control.apply.suppressed][7056222] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7056230] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][7056526] non-zero differential-drive command requested
+[INFO][startup.low_voltage.raw][7056892] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2305 threshold=400
+[INFO][imu.sample.summary][7057225] imu normalized sample acc_z=-4.893563mps2 gyro_z=-1.180320radps valid_streak=420
+[WARN][control.apply.suppressed][7057226] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7057234] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][7057529] non-zero differential-drive command requested
+[INFO][startup.low_voltage.raw][7057895] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2298 threshold=400
+[INFO][imu.sample.summary][7058228] imu normalized sample acc_z=-4.801163mps2 gyro_z=0.000831radps valid_streak=559
+[WARN][control.apply.suppressed][7058229] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7058237] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][7058533] non-zero differential-drive command requested
+[INFO][startup.low_voltage.raw][7058895] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2304 threshold=400
+[INFO][imu.sample.summary][7059233] imu normalized sample acc_z=-4.854797mps2 gyro_z=0.000831radps valid_streak=698
+[WARN][control.apply.suppressed][7059235] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7059242] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][7059538] non-zero differential-drive command requested
+[INFO][startup.low_voltage.raw][7059895] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2318 threshold=400
+[INFO][imu.sample.summary][7060238] imu normalized sample acc_z=-4.846734mps2 gyro_z=0.000831radps valid_streak=837
+[WARN][control.apply.suppressed][7060239] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][encoder.delta.summary][7060246] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][main.frame_limit][7060326] bounded runtime loop reached LS2K_MAX_FRAMES=700
+[INFO][timer.stop][7060331] timer bridge stopped
+[INFO][camera.shutdown][7060331] camera adapter shutdown complete
+[INFO][imu.shutdown][7060331] imu adapter shutdown complete
+[INFO][encoder.shutdown][7060331] encoder adapter shutdown complete
+[INFO][motor.shutdown][7060331] motor adapter shutdown complete
+[INFO][shutdown.complete][7060331] actuators disabled and resources released
+[INFO][main.exit][7060331] runtime exit complete

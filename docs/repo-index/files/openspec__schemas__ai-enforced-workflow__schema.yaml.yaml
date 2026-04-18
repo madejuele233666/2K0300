@@ -1,0 +1,43 @@
+path: openspec/schemas/ai-enforced-workflow/schema.yaml
+kind: file
+layer: workflow-schema
+owner_role: ai-enforced-workflow schema governance
+responsibilities:
+  - Defines artifact instructions for proposal, specs, design, and tasks.
+  - Declares Repository Index Plan requirements for governed STANDARD and STRICT changes.
+  - Forces Stage 0 preflight, deterministic contract lint, and closure-based index reuse decisions in apply instructions.
+  - Requires stable governed scope objects and governed preflight required-universe fields.
+  - Treats governed preflight evidence as the frozen review-surface snapshot for later verifier and validator coverage checks.
+  - Requires verifier invocation envelopes to declare output-path mapping and execution evidence to carry `verifier_output_path`.
+  - Requires spawn-decision records to validate against the shared `agent-spawn-decision-v1` schema before new verifier or index-maintainer sessions are opened.
+  - Requires fail-closed behavior when governed preflight is unreadable or incoherent.
+must_not_do:
+  - Must not let governed verification skip index preflight implicitly.
+  - Must not treat partial or early-stopped review as authoritative completion.
+  - Must not leave task/checkpoint wording on stale retry-policy vocabulary once caller-local guardrails become the authoritative local override surface.
+inputs:
+  - Change proposal, specs, design, and task generation context.
+  - Shared verification and index sequence contracts.
+outputs:
+  - Artifact-generation instructions.
+  - Apply-stage verification policy text.
+depends_on:
+  - openspec/schemas/ai-enforced-workflow/index-sequence.md
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+public_symbols:
+  - name
+  - version
+  - artifacts
+  - apply
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - verification template id changes away from verify-reviewer-inline-v2
+  - governed apply instructions omit Stage 0 preflight
+  - governed apply instructions omit deterministic contract lint or dirty-closure refresh rules
+  - review-completion acceptance rules drift from exhaustive coverage
+confidence: high
+digest: sha256:da6ebea7f6d5e97daf15ae9bbfb6c2820f472dd9d851d53dd9031b029a124397
+last_verified_at: 2026-04-09T15:08:00+08:00

@@ -1,0 +1,23 @@
+== iio devices ==
+[/sys/bus/iio/devices/iio:device0]
+current_timestamp_clock
+dev
+in_voltage0_raw
+in_voltage1_raw
+in_voltage2_raw
+in_voltage3_raw
+in_voltage4_raw
+in_voltage5_raw
+in_voltage6_raw
+in_voltage7_raw
+in_voltage_scale
+name
+of_node
+power
+subsystem
+uevent
+name=1611c000.adc
+
+== spi imu ==
+modalias=spi:imu
+compatible=seekfree,imu

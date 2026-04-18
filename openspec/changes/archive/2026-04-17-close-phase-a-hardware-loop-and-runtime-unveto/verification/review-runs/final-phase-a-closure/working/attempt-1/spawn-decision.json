@@ -1,0 +1,18 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "phase": "implementation_verify",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "initial_working_session",
+  "decision": "allow",
+  "recorded_at": "2026-04-17T11:28:08Z",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_blocker": "not_applicable"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/review-runs/final-phase-a-closure/working/attempt-1/findings.json",
+    "verifier_evidence_path": "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/review-runs/final-phase-a-closure/working/attempt-1/verifier-evidence.json"
+  }
+}

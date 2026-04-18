@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/contracts/review-loop-reopen-record-v1.json",
+  "title": "review-loop-reopen-record-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "reason_code",
+    "recorded_at",
+    "promoted_working_agent_id",
+    "prior_challenger"
+  ],
+  "properties": {
+    "contract": {
+      "const": "review-loop-reopen-record-v1"
+    },
+    "change": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason_code": {
+      "const": "challenger_reopen"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "promoted_working_agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prior_challenger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "findings_path",
+        "verifier_evidence_path"
+      ],
+      "properties": {
+        "agent_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "findings_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifier_evidence_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "change"
+      ],
+      "not": {
+        "required": [
+          "target_ref"
+        ]
+      }
+    },
+    {
+      "required": [
+        "target_ref"
+      ],
+      "not": {
+        "required": [
+          "change"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "scope": "all",
+  "scorecard": {
+    "Completeness": "warning",
+    "Correctness": "pass",
+    "Coherence": "blocked"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "Ambiguous 'Codex local pre-review' wording in verification tasks.",
+      "evidence": "Tasks 1.2, 2.3, and 3.3 in tasks.md prescribe 'Perform a Codex local pre-review' as a manual step before invoking Gemini.",
+      "recommendation": "Replace 'Codex local pre-review' with 'Verifier subagent local review' or 'Invoke verify-reviewer subagent' to align with the isolated role model defined in design.md.",
+      "redirect_layer": "tasks",
+      "blocking": true
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "specs",
+      "problem": "Missing explicit enum for redirect_layer values.",
+      "evidence": "specs/verify-subagent-orchestration/spec.md mentions redirect_layer: implementation but does not list other valid layers required for routing.",
+      "recommendation": "Explicitly define the set of valid redirect_layer values (e.g., proposal, specs, design, tasks, implementation) in the findings contract section.",
+      "redirect_layer": "specs",
+      "blocking": false
+    },
+    {
+      "id": "F-003",
+      "severity": "SUGGESTION",
+      "dimension": "Completeness",
+      "artifact": "proposal",
+      "problem": "Empty 'Modified Capabilities' section.",
+      "evidence": "The 'Modified Capabilities' section in proposal.md contains no entries despite the change affecting ai-enforced-workflow.",
+      "recommendation": "List 'ai-enforced-workflow' (or the relevant existing capability being refactored) to improve impact auditability.",
+      "redirect_layer": "proposal",
+      "blocking": false
+    }
+  ],
+  "final_assessment": "blocked"
+}

@@ -1,0 +1,39 @@
+path: openspec/schemas/ai-enforced-workflow/templates/design.md
+kind: file
+layer: workflow-template
+owner_role: design artifact scaffolding
+responsibilities:
+  - Requires governed changes to declare a Repository Index Plan.
+  - Captures Stage 0 preflight, verifier invocation, and execution-evidence conventions in design output.
+  - Requires design outputs to name the spawn-decision schema and the no-second-working-verifier rule when documenting governed verification.
+  - Carries stable governed scope objects, deterministic contract-lint policy, closure-based refresh policy, and governed preflight required-universe fields in the design template.
+  - Makes per-scope granularity mappings explicit so preflight can validate file vs interface ownership deterministically.
+must_not_do:
+  - Must not omit index skill entry points or evidence path conventions for governed changes.
+  - Must not preserve the old verifier template identifier.
+  - Must not describe governed preflight without freezing required_paths and required_axes for later coverage validation.
+  - Must not describe governed reruns as if every rerun starts a fresh verifier by default.
+inputs:
+  - Shared schema rules for governed verification.
+  - Repository index governance contract.
+outputs:
+  - Design template headings and checklist bullets for governed verification planning.
+depends_on:
+  - openspec/schemas/ai-enforced-workflow/schema.yaml
+  - openspec/schemas/ai-enforced-workflow/index-sequence.md
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+public_symbols:
+  - "## Independent Verification Plan (STANDARD/STRICT)"
+  - "## Repository Index Plan (Governed STANDARD/STRICT)"
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - Repository Index Plan fields are missing or renamed
+  - artifact or implementation verification still references verify-reviewer-inline-v1
+  - Repository Index Plan omits deterministic contract-lint or dirty-closure refresh policy
+  - design verification sections still imply every rerun starts a fresh verifier before fresh confirmation is needed
+confidence: high
+digest: sha256:98ae3bf8b006a27c06ee4126065fa589388b037609149ab3dbc3832cc42e9a10
+last_verified_at: 2026-04-09T14:47:40+08:00

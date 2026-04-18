@@ -1,0 +1,43 @@
+{
+  "change": "align-phase-a-actuator-topology-and-control-observability",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "impl-001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The new arming/observation state is initialized after the timer callback can already run, and its startup seed does not match the later cycle-time arming definition. That makes the first-cycle control observability nondeterministic and can produce false arming transitions or the wrong initial veto reason.",
+      "evidence": "`new/code/runtime/control_loop.cpp:153-195` sets `running_ = true`, starts the timer, and only afterward writes `state_.timer_started`, `state_.actuators_armed`, and `state_.control_observation`. `new/code/platform/bootstrap.cpp:12-47` and `new/code/platform/true_ls2k0300/timer_bridge.cpp:25-51` start the callback immediately on a worker/vendor timer path, so `Tick()` can race with that initialization. Separately, `new/code/runtime/control_decision.cpp:59-60` defines `actuators_armed` as `apply_ok && !command.emergency_stop`, but `new/code/runtime/control_loop.cpp:172-195` pre-seeds `actuators_armed` to true whenever low voltage is clear and the motor profile is neither hook nor disabled, before any command has been applied, and it hard-codes `ControlVetoReason::kLowVoltage` for all disarmed startup cases.",
+      "recommendation": "Initialize the observation snapshot completely before enabling timer callbacks, keep `actuators_armed` false until a successful non-emergency actuator apply occurs, and represent startup disarm causes explicitly instead of synthesizing them as `kLowVoltage`.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "impl-002",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "`low_voltage_emergency` is shared between the foreground perception path and the timer callback without synchronization. The new control-gate observability therefore depends on a data race at a fail-safe boundary.",
+      "evidence": "`new/code/runtime/runtime_state.hpp:35` stores `low_voltage_emergency` as a plain `bool`. `new/code/runtime/perception_frontend.cpp:13-40` reads and writes that field while sampling power, and `new/code/runtime/perception_frontend.cpp:77-82` passes its value into perception analysis. Independently, `new/code/runtime/control_loop.cpp:217-245` samples power again from the timer callback, compares against `state_.low_voltage_emergency`, writes the same field, and uses it to build the control gate decision. None of these accesses are guarded by `shared_mutex` or an atomic.",
+      "recommendation": "Make low-voltage state single-owned per cycle or protect it with synchronization. A shared snapshot taken under lock, or an atomic plus a clear ownership rule for transition emission, is needed before using it for veto reasons and diagnostics.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "impl-003",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Configured diagnostics-only motor modes are surfaced as generic `control.apply.failed` outcomes once the control gate clears, so the new observability conflates an intentional non-driving configuration with a real motor apply failure.",
+      "evidence": "`new/code/runtime/control_loop.cpp:143-148` and `185-189` describe degraded-startup motor-disabled operation as diagnostics-only with actuators disarmed. But `new/code/runtime/control_loop.cpp:247-264` still computes commands whenever the gate is open and unconditionally calls `platform_.motor->Apply(command, diagnostics_)`. `new/code/platform/motor_adapter.cpp:52-70` returns `false` for disabled or adaptation-hook motor profiles, and `new/code/runtime/control_decision.cpp:49-61` maps every `apply_ok == false` to `ControlApplyOutcome::kApplyFailed`, which `new/code/runtime/control_loop.cpp:80-86` emits as `control.apply.failed`.",
+      "recommendation": "Fold motor availability/diagnostics-only mode into the control decision model, or add a distinct non-failure apply outcome for hook/disabled suppression so Phase A evidence can distinguish configured fail-safe operation from an actual motor write failure.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

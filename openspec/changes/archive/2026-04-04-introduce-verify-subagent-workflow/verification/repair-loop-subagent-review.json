@@ -1,0 +1,23 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "mode": "implementation",
+  "risk_tier": "STRICT",
+  "sequence_ref": "verify-sequence/default",
+  "reviewer_agent": ".codex/agents/verify-reviewer.toml",
+  "evidence_paths_or_diff_scope": [
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    ".codex/skills/openspec-repair-change/SKILL.md",
+    ".codex/skills/openspec-apply-change/SKILL.md",
+    "openspec/changes/introduce-verify-subagent-workflow/tasks.md",
+    "openspec/changes/introduce-verify-subagent-workflow/verification/exercise-evidence.md",
+    "openspec/changes/introduce-verify-subagent-workflow/verification/retry-budget-exercise.json"
+  ],
+  "findings_contract": "shared-findings-v1",
+  "retry_policy": {
+    "artifact_rerun_budget": 2,
+    "implementation_auto_fix_budget": 2
+  },
+  "final_assessment": "pass",
+  "findings": []
+}

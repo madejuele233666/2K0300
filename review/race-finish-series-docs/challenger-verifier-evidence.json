@@ -1,0 +1,215 @@
+{
+  "change": "race-finish-series-docs",
+  "mode": "implementation",
+  "review_phase": "implementation",
+  "review_pass_type": "challenger",
+  "risk_tier": "STANDARD",
+  "findings_contract": "shared-findings-v1",
+  "session_fresh": true,
+  "cache_mode": "bypassed",
+  "review_scope": {
+    "changed_doc_paths": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md"
+    ],
+    "reference_artifacts_reviewed": [
+      "new/docs/superseded/track-readiness-gap.zh-CN.md",
+      "new/docs/superseded/race-finish-series-source/proposal.md",
+      "new/docs/superseded/race-finish-series-source/design.md",
+      "new/docs/superseded/race-finish-series-source/tasks.md",
+      "new/docs/superseded/race-finish-series-source/debugging.md",
+      "new/docs/superseded/race-finish-series-source/hardware-matrix.md",
+      "new/docs/superseded/race-finish-series-source/mapping.md",
+      "new/docs/superseded/race-finish-series-source/adapter_spec.md",
+      "new/docs/superseded/race-finish-series-source/workspace_spec.md",
+      "new/docs/superseded/race-finish-series-source/vendor-baseline.md"
+    ],
+    "changed_code_paths": [],
+    "changed_test_paths": [],
+    "implementation_paths_reviewed": [
+      "new/user/run_remote_smoke.sh",
+      "new/user/main.cpp",
+      "new/user/build.sh",
+      "new/user/CMakeLists.txt",
+      "new/code/platform/camera_adapter.cpp",
+      "new/code/platform/imu_adapter.cpp",
+      "new/code/platform/encoder_adapter.cpp",
+      "new/code/platform/motor_adapter.cpp",
+      "new/code/platform/param_store.cpp",
+      "new/code/platform/power_adapter.cpp",
+      "new/code/platform/hardware_profile.cpp",
+      "new/code/platform/bootstrap.cpp",
+      "new/code/port/control_types.hpp",
+      "new/code/port/hardware_profile.hpp",
+      "new/code/runtime/control_loop.cpp",
+      "new/code/runtime/perception_frontend.cpp",
+      "new/code/runtime/startup.cpp",
+      "new/code/runtime/shutdown.cpp",
+      "new/code/runtime/runtime_state.hpp",
+      "new/code/legacy/motor_logic.cpp",
+      "new/code/legacy/pid_control.cpp",
+      "new/config/hardware_profile.json",
+      "new/config/default_params.json"
+    ],
+    "impacted_interfaces": [
+      "runtime smoke wrapper log-path and frame-limit contract",
+      "startup direct-match and degraded-startup gating",
+      "hardware-profile parse and mode semantics",
+      "parameter parse/default/startup-critical application semantics",
+      "camera phase-1 geometry and non-default exposure fail-closed behavior",
+      "control-loop veto and actuator arming behavior",
+      "low-voltage startup/runtime emergency chain",
+      "vendor-boundary isolation for runtime/legacy/port public surfaces",
+      "explicit runtime-state ownership for retained legacy state",
+      "phase-scoped verification evidence naming"
+    ],
+    "mandatory_deep_scan_paths": [
+      "public/external contracts",
+      "state machines",
+      "concurrency/async coordination",
+      "permission/trust boundaries",
+      "serialization/protocol logic",
+      "hardware interaction and low-level resource management",
+      "error recovery and rollback paths"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "saturation_status": "exhaustive",
+    "closure_authority": "challenger_confirmed",
+    "working_baseline_rechecked": true,
+    "checks_completed": [
+      {
+        "name": "active-doc contract extraction",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "source-artifact continuity and supersession review",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "runtime smoke wrapper behavior cross-check",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "startup/profile/parameter fail-closed contract cross-check",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "camera geometry and exposure contract cross-check",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "control/veto/arming and low-voltage chain cross-check",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "vendor-boundary isolation cross-check",
+        "status": "covered",
+        "result": "pass"
+      },
+      {
+        "name": "phase-scoped evidence naming and no-bare-smoke examples cross-check",
+        "status": "covered",
+        "result": "pass"
+      }
+    ],
+    "mandatory_deep_scan_results": {
+      "public_or_externally_visible_contracts": "covered",
+      "state_machines": "covered",
+      "concurrency_or_async_coordination": "covered",
+      "permission_or_trust_boundaries": "covered",
+      "serialization_or_protocol_logic": "covered",
+      "persistence_schema_or_migrations": "not_applicable_no_schema_or_migration_change",
+      "hardware_interaction_or_low_level_resource_management": "covered",
+      "error_recovery_or_rollback_paths": "covered"
+    }
+  },
+  "closure_cross_checks": {
+    "unique_phase_scoped_smoke_log_targets": {
+      "status": "confirmed",
+      "details": "Active phase/task command blocks use explicit phase-scoped VERIFY_LOG_PATH targets instead of relying on the script default."
+    },
+    "no_remaining_bare_smoke_examples_in_active_contract_docs": {
+      "status": "confirmed",
+      "details": "Active docs reviewed via ripgrep show run_remote_smoke.sh examples consistently wrapped with explicit VERIFY_LOG_PATH."
+    },
+    "smoke_max_frames_wrapper_documentation": {
+      "status": "confirmed",
+      "details": "Docs state SMOKE_MAX_FRAMES is the wrapper control and that the wrapper forwards it to runtime LS2K_MAX_FRAMES; run_remote_smoke.sh implements exactly that."
+    },
+    "valid_nondefault_exp_light_66_direct_match_fail_closed_branch": {
+      "status": "confirmed",
+      "details": "param_store accepts exp_light=66 as startup-critical-valid and emits params.critical.exp_light; camera_adapter then fail-closes direct-match initialization with camera.exposure.unsupported."
+    },
+    "remote_failure_no_automatic_local_fallback": {
+      "status": "confirmed",
+      "details": "Active docs correctly supersede archived fallback wording; current script only runs local mode when SMOKE_LOCAL_ONLY=1."
+    }
+  },
+  "static_validation": {
+    "performed": [
+      {
+        "command": "bash -n new/user/run_remote_smoke.sh",
+        "exit_code": 0,
+        "result": "pass"
+      },
+      {
+        "command": "file -b new/out/new",
+        "exit_code": 0,
+        "result": "pass",
+        "observed_output": "ELF 64-bit LSB executable, LoongArch, version 1 (SYSV), dynamically linked, interpreter /lib64/ld.so.1, for GNU/Linux 4.15.0, not stripped"
+      },
+      {
+        "command": "python3 -m json.tool new/config/hardware_profile.json >/dev/null && python3 -m json.tool new/config/default_params.json >/dev/null",
+        "exit_code": 0,
+        "result": "pass"
+      }
+    ],
+    "not_performed": [
+      {
+        "check": "board-side runtime smoke execution",
+        "reason": "requires remote board access and is outside a source-first challenger docs-to-implementation review pass"
+      },
+      {
+        "check": "local runtime execution of new/out/new",
+        "reason": "artifact is LoongArch and not suitable for host execution in this session"
+      }
+    ]
+  },
+  "inspection_commands": [
+    {
+      "purpose": "read active review surface",
+      "result": "pass"
+    },
+    {
+      "purpose": "targeted ripgrep over archived source artifacts for smoke, fallback, geometry, exposure, and vendor-baseline claims",
+      "result": "pass"
+    },
+    {
+      "purpose": "inspect runtime/platform/port/config implementation files named in the review bundle",
+      "result": "pass"
+    },
+    {
+      "purpose": "targeted vendor-leakage search across runtime, legacy, and port public surfaces",
+      "result": "pass",
+      "details": "no forbidden vendor includes or direct vendor symbols found"
+    }
+  ],
+  "challenger_outcome": {
+    "new_findings_discovered": 0,
+    "result": "challenger_confirmed_zero_findings"
+  }
+}

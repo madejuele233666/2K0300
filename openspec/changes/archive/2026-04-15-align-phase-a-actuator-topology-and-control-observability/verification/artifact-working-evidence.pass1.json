@@ -1,0 +1,33 @@
+{
+  "change": "align-phase-a-actuator-topology-and-control-observability",
+  "mode": "artifact",
+  "review_phase": "artifact",
+  "review_goal": "artifact_readiness",
+  "review_pass_type": "working",
+  "template_id": "verify-reviewer-inline-v2",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "019d9154-f9e1-7712-b519-48065c095a79",
+  "start_at": "2026-04-15T13:28:36Z",
+  "end_at": "2026-04-15T13:37:22Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "artifact_gate_blocked",
+  "verifier_output_path": "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/verification/artifact-working-findings.pass1.json",
+  "reviewed_paths": [
+    "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/proposal.md",
+    "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/design.md",
+    "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/tasks.md",
+    "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md",
+    "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/specs/true-ls2k0300-port-workspace/spec.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "spawn_decision_path": "openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/verification/artifact-working-spawn-decision.json"
+}

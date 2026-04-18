@@ -1,0 +1,95 @@
+{
+  "target_ref": "workflow:race-finish-series-old2-doc-integration-2026-04-15",
+  "review_goal": "implementation_correctness",
+  "review_pass_type": "working",
+  "risk_tier": "STANDARD",
+  "template_id": "standalone-old2-doc-integration-working-2",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-gpt5-reviewer",
+  "start_at": "2026-04-15T10:45:00Z",
+  "end_at": "2026-04-15T10:47:16Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "working_evidence_only",
+  "verifier_output_path": "working/attempt-2/findings.json",
+  "same_session_baseline_reused": true,
+  "prior_working_attempt": "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-1",
+  "reviewed_paths": [
+    "new/docs/race-finish-series.zh-CN/README.md",
+    "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+    "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+    "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+    "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+    "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+    "new/docs/race-finish-series.zh-CN/07-current-progress.md",
+    "old_2/project/code/camera.cpp",
+    "old_2/project/code/motor.cpp",
+    "old_2/project/code/isr.cpp",
+    "old_2/project/user/main.cpp",
+    "old_2/project/code/key.cpp",
+    "old_2/project/code/save.cpp",
+    "old_2/libraries/zf_device/zf_device_uvc.cpp",
+    "old_2/project/code/class_thread_wrapper.h",
+    "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-1/findings.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-1/verifier-evidence.json",
+    "review/race-finish-series-docs/working-findings.json",
+    "review/race-finish-series-docs/working-verifier-evidence.json",
+    "review/race-finish-series-docs/challenger-findings.json",
+    "review/race-finish-series-docs/challenger-verifier-evidence.json"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Correctness",
+    "Completeness",
+    "Coherence",
+    "source-attribution accuracy",
+    "mainline integration vs detached appendix",
+    "migration-boundary discipline",
+    "progress-claim cross-check"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "review_scope": {
+    "mode": "paths",
+    "value": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+      "new/docs/race-finish-series.zh-CN/07-current-progress.md"
+    ],
+    "target_description": "Review the documentation integration that absorbs useful parts of old_2/ into race-finish-series.zh-CN/.",
+    "acceptance_reference_paths": [
+      "old_2/project/code/camera.cpp",
+      "old_2/project/code/motor.cpp",
+      "old_2/project/code/isr.cpp",
+      "old_2/project/user/main.cpp",
+      "old_2/project/code/key.cpp",
+      "old_2/project/code/save.cpp",
+      "old_2/libraries/zf_device/zf_device_uvc.cpp",
+      "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md"
+    ],
+    "constraints_or_invariants": [
+      "old_2 must be framed as a migration evidence source, not a new runtime workspace",
+      "docs must integrate old_2 into the mainline sections rather than append a detached appendix"
+    ]
+  },
+  "review_coverage": {
+    "declared_surface": "all user-specified documentation targets plus all supplied old_2 acceptance references",
+    "covered": true,
+    "repair_areas_rechecked": [
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+      "new/docs/race-finish-series.zh-CN/07-current-progress.md"
+    ],
+    "summary": [
+      "Rechecked the repaired lifecycle-semantics attribution and confirmed the docs now point startup, soft-start, stop, and scene-speed scheduling semantics to `old_2/project/code/isr.cpp` and `old_2/project/user/main.cpp`.",
+      "Confirmed `old_2/project/code/motor.cpp` is now consistently scoped as speed PID, differential drive, and steering-control reference material rather than lifecycle ownership.",
+      "Reran scope-level scans across the same target bundle and found no residual contradictions against the cited `old_2` sources or against the stated migration-boundary invariants."
+    ]
+  }
+}

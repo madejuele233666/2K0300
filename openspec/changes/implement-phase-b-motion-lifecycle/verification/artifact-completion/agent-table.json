@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "agents": [
+    {
+      "agent_id": "codex-docs-first-reviewer-attempt-1",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "block",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive docs-first review of proposal, design, tasks, and delta specs for implement-phase-b-motion-lifecycle.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-18T13:42:30Z"
+    }
+  ]
+}

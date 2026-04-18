@@ -1,0 +1,34 @@
+[INFO][main.start][2457793] starting ls2k migration runtime
+[INFO][profile.loaded][2457794] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][2457795] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][2457795] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][2457795] direct-match:imu-core-device-detect
+[INFO][profile.encoder][2457795] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][2457795] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][2457795] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][2457795] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][2457795] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][2457795] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2331 threshold=400
+[INFO][startup.low_voltage.clear][2457795] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][2458100] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][2458102] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][2458102] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][2458144] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][2458144] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][2458144] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right
+[INFO][motor.init][2458144] motor initialized through true_ls2k0300 bridge: logical_left maps to pwm=/dev/zf_device_pwm_motor_2, gpio=/dev/zf_driver_gpio_motor_2; logical_right maps to pwm=/dev/zf_device_pwm_motor_1, gpio=/dev/zf_driver_gpio_motor_1
+[INFO][startup.complete][2458144] startup validated required adapters and applied critical params
+[WARN][bench.pwm.start][2458144] running bench PWM pulse test with logical_left=0 logical_right=1500 pulse_ms=200
+[WARN][encoder.baseline][2458144] encoder baseline established; first absolute sample is not emitted as a delta and logical right-wheel sign is normalized at the adapter boundary
+[INFO][encoder.delta.summary][2458224] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][bench.pwm.summary][2458525] bench PWM pulse apply_ok=true before_valid=true before_left=0 before_right=0 after1_valid=true after1_left=0 after1_right=4 after2_valid=true after2_left=0 after2_right=-4
+[INFO][camera.shutdown][2458525] camera adapter shutdown complete
+[INFO][imu.shutdown][2458525] imu adapter shutdown complete
+[INFO][encoder.shutdown][2458525] encoder adapter shutdown complete
+[INFO][motor.shutdown][2458525] motor adapter shutdown complete
+[INFO][shutdown.complete][2458525] actuators disabled and resources released
+[INFO][main.exit][2458525] bench PWM pulse test complete

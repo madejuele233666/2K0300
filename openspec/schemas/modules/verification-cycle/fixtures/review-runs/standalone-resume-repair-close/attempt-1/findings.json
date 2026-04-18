@@ -1,0 +1,16 @@
+{
+  "target_ref": "workflow:standalone-resume-repair-close",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "coverage-gap-1",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The first pass found a blocking implementation error.",
+      "evidence": "Verifier 1 observed the defect in the declared target scope.",
+      "recommendation": "Repair the implementation and rerun the same verifier.",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

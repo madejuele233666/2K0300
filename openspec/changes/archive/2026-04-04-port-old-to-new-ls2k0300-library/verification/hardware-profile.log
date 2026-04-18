@@ -1,0 +1,38 @@
+== hardware profile verification 2026-04-04 ==
+board=root@10.236.192.226
+binary=/home/root/new
+
+== direct-match profile ==
+profile_path=/home/root/hardware_profile.json
+expectation=phase-1 strict runtime should require direct-match hardware
+observed=power and camera direct-match initialize successfully, but direct-match imu initialization fails on the board and startup aborts fail-safe
+compatibility_decision=direct-match contract not satisfied on current board because imu backend is unavailable in direct-match mode
+
+[INFO][profile.camera] direct-match:phase1-160x120-to-160x128
+[INFO][profile.imu] direct-match:imu660ra-default
+[INFO][profile.encoder] direct-match:quadrature-default
+[INFO][profile.motor] direct-match:pwm-gpio-default
+[INFO][profile.timer] direct-match:zf_driver_pit
+[INFO][power.init] power monitor initialized with zf_driver_adc backend
+[INFO][startup.low_voltage.clear] startup low-voltage check is clear
+[INFO][camera.init] uvc device initialized
+[FAIL_SAFE][imu.init] imu unavailable
+[FAIL_SAFE][startup.imu.init] imu adapter initialization failed
+[FAIL_SAFE][main.startup] startup failed, refusing to arm actuators
+
+== adaptation-hook profile ==
+profile_path=/home/root/hardware_profile_adapt_imu.json
+mode=LS2K_ALLOW_DEGRADED_STARTUP=1
+expectation=degraded startup should admit explicit non-direct-match hardware profile for diagnostics
+observed=imu adaptation-hook is accepted with explicit degraded warning; startup completes; control loop starts; runtime emits imu.hook.read and control.veto markers as expected
+compatibility_decision=hook path is wired correctly for diagnostics, but there is still no concrete phase-1 imu hook implementation so vehicle control remains fail-safe vetoed
+
+[INFO][profile.imu] adaptation-hook:imu-hook-test
+[WARN][startup.mode.degraded] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.imu.degraded] imu profile is adaptation-hook:imu-hook-test (allowed only in degraded startup mode)
+[WARN][imu.init.hook] imu direct path bypassed; adaptation hook selected: imu-hook-test
+[INFO][startup.complete] startup validated required adapters and applied critical params
+[WARN][imu.hook.read] imu adaptation hook selected with no concrete phase-1 implementation: imu-hook-test
+[FAIL_SAFE][control.veto] vetoing actuator update due to stale perception or invalid sensor data
+[INFO][control.start] control loop started with PIT-equivalent periodic callback
+[INFO][main.frame_limit] bounded runtime loop reached LS2K_MAX_FRAMES=40

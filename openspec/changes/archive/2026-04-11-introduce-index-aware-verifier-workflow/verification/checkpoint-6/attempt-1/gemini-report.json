@@ -1,0 +1,10 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "scorecard": {
+    "completeness": 5,
+    "correctness": 5,
+    "coherence": 5
+  },
+  "findings": [],
+  "final_assessment": "pass"
+}

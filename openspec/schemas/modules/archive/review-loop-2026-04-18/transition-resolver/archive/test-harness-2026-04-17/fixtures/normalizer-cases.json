@@ -1,0 +1,77 @@
+[
+  {
+    "id": "observer-completed-does-not-imply-unresumable",
+    "input": "normalizer/observer-completed-no-probe.json",
+    "expect": {
+      "mode": "normalized",
+      "fields": {
+        "session_open": false,
+        "resumable": false,
+        "exception_reason": "",
+        "send_input_ready": false,
+        "resume_probe_attempted": false,
+        "resume_probe_result": "not_attempted"
+      }
+    }
+  },
+  {
+    "id": "missing-verifier-session-id-does-not-imply-exception",
+    "input": "normalizer/missing-verifier-session-id-no-probe.json",
+    "expect": {
+      "mode": "normalized",
+      "fields": {
+        "session_open": false,
+        "resumable": false,
+        "exception_reason": "",
+        "send_input_ready": false,
+        "resume_probe_attempted": false,
+        "resume_probe_result": "not_attempted"
+      }
+    }
+  },
+  {
+    "id": "explicit-unresumable-probe-maps-to-session-completed-unresumable",
+    "input": "normalizer/explicit-unresumable-probe.json",
+    "expect": {
+      "mode": "normalized",
+      "fields": {
+        "session_open": false,
+        "resumable": false,
+        "exception_reason": "session_completed_unresumable",
+        "send_input_ready": false,
+        "resume_probe_attempted": true,
+        "resume_probe_result": "unresumable"
+      }
+    }
+  },
+  {
+    "id": "explicit-agent-not-found-probe-maps-to-agent-not-found",
+    "input": "normalizer/explicit-agent-not-found-probe.json",
+    "expect": {
+      "mode": "normalized",
+      "fields": {
+        "session_open": false,
+        "resumable": false,
+        "exception_reason": "agent_not_found",
+        "send_input_ready": false,
+        "resume_probe_attempted": true,
+        "resume_probe_result": "agent_not_found"
+      }
+    }
+  },
+  {
+    "id": "explicit-tooling-error-probe-maps-to-tooling-recovery",
+    "input": "normalizer/explicit-tooling-error-probe.json",
+    "expect": {
+      "mode": "normalized",
+      "fields": {
+        "session_open": false,
+        "resumable": false,
+        "exception_reason": "tooling_recovery",
+        "send_input_ready": false,
+        "resume_probe_attempted": true,
+        "resume_probe_result": "tooling_error"
+      }
+    }
+  }
+]

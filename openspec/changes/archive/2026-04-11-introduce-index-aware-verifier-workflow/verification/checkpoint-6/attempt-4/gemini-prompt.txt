@@ -1,0 +1,39 @@
+Review the implementation checkpoint for change introduce-index-aware-verifier-workflow. Read these files from the repository and return JSON only with keys change, scorecard, findings, final_assessment.
+
+This is a STRICT checkpoint. Treat the checkpoint-6 attempt-4 outputs as being produced by this run, so do not flag `attempt-4/findings.json`, `attempt-4/verifier-evidence.json`, `attempt-4/gemini-raw.json`, or `attempt-4/gemini-report.json` as missing-before-run defects. Judge the repaired exercise evidence itself.
+
+Exercise fixtures may intentionally contain blocked findings to demonstrate exhaustive review behavior. Evaluate whether those fixtures are coherent, contract-shaped, and consistent with the frozen preflight surface, not whether every fixture ends in `pass`.
+
+Files:
+- /home/madejuele/projects/2K0300/docs/repo-index/manifest.json
+- /home/madejuele/projects/2K0300/docs/repo-index/reports/coverage.json
+- /home/madejuele/projects/2K0300/docs/repo-index/reports/refresh.json
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/index-sequence.md
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/schema.yaml
+- /home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml
+- /home/madejuele/projects/2K0300/.codex/agents/index-maintainer.toml
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercise-evidence.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-findings.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-preflight.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-verifier-evidence.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-findings.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-maintainer-summary.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-preflight.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-verifier-evidence.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-findings.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-preflight.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-verifier-evidence.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/role-boundary.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-findings.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-preflight.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-verifier-evidence.json
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/design.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/tasks.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-6/attempt-4/implementation-index-preflight.json
+
+Focus on Completeness, Correctness, and Coherence for the exercise evidence and end-to-end workflow behavior.
+If no issues exist, return findings as an empty array and final_assessment=pass.

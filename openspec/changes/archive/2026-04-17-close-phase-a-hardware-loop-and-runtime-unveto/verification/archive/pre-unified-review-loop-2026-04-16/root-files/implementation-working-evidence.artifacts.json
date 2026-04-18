@@ -1,0 +1,71 @@
+{
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "mode": "implementation",
+  "review_phase": "implementation",
+  "review_goal": "implementation_correctness",
+  "review_pass_type": "working",
+  "template_id": "verify-reviewer-inline-v2",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-artifacts-as-implementation-working-20260416T011840Z",
+  "start_at": "2026-04-16T01:18:40Z",
+  "end_at": "2026-04-16T01:25:56Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "working_convergence_only",
+  "verifier_output_path": "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/review-runs/artifacts-as-implementation/working/attempt-1/findings.json",
+  "reviewed_paths": [
+    "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/proposal.md",
+    "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/design.md",
+    "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/tasks.md",
+    "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/true-ls2k0300-port-workspace/spec.md",
+    "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "spawn_decision_path": "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/review-runs/artifacts-as-implementation/working/attempt-1/spawn-decision.json",
+  "review_scope": {
+    "changed_code_paths": [
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/proposal.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/design.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/tasks.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/true-ls2k0300-port-workspace/spec.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+    ],
+    "changed_test_paths": [],
+    "impacted_interfaces": [
+      "Phase A checkpoint flow contract",
+      "Phase A exposure-promotion contract",
+      "review-loop implementation working-run spawn-decision contract"
+    ],
+    "mandatory_deep_scan_paths": [
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/design.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/tasks.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/true-ls2k0300-port-workspace/spec.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+    ],
+    "cache_inputs": []
+  },
+  "review_coverage": {
+    "reviewed_paths": [
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/proposal.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/design.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/tasks.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/true-ls2k0300-port-workspace/spec.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+    ],
+    "deep_scanned_paths": [
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/design.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/tasks.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/true-ls2k0300-port-workspace/spec.md",
+      "openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+    ],
+    "skipped_paths": []
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-standalone-adapter-v1.json",
+  "contract": "verification-cycle-standalone-adapter-v1",
+  "core_contract_ref": "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "subject_key": "target_ref",
+  "required": [
+    "target_ref",
+    "review_goal",
+    "review_phase",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract",
+    "output_paths"
+  ],
+  "required_fields": [
+    "target_ref",
+    "review_goal",
+    "review_phase",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract"
+  ],
+  "properties": {
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_goal": {
+      "const": "implementation_correctness"
+    },
+    "review_phase": {
+      "enum": [
+        "docs_first",
+        "source_first"
+      ]
+    },
+    "risk_tier": {
+      "enum": [
+        "LIGHT",
+        "STANDARD",
+        "STRICT"
+      ]
+    },
+    "evidence_paths_or_diff_scope": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "findings_contract": {
+      "const": "shared-findings-v1"
+    },
+    "index_context": {
+      "type": "object"
+    },
+    "output_paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "findings_path",
+        "verifier_evidence_path",
+        "agent_table_path"
+      ],
+      "properties": {
+        "findings_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifier_evidence_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent_table_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "bootstrap_target_ref_templates": [
+    "diff:<name>",
+    "paths:<comma-separated-paths>",
+    "workflow:<name>",
+    "repo:<repo-name>-adhoc-review-YYYY-MM-DD"
+  ]
+}

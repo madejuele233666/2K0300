@@ -1,0 +1,19 @@
+Review the artifact checkpoint for change introduce-index-aware-verifier-workflow. Read these files from the repository and return JSON only with keys change, scorecard, findings, final_assessment.
+
+Files:
+- /home/madejuele/projects/2K0300/docs/repo-index/manifest.json
+- /home/madejuele/projects/2K0300/docs/repo-index/reports/coverage.json
+- /home/madejuele/projects/2K0300/docs/repo-index/reports/refresh.json
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/index-sequence.md
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md
+- /home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/schema.yaml
+- /home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/design.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/tasks.md
+- /home/madejuele/projects/2K0300/openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-3/attempt-1/artifact-index-preflight.json
+
+Focus on Completeness, Correctness, and Coherence for the verifier contract and shared verification sequence changes. This is a STRICT checkpoint.
+If no issues exist, return findings as an empty array and final_assessment=pass.

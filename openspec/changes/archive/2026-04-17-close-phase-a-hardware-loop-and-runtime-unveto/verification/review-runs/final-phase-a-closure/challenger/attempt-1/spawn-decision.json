@@ -1,0 +1,21 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "phase": "implementation_verify",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "challenger_pass",
+  "decision": "allow",
+  "recorded_at": "2026-04-17T11:40:34Z",
+  "prior_session": {
+    "agent_id": "019d9b33-0831-7340-8a50-8f44ecbd648f",
+    "session_role": "working",
+    "reuse_blocker": "policy_requires_challenger"
+  },
+  "evidence": {
+    "source_review": {
+      "agent_id": "019d9b33-0831-7340-8a50-8f44ecbd648f",
+      "findings_path": "working/attempt-2/findings.json",
+      "verifier_evidence_path": "working/attempt-2/verifier-evidence.json"
+    }
+  }
+}

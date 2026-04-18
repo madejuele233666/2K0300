@@ -1,0 +1,126 @@
+{
+  "session_id": "994972d2-6b5a-47a8-a1b1-d127f1fcafea",
+  "response": "{\n  \"change\": \"retarget-port-to-true-ls2k0300-library\",\n  \"mode\": \"artifact\",\n  \"final_assessment\": \"pass\",\n  \"findings\": [\n    {\n      \"id\": \"F-001\",\n      \"severity\": \"SUGGESTION\",\n      \"dimension\": \"Coherence\",\n      \"artifact\": \"design\",\n      \"problem\": \"The design documentation correctly identifies the shift from .hpp to .h headers and the mixed C/C++ nature of the true vendor baseline, providing a solid foundation for the internal bridge layer.\",\n      \"evidence\": \"Design Decision 3: 'Introduce an internal true-baseline normalization layer' and reference inventory updates to .h files.\",\n      \"recommendation\": \"Ensure the implementation phase strictly enforces the boundary defined in Decision 3 to prevent vendor global leakage.\",\n      \"redirect_layer\": \"implementation\",\n      \"blocking\": false,\n      \"auto_fixable\": false\n    },\n    {\n      \"id\": \"F-002\",\n      \"severity\": \"SUGGESTION\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"tasks\",\n      \"problem\": \"The task list includes explicit supersession steps for the previous incorrect change, ensuring historical clarity.\",\n      \"evidence\": \"Task 1.1 and Task 4.2 explicitly handle the supersession and archiving of 'port-old-to-new-ls2k0300-library'.\",\n      \"recommendation\": \"Proceed with Task 1.1 as the first step to align implementation docs with the new retargeting specs.\",\n      \"redirect_layer\": \"tasks\",\n      \"blocking\": false,\n      \"auto_fixable\": false\n    }\n  ]\n}",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2647
+        },
+        "tokens": {
+          "input": 3963,
+          "prompt": 3963,
+          "candidates": 103,
+          "total": 4426,
+          "cached": 0,
+          "thoughts": 360,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2647,
+            "tokens": {
+              "input": 3963,
+              "prompt": 3963,
+              "candidates": 103,
+              "total": 4426,
+              "cached": 0,
+              "thoughts": 360,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 9,
+          "totalErrors": 0,
+          "totalLatencyMs": 63335
+        },
+        "tokens": {
+          "input": 66279,
+          "prompt": 282439,
+          "candidates": 1131,
+          "total": 288781,
+          "cached": 216160,
+          "thoughts": 5211,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 9,
+            "totalErrors": 0,
+            "totalLatencyMs": 63335,
+            "tokens": {
+              "input": 66279,
+              "prompt": 282439,
+              "candidates": 1131,
+              "total": 288781,
+              "cached": 216160,
+              "thoughts": 5211,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 18,
+      "totalSuccess": 18,
+      "totalFail": 0,
+      "totalDurationMs": 187,
+      "totalDecisions": {
+        "accept": 18,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "enter_plan_mode": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 7,
+          "decisions": {
+            "accept": 1,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 14,
+          "success": 14,
+          "fail": 0,
+          "durationMs": 164,
+          "decisions": {
+            "accept": 14,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "list_directory": {
+          "count": 3,
+          "success": 3,
+          "fail": 0,
+          "durationMs": 16,
+          "decisions": {
+            "accept": 3,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+  "contract": "verification-cycle-core-v1",
+  "module_focus": "generic implementation correctness verification cycle",
+  "invocation_common_required": [
+    "review_goal",
+    "review_phase",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract"
+  ],
+  "invocation_common_constants": {
+    "review_goal": "implementation_correctness"
+  },
+  "review_phase_allowed": [
+    "docs_first",
+    "source_first"
+  ],
+  "findings_contract_allowed": [
+    "shared-findings-v1"
+  ],
+  "bootstrap_defaults": {
+    "review_goal": "implementation_correctness",
+    "findings_contract": "shared-findings-v1",
+    "risk_tier": "STANDARD"
+  },
+  "bootstrap_rules": [
+    "If the caller references this module root without a prebuilt bundle, start from bootstrap_defaults instead of inventing fields ad hoc.",
+    "If the standalone subject key is missing, synthesize target_ref from the concrete subject using one of: diff:<name>, paths:<comma-separated-paths>, workflow:<name>, repo:<repo-name>-adhoc-review-YYYY-MM-DD.",
+    "If evidence_paths_or_diff_scope is not supplied, derive it from the explicit target first; otherwise derive it from the current changed paths; if no concrete implementation scope can be discovered, stop and ask for scope before review starts.",
+    "Set review_phase from the declared review surface: docs_first for document-primary checkpoints, source_first for code/test/impacted-source checkpoints."
+  ],
+  "invocation_context_optional": [
+    "target_description",
+    "acceptance_reference_paths",
+    "constraints_or_invariants"
+  ],
+  "output_paths_required": [
+    "findings_path",
+    "verifier_evidence_path",
+    "agent_table_path"
+  ],
+  "verifier_evidence_required": [
+    "review_goal",
+    "review_phase",
+    "template_id",
+    "findings_contract",
+    "agent_id",
+    "start_at",
+    "end_at",
+    "final_state",
+    "review_scope",
+    "review_coverage",
+    "reviewed_paths",
+    "skipped_paths",
+    "reviewed_axes",
+    "unreviewed_axes"
+  ],
+  "verifier_evidence_subject_required_any_of": [
+    "change",
+    "target_ref"
+  ],
+  "verifier_template_id_const": "verify-reviewer-inline-v3",
+  "verifier_final_state_allowed": [
+    "completed",
+    "completed_pass"
+  ],
+  "verifier_timestamp_fields": [
+    "start_at",
+    "end_at"
+  ],
+  "verifier_timestamp_order_rule": "end_at must be greater than or equal to start_at.",
+  "spawn_reason_semantics": [
+    "`no_usable_active_agent` means agent-table.json contains no active agent.",
+    "`active_agent_missing` and `active_agent_not_resumable` are distinct recovery spawn cases after the required send_input/resume path."
+  ],
+  "subject_required_any_of": [
+    "change",
+    "target_ref"
+  ],
+  "findings_required": [
+    "verdict",
+    "findings"
+  ],
+  "finding_object_required": [
+    "id",
+    "severity",
+    "dimension",
+    "problem",
+    "evidence",
+    "recommendation",
+    "blocking",
+    "auto_fixable"
+  ],
+  "finding_severity_allowed": [
+    "CRITICAL",
+    "WARNING",
+    "SUGGESTION"
+  ],
+  "finding_dimension_allowed": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "review_axes_allowed": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "finding_non_empty_string_fields": [
+    "id",
+    "problem",
+    "evidence",
+    "recommendation"
+  ],
+  "finding_boolean_fields": [
+    "blocking",
+    "auto_fixable"
+  ],
+  "finding_semantics": [
+    "blocking=true forbids verdict=pass",
+    "auto_fixable=true requires blocking=true",
+    "severity=SUGGESTION requires blocking=false",
+    "review_phase=docs_first requires auto_fixable=false for every finding"
+  ],
+  "review_axis_semantics": [
+    "reviewed_axes and unreviewed_axes must use only review_axes_allowed values",
+    "reviewed_axes and unreviewed_axes must not overlap",
+    "verdict=pass with review_coverage.exhaustive=true requires unreviewed_axes=[]",
+    "verdict=pass with review_coverage.exhaustive=true requires reviewed_axes to cover all review_axes_allowed values"
+  ],
+  "repair_routing_rules": [
+    "automatic repair may run only when blocking=true and auto_fixable=true",
+    "blocking findings with auto_fixable=false stop automatic repair routing"
+  ],
+  "valid_pass_requirements": [
+    "review_coverage.coverage_status=complete",
+    "review_coverage.exhaustive=true"
+  ],
+  "partial_scope_rule": "If review_coverage.coverage_status=partial, review_scope.scope must be explicit and non-empty.",
+  "cycle_rules": [
+    "If a usable active agent exists, continue it first.",
+    "Prefer send_input while that same active agent is still open.",
+    "Use resume only when that same active agent was closed and must be restored.",
+    "Spawn a new active agent only when agent-table.json contains no active agent or the prior active agent entered a distinct recovery spawn case.",
+    "When an active agent reports block, repair until that same agent reports pass.",
+    "Only block->pass may mark an agent non_active.",
+    "Close or exit does not imply non_active.",
+    "Termination may use only a valid pass."
+  ]
+}

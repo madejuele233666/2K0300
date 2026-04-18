@@ -1,0 +1,67 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "IDX-AXIS-VOCAB-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The trusted repo-index state is internally invalid for the workflow-agent surface: the index-maintainer interface card declares an unsupported review axis, but the manifest, coverage report, and checkpoint preflight still treat that scope as reusable trusted coverage.",
+      "evidence": "docs/repo-index/interfaces/.codex__agents__index-maintainer.toml.yaml lists review_axes [Completeness, Correctness, BoundaryCoverage]; openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md restricts ai-enforced-workflow review axes to Completeness|Correctness|Coherence; openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-6/attempt-1/implementation-index-preflight.json includes .codex/agents/index-maintainer.toml in required_paths, reports index_mode=reused, and freezes required_axes to only the three standard axes.",
+      "recommendation": "Fix the index-maintainer interface card and regenerate or relint the repo-index artifacts so unsupported axes block trusted reuse instead of being silently dropped from required_axes.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-EXERCISE-PREFLIGHT-002",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The exercise preflight fixtures do not carry the frozen review surface required by the governed contract, so the reuse, deep-scan, and refresh scenarios cannot substantiate their coverage or saturation claims end to end.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-preflight.json, deep-scan-preflight.json, and refresh-preflight.json all omit required_paths and required_axes; openspec/schemas/ai-enforced-workflow/index-sequence.md and openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md make those fields mandatory authoritative preflight outputs; reuse-verifier-evidence.json and deep-scan-verifier-evidence.json still claim coverage_status=complete and saturation_status=exhaustive without a matching frozen path or axis universe.",
+      "recommendation": "Populate each exercise preflight fixture with required_paths and required_axes, including any transitive governed paths, so the paired verifier-evidence claims can be validated against the same frozen surface used by real governed runs.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-REFRESH-HANDOFF-003",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The refresh exercise stops at preflight and maintainer output and never proves the required post-refresh handoff into a fresh verify-reviewer pass.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/tasks.md item 6.2 requires exercise artifacts that refresh affected entries and hand the updated manifest to verify-reviewer without leaking shared-context reasoning; openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/ contains refresh-preflight.json and refresh-maintainer-summary.json but no refresh-specific verifier evidence or findings artifact, and verification/exercise-evidence.md section 6.2 documents only the maintainer summary.",
+      "recommendation": "Add refresh verifier evidence, plus its paired findings output even if empty, that references refresh-preflight.json and shows a fresh verifier consuming the refreshed manifest without inherited maintainer context.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-SATURATION-COHERENCE-004",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "The saturation exercise does not describe one coherent verifier pass: its findings, verifier evidence, and referenced preflight disagree about what was reviewed and what failed.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-verifier-evidence.json says reviewed_paths include .codex/agents/index-maintainer.toml, unreviewed_axes is [], and deep_scanned_paths includes schema.yaml and verify-reviewer.toml; saturation-findings.json simultaneously claims index-maintainer was omitted, Coherence remained unreviewed, and deep_scanned_paths stayed empty. The same verifier evidence points to deep-scan-preflight.json, whose governed_scopes list only workflow-schema-surface.",
+      "recommendation": "Regenerate the saturation scenario from a single frozen preflight surface so the findings, execution evidence, and governed scope all come from the same pass.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-TRACEABILITY-005",
+      "severity": "SUGGESTION",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "The deep-scan exercise reuses another scenario's findings file as its verifier_output_path, which makes the fixture's per-run audit trail ambiguous.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-verifier-evidence.json points verifier_output_path to openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-findings.json even though it is a separate scenario from reuse-preflight.json and reuse-verifier-evidence.json; openspec/schemas/ai-enforced-workflow/verification-sequence.md defines verifier findings and execution evidence as authoritative outputs per verifier iteration.",
+      "recommendation": "Give the deep-scan scenario its own findings file, even if it is just an explicit pass with an empty findings array, so each exercise models one verifier iteration end to end.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

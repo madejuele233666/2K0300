@@ -1,0 +1,38 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "scorecard": {
+    "verifier_subagent_primary": "PASS",
+    "tier_gated_gemini": "PASS",
+    "terminology_alignment": "FAIL",
+    "minimal_bundle_usage": "PASS",
+    "logical_runner_contract": "PASS",
+    "auto_fix_eligibility": "PASS"
+  },
+  "findings": [
+    {
+      "artifact": "implementation",
+      "problem": "Legacy 'Codex local review' terminology persists in schema instructions and risk-tier gating sections.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/schema.yaml line 191 refers to 'Codex local review'; lines 230, 232, and 234 define risk tiers using 'Codex review' or 'Codex pre-review' instead of 'verifier-subagent review'.",
+      "recommendation": "Update all schema instructions to use 'verifier-subagent review' or 'verifier-subagent local review' consistently.",
+      "redirect_layer": "implementation"
+    },
+    {
+      "artifact": "implementation",
+      "problem": "Apply and Repair skills continue to instruct the old 'Codex local review' terminology.",
+      "evidence": ".codex/skills/openspec-apply-change/SKILL.md line 108 ('Do not skip the Codex local review'); .codex/skills/openspec-repair-change/SKILL.md multiple locations (lines 19, 21, 47, 49, 97, 109) still use 'Codex local review' as the reviewer name.",
+      "recommendation": "Refactor apply and repair skill instructions to use 'verifier-subagent review' and match the new findings contract naming.",
+      "redirect_layer": "implementation"
+    },
+    {
+      "artifact": "implementation",
+      "problem": "Artifact generation helper skills still explicitly teach the deprecated 'Codex local review first' sequence.",
+      "evidence": ".codex/skills/openspec-propose/SKILL.md:101, .codex/skills/openspec-ff-change/SKILL.md:92, and .codex/skills/openspec-continue-change/SKILL.md:116 still contain guardrails mentioning 'Codex local review first, Gemini independent verification second'.",
+      "recommendation": "Replace 'Codex local review first' with 'verifier-subagent review first' in all helper skills to ensure future artifacts are correctly aligned.",
+      "redirect_layer": "implementation"
+    }
+  ],
+  "skipped_checks": [
+    "Verification of platform-specific helper scripts (e.g., bin/*.sh, bin/*.ps1) as they were not explicitly provided in the file list for deep analysis."
+  ],
+  "final_assessment": "The implementation correctly adopts the verifier-subagent orchestration structure, tier-gated Gemini policy, and normalized findings contract. However, coherence is degraded by extensive legacy terminology. Per-file instructions and skill guardrails still refer to 'Codex local review' or 'Codex pre-review' instead of the new 'verifier-subagent' role. These defects are accurately identified in the change's own implementation review (on-demand-implementation-subagent-review.json)."
+}

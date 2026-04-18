@@ -1,0 +1,17 @@
+{
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "old2-runtime-lifecycle-misattributed-to-motor-cpp",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The integrated docs repeatedly point readers at `old_2/project/code/motor.cpp` for launch, soft-start, stop, and scene-speed scheduling behavior, but those lifecycle semantics live in `old_2/project/code/isr.cpp` and `old_2/project/user/main.cpp`. `motor.cpp` mainly carries speed PID and steering control logic.",
+      "evidence": "`new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md:30` and `:94` assign soft-start and scene-speed behavior to `motor.cpp`, and `new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md:100` groups `motor.cpp` with runtime lifecycle semantics. In `old_2/project/code/isr.cpp:83-103`, `speed_target` switches across straight/circle guidance states; in `old_2/project/code/isr.cpp:162-191`, `run_stop`, `run_start`, and `run_brushless_start` implement stop and brushless PWM ramp-up; in `old_2/project/user/main.cpp:184-219`, key launch resets runtime state and enters `run_brushless_start`. By contrast, `old_2/project/code/motor.cpp:137-260` is the speed/steering PID surface and does not own that startup/stop state machine.",
+      "recommendation": "Retarget these references so lifecycle and scene-speed scheduling semantics point primarily to `old_2/project/code/isr.cpp` and `old_2/project/user/main.cpp`, while keeping `old_2/project/code/motor.cpp` scoped to motor PID and steering-control semantics.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

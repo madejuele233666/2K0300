@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+  "contract": "verification-cycle-agent-table-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "agents"
+  ],
+  "properties": {
+    "contract": {
+      "const": "verification-cycle-agent-table-v1"
+    },
+    "change": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "agent_id",
+          "status",
+          "resumable",
+          "last_verdict",
+          "coverage_status",
+          "exhaustive",
+          "scope",
+          "findings_path",
+          "verifier_evidence_path",
+          "updated_at"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "active",
+              "non_active",
+              "closed"
+            ]
+          },
+          "resumable": {
+            "type": "boolean"
+          },
+          "last_verdict": {
+            "enum": [
+              "block",
+              "pass",
+              "unknown"
+            ]
+          },
+          "coverage_status": {
+            "enum": [
+              "complete",
+              "partial",
+              "unknown"
+            ]
+          },
+          "exhaustive": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "findings_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verifier_evidence_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "coverage_status": {
+                  "const": "partial"
+                }
+              },
+              "required": [
+                "coverage_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "scope": {
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "non_active"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "last_verdict": {
+                  "const": "pass"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "change"
+      ]
+    },
+    {
+      "required": [
+        "target_ref"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+cat /tmp/retarget_artifact_verify_prompt.txt | codex exec --skip-git-repo-check --cd /home/madejuele/projects/2K0300 --json - -o openspec/changes/retarget-port-to-true-ls2k0300-library/verification/artifact-subagent-review.json

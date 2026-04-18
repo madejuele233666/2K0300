@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "IDX-IMPL-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The refresh exercise still freezes an incomplete required-path universe for its governed interface closure, so it does not faithfully demonstrate the index-aware preflight contract it claims to exercise.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-preflight.json starts from interface entry_refs for .codex/agents/verify-reviewer.toml and .codex/agents/index-maintainer.toml, and its required_paths include .codex/agents/verify-reviewer.toml, .codex/agents/index-maintainer.toml, openspec/schemas/ai-enforced-workflow/verification-sequence.md, and the repo-index reports. But docs/repo-index/interfaces/.codex__agents__verify-reviewer.toml.yaml governs openspec/schemas/ai-enforced-workflow/verification-sequence.md, and docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml in turn governs openspec/schemas/ai-enforced-workflow/index-sequence.md and openspec/schemas/ai-enforced-workflow/schema.yaml. The shared contract requires transitive governed-path expansion: openspec/schemas/ai-enforced-workflow/index-sequence.md derives the dirty governed-path set plus transitive governed closure, openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md says interface-card required paths come from governed_paths, and both design.md and tasks.md state that transitive governed files MUST be added to required_paths even across scope roots. refresh-preflight.json omits index-sequence.md and schema.yaml from required_paths, refresh-verifier-evidence.json therefore records complete coverage over that smaller surface only, and refresh-maintainer-summary.json likewise reports only the agent cards even though docs/repo-index/reports/refresh.json shows verification-sequence.md was also updated in the canonical refresh report.",
+      "recommendation": "Regenerate the refresh exercise from the full transitive interface closure so its frozen required_paths include openspec/schemas/ai-enforced-workflow/index-sequence.md and openspec/schemas/ai-enforced-workflow/schema.yaml, then update the paired verifier-evidence and maintainer-summary fixtures to match that same refreshed surface.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

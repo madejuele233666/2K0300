@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The reused repository-index surface is internally incoherent: `docs/repo-index/manifest.json` records `last_verified_at` values that contradict the underlying card metadata for at least two active entries, so the frozen preflight should not have treated this index as trusted for fresh-confirmation reuse.",
+      "evidence": "`docs/repo-index/manifest.json:38-63` records `openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json` as `last_verified_at=2026-04-09T15:08:00+08:00` and `openspec/schemas/ai-enforced-workflow/verification-sequence.md` as `last_verified_at=2026-04-09T14:47:40+08:00`, but the corresponding cards report `2026-04-09T14:47:40+08:00` at `docs/repo-index/files/openspec__schemas__ai-enforced-workflow__agent-spawn-decision-v1.schema.json.yaml:36-37` and `2026-04-09T15:08:00+08:00` at `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml:57-59`. `docs/repo-index/reports/refresh.json:9-33` simultaneously marks both entries as `updated`, while the frozen preflight still claims trusted reuse with no trust drift at `openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-14/artifact-index-preflight.json:38-40`. That contradicts the trust rules requiring coherent freshness/trust signals before reuse in `openspec/schemas/ai-enforced-workflow/index-sequence.md:160-167` and the change spec rule that reuse is invalid on contradictory report evidence in `openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md:223-230`.",
+      "recommendation": "Make manifest entry freshness and card freshness derive from the same refresh result, reject reuse whenever those freshness signals disagree, regenerate the affected repository-index artifacts, and rerun Stage 0 preflight before another fresh-confirmation pass.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The frozen preflight surface for checkpoint-4 is incomplete for this confirmation pass: `required_paths` omits all reviewed repository-index card YAMLs, so later coverage validation can report exhaustive completion without accounting for the actual decision-support artifacts being reused.",
+      "evidence": "This pass explicitly reviews the repo-index card files under `docs/repo-index/files/` and `docs/repo-index/interfaces/`, but `openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-14/artifact-index-preflight.json:41-57` freezes `required_paths` without any of those card paths. The change contract requires mixed governed+nongoverned checkpoints to add remaining evidence-scope paths into `required_paths` in `openspec/schemas/ai-enforced-workflow/index-sequence.md:176-186`, `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:206-213` and `:229-235`, and the change-local design/tasks repeat that requirement at `openspec/changes/introduce-index-aware-verifier-workflow/design.md:539-543` and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:39-43`.",
+      "recommendation": "Recompute the checkpoint-4 frozen review surface from the actual evidence scope so the repo-index card YAMLs are either explicitly included in `required_paths` or explicitly excluded by a declared policy, then rerun fresh confirmation against that corrected preflight surface.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+path: openspec/schemas/ai-enforced-workflow/index-sequence.md
+kind: interface
+owner_role: governed index preflight contract
+responsibilities:
+  - Defines Stage 0 discovery, deterministic contract lint, refresh, bypass, and preflight evidence outputs.
+  - Governs when repository-index reuse is allowed and when closure-scoped refresh or bypass must occur.
+  - Derives the dirty governed set plus transitive closure, then freezes required review-path and review-axis universes before verifier review.
+  - Defaults bypassed review axes to the standard completeness/correctness/coherence baseline plus any checkpoint-declared axes.
+must_not_do:
+  - Must not allow reused index coverage when required cards for the active review surface are missing.
+  - Must not silently bypass into source review without explicit preflight evidence.
+governed_paths:
+  - openspec/schemas/ai-enforced-workflow/index-sequence.md
+  - docs/repo-index/manifest.json
+  - docs/repo-index/reports/coverage.json
+  - docs/repo-index/reports/refresh.json
+inputs:
+  - stable governed scope object
+  - checkpoint_declared_axes
+  - evidence_paths_or_diff_scope
+  - fallback_policy
+outputs:
+  - authoritative preflight evidence json
+  - normalized index_context handoff
+invariants:
+  - contract id remains repo-index-v1
+  - manifest_path is recorded even when manifest_present=false
+  - required_paths and required_axes are authoritative when governed review is in scope
+  - required_paths use workspace-accessible file paths
+  - trusted reuse is invalid until deterministic contract lint passes and the active dirty closure is empty
+  - required_axes stay within the shared review vocabulary unless the findings contract expands in the same change
+  - checkpoint-specific preflight reports stay auxiliary unless explicit policy opts them into required_paths
+  - deep_scan_candidates is always present
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - required entry cards are missing for the active review surface
+  - coverage report contradicts the manifest
+  - mirrored workflow contracts disagree about required_paths or required_axes
+  - confidence or digest signals indicate drift
+confidence: high
+digest: sha256:1921a44a145d6d56ca297df37681a3872bca879afe8866309a7afb0595121832
+last_verified_at: 2026-04-09T15:26:00+08:00

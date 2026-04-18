@@ -1,0 +1,55 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "IDX-SATURATION-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "Exercise scenario: the frozen multi-surface pass still found an implementation completeness blocker in `openspec/schemas/ai-enforced-workflow/verification-sequence.md` after the reviewer finished the declared review surface.",
+      "evidence": "`saturation-preflight.json` freezes `openspec/schemas/ai-enforced-workflow/verification-sequence.md` into the required surface, and `saturation-verifier-evidence.json` records that path in both `reviewed_paths` and `deep_scanned_paths` while `coverage_status=complete` and `saturation_status=exhaustive` remain true.",
+      "recommendation": "Repair the sequence contract and rerun the same frozen review surface instead of terminating early after the first blocker.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-SATURATION-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "Exercise scenario: the same exhaustive pass found an independent correctness blocker on `.codex/agents/index-maintainer.toml` within the governed agent surface.",
+      "evidence": "`saturation-preflight.json` freezes `.codex/agents/index-maintainer.toml` as a required governed path, and `saturation-verifier-evidence.json` shows the reviewer completed all required axes before returning this blocker set.",
+      "recommendation": "Repair the agent-surface defect and rerun a fresh verifier pass over the same governed scope.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-SATURATION-003",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Exercise scenario: `.codex/agents/verify-reviewer.toml` and `openspec/schemas/ai-enforced-workflow/verification-sequence.md` needed a coherence follow-up after trigger-based deep scan.",
+      "evidence": "`saturation-preflight.json` declares both files as `deep_scan_candidates`, and `saturation-verifier-evidence.json` records them in `deep_scanned_paths` while leaving `unreviewed_axes=[]`.",
+      "recommendation": "Align the sequence and reviewer contract, then rerun the frozen surface with the same deep-scan triggers.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-SATURATION-004",
+      "severity": "SUGGESTION",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Exercise fixtures stay easier to audit when each saturation run carries its own frozen preflight file instead of borrowing another scenario's surface.",
+      "evidence": "`saturation-preflight.json` now gives the exercise its own review-surface anchor alongside the paired findings and verifier evidence files.",
+      "recommendation": "Keep cross-file linkage explicit in future exercise fixtures.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

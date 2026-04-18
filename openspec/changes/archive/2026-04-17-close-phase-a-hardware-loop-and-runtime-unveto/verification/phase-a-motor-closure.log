@@ -1,0 +1,73 @@
+== runtime smoke 2026-04-17T11:02:51Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][2046094] starting ls2k migration runtime
+[INFO][profile.loaded][2046095] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][2046096] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][2046096] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][2046096] direct-match:imu-core-device-detect
+[INFO][profile.encoder][2046096] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][2046096] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][2046096] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][2046096] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][2046096] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][2046096] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2336 threshold=400
+[INFO][startup.low_voltage.clear][2046097] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][2046367] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][2046369] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][2046369] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][2046411] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][2046411] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][2046411] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right
+[INFO][motor.init][2046411] motor initialized through true_ls2k0300 bridge: logical_left maps to pwm=/dev/zf_device_pwm_motor_2, gpio=/dev/zf_driver_gpio_motor_2; logical_right maps to pwm=/dev/zf_device_pwm_motor_1, gpio=/dev/zf_driver_gpio_motor_1
+[INFO][startup.complete][2046411] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][2046412] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][2046412] control loop started with PIT-equivalent periodic callback
+[INFO][imu.sample.summary][2046418] imu normalized sample acc_z=-4.845466mps2 gyro_z=0.002527radps valid_streak=1
+[WARN][encoder.baseline][2046419] encoder baseline established; first absolute sample is not emitted as a delta and logical right-wheel sign is normalized at the adapter boundary
+[FAIL_SAFE][control.veto][2046419] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][2046419] dominant control veto reason: perception_stale
+[FAIL_SAFE][control.apply.emergency_stop][2046419] emergency-stop command applied to keep actuators fail-safe
+[INFO][encoder.delta.summary][2046427] logical encoder delta left=0 right=0 mean=0 diff=0
+[WARN][control.veto.sustained][2046622] control remained vetoed for 203 ms with dominant reason=perception_stale
+[INFO][imu.continuity.ready][2046627] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][control.veto.interval.closed][2046729] previous veto interval closed after 310 ms (reason=perception_stale)
+[INFO][control.command.requested_nonzero][2046729] non-zero differential-drive command requested
+[INFO][control.apply.drive][2046729] drive command applied to motor adapter
+[INFO][control.apply.command][2046729] logical drive command left_pwm=7378 right_pwm=9000
+[INFO][control.arm.transition][2046729] actuator armed state transitioned from disarmed to armed (apply_outcome=drive_command_applied)
+[INFO][control.unveto.sustained][2046934] control remained non-veto for 205 ms; actuator path stayed eligible for drive application
+[INFO][startup.low_voltage.raw][2047100] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2034 threshold=400
+[INFO][imu.sample.summary][2047424] imu normalized sample acc_z=-4.844281mps2 gyro_z=0.001463radps valid_streak=141
+[INFO][encoder.delta.summary][2047433] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][2047734] non-zero differential-drive command requested
+[INFO][control.apply.drive][2047734] drive command applied to motor adapter
+[INFO][control.apply.command][2047734] logical drive command left_pwm=7945 right_pwm=9000
+[INFO][startup.low_voltage.raw][2048101] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2299 threshold=400
+[INFO][imu.sample.summary][2048429] imu normalized sample acc_z=-4.844505mps2 gyro_z=0.000399radps valid_streak=278
+[INFO][encoder.delta.summary][2048438] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][2048739] non-zero differential-drive command requested
+[INFO][control.apply.drive][2048739] drive command applied to motor adapter
+[INFO][control.apply.command][2048739] logical drive command left_pwm=7909 right_pwm=9000
+[INFO][startup.low_voltage.raw][2049104] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2339 threshold=400
+[INFO][imu.sample.summary][2049434] imu normalized sample acc_z=-4.847799mps2 gyro_z=0.000399radps valid_streak=415
+[INFO][encoder.delta.summary][2049443] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][control.command.requested_nonzero][2049743] non-zero differential-drive command requested
+[INFO][control.apply.drive][2049743] drive command applied to motor adapter
+[INFO][control.apply.command][2049743] logical drive command left_pwm=7842 right_pwm=9000
+[INFO][main.frame_limit][2050048] bounded runtime loop reached LS2K_MAX_FRAMES=400
+[INFO][timer.stop][2050050] timer bridge stopped
+[INFO][camera.shutdown][2050050] camera adapter shutdown complete
+[INFO][imu.shutdown][2050050] imu adapter shutdown complete
+[INFO][encoder.shutdown][2050050] encoder adapter shutdown complete
+[INFO][motor.shutdown][2050050] motor adapter shutdown complete
+[INFO][shutdown.complete][2050050] actuators disabled and resources released
+[INFO][main.exit][2050050] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

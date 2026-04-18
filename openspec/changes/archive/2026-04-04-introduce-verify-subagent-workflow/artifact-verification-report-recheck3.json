@@ -1,0 +1,11 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "scope": "all",
+  "scorecard": {
+    "Completeness": "pass",
+    "Correctness": "pass",
+    "Coherence": "pass"
+  },
+  "findings": [],
+  "final_assessment": "pass"
+}

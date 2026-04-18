@@ -1,0 +1,51 @@
+path: .codex/agents/verify-reviewer.toml
+kind: interface
+owner_role: final read-only verifier
+responsibilities:
+  - Consumes the minimal verification bundle and optional index_context.
+  - Loads the checkpoint preflight report first when `index_context.preflight_report_path` is present.
+  - Produces normalized shared-findings-v1 output only.
+  - Continues through the declared review surface instead of stopping after the first blocker cluster.
+  - Treats the frozen preflight review surface as authoritative and escalates to deep scan only on declared triggers or conflicts.
+  - Allows same-session convergence reruns while reserving fresh verifier spawns for fresh confirmation passes.
+  - Fails closed when governed preflight is unreadable or missing frozen-surface fields.
+must_not_do:
+  - Must not modify files.
+  - Must not inherit prior verifier memory across reruns.
+  - Must not silently claim index-first review when index_context is unreadable.
+  - Must not re-derive the review surface from active evidence when the checkpoint preflight surface is already frozen.
+  - Must not treat same-session zero findings as authoritative checkpoint closure unless the caller marks the pass as fresh confirmation.
+governed_paths:
+  - .codex/agents/verify-reviewer.toml
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+inputs:
+  - change
+  - mode
+  - risk_tier
+  - evidence_paths_or_diff_scope
+  - findings_contract
+  - index_context
+  - output_paths
+outputs:
+  - shared-findings-v1 json envelope
+  - optional spawn-decision path in the top-level output_paths envelope
+invariants:
+  - read-only role
+  - suggestion severity cannot be blocking
+  - frozen review surface comes from the checkpoint preflight report when present
+  - deep scan is trigger-based, not default
+  - missing normalized Gemini report output after allowed recovery attempts blocks the checkpoint
+  - same-session reruns are convergence-only
+  - fresh confirmation uses a newly spawned verifier session
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - declared deep_scan_trigger fires
+  - governed coverage is missing
+  - digest or exported surface conflicts with index
+  - artifact, runtime, or diff evidence contradicts index claims
+confidence: high
+digest: sha256:879183f56ab44ebbc5329c1bc7ced8f042a84b46b8caa92bba33a9a98be8a15a
+last_verified_at: 2026-04-09T17:04:59+08:00

@@ -1,0 +1,39 @@
+{
+  "fixture": true,
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "implementation",
+  "template_id": "verify-reviewer-inline-v2",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "fixture-reuse-reviewer-20260408",
+  "start_at": "2026-04-08T20:41:00+08:00",
+  "end_at": "2026-04-08T20:41:00+08:00",
+  "final_state": "completed",
+  "verifier_output_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-findings.json",
+  "index_contract": "repo-index-v1",
+  "index_manifest_path": "docs/repo-index/manifest.json",
+  "index_preflight_report_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-preflight.json",
+  "index_mode": "reused",
+  "deep_scanned_paths": [],
+  "deep_scan_reasons": {},
+  "reviewed_paths": [
+    "docs/repo-index/manifest.json",
+    "docs/repo-index/reports/coverage.json",
+    "docs/repo-index/reports/refresh.json",
+    "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    ".codex/agents/verify-reviewer.toml",
+    "openspec/schemas/ai-enforced-workflow/templates/design.md",
+    "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "skip_reasons": {}
+}

@@ -1,0 +1,44 @@
+{
+  "fixture": true,
+  "contract": "repo-index-v1",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "manifest_present": true,
+  "coverage_report_path": "docs/repo-index/reports/coverage.json",
+  "refresh_report_path": "docs/repo-index/reports/refresh.json",
+  "governed_scopes": [
+    {
+      "scope_id": "workflow-schema-surface",
+      "scope_root": "openspec/schemas/ai-enforced-workflow",
+      "allowed_entry_kinds": [
+        "file",
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        "openspec/schemas/ai-enforced-workflow/schema.yaml",
+        "openspec/schemas/ai-enforced-workflow/templates/design.md",
+        "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+      ]
+    }
+  ],
+  "index_mode": "reused",
+  "fallback_policy": "refresh",
+  "reason": "index is reusable, but a digest mismatch on schema.yaml predeclares a deep-scan candidate",
+  "required_paths": [
+    "docs/repo-index/manifest.json",
+    "docs/repo-index/reports/coverage.json",
+    "docs/repo-index/reports/refresh.json",
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    "openspec/schemas/ai-enforced-workflow/templates/design.md",
+    "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+  ],
+  "required_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "deep_scan_candidates": [
+    "openspec/schemas/ai-enforced-workflow/schema.yaml"
+  ],
+  "missing_entries": []
+}

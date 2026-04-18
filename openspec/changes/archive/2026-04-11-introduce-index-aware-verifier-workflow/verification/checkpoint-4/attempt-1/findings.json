@@ -1,0 +1,43 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "CP4-DESIGN-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "The design template omits the mandatory `verifier_output_path` field from its review-completion contract, so generated governed design plans can fail to name a required execution-evidence field that authoritative verification depends on.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/templates/design.md:93-109` lists review-completion fields but does not include `verifier_output_path`. The authoritative contract requires it in `openspec/schemas/ai-enforced-workflow/verification-sequence.md:86-103`, the schema instruction requires it in `openspec/schemas/ai-enforced-workflow/schema.yaml:212-218`, and the change contract mirrors it in `openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:100-120` and `openspec/changes/introduce-index-aware-verifier-workflow/design.md:573-582`.",
+      "recommendation": "Add `verifier_output_path` to the design template's review-completion contract and keep the surrounding wording aligned with the shared verification-sequence contract.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CP4-TASKS-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The task-generation surface omits the mandatory `verifier_output_path` field from checkpoint/review-completion requirements, so generated governed tasks can specify incomplete execution-evidence contracts.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/templates/tasks.md:36-37` requires review-completion evidence but omits `verifier_output_path`. The schema task instructions repeat the same omission in `openspec/schemas/ai-enforced-workflow/schema.yaml:275-285` and the exact checkpoint format in `openspec/schemas/ai-enforced-workflow/schema.yaml:319-349`. This conflicts with the required execution-evidence contract in `openspec/schemas/ai-enforced-workflow/verification-sequence.md:86-103`, `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:100-119`, and the change's own shared contract in `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:100-111`.",
+      "recommendation": "Add `verifier_output_path` wherever the tasks schema/template enumerate required review-completion or checkpoint execution-evidence fields, including the exact checkpoint wording.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CP4-DESIGN-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "design",
+      "problem": "The design template mislabels the verifier plan as a two-stage flow while enumerating three stages, which makes the shared verification sequence internally inconsistent in generated design docs.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/templates/design.md:22-27` says `Two-stage flow:` and then lists `Stage 0`, `Stage 1`, and `Stage 2`. The change design uses the coherent form in `openspec/changes/introduce-index-aware-verifier-workflow/design.md:477-480`.",
+      "recommendation": "Rename the heading to `Three-stage flow` or collapse the bullets so the count matches the stages shown.",
+      "redirect_layer": "design",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

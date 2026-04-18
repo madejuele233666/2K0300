@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/contracts/review-loop-openspec-adapter-v1.json",
+  "contract": "review-loop-openspec-adapter-v1",
+  "core_contract_ref": "openspec/schemas/modules/review-loop/contracts/review-loop-core-v1.json",
+  "subject_key": "change",
+  "bundle_required": [
+    "change",
+    "review_goal",
+    "review_phase",
+    "review_pass_type",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract"
+  ],
+  "verifier_evidence_subject_fields": [
+    "change"
+  ],
+  "schema_local_wrapper_notes": [
+    "checkpoint target surfaces remain schema-local to ai-enforced-workflow",
+    "the shared module governs working/challenger review semantics for every checkpoint"
+  ],
+  "spawn_decision_contract": "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json"
+}

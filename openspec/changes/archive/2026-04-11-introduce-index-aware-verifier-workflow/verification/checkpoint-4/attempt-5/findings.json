@@ -1,0 +1,43 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The frozen preflight report certifies `index_mode: reused` even though the repository-index evidence set is internally contradictory for active governed entries.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-5/artifact-index-preflight.json:37-39` says trusted coverage was reused after digest reconciliation. But `docs/repo-index/reports/refresh.json:4,29-39` records a 2026-04-09T10:48:34+08:00 refresh that updated `openspec/schemas/ai-enforced-workflow/verification-sequence.md` and `.codex/agents/verify-reviewer.toml`, while `docs/repo-index/manifest.json:51-76` still reports `last_verified_at` as 2026-04-09T09:33:29+08:00 for those same entries. The shared preflight contract rejects contradictory manifest/report trust evidence before reuse.",
+      "recommendation": "Repair the repository-index artifacts so the manifest/card freshness metadata matches the refresh report for every updated entry, then rerun Stage 0. If those entries are still stale or contradictory after repair, preflight must not return `index_mode: reused`; it must refresh again or block under `fallback_policy: refresh`.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "design",
+      "problem": "`schema.yaml` no longer mirrors the full Repository Index Plan contract for generated design artifacts, so deterministic contract lint cannot rely on the schema, spec, and template to describe the same governed-plan surface.",
+      "evidence": "The capability spec requires the Repository Index Plan to identify the shared index-preflight sequence, index-maintainer agent path, required index skill entry points, preflight evidence path(s)/required-universe fields, verifier invocation template, and deep-scan policy (`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:6-17`). The generated design template's Repository Index Plan section mirrors that richer contract (`openspec/schemas/ai-enforced-workflow/templates/design.md:47-69`), but the schema instruction's `Repository Index Plan for governed scopes` bullet omits the shared preflight sequence, index-maintainer path, index skill entry points, and verifier invocation template from the plan itself (`openspec/schemas/ai-enforced-workflow/schema.yaml:197-205`).",
+      "recommendation": "Align the design-generation instructions in `schema.yaml` so the Repository Index Plan bullet itself mirrors the same mandatory fields already required by the capability spec and design template.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "`schema.yaml` under-specifies the Repository Index Plan for generated task artifacts, leaving the schema-side mirror weaker than the modified tasks template and spec.",
+      "evidence": "The capability spec requires the Repository Index Plan to cover shared preflight sequencing plus preflight evidence path(s) and required-universe fields (`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:6-17`). The task template scaffolds those fields explicitly in section 0, including `index-sequence/default`, `required_paths`, and `required_axes` (`openspec/schemas/ai-enforced-workflow/templates/tasks.md:3-31`). But the schema instruction's explicit Repository Index Plan list for tasks only names root/contract/scopes/granularity/fallback/deep-scan policy/skill entry points/agent/verifier template/evidence naming (`openspec/schemas/ai-enforced-workflow/schema.yaml:293-297`) and does not require the shared preflight sequence or the governed preflight required-universe fields as plan content.",
+      "recommendation": "Strengthen the tasks-generation instructions in `schema.yaml` so the Repository Index Plan list matches the task template and spec, including the shared preflight sequence and `required_paths`/`required_axes` contract.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

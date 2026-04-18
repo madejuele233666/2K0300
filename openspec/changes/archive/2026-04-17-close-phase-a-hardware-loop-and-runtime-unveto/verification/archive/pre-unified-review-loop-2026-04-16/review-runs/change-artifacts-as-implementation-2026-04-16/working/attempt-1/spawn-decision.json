@@ -1,0 +1,21 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "phase": "implementation_verify",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "initial_working_session",
+  "decision": "allow",
+  "recorded_at": "2026-04-16T01:16:26Z",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_blocker": "not_applicable"
+  },
+  "evidence": {
+    "source_review": {
+      "agent_id": null,
+      "findings_path": null,
+      "verifier_evidence_path": null
+    }
+  }
+}

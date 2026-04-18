@@ -1,0 +1,15 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "phase": "artifact_gate",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "initial_working_session",
+  "decision": "allow",
+  "recorded_at": "2026-04-18T03:28:18Z",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_blocker": "not_applicable"
+  },
+  "evidence": {}
+}

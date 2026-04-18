@@ -1,0 +1,30 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "fix-board-runtime-hardware-detection",
+  "phase": "apply",
+  "requested_agent_type": "verify-reviewer",
+  "spawn_kind": "policy_required",
+  "reason_code": "initial_working_session",
+  "decision": "allow",
+  "recorded_at": "2026-04-15T10:39:30Z",
+  "summary": "The 2026-04-15 implementation-review refresh reopens the working verification pass around the same code surface and an expanded evidence bundle that now includes the 2026-04-12 direct-match serial runtime and hardware-discovery artifacts.",
+  "prior_session": {
+    "agent_id": null,
+    "session_role": "none",
+    "reuse_expected": false,
+    "reuse_attempted": false,
+    "reuse_succeeded": false,
+    "reuse_blocker": "not_applicable"
+  },
+  "policy_basis": {
+    "sequence_ref": "openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default",
+    "rule_ref": "initial-working-session"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/fix-board-runtime-hardware-detection/verification/implementation-local-review.json",
+    "verifier_evidence_path": "openspec/changes/fix-board-runtime-hardware-detection/verification/implementation-local-review-evidence.json"
+  },
+  "notes": [
+    "Serial-captured direct-match evidence closes the prior completeness gap without requiring a fresh SSH-copy run in this session."
+  ]
+}

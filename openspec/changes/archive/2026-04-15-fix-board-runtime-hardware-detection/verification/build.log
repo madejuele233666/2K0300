@@ -1,0 +1,63 @@
+[INFO] building migrated new/ workspace from /home/madejuele/projects/2K0300/new/user
+[INFO] true vendor root: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+-- The C compiler identification is GNU 8.3.0
+-- The CXX compiler identification is GNU 8.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found OpenCV: /opt/ls_2k0300_env/opencv_4_10_build (found version "4.10.0") 
+-- Configuring done (2.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/madejuele/projects/2K0300/new/out
+[  2%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/bootstrap.cpp.o
+[  4%] Building CXX object CMakeFiles/new.dir/main.cpp.o
+[  6%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/imu_adapter.cpp.o
+[ 13%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/motor_adapter.cpp.o
+[ 16%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/camera_adapter.cpp.o
+[ 13%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/power_adapter.cpp.o
+[ 18%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/encoder_adapter.cpp.o
+[ 20%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/hardware_profile.cpp.o
+[ 20%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.o
+[ 23%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o
+[ 25%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o
+[ 27%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o
+[ 30%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o
+[ 32%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o
+[ 34%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o
+[ 37%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o
+[ 41%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o
+[ 41%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o
+[ 44%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o
+[ 48%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
+[ 48%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o
+[ 51%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o
+[ 53%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o
+[ 60%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o
+[ 60%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o
+[ 55%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o
+[ 62%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o
+[ 67%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o
+[ 65%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o
+[ 69%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o
+[ 72%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o
+[ 74%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o
+[ 76%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o
+[ 79%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o
+[ 83%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o
+[ 83%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o
+[ 86%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o
+[ 88%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o
+[ 90%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o
+[ 93%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o
+[ 95%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.o
+[ 97%] Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o
+[100%] Linking CXX executable new
+[100%] Built target new
+[INFO] SKIP_UPLOAD=1, build completed without upload

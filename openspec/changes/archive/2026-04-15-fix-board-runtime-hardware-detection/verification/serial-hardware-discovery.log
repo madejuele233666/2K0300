@@ -1,0 +1,18 @@
+[/sys/bus/iio/devices/iio:device0]
+current_timestamp_clock  in_voltage2_raw  in_voltage6_raw   [0m[01;36mof_node[0m
+dev                      in_voltage3_raw  in_voltage7_raw   [01;34mpower[0m
+in_voltage0_raw          in_voltage4_raw  in_voltage_scale  [01;36msubsystem[0m
+in_voltage1_raw          in_voltage5_raw  name              uevent
+name=1611c000.adc
+
+== spi imu ==
+
+== runtime resources ==
+crw-rw---- 1 root video 81,  0 Mar 24 10:25 [0m[01;33m/dev/video0[0m
+crw------- 1 root root  10, 48 Mar 24 10:25 [01;33m/dev/zf_device_pwm_motor_1[0m
+crw------- 1 root root  10, 47 Mar 24 10:25 [01;33m/dev/zf_device_pwm_motor_2[0m
+crw------- 1 root root  10, 53 Mar 24 10:25 [01;33m/dev/zf_driver_gpio_motor_1[0m
+crw------- 1 root root  10, 52 Mar 24 10:25 [01;33m/dev/zf_driver_gpio_motor_2[0m
+crw------- 1 root root  10, 62 Mar 24 10:25 [01;33m/dev/zf_encoder_1[0m
+crw------- 1 root root  10, 61 Mar 24 10:25 [01;33m/dev/zf_encoder_2[0m
+

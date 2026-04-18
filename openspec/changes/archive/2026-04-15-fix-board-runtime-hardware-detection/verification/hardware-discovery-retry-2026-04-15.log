@@ -1,0 +1,29 @@
+== iio devices ==
+current_timestamp_clock
+dev
+in_voltage0_raw
+in_voltage1_raw
+in_voltage2_raw
+in_voltage3_raw
+in_voltage4_raw
+in_voltage5_raw
+in_voltage6_raw
+in_voltage7_raw
+in_voltage_scale
+name
+of_node
+power
+subsystem
+uevent
+name=1611c000.adc
+
+== spi imu ==
+
+== runtime resources ==
+crw-rw---- 1 root video 81,  0 Mar 24 10:25 /dev/video0
+crw------- 1 root root  10, 48 Mar 24 10:25 /dev/zf_device_pwm_motor_1
+crw------- 1 root root  10, 47 Mar 24 10:25 /dev/zf_device_pwm_motor_2
+crw------- 1 root root  10, 53 Mar 24 10:25 /dev/zf_driver_gpio_motor_1
+crw------- 1 root root  10, 52 Mar 24 10:25 /dev/zf_driver_gpio_motor_2
+crw------- 1 root root  10, 62 Mar 24 10:25 /dev/zf_encoder_1
+crw------- 1 root root  10, 61 Mar 24 10:25 /dev/zf_encoder_2

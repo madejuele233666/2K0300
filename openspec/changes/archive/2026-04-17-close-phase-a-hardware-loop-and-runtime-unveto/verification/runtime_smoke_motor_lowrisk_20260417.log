@@ -1,0 +1,60 @@
+== runtime smoke 2026-04-17T13:52:27Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+params_source=/tmp/ls2k_lowrisk_params_20260417.json
+profile_source=/home/madejuele/projects/2K0300/new/user/../config/hardware_profile.json
+smoke_enable_motor=1
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][4245886] starting ls2k migration runtime
+[INFO][profile.loaded][4245887] hardware profile loaded from /home/root/hardware_profile.smoke.json
+[INFO][params.loaded][4245888] runtime parameters loaded from /home/root/default_params.smoke.json
+[INFO][profile.camera][4245888] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][4245888] direct-match:imu-core-device-detect
+[INFO][profile.encoder][4245888] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][4245888] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][4245888] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][4245888] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][4245888] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][4245889] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2203 threshold=400
+[INFO][startup.low_voltage.clear][4245889] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][4246164] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][4246166] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][4246166] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][4246208] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][4246208] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][4246208] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right for direct speed samples
+[INFO][motor.init][4246208] motor initialized through true_ls2k0300 bridge: logical_left maps to pwm=/dev/zf_device_pwm_motor_2, gpio=/dev/zf_driver_gpio_motor_2; logical_right maps to pwm=/dev/zf_device_pwm_motor_1, gpio=/dev/zf_driver_gpio_motor_1
+[INFO][startup.complete][4246208] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][4246208] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][4246208] control loop started with PIT-equivalent periodic callback
+[INFO][imu.sample.summary][4246214] imu normalized sample acc_z=-4.838287mps2 gyro_z=-0.001064radps valid_streak=1
+[INFO][encoder.delta.summary][4246216] logical encoder sample left=0 right=0 mean=0 diff=0
+[FAIL_SAFE][control.veto][4246216] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][4246216] dominant control veto reason: perception_stale
+[FAIL_SAFE][control.apply.emergency_stop][4246216] emergency-stop command applied to keep actuators fail-safe
+[WARN][control.veto.sustained][4246419] control remained vetoed for 203 ms with dominant reason=perception_stale
+[INFO][imu.continuity.ready][4246424] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][control.veto.interval.closed][4246537] previous veto interval closed after 321 ms (reason=perception_stale)
+[INFO][control.command.requested_nonzero][4246537] non-zero differential-drive command requested
+[INFO][control.apply.drive][4246537] drive command applied to motor adapter
+[INFO][control.apply.command][4246537] logical drive command left_pwm=2500 right_pwm=-2500
+[INFO][control.arm.transition][4246537] actuator armed state transitioned from disarmed to armed (apply_outcome=drive_command_applied)
+[INFO][control.unveto.sustained][4246737] control remained non-veto for 200 ms; actuator path stayed eligible for drive application
+[INFO][startup.low_voltage.raw][4246889] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2177 threshold=400
+[INFO][imu.sample.summary][4247215] imu normalized sample acc_z=-4.980447mps2 gyro_z=0.027667radps valid_streak=140
+[INFO][encoder.delta.summary][4247216] logical encoder sample left=435 right=-418 mean=8 diff=-853
+[INFO][main.frame_limit][4247513] bounded runtime loop reached LS2K_MAX_FRAMES=120
+[INFO][timer.stop][4247517] timer bridge stopped
+[INFO][camera.shutdown][4247517] camera adapter shutdown complete
+[INFO][imu.shutdown][4247517] imu adapter shutdown complete
+[INFO][encoder.shutdown][4247517] encoder adapter shutdown complete
+[INFO][motor.shutdown][4247517] motor adapter shutdown complete
+[INFO][shutdown.complete][4247517] actuators disabled and resources released
+[INFO][main.exit][4247517] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+  "title": "agent-spawn-decision-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "change",
+    "phase",
+    "requested_agent_type",
+    "reason_code",
+    "decision",
+    "recorded_at",
+    "prior_agent",
+    "evidence"
+  ],
+  "properties": {
+    "contract": {
+      "const": "agent-spawn-decision-v1"
+    },
+    "change": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "enum": [
+        "artifact_gate",
+        "apply",
+        "implementation_verify",
+        "preflight",
+        "repair"
+      ]
+    },
+    "requested_agent_type": {
+      "enum": [
+        "verify-reviewer",
+        "index-maintainer"
+      ]
+    },
+    "reason_code": {
+      "enum": [
+        "no_usable_active_agent",
+        "active_agent_missing",
+        "active_agent_not_resumable",
+        "tooling_recovery",
+        "index_refresh_required"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prior_agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "status",
+        "resumable"
+      ],
+      "properties": {
+        "agent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "none",
+            "active",
+            "non_active",
+            "closed",
+            "maintenance"
+          ]
+        },
+        "resumable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_table_path"
+      ],
+      "properties": {
+        "agent_table_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "findings_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifier_evidence_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preflight_report_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "no_usable_active_agent"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_agent_type": {
+            "const": "verify-reviewer"
+          },
+          "decision": {
+            "const": "allow"
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "prior_agent": {
+                "properties": {
+                  "agent_id": {
+                    "const": null
+                  },
+                  "status": {
+                    "const": "none"
+                  },
+                  "resumable": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "prior_agent": {
+                "properties": {
+                  "agent_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "const": "non_active"
+                  },
+                  "resumable": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "prior_agent": {
+                "properties": {
+                  "agent_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "const": "closed"
+                  },
+                  "resumable": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "active_agent_missing"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_agent_type": {
+            "const": "verify-reviewer"
+          },
+          "decision": {
+            "const": "allow"
+          },
+          "prior_agent": {
+            "properties": {
+              "agent_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "const": "active"
+              },
+              "resumable": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "active_agent_not_resumable"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_agent_type": {
+            "const": "verify-reviewer"
+          },
+          "decision": {
+            "const": "allow"
+          },
+          "prior_agent": {
+            "properties": {
+              "agent_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "const": "active"
+              },
+              "resumable": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "index_refresh_required"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_agent_type": {
+            "const": "index-maintainer"
+          },
+          "decision": {
+            "const": "allow"
+          },
+          "prior_agent": {
+            "properties": {
+              "status": {
+                "const": "maintenance"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "tooling_recovery"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "allow"
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "contract": "agent-spawn-decision-v1",
+      "change": "implement-phase-b-motion-lifecycle",
+      "phase": "implementation_verify",
+      "requested_agent_type": "verify-reviewer",
+      "reason_code": "no_usable_active_agent",
+      "decision": "allow",
+      "recorded_at": "2026-04-18T12:30:00Z",
+      "prior_agent": {
+        "agent_id": "019d70df-2241-7520-b1df-79e54f0850f1",
+        "status": "non_active",
+        "resumable": false
+      },
+      "evidence": {
+        "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/agent-table.json",
+        "findings_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-1/findings.json",
+        "verifier_evidence_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-1/verifier-evidence.json"
+      }
+    },
+    {
+      "contract": "agent-spawn-decision-v1",
+      "change": "implement-phase-b-motion-lifecycle",
+      "phase": "implementation_verify",
+      "requested_agent_type": "verify-reviewer",
+      "reason_code": "active_agent_not_resumable",
+      "decision": "allow",
+      "recorded_at": "2026-04-18T12:34:56Z",
+      "prior_agent": {
+        "agent_id": "019d70df-2241-7520-b1df-79e54f0850f8",
+        "status": "active",
+        "resumable": false
+      },
+      "evidence": {
+        "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/agent-table.json",
+        "findings_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-2/findings.json",
+        "verifier_evidence_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-2/verifier-evidence.json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/contracts/review-loop-core-v1.json",
+  "contract": "review-loop-core-v1",
+  "module_focus": "generic implementation correctness review loop",
+  "invocation_common_required": [
+    "review_goal",
+    "review_phase",
+    "review_pass_type",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract"
+  ],
+  "invocation_common_constants": {
+    "review_goal": "implementation_correctness"
+  },
+  "bootstrap_defaults": {
+    "review_goal": "implementation_correctness",
+    "initial_review_pass_type": "working",
+    "findings_contract": "shared-findings-v1",
+    "risk_tier": "STANDARD"
+  },
+  "bootstrap_rules": [
+    "If the caller references this module root without a prebuilt bundle, start from bootstrap_defaults instead of inventing fields ad hoc.",
+    "If the standalone subject key is missing, synthesize target_ref from the concrete review subject using one of: diff:<name>, paths:<comma-separated-paths>, workflow:<name>, repo:<repo-name>-adhoc-review-YYYY-MM-DD.",
+    "If evidence_paths_or_diff_scope is not supplied, derive it from the explicit user target first; otherwise derive it from the current implementation diff or changed paths; if no concrete implementation scope can be discovered, stop and ask for scope before review starts.",
+    "Set review_phase from the declared review surface: docs_first for document-primary checkpoints, source_first for code/test/impacted-source checkpoints."
+  ],
+  "invocation_context_optional": [
+    "target_description",
+    "acceptance_reference_paths",
+    "constraints_or_invariants"
+  ],
+  "index_context_optional": [
+    "contract",
+    "manifest_path",
+    "manifest_present",
+    "preflight_report_path",
+    "cache_mode",
+    "fallback_policy"
+  ],
+  "output_paths_required": [
+    "findings_path",
+    "verifier_evidence_path"
+  ],
+  "output_paths_optional": [
+    "gemini_raw_path",
+    "gemini_report_path",
+    "spawn_decision_path",
+    "cache_report_path"
+  ],
+  "verifier_evidence_required": [
+    "review_goal",
+    "review_phase",
+    "review_pass_type",
+    "template_id",
+    "findings_contract",
+    "agent_id",
+    "start_at",
+    "end_at",
+    "final_state",
+    "cache_mode",
+    "closure_authority",
+    "verifier_output_path",
+    "reviewed_paths",
+    "skipped_paths",
+    "reviewed_axes",
+    "unreviewed_axes",
+    "coverage_status",
+    "saturation_status"
+  ],
+  "implementation_evidence_required": [
+    "review_scope",
+    "review_coverage"
+  ],
+  "working_session_rule": {
+    "session_requirement": "Reuse the active working reviewer session across ordinary repair reruns until convergence or an explicit recovery exception is recorded.",
+    "same_agent_id_required_after_first_attempt": true,
+    "exception_spawn_decision_required_for_agent_change": true,
+    "convergence_checks": [
+      "final_assessment=pass",
+      "findings must be empty",
+      "coverage_status=complete",
+      "saturation_status=exhaustive"
+    ]
+  },
+  "challenger_entry": {
+    "source_review_required": [
+      "agent_id",
+      "findings_path",
+      "verifier_evidence_path"
+    ],
+    "findings_checks": [
+      "final_assessment=pass",
+      "findings must be empty"
+    ],
+    "evidence_checks": [
+      "review_goal=implementation_correctness",
+      "review_pass_type=working",
+      "coverage_status=complete",
+      "saturation_status=exhaustive",
+      "agent_id must match source_review.agent_id"
+    ],
+    "authority_rule": "Only the main process may authorize challenger entry or closure, and it must not substitute its own judgment for the prior working sub-agent output."
+  }
+}

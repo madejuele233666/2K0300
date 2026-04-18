@@ -1,0 +1,29 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "scorecard": {
+    "Verifier Subagent Definition": "PASS",
+    "Shared Sequence Orchestration": "PASS",
+    "Schema Template Alignment": "PASS",
+    "Entrypoint Refactor (Artifact/Verify)": "PASS",
+    "Repair Loop & Apply Enforcement": "PASS",
+    "Generator Skill Alignment (Propose/FF/Continue)": "FAIL"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Artifact-generation helper skills (propose, ff-change, continue-change) still contain superseded 'Codex local review' terminology in their guardrails, contradicting the new 'verifier-subagent-first' contract.",
+      "evidence": ".codex/skills/openspec-propose/SKILL.md:101, .codex/skills/openspec-ff-change/SKILL.md:92, and .codex/skills/openspec-continue-change/SKILL.md:116 still reference the coupled implementer self-review model.",
+      "recommendation": "Update generator skills to match the new workflow: 'verifier-subagent-first review, shared sequence verify-sequence/default, and tier-gated Gemini second opinion'.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": true
+    }
+  ],
+  "skipped_checks": [
+    "Runtime verification of platform-specific command resolution (Windows/Linux) beyond static document review."
+  ],
+  "final_assessment": "PASS_WITH_WARNINGS"
+}

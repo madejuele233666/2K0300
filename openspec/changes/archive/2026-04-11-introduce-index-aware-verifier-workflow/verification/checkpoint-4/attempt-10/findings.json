@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-010",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "The shared schema instruction for generated task artifacts still requires checkpoint steps to define a retry policy, but the repaired workflow contract has already moved that surface to caller-local runtime guardrails.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:296-312` still says independent verification tasks must 'define routing target and retry policy'. The current task template instead requires caller-local guardrails and no longer names retry policy at `openspec/schemas/ai-enforced-workflow/templates/tasks.md:38-39`, and the repaired change-local task contract uses `caller-local runtime guardrails` at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:109-113` and in checkpoint task bodies at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:153-191`.",
+      "recommendation": "Align the task-generation instruction in `openspec/schemas/ai-enforced-workflow/schema.yaml` with the current shared contract by replacing the stale retry-policy wording with the caller-local runtime guardrails language used by the template and change-local tasks.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-011",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The refreshed repository-index interface card for `verification-sequence.md` still describes explicit rerun-comparison semantics for stable finding identifiers even though the current shared sequence no longer defines any such rerun-comparison contract.",
+      "evidence": "The refreshed card says the sequence 'rel[ies] on explicit rerun-comparison semantics for any stable finding identifiers' at `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml:12`, while also stating generic rerun-comparison inputs are no longer part of the contract at `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml:21`. In the actual shared sequence, the minimal bundle at `openspec/schemas/ai-enforced-workflow/verification-sequence.md:31-60` contains no rerun-comparison input, and the findings contract at `openspec/schemas/ai-enforced-workflow/verification-sequence.md:220-227` now enforces only per-array `id` uniqueness plus cross-field constraints.",
+      "recommendation": "Refresh `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml` so it mirrors the current session-oriented shared sequence without claiming rerun-comparison semantics that the source contract no longer defines.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

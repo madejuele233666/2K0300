@@ -1,0 +1,123 @@
+== hardware profile 2026-04-04T13:20:03Z ==
+board=root@10.236.192.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+
+== scenario:default_direct_match ==
+profile_path=/home/root/retarget_verify/hardware_profile-default.json
+[INFO][main.start][6365207] starting ls2k migration runtime
+[INFO][profile.loaded][6365208] hardware profile loaded from /home/root/retarget_verify/hardware_profile-default.json
+[INFO][params.loaded][6365209] runtime parameters loaded from /home/root/retarget_verify/default_params.json
+[INFO][profile.camera][6365209] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6365209] direct-match:imu-core-device-detect
+[INFO][profile.encoder][6365209] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6365209] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][6365209] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][6365209] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6365209] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6365209] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2393 threshold=400
+[INFO][startup.low_voltage.clear][6365209] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6365483] camera initialized through true_ls2k0300 bridge
+can not open file /sys/bus/iio/devices/iio:device1/name
+imu init error
+[FAIL_SAFE][imu.init][6365484] imu unavailable
+[FAIL_SAFE][startup.imu.init][6365484] imu adapter initialization failed
+[FAIL_SAFE][main.startup][6365484] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][6365484] camera adapter shutdown complete
+[INFO][imu.shutdown][6365484] imu adapter shutdown complete
+[INFO][encoder.shutdown][6365484] encoder adapter shutdown complete
+[INFO][motor.shutdown][6365484] motor adapter shutdown complete
+[INFO][shutdown.complete][6365484] actuators disabled and resources released
+
+== scenario:camera_hook_imu_motor_disabled_degraded ==
+profile_path=/home/root/retarget_verify/profile-camera-hook-diagnostics.json
+extra_env=LS2K_ALLOW_DEGRADED_STARTUP=1
+[INFO][main.start][6366439] starting ls2k migration runtime
+[INFO][profile.loaded][6366440] hardware profile loaded from /home/root/retarget_verify/profile-camera-hook-diagnostics.json
+[INFO][params.loaded][6366441] runtime parameters loaded from /home/root/retarget_verify/default_params.json
+[INFO][profile.camera][6366441] adaptation-hook:phase1-camera-exposure-hook
+[INFO][profile.imu][6366441] disabled:phase1-diagnostics-disabled
+[INFO][profile.encoder][6366441] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6366441] disabled:phase1-diagnostics-disabled
+[INFO][profile.timer][6366441] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][6366441] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.camera.degraded][6366441] camera profile is adaptation-hook:phase1-camera-exposure-hook (allowed only in degraded startup mode)
+[WARN][startup.profile.imu.degraded][6366441] imu profile is disabled:phase1-diagnostics-disabled (allowed only in degraded startup mode)
+[WARN][startup.profile.motor.degraded][6366441] motor profile is disabled:phase1-diagnostics-disabled (allowed only in degraded startup mode)
+[INFO][params.critical.apply][6366441] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6366441] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6366441] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2445 threshold=400
+[INFO][startup.low_voltage.clear][6366441] startup low-voltage check is clear
+[WARN][camera.init.hook][6366441] camera direct path bypassed; adaptation hook selected: phase1-camera-exposure-hook
+[INFO][imu.disabled][6366441] imu subsystem disabled by hardware profile
+[WARN][startup.imu.disabled.degraded][6366441] imu is disabled by profile and degraded startup mode is enabled
+[INFO][encoder.init][6366441] encoder initialized through true_ls2k0300 bridge
+[INFO][motor.disabled][6366441] motor subsystem disabled by hardware profile
+[WARN][startup.motor.disabled.degraded][6366441] motor is disabled by profile and degraded startup mode is enabled
+[INFO][startup.complete][6366441] startup validated required adapters and applied critical params
+[WARN][control.start.degraded.motor_disabled][6366441] degraded startup keeps control loop running with motor disabled; actuators stay disarmed
+[INFO][timer.start.pit][6366442] timer started with true_ls2k0300 pit bridge
+[FAIL_SAFE][control.arm.motor_disabled][6366442] motor profile is disabled; control loop stays diagnostics-only with actuators disarmed
+[INFO][control.start][6366442] control loop started with PIT-equivalent periodic callback
+[INFO][camera.hook][6366442] camera routed through adaptation hook: phase1-camera-exposure-hook
+[WARN][encoder.baseline][6366448] encoder baseline established; first absolute sample is not emitted as a delta
+[FAIL_SAFE][control.veto][6366448] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.apply.unavailable][6366448] motor apply requested while motor adapter not ready
+[INFO][main.frame_limit][6366473] bounded runtime loop reached LS2K_MAX_FRAMES=25
+[INFO][timer.stop][6366475] timer bridge stopped
+[INFO][camera.shutdown][6366475] camera adapter shutdown complete
+[INFO][imu.shutdown][6366475] imu adapter shutdown complete
+[INFO][encoder.shutdown][6366475] encoder adapter shutdown complete
+[INFO][motor.shutdown][6366475] motor adapter shutdown complete
+[INFO][shutdown.complete][6366475] actuators disabled and resources released
+[INFO][main.exit][6366475] runtime exit complete
+
+== scenario:timer_hook_imu_motor_disabled_degraded ==
+profile_path=/home/root/retarget_verify/profile-timer-hook-diagnostics.json
+extra_env=LS2K_ALLOW_DEGRADED_STARTUP=1
+[INFO][main.start][6367485] starting ls2k migration runtime
+[INFO][profile.loaded][6367486] hardware profile loaded from /home/root/retarget_verify/profile-timer-hook-diagnostics.json
+[INFO][params.loaded][6367487] runtime parameters loaded from /home/root/retarget_verify/default_params.json
+[INFO][profile.camera][6367487] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6367487] disabled:phase1-diagnostics-disabled
+[INFO][profile.encoder][6367487] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6367487] disabled:phase1-diagnostics-disabled
+[INFO][profile.timer][6367487] adaptation-hook:pit-fd-adapter
+[WARN][startup.mode.degraded][6367487] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.timer.hook][6367487] timer routed through adaptation hook: pit-fd-adapter
+[WARN][startup.profile.imu.degraded][6367487] imu profile is disabled:phase1-diagnostics-disabled (allowed only in degraded startup mode)
+[WARN][startup.profile.motor.degraded][6367487] motor profile is disabled:phase1-diagnostics-disabled (allowed only in degraded startup mode)
+[INFO][params.critical.apply][6367487] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6367487] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6367487] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2340 threshold=400
+[INFO][startup.low_voltage.clear][6367487] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6367640] camera initialized through true_ls2k0300 bridge
+[INFO][imu.disabled][6367640] imu subsystem disabled by hardware profile
+[WARN][startup.imu.disabled.degraded][6367640] imu is disabled by profile and degraded startup mode is enabled
+[INFO][encoder.init][6367640] encoder initialized through true_ls2k0300 bridge
+[INFO][motor.disabled][6367640] motor subsystem disabled by hardware profile
+[WARN][startup.motor.disabled.degraded][6367640] motor is disabled by profile and degraded startup mode is enabled
+[INFO][startup.complete][6367640] startup validated required adapters and applied critical params
+[WARN][control.start.degraded.motor_disabled][6367640] degraded startup keeps control loop running with motor disabled; actuators stay disarmed
+[WARN][timer.start.hook][6367640] timer routed through adaptation hook: pit-fd-adapter
+[FAIL_SAFE][control.arm.motor_disabled][6367640] motor profile is disabled; control loop stays diagnostics-only with actuators disarmed
+[INFO][control.start][6367641] control loop started with PIT-equivalent periodic callback
+[WARN][encoder.baseline][6367642] encoder baseline established; first absolute sample is not emitted as a delta
+[FAIL_SAFE][control.veto][6367642] vetoing actuator update due to stale perception or invalid sensor data
+[FAIL_SAFE][motor.apply.unavailable][6367642] motor apply requested while motor adapter not ready
+[INFO][main.frame_limit][6368133] bounded runtime loop reached LS2K_MAX_FRAMES=25
+[INFO][timer.stop][6368135] timer bridge stopped
+[INFO][camera.shutdown][6368135] camera adapter shutdown complete
+[INFO][imu.shutdown][6368135] imu adapter shutdown complete
+[INFO][encoder.shutdown][6368135] encoder adapter shutdown complete
+[INFO][motor.shutdown][6368135] motor adapter shutdown complete
+[INFO][shutdown.complete][6368135] actuators disabled and resources released
+[INFO][main.exit][6368135] runtime exit complete

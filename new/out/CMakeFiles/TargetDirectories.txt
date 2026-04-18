@@ -1,0 +1,3 @@
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/new.dir
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/edit_cache.dir
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,64 @@
+{
+  "contract": "repo-index-v1",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "manifest_present": true,
+  "coverage_report_path": "docs/repo-index/reports/coverage.json",
+  "refresh_report_path": "docs/repo-index/reports/refresh.json",
+  "governed_scopes": [
+    {
+      "scope_id": "workflow-schema-surface",
+      "scope_root": "openspec/schemas/ai-enforced-workflow",
+      "allowed_entry_kinds": [
+        "file",
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+        "openspec/schemas/ai-enforced-workflow/schema.yaml",
+        "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/templates/design.md",
+        "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+      ]
+    },
+    {
+      "scope_id": "workflow-agent-surface",
+      "scope_root": ".codex/agents",
+      "allowed_entry_kinds": [
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        ".codex/agents/verify-reviewer.toml",
+        ".codex/agents/index-maintainer.toml"
+      ]
+    }
+  ],
+  "index_mode": "refreshed",
+  "fallback_policy": "refresh",
+  "reason": "governed schema/template surface changed after attempt-7 and the repo-index was refreshed to include the new agent-spawn-decision schema plus updated workflow cards before checkpoint-4 same-session rerun",
+  "required_paths": [
+    "docs/repo-index/manifest.json",
+    "docs/repo-index/reports/coverage.json",
+    "docs/repo-index/reports/refresh.json",
+    "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/templates/design.md",
+    "openspec/schemas/ai-enforced-workflow/templates/tasks.md",
+    ".codex/agents/verify-reviewer.toml",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/design.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/tasks.md"
+  ],
+  "required_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "deep_scan_candidates": []
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "review-loop-reopen-record-v1",
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "reason_code": "challenger_reopen",
+  "recorded_at": "2026-04-17T11:45:00Z",
+  "promoted_working_agent_id": "019d9b3e-7684-7cc2-be3f-23f8434a7c69",
+  "prior_challenger": {
+    "agent_id": "019d9b3e-7684-7cc2-be3f-23f8434a7c69",
+    "findings_path": "challenger/attempt-1/findings.json",
+    "verifier_evidence_path": "challenger/attempt-1/verifier-evidence.json"
+  }
+}

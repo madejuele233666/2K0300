@@ -1,0 +1,31 @@
+{
+  "change": "align-phase-a-actuator-topology-and-control-observability",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "ART-001",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The change does not pin the authoritative direct-match evidence artifact that the Phase A docs must align to. The current task wording uses only a date, which is not enough to unambiguously identify the accepted baseline and can point implementers at the wrong runtime proof.",
+      "evidence": "tasks.md:27 says to reflect the accepted `2026-04-15` direct-match startup evidence, while specs/true-ls2k0300-port-workspace/spec.md:27-32 requires alignment to the accepted artifact. proposal.md:7 and 21-22 refer only to the current direct-match evidence/baseline, and design.md:14 and 95-96 refer only to the latest direct-match board evidence/smoke log without naming a path. The repository already contains multiple 2026-04-15 direct-match artifacts with different profiles/outcomes under openspec/changes/archive/2026-04-15-fix-board-runtime-hardware-detection/verification/, including runtime-smoke-retry-2026-04-15.log, runtime-smoke-skip-imu-after-fix.log, and runtime-smoke-skip-imu-encoder-after-fix.log; runtime-smoke-execution-evidence.md further notes which retry superseded earlier evidence.",
+      "recommendation": "Update the artifact bundle to name the exact accepted verification artifact path(s) that Phase A docs must cite, and replace date-only wording with that explicit source of truth plus a rule for how a newer accepted artifact supersedes it.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "ART-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "specs",
+      "problem": "The modified fail-safe observability requirement is broader than the change design and tasks. The spec now requires project-owned veto/apply reporting for failure classes that the proposal, design, and task plan do not commit to implement or verify in this change.",
+      "evidence": "proposal.md:10 scopes the new observability to stale perception, perception veto, invalid sensors, low voltage, and actuator-application outcomes. design.md:13-15 and 50-70 uses the same narrowed set of causes for the new runtime-owned decision boundary. tasks.md:33-35 only schedules explicit coverage for stale perception, perception emergency veto, low voltage, invalid IMU, invalid encoder, requested non-empty output, arming transitions, and motor-apply failure. But specs/tc264-to-true-ls2k0300-adapter-layer/spec.md:30-35 modifies `Fail-Safe Runtime Behavior Survives The Retarget` so the reviewed reason model must also explain camera-empty state, bridge read/write failures, direct-match resource-discovery failures, and startup-critical parameter failures.",
+      "recommendation": "Either narrow the modified requirement/scenario to the observability causes actually in scope for this change, or expand the design and tasks with explicit deliverables and verification coverage for camera-empty, bridge I/O, resource-discovery, and startup-critical parameter failure reporting.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

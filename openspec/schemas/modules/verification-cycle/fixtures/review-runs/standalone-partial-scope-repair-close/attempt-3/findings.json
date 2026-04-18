@@ -1,0 +1,5 @@
+{
+  "target_ref": "workflow:standalone-partial-scope-repair-close",
+  "verdict": "pass",
+  "findings": []
+}

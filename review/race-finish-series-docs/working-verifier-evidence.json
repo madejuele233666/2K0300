@@ -1,0 +1,165 @@
+{
+  "change": "race-finish-series-docs",
+  "mode": "implementation",
+  "review_phase": "implementation",
+  "review_pass_type": "working",
+  "risk_tier": "STANDARD",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-gpt5-implementation-verifier",
+  "start_at": "2026-04-13T22:20:23Z",
+  "end_at": "2026-04-13T22:23:23Z",
+  "final_state": "pass",
+  "cache_mode": "bypassed",
+  "closure_authority": "none-working-pass",
+  "verifier_output_path": "inline-json-response",
+  "same_session_baseline_reused": true,
+  "post_challenger_repairs_recheck": true,
+  "rechecked_repair_areas": {
+    "unique_phase_scoped_smoke_logs": "resolved",
+    "shared_06_examples_no_bare_smoke": "resolved",
+    "smoke_max_frames_translation_note": "resolved",
+    "valid_nondefault_exp_light_matrix_branch": "resolved"
+  },
+  "review_scope": {
+    "primary_surface": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md"
+    ],
+    "reference_surface": [
+      "new/docs/superseded/track-readiness-gap.zh-CN.md",
+      "new/docs/superseded/race-finish-series-source/proposal.md",
+      "new/docs/superseded/race-finish-series-source/design.md",
+      "new/docs/superseded/race-finish-series-source/tasks.md",
+      "new/docs/superseded/race-finish-series-source/debugging.md",
+      "new/docs/superseded/race-finish-series-source/hardware-matrix.md",
+      "new/docs/superseded/race-finish-series-source/mapping.md",
+      "new/docs/superseded/race-finish-series-source/adapter_spec.md",
+      "new/docs/superseded/race-finish-series-source/workspace_spec.md",
+      "new/docs/superseded/race-finish-series-source/vendor-baseline.md"
+    ],
+    "changed_code_paths": [],
+    "changed_test_paths": [],
+    "impacted_code_paths": [
+      "new/user/run_remote_smoke.sh",
+      "new/user/main.cpp",
+      "new/code/platform/camera_adapter.cpp",
+      "new/code/platform/param_store.cpp",
+      "new/code/runtime/startup.cpp",
+      "new/config/default_params.json"
+    ],
+    "mandatory_deep_scan_paths": [
+      "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+      "new/user/run_remote_smoke.sh",
+      "new/code/platform/camera_adapter.cpp",
+      "new/code/platform/param_store.cpp",
+      "new/code/runtime/startup.cpp"
+    ],
+    "optional_cache_inputs": []
+  },
+  "review_coverage": {
+    "coverage_basis": "full declared-scope rerun after post-challenger documentation repairs, using source-first review and same-session prior working-pass context for unchanged surfaces",
+    "declared_evidence_paths_reviewed": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md"
+    ],
+    "reference_paths_reviewed": [
+      "new/docs/superseded/track-readiness-gap.zh-CN.md",
+      "new/docs/superseded/race-finish-series-source/proposal.md",
+      "new/docs/superseded/race-finish-series-source/design.md",
+      "new/docs/superseded/race-finish-series-source/tasks.md",
+      "new/docs/superseded/race-finish-series-source/debugging.md",
+      "new/docs/superseded/race-finish-series-source/hardware-matrix.md",
+      "new/docs/superseded/race-finish-series-source/mapping.md",
+      "new/docs/superseded/race-finish-series-source/adapter_spec.md",
+      "new/docs/superseded/race-finish-series-source/workspace_spec.md",
+      "new/docs/superseded/race-finish-series-source/vendor-baseline.md"
+    ],
+    "code_paths_cross_checked": [
+      "new/user/run_remote_smoke.sh",
+      "new/user/main.cpp",
+      "new/code/platform/camera_adapter.cpp",
+      "new/code/platform/param_store.cpp",
+      "new/code/runtime/startup.cpp",
+      "new/config/default_params.json"
+    ],
+    "reviewed_dimensions": [
+      "Completeness",
+      "Correctness",
+      "Coherence"
+    ],
+    "reviewed_categories": [
+      "public or externally visible contracts",
+      "state machines and lifecycle gating",
+      "serialization and parameter parsing",
+      "diagnostic marker semantics",
+      "command and evidence generation consistency",
+      "wrapper/runtime frame-limit control mapping",
+      "fail-closed exposure handling"
+    ],
+    "reviewed_axes": [
+      "task command / marker / evidence consistency",
+      "semantic markers qualified as future runtime targets when task is build-only",
+      "explicit phase assignment for parameter-failure verification",
+      "explicit phase assignment for direct-match vs adaptation-hook compatibility verification",
+      "unique phase-scoped smoke-log targets for repaired tasks",
+      "shared 06 examples using explicit smoke log targets",
+      "SMOKE_MAX_FRAMES to LS2K_MAX_FRAMES translation note",
+      "valid non-default exp_light=66 direct-match fail-closed verification branch"
+    ],
+    "unreviewed_axes": [],
+    "dynamic_validation": [
+      "`file new/out/new`",
+      "`uname -m`"
+    ],
+    "dynamic_validation_limits": [
+      "No board-side smoke executed in this reviewer session.",
+      "Local execution remains unavailable because `new/out/new` is a LoongArch binary while the review host is `x86_64`."
+    ],
+    "coverage_status": "complete",
+    "saturation_status": "exhaustive"
+  },
+  "reviewed_paths": [
+    "new/docs/race-finish-series.zh-CN/README.md",
+    "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+    "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+    "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+    "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+    "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+    "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+    "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+    "new/docs/superseded/track-readiness-gap.zh-CN.md",
+    "new/docs/superseded/race-finish-series-source/proposal.md",
+    "new/docs/superseded/race-finish-series-source/design.md",
+    "new/docs/superseded/race-finish-series-source/tasks.md",
+    "new/docs/superseded/race-finish-series-source/debugging.md",
+    "new/docs/superseded/race-finish-series-source/hardware-matrix.md",
+    "new/docs/superseded/race-finish-series-source/mapping.md",
+    "new/docs/superseded/race-finish-series-source/adapter_spec.md",
+    "new/docs/superseded/race-finish-series-source/workspace_spec.md",
+    "new/docs/superseded/race-finish-series-source/vendor-baseline.md",
+    "new/user/run_remote_smoke.sh",
+    "new/user/main.cpp",
+    "new/code/platform/camera_adapter.cpp",
+    "new/code/platform/param_store.cpp",
+    "new/code/runtime/startup.cpp",
+    "new/config/default_params.json"
+  ],
+  "skipped_paths": []
+}

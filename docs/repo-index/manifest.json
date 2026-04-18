@@ -1,0 +1,96 @@
+{
+  "contract": "repo-index-v1",
+  "root": "docs/repo-index/",
+  "generated_at": "2026-04-09T17:30:00+08:00",
+  "governed_scopes": [
+    {
+      "scope_id": "workflow-schema-surface",
+      "scope_root": "openspec/schemas/ai-enforced-workflow",
+      "allowed_entry_kinds": [
+        "file",
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+        "openspec/schemas/ai-enforced-workflow/schema.yaml",
+        "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/templates/design.md",
+        "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+      ]
+    },
+    {
+      "scope_id": "workflow-agent-surface",
+      "scope_root": ".codex/agents",
+      "allowed_entry_kinds": [
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        ".codex/agents/verify-reviewer.toml",
+        ".codex/agents/index-maintainer.toml"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
+      "kind": "file",
+      "card_path": "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__agent-spawn-decision-v1.schema.json.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T14:47:40+08:00"
+    },
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/schema.yaml",
+      "kind": "file",
+      "card_path": "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__schema.yaml.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T15:08:00+08:00"
+    },
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__index-sequence.md.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T15:26:00+08:00"
+    },
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T15:08:00+08:00"
+    },
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/templates/design.md",
+      "kind": "file",
+      "card_path": "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__design.md.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T14:47:40+08:00"
+    },
+    {
+      "path": "openspec/schemas/ai-enforced-workflow/templates/tasks.md",
+      "kind": "file",
+      "card_path": "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__tasks.md.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T17:30:00+08:00"
+    },
+    {
+      "path": ".codex/agents/verify-reviewer.toml",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/.codex__agents__verify-reviewer.toml.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T17:04:59+08:00"
+    },
+    {
+      "path": ".codex/agents/index-maintainer.toml",
+      "kind": "interface",
+      "card_path": "docs/repo-index/interfaces/.codex__agents__index-maintainer.toml.yaml",
+      "confidence": "high",
+      "last_verified_at": "2026-04-09T11:04:01+08:00"
+    }
+  ],
+  "coverage_report_path": "docs/repo-index/reports/coverage.json",
+  "refresh_report_path": "docs/repo-index/reports/refresh.json"
+}

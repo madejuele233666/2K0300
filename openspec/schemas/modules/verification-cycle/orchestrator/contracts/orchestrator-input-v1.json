@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/verification-cycle/orchestrator/contracts/orchestrator-input-v1.json",
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "agent_table",
+    "manual_pause"
+  ],
+  "properties": {
+    "contract": {
+      "const": "verification-cycle-orchestrator-input-v1"
+    },
+    "change": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manual_pause": {
+      "type": "boolean"
+    },
+    "agent_table": {
+      "type": "object"
+    },
+    "latest_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verdict": {
+          "enum": [
+            "block",
+            "pass",
+            "unknown"
+          ]
+        },
+        "coverage_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ]
+        },
+        "exhaustive": {
+          "type": "boolean"
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    "continuation_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "send_input_result",
+        "resume_result"
+      ],
+      "properties": {
+        "agent_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "send_input_result": {
+          "enum": [
+            "not_attempted",
+            "delivered",
+            "agent_not_found"
+          ]
+        },
+        "resume_result": {
+          "enum": [
+            "not_attempted",
+            "restored",
+            "agent_not_found",
+            "not_resumable"
+          ]
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "change"
+      ]
+    },
+    {
+      "required": [
+        "target_ref"
+      ]
+    }
+  ]
+}

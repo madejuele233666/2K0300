@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The governed tasks template does not make checkpoint tasks carry or clearly reference the minimal verification bundle, required `index_context` fields, routing target, and caller-local runtime guardrails required by the shared schema contract.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:361`-`370` requires each checkpoint task to name those items in the task body or in a clearly referenced shared verification contract block. `openspec/schemas/ai-enforced-workflow/templates/tasks.md:1`-`33` provides only a Repository Index Plan block, and `openspec/schemas/ai-enforced-workflow/templates/tasks.md:39` defines the checkpoint scaffold without those fields and without a reference to a shared verification contract block. The change-local pattern in `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:61`-`110` shows the missing shared contract block that the template should scaffold.",
+      "recommendation": "Add a shared governed verification contract block to `openspec/schemas/ai-enforced-workflow/templates/tasks.md`, or update the checkpoint scaffold to explicitly reference such a block and include the minimal bundle fields, required `index_context` fields, routing target, and caller-local runtime guardrails.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

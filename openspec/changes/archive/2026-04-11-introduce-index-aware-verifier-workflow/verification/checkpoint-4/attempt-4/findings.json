@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "The governed design template no longer captures the full Gemini runner contract required by the shared schema. Both verification sections omit explicit `maximum attempts` and `JSON-response requirement` fields, so generated `design.md` artifacts can satisfy the template while still missing mandatory runner inputs/acceptance rules for `gemini-capture`.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:234`-`238` requires each independent verification step to document runner contract id, prompt inputs, raw report path, `report_path`, maximum attempts, JSON-response requirement, and command-resolution evidence path. `openspec/schemas/ai-enforced-workflow/templates/design.md:137`-`146` and `openspec/schemas/ai-enforced-workflow/templates/design.md:178`-`187` list runner contract, prompt inputs, raw/report paths, and fallback behavior, but do not include `maximum attempts` or `JSON-response requirement`. The intended contract is present in the concrete change design at `openspec/changes/introduce-index-aware-verifier-workflow/design.md:622`-`629` and `openspec/changes/introduce-index-aware-verifier-workflow/design.md:672`-`679`.",
+      "recommendation": "Update both Artifact Verification and Implementation Verification blocks in `openspec/schemas/ai-enforced-workflow/templates/design.md` to add explicit `Maximum attempts` and `JSON-response requirement` bullets that match the shared schema and verification-sequence contract.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "The task-layer contract only partially mirrors the Gemini runner requirements. The checkpoint/task guidance covers raw/report paths and recovery, but it does not require an explicit JSON-normalization rule, and the current change task contract inherits that omission. This leaves generated checkpoint tasks weaker than the shared `gemini-capture` runner contract they are supposed to drive.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:341`-`359` defines `gemini-capture` with required inputs including `maximum attempts` and `JSON-response requirement`. `openspec/schemas/ai-enforced-workflow/schema.yaml:326`-`360` and `openspec/schemas/ai-enforced-workflow/templates/tasks.md:36`-`37` mention raw/report paths and recovery but do not require the JSON-response rule. The concrete shared task contract in `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:96`-`100` likewise specifies raw/report output, one retry, recovery, and resolved-command evidence, but omits the explicit JSON-response requirement.",
+      "recommendation": "Extend the task/checkpoint guidance so shared contract blocks and generated checkpoint tasks explicitly state the Gemini runner's JSON-response requirement, and align the task-layer wording with the full `gemini-capture` contract from `verification-sequence.md`.",
+      "redirect_layer": "tasks",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

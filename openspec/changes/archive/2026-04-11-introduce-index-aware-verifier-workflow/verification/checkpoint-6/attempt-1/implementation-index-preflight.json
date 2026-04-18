@@ -1,0 +1,72 @@
+{
+  "contract": "repo-index-v1",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "manifest_present": true,
+  "coverage_report_path": "docs/repo-index/reports/coverage.json",
+  "refresh_report_path": "docs/repo-index/reports/refresh.json",
+  "governed_scopes": [
+    {
+      "scope_id": "workflow-schema-surface",
+      "scope_root": "openspec/schemas/ai-enforced-workflow",
+      "allowed_entry_kinds": [
+        "file",
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        "openspec/schemas/ai-enforced-workflow/schema.yaml",
+        "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+        "openspec/schemas/ai-enforced-workflow/templates/design.md",
+        "openspec/schemas/ai-enforced-workflow/templates/tasks.md"
+      ]
+    },
+    {
+      "scope_id": "workflow-agent-surface",
+      "scope_root": ".codex/agents",
+      "allowed_entry_kinds": [
+        "interface"
+      ],
+      "fallback_policy": "refresh",
+      "entry_refs": [
+        ".codex/agents/verify-reviewer.toml",
+        ".codex/agents/index-maintainer.toml"
+      ]
+    }
+  ],
+  "index_mode": "reused",
+  "fallback_policy": "refresh",
+  "reason": "trusted repository-index coverage exists for exercise evidence and end-to-end workflow review",
+  "required_paths": [
+    "docs/repo-index/manifest.json",
+    "docs/repo-index/reports/coverage.json",
+    "docs/repo-index/reports/refresh.json",
+    "openspec/schemas/ai-enforced-workflow/index-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "openspec/schemas/ai-enforced-workflow/schema.yaml",
+    ".codex/agents/verify-reviewer.toml",
+    ".codex/agents/index-maintainer.toml",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercise-evidence.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-preflight.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-verifier-evidence.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-maintainer-summary.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/refresh-preflight.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-findings.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-preflight.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/reuse-verifier-evidence.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/role-boundary.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-findings.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/saturation-verifier-evidence.json",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/repository-index-governance/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/design.md",
+    "openspec/changes/introduce-index-aware-verifier-workflow/tasks.md"
+  ],
+  "required_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "deep_scan_candidates": []
+}

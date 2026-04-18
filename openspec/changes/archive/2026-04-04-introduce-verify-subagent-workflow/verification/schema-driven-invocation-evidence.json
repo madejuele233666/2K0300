@@ -1,0 +1,19 @@
+{
+  "source_command": "openspec instructions apply --change \"introduce-verify-subagent-workflow\" --json",
+  "schema_name": "ai-enforced-workflow",
+  "sequence_ref": "verify-sequence/default",
+  "sequence_path": "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+  "verifier_agent": ".codex/agents/verify-reviewer.toml",
+  "minimal_bundle_fields": [
+    "change",
+    "mode",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract",
+    "retry_policy"
+  ],
+  "verifier_output_rule": "normalized JSON only",
+  "gemini_policy": "run only for STRICT or explicit dual gate",
+  "auto_fix_gate": "redirect_layer=implementation && auto_fixable=true",
+  "routing_default": "openspec-repair-change"
+}

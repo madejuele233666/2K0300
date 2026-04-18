@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/contracts/review-loop-standalone-spawn-decision-v1.json",
+  "title": "review-loop-standalone-spawn-decision-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "target_ref",
+    "next_session_role",
+    "requested_agent_type",
+    "reason_code",
+    "decision",
+    "recorded_at",
+    "prior_session",
+    "evidence"
+  ],
+  "properties": {
+    "contract": {
+      "const": "review-loop-standalone-spawn-decision-v1"
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_session_role": {
+      "enum": [
+        "working",
+        "challenger"
+      ]
+    },
+    "requested_agent_type": {
+      "const": "verify-reviewer"
+    },
+    "reason_code": {
+      "enum": [
+        "initial_working_session",
+        "challenger_pass",
+        "active_session_unavailable",
+        "session_unresumable",
+        "tooling_recovery"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prior_session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "session_role",
+        "reuse_blocker"
+      ],
+      "properties": {
+        "agent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_role": {
+          "enum": [
+            "none",
+            "working",
+            "challenger"
+          ]
+        },
+        "reuse_blocker": {
+          "enum": [
+            "not_applicable",
+            "policy_requires_challenger",
+            "challenger_found_new_findings",
+            "agent_not_found",
+            "session_completed_unresumable",
+            "tooling_recovery"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agent_id",
+            "findings_path",
+            "verifier_evidence_path"
+          ],
+          "properties": {
+            "agent_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "findings_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verifier_evidence_path": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "initial_working_session"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "next_session_role": {
+            "const": "working"
+          },
+          "decision": {
+            "const": "allow"
+          },
+          "prior_session": {
+            "properties": {
+              "agent_id": {
+                "const": null
+              },
+              "session_role": {
+                "const": "none"
+              },
+              "reuse_blocker": {
+                "const": "not_applicable"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "const": "challenger_pass"
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "next_session_role": {
+            "const": "challenger"
+          },
+          "decision": {
+            "const": "allow"
+          },
+          "prior_session": {
+            "properties": {
+              "agent_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "session_role": {
+                "const": "working"
+              },
+              "reuse_blocker": {
+                "const": "policy_requires_challenger"
+              }
+            }
+          },
+          "evidence": {
+            "required": [
+              "source_review"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason_code": {
+            "enum": [
+              "active_session_unavailable",
+              "session_unresumable",
+              "tooling_recovery"
+            ]
+          }
+        },
+        "required": [
+          "reason_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "allow"
+          },
+          "next_session_role": {
+            "const": "working"
+          },
+          "prior_session": {
+            "properties": {
+              "agent_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "session_role": {
+                "const": "working"
+              },
+              "reuse_blocker": {
+                "enum": [
+                  "agent_not_found",
+                  "session_completed_unresumable",
+                  "tooling_recovery"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

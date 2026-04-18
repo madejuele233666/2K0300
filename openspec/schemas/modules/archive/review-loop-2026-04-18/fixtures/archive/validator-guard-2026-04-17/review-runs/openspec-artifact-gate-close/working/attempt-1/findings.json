@@ -1,0 +1,16 @@
+{
+  "change": "fixture-openspec-artifact-gate-close",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "openspec-artifact-doc-gap",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The first working pass found missing docs-first artifact-gate wording.",
+      "evidence": "The artifact gate needed one more machine-readable rerun before challenger entry.",
+      "recommendation": "Update the artifact-gate wording and rerun the same working session.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

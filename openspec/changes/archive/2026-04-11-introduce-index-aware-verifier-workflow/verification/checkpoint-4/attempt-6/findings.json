@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "design",
+      "problem": "`schema.yaml` still does not mirror the full Repository Index Plan contract for generated design artifacts, so the schema, capability spec, and design template do not describe the same governed-plan surface.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:6-17` requires the Repository Index Plan to identify the shared index-preflight sequence, `index-maintainer` agent path, required index skill entry points, preflight evidence path(s)/required-universe fields, verifier invocation template, and deep-scan escalation policy. The design template mirrors that richer contract inside the Repository Index Plan section at `openspec/schemas/ai-enforced-workflow/templates/design.md:47-69`, but the schema instruction's `Repository Index Plan for governed scopes` bullet at `openspec/schemas/ai-enforced-workflow/schema.yaml:197-204` still omits the shared preflight sequence, index-maintainer path, index skill entry points, and verifier invocation template from the plan itself.",
+      "recommendation": "Align the design-generation instructions in `openspec/schemas/ai-enforced-workflow/schema.yaml` so the Repository Index Plan bullet itself mirrors the spec and design template, including the shared preflight sequence, index-maintainer path, required index skill entry points, and verifier invocation template.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "`schema.yaml` still under-specifies the Repository Index Plan for generated task artifacts, leaving the schema-side contract weaker than the task template and capability spec.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:6-17` requires the Repository Index Plan to identify the shared index-preflight sequence plus preflight evidence path(s) and required-universe fields. The task template includes those plan fields explicitly at `openspec/schemas/ai-enforced-workflow/templates/tasks.md:3-31`, including `index-sequence/default`, `required_paths`, and `required_axes`. But the schema instruction's explicit Repository Index Plan list at `openspec/schemas/ai-enforced-workflow/schema.yaml:293-297` still only names root, contract id, governed scopes, granularity, fallback policy, deep-scan policy, index skill entry points, index-maintainer agent path, verifier template, and checkpoint evidence naming convention.",
+      "recommendation": "Strengthen the task-generation instructions in `openspec/schemas/ai-enforced-workflow/schema.yaml` so the Repository Index Plan list matches the spec and task template, including the shared preflight sequence and governed preflight required-universe fields (`required_paths` and `required_axes`).",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

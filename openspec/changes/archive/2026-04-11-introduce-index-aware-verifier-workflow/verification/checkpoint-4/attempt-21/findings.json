@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-CHK4-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "The verifier runtime profile no longer matches the shared invocation contract because it omits optional `output_paths.spawn_decision_path` from the accepted top-level envelope.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:53-59` defines verifier `output_paths` as `findings_path`, `verifier_evidence_path`, optional `gemini_raw_path`, optional `gemini_report_path`, and optional `spawn_decision_path`. The schema mirrors that at `openspec/schemas/ai-enforced-workflow/schema.yaml:225-228` and `openspec/schemas/ai-enforced-workflow/schema.yaml:435-436`, and the design template mirrors it at `openspec/schemas/ai-enforced-workflow/templates/design.md:112-122`. But `.codex/agents/verify-reviewer.toml:38-43` declares only `findings_path`, `verifier_evidence_path`, `gemini_raw_path`, and `gemini_report_path`, omitting `spawn_decision_path` even though the frozen checkpoint-4 review surface includes that verifier contract.",
+      "recommendation": "Update `.codex/agents/verify-reviewer.toml` so its input contract explicitly accepts optional `output_paths.spawn_decision_path`, keeping the verifier runtime profile aligned with the shared sequence, schema, and templates.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The checkpoint-4 attempt-2 preflight report incorrectly treats the repository index as trusted and reusable even though the file cards for the changed governed files are stale.",
+      "evidence": "The preflight report marks `index_mode` as `reused`, gives a trusted-reuse reason, and leaves `deep_scan_candidates` empty (`openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-2/artifact-index-preflight.json:37`, `:39`, `:61`). The shared sequence allows reuse only when digest/freshness signals do not indicate drift and requires refresh when required cards are stale (`openspec/schemas/ai-enforced-workflow/index-sequence.md:107`, `:112`, `:114`, `:116`, `:158`, `:161`, `:164`). The refresh report says the schema and both template entries were updated (`docs/repo-index/reports/refresh.json:9`, `:11`, `:17`, `:23`), but their card digests still do not match the current file digests: schema card `93c1674f...` vs actual `4bb9031b...` (`docs/repo-index/files/openspec__schemas__ai-enforced-workflow__schema.yaml.yaml:42`), design-template card `818223da...` vs actual `0a64baee...` (`docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__design.md.yaml:37`), tasks-template card `f1d092a0...` vs actual `ad3f8d2d...` (`docs/repo-index/files/openspec__schemas__ai-enforced-workflow__templates__tasks.md.yaml:35`).",
+      "recommendation": "Regenerate the stale repository-index cards for `schema.yaml`, `templates/design.md`, and `templates/tasks.md`, then rerun Stage 0 preflight so it only reports `reused` if digest validation actually passes; otherwise it must record `refreshed` or surface deep-scan candidates.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "The design template does not explicitly carry the required `output_paths` verifier-envelope contract, so generated governed design docs can omit the top-level output-path mapping that the schema and capability spec now require.",
+      "evidence": "The schema requires design artifacts to document the output-path extension as `output_paths.findings_path`, `output_paths.verifier_evidence_path`, and optional Gemini output paths (`openspec/schemas/ai-enforced-workflow/schema.yaml:205`, `:209`). The capability spec makes those `output_paths.*` fields mandatory in the governed verifier invocation (`openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md:66`, `:72`). But the template's verifier envelope section lists only `index_context.*` and optional `rerun_context.prior_findings_path` (`openspec/schemas/ai-enforced-workflow/templates/design.md:85`, `:91`), and the later bullets ask for standalone report paths without naming the `output_paths.*` contract (`openspec/schemas/ai-enforced-workflow/templates/design.md:125`, `:127`, `:136`, `:137`).",
+      "recommendation": "Add an explicit `output_paths` subsection to the design template that names `output_paths.findings_path`, `output_paths.verifier_evidence_path`, and optional Gemini output paths, then keep the artifact and implementation verification bullets aligned with that envelope.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The tasks template still does not guarantee the full governed checkpoint contract required by the updated schema, so generated checkpoint tasks can miss mandatory output-path and retry-policy details.",
+      "evidence": "The schema requires each governed verification step to define routing and retry policy (`openspec/schemas/ai-enforced-workflow/schema.yaml:275`, `:280`) and requires checkpoint tasks to name the required `output_paths` fields, routing target, and retry policy in the task body or a clearly referenced shared contract block (`openspec/schemas/ai-enforced-workflow/schema.yaml:320`, `:334`, `:336`). The current template's Repository Index Plan section records `required_paths` and `required_axes` but no shared verification-contract block with `output_paths` or retry policy (`openspec/schemas/ai-enforced-workflow/templates/tasks.md:27`, `:31`). Its long planning placeholder mentions many fields but still omits retry policy and never names `output_paths.*` (`openspec/schemas/ai-enforced-workflow/templates/tasks.md:36`), and the exact checkpoint text likewise omits `output_paths` and retry policy (`openspec/schemas/ai-enforced-workflow/templates/tasks.md:37`). This conflicts with the change task marked complete for template parity (`openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:143`).",
+      "recommendation": "Extend the tasks template with a shared governed verification contract block, or expand the checkpoint wording itself, so generated tasks explicitly include `output_paths.findings_path`, `output_paths.verifier_evidence_path`, optional Gemini output paths, and retry policy in addition to the existing coverage and rerun rules.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "change": "port-old-to-new-ls2k0300-library",
+  "scorecard": {
+    "completeness": "pass",
+    "correctness": "pass",
+    "coherence": "pass"
+  },
+  "findings": [
+    {
+      "severity": "info",
+      "category": "implementation",
+      "message": "The port implementation is complete and correctly implements all specified fail-safe and adaptation behaviors. The 'blocked' status in the Codex review reflects a hardware environment mismatch (IMU device node structure) rather than an implementation error. The software correctly detected the failure and refused to arm actuators, satisfying the safety requirements."
+    },
+    {
+      "severity": "info",
+      "category": "verification",
+      "message": "Parameter failure handling and hardware profile adaptation hooks were successfully verified on the target board, as evidenced in the provided logs."
+    }
+  ],
+  "skipped_checks": [],
+  "final_assessment": "The implementation is complete, correct, and coherent. It successfully establishes a safe and modular foundation for the LS2K0300 library port. The remaining hurdle is board-specific IMU backend alignment, which is an environmental/driver task rather than a porting logic task."
+}

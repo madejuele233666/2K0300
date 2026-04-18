@@ -1,0 +1,21 @@
+{
+  "contract": "review-loop-standalone-spawn-decision-v1",
+  "target_ref": "workflow:standalone-challenger-reopen-close",
+  "next_session_role": "challenger",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "challenger_pass",
+  "decision": "allow",
+  "recorded_at": "2026-04-15T10:08:00Z",
+  "prior_session": {
+    "agent_id": "fixture-working-reopen-initial",
+    "session_role": "working",
+    "reuse_blocker": "policy_requires_challenger"
+  },
+  "evidence": {
+    "source_review": {
+      "agent_id": "fixture-working-reopen-initial",
+      "findings_path": "working/attempt-1/findings.json",
+      "verifier_evidence_path": "working/attempt-1/verifier-evidence.json"
+    }
+  }
+}

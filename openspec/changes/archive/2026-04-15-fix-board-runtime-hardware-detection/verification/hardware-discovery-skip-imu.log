@@ -1,0 +1,30 @@
+== runtime resources ==
+crw-rw---- 1 root video 81,  0 Mar 24 10:29 /dev/video0
+crw------- 1 root root  10, 48 Mar 24 10:25 /dev/zf_device_pwm_motor_1
+crw------- 1 root root  10, 47 Mar 24 10:25 /dev/zf_device_pwm_motor_2
+crw------- 1 root root  10, 53 Mar 24 10:25 /dev/zf_driver_gpio_motor_1
+crw------- 1 root root  10, 52 Mar 24 10:25 /dev/zf_driver_gpio_motor_2
+crw------- 1 root root  10, 62 Mar 24 10:25 /dev/zf_encoder_1
+crw------- 1 root root  10, 61 Mar 24 10:25 /dev/zf_encoder_2
+
+== net ==
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 2242  bytes 170430 (166.4 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 2242  bytes 170430 (166.4 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+wlan0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.100.170.226  netmask 255.255.255.0  broadcast 10.100.170.255
+        inet6 fe80::5e8a:aeff:fe55:7188  prefixlen 64  scopeid 0x20<link>
+        ether 5c:8a:ae:55:71:88  txqueuelen 1000  (Ethernet)
+        RX packets 811  bytes 364035 (355.5 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 391  bytes 55202 (53.9 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+== processes ==

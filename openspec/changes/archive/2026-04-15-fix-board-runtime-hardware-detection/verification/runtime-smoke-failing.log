@@ -1,0 +1,11 @@
+== runtime smoke 2026-04-12T08:58:29Z ==
+board=root@10.236.192.226
+binary=/home/root/run_fail_imu_override.sh
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+remote_upload_exit=1
+remote_upload_failed=/home/root/default_params.json
+remote_log_copy_exit=255
+remote_log_copy_skipped=runtime_not_invoked
+remote_runtime_exit=1
+remote_log_copy_exit=255
+remote_runtime_invoked=0

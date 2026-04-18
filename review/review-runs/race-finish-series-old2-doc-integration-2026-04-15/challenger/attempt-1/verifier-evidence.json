@@ -1,0 +1,98 @@
+{
+  "target_ref": "workflow:race-finish-series-old2-doc-integration-2026-04-15",
+  "review_goal": "implementation_correctness",
+  "review_pass_type": "challenger",
+  "risk_tier": "STANDARD",
+  "template_id": "standalone-old2-doc-integration-challenger-1",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-gpt5-challenger-reviewer",
+  "start_at": "2026-04-15T10:48:30Z",
+  "end_at": "2026-04-15T10:53:36Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "challenger_evidence_only",
+  "verifier_output_path": "challenger/attempt-1/findings.json",
+  "reviewed_paths": [
+    "new/docs/race-finish-series.zh-CN/README.md",
+    "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+    "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+    "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+    "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+    "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+    "new/docs/race-finish-series.zh-CN/07-current-progress.md",
+    "old_2/project/code/camera.cpp",
+    "old_2/project/code/motor.cpp",
+    "old_2/project/code/isr.cpp",
+    "old_2/project/user/main.cpp",
+    "old_2/project/code/key.cpp",
+    "old_2/project/code/save.cpp",
+    "old_2/project/code/save.h",
+    "old_2/libraries/zf_device/zf_device_uvc.cpp",
+    "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/findings.json",
+    "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/verifier-evidence.json",
+    "review/race-finish-series-docs/working-findings.json",
+    "review/race-finish-series-docs/working-verifier-evidence.json",
+    "review/race-finish-series-docs/challenger-findings.json",
+    "review/race-finish-series-docs/challenger-verifier-evidence.json"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Correctness",
+    "Completeness",
+    "Coherence",
+    "source-attribution accuracy",
+    "mainline integration vs detached appendix",
+    "migration-boundary discipline",
+    "progress-claim cross-check",
+    "review-closure evidence scoping"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "review_scope": {
+    "mode": "paths",
+    "value": [
+      "new/docs/race-finish-series.zh-CN/README.md",
+      "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+      "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+      "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+      "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+      "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md",
+      "new/docs/race-finish-series.zh-CN/07-current-progress.md"
+    ],
+    "target_description": "Independently challenger-review the documentation integration that absorbs useful parts of old_2/ into race-finish-series.zh-CN/.",
+    "acceptance_reference_paths": [
+      "old_2/project/code/camera.cpp",
+      "old_2/project/code/motor.cpp",
+      "old_2/project/code/isr.cpp",
+      "old_2/project/user/main.cpp",
+      "old_2/project/code/key.cpp",
+      "old_2/project/code/save.cpp",
+      "old_2/libraries/zf_device/zf_device_uvc.cpp",
+      "openspec/schemas/modules/review-loop/VERIFY-IMPLEMENTATION.md"
+    ],
+    "constraints_or_invariants": [
+      "old_2 must be framed as a migration evidence source, not a new runtime workspace",
+      "docs must integrate old_2 into the mainline sections rather than append a detached appendix",
+      "challenger must independently validate the zero-findings working result and only set closure_authority=challenger_confirmed if it agrees"
+    ],
+    "source_review": {
+      "agent_id": "codex-gpt5-reviewer",
+      "findings_path": "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/findings.json",
+      "verifier_evidence_path": "review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/verifier-evidence.json"
+    }
+  },
+  "review_coverage": {
+    "declared_surface": "all user-specified documentation targets plus all supplied old_2 acceptance references and the cited prior review artifacts",
+    "covered": true,
+    "source_review_rechecked": true,
+    "summary": [
+      "Confirmed the repaired `old_2` source attribution is now correct: Phase B and the support contract point lifecycle semantics to `old_2/project/code/isr.cpp` and `old_2/project/user/main.cpp`, while `old_2/project/code/motor.cpp` stays scoped to PID and steering-control behavior.",
+      "Confirmed the integration still obeys the stated boundary constraints: `old_2` is treated as a migration evidence source and its high-value material is merged into mainline sections rather than isolated in an appendix.",
+      "Found one residual correctness issue in `07-current-progress.md`: the document overstates review closure by presenting the post-`old_2` doc set as already fresh-challenger closed even though this standalone integration review had only reached a working-pass zero-findings baseline before this challenger pass."
+    ],
+    "disposition": "challenger_reopen_required",
+    "reopen_reason_code": "challenger_reopen"
+  }
+}

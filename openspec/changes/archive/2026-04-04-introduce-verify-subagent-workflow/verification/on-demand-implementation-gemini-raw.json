@@ -1,0 +1,126 @@
+{
+  "session_id": "a9afc728-9277-45b3-8660-9bbfae02f1cb",
+  "response": "I've finished the review and documented the results in `on-demand-implementation-coherence-report.json`, which shows that while the implementation's structure is correct, it still uses outdated terminology for the new verifier-subagent role. I'll now provide the requested JSON directly to the user.```json\n{\n  \"change\": \"introduce-verify-subagent-workflow\",\n  \"scorecard\": {\n    \"verifier_subagent_primary\": \"PASS\",\n    \"tier_gated_gemini\": \"PASS\",\n    \"terminology_alignment\": \"FAIL\",\n    \"minimal_bundle_usage\": \"PASS\",\n    \"logical_runner_contract\": \"PASS\",\n    \"auto_fix_eligibility\": \"PASS\"\n  },\n  \"findings\": [\n    {\n      \"artifact\": \"implementation\",\n      \"problem\": \"Legacy 'Codex local review' terminology persists in schema instructions and risk-tier gating sections.\",\n      \"evidence\": \"openspec/schemas/ai-enforced-workflow/schema.yaml line 191 refers to 'Codex local review'; lines 230, 232, and 234 define risk tiers using 'Codex review' or 'Codex pre-review' instead of 'verifier-subagent review'.\",\n      \"recommendation\": \"Update all schema instructions to use 'verifier-subagent review' or 'verifier-subagent local review' consistently.\",\n      \"redirect_layer\": \"implementation\"\n    },\n    {\n      \"artifact\": \"implementation\",\n      \"problem\": \"Apply and Repair skills continue to instruct the old 'Codex local review' terminology.\",\n      \"evidence\": \".codex/skills/openspec-apply-change/SKILL.md line 108 ('Do not skip the Codex local review'); .codex/skills/openspec-repair-change/SKILL.md multiple locations (lines 19, 21, 47, 49, 97, 109) still use 'Codex local review' as the reviewer name.\",\n      \"recommendation\": \"Refactor apply and repair skill instructions to use 'verifier-subagent review' and match the new findings contract naming.\",\n      \"redirect_layer\": \"implementation\"\n    },\n    {\n      \"artifact\": \"implementation\",\n      \"problem\": \"Artifact generation helper skills still explicitly teach the deprecated 'Codex local review first' sequence.\",\n      \"evidence\": \".codex/skills/openspec-propose/SKILL.md:101, .codex/skills/openspec-ff-change/SKILL.md:92, and .codex/skills/openspec-continue-change/SKILL.md:116 still contain guardrails mentioning 'Codex local review first, Gemini independent verification second'.\",\n      \"recommendation\": \"Replace 'Codex local review first' with 'verifier-subagent review first' in all helper skills to ensure future artifacts are correctly aligned.\",\n      \"redirect_layer\": \"implementation\"\n    }\n  ],\n  \"skipped_checks\": [\n    \"Verification of platform-specific helper scripts (e.g., bin/*.sh, bin/*.ps1) as they were not explicitly provided in the file list for deep analysis.\"\n  ],\n  \"final_assessment\": \"The implementation correctly adopts the verifier-subagent orchestration structure, tier-gated Gemini policy, and normalized findings contract. However, coherence is degraded by extensive legacy terminology. Per-file instructions and skill guardrails still refer to 'Codex local review' or 'Codex pre-review' instead of the new 'verifier-subagent' role. These defects are accurately identified in the change's own implementation review (on-demand-implementation-subagent-review.json).\"\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2683
+        },
+        "tokens": {
+          "input": 3394,
+          "prompt": 3394,
+          "candidates": 97,
+          "total": 3864,
+          "cached": 0,
+          "thoughts": 373,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2683,
+            "tokens": {
+              "input": 3394,
+              "prompt": 3394,
+              "candidates": 97,
+              "total": 3864,
+              "cached": 0,
+              "thoughts": 373,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 11,
+          "totalErrors": 0,
+          "totalLatencyMs": 76833
+        },
+        "tokens": {
+          "input": 45662,
+          "prompt": 281365,
+          "candidates": 3097,
+          "total": 290144,
+          "cached": 235703,
+          "thoughts": 5682,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 11,
+            "totalErrors": 0,
+            "totalLatencyMs": 76833,
+            "tokens": {
+              "input": 45662,
+              "prompt": 281365,
+              "candidates": 3097,
+              "total": 290144,
+              "cached": 235703,
+              "thoughts": 5682,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 21,
+      "totalSuccess": 21,
+      "totalFail": 0,
+      "totalDurationMs": 207,
+      "totalDecisions": {
+        "accept": 21,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "read_file": {
+          "count": 19,
+          "success": 19,
+          "fail": 0,
+          "durationMs": 193,
+          "decisions": {
+            "accept": 19,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "list_directory": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 6,
+          "decisions": {
+            "accept": 1,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "write_file": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 8,
+          "decisions": {
+            "accept": 1,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 38,
+      "totalLinesRemoved": 0
+    }
+  }
+}

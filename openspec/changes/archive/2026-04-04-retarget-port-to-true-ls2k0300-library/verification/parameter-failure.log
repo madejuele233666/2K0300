@@ -1,0 +1,93 @@
+== parameter failure 2026-04-04T13:19:14Z ==
+board=root@10.236.192.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+
+== scenario:params_missing ==
+params_path=/home/root/retarget_verify/params-missing.json
+[INFO][main.start][6315159] starting ls2k migration runtime
+[INFO][profile.loaded][6315160] hardware profile loaded from /home/root/retarget_verify/hardware_profile.json
+[WARN][params.missing][6315160] parameter file missing, using built-in defaults: /home/root/retarget_verify/params-missing.json
+[INFO][profile.camera][6315160] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6315160] direct-match:imu-core-device-detect
+[INFO][profile.encoder][6315160] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6315160] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][6315160] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][6315160] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6315160] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6315160] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2458 threshold=400
+[INFO][startup.low_voltage.clear][6315161] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6315431] camera initialized through true_ls2k0300 bridge
+can not open file /sys/bus/iio/devices/iio:device1/name
+imu init error
+[FAIL_SAFE][imu.init][6315432] imu unavailable
+[FAIL_SAFE][startup.imu.init][6315432] imu adapter initialization failed
+[FAIL_SAFE][main.startup][6315432] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][6315432] camera adapter shutdown complete
+[INFO][imu.shutdown][6315432] imu adapter shutdown complete
+[INFO][encoder.shutdown][6315432] encoder adapter shutdown complete
+[INFO][motor.shutdown][6315432] motor adapter shutdown complete
+[INFO][shutdown.complete][6315432] actuators disabled and resources released
+
+== scenario:params_malformed ==
+params_path=/home/root/retarget_verify/params-malformed.json
+[INFO][main.start][6316351] starting ls2k migration runtime
+[INFO][profile.loaded][6316352] hardware profile loaded from /home/root/retarget_verify/hardware_profile.json
+[FAIL_SAFE][params.parse][6316353] parameter file parse failure (invalid JSON object), using defaults
+[INFO][profile.camera][6316353] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6316353] direct-match:imu-core-device-detect
+[INFO][profile.encoder][6316353] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6316353] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][6316353] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][6316353] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6316353] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6316353] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2459 threshold=400
+[INFO][startup.low_voltage.clear][6316353] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6316507] camera initialized through true_ls2k0300 bridge
+can not open file /sys/bus/iio/devices/iio:device1/name
+imu init error
+[FAIL_SAFE][imu.init][6316507] imu unavailable
+[FAIL_SAFE][startup.imu.init][6316507] imu adapter initialization failed
+[FAIL_SAFE][main.startup][6316507] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][6316507] camera adapter shutdown complete
+[INFO][imu.shutdown][6316507] imu adapter shutdown complete
+[INFO][encoder.shutdown][6316507] encoder adapter shutdown complete
+[INFO][motor.shutdown][6316507] motor adapter shutdown complete
+[INFO][shutdown.complete][6316507] actuators disabled and resources released
+
+== scenario:params_exp_light_66 ==
+params_path=/home/root/retarget_verify/params-exp-light-66.json
+[INFO][main.start][6317459] starting ls2k migration runtime
+[INFO][profile.loaded][6317460] hardware profile loaded from /home/root/retarget_verify/hardware_profile.json
+[INFO][params.loaded][6317461] runtime parameters loaded from /home/root/retarget_verify/params-exp-light-66.json
+[INFO][profile.camera][6317461] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6317461] direct-match:imu-core-device-detect
+[INFO][profile.encoder][6317461] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6317461] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][6317461] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][6317461] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[WARN][params.critical.exp_light][6317461] non-default exp_light requests explicit true-baseline camera support; direct-match camera path may fail closed without an adaptation hook
+[INFO][power.init][6317461] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6317461] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2451 threshold=400
+[INFO][startup.low_voltage.clear][6317461] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6317614] camera initialized through true_ls2k0300 bridge
+[WARN][camera.exposure.unsupported][6317614] true_ls2k0300 direct camera path cannot apply non-default exp_light via the vendor public API; use an adaptation hook or degraded diagnostics-only startup
+[FAIL_SAFE][startup.camera.init][6317614] camera adapter initialization failed
+[FAIL_SAFE][main.startup][6317615] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][6317615] camera adapter shutdown complete
+[INFO][imu.shutdown][6317615] imu adapter shutdown complete
+[INFO][encoder.shutdown][6317615] encoder adapter shutdown complete
+[INFO][motor.shutdown][6317615] motor adapter shutdown complete
+[INFO][shutdown.complete][6317615] actuators disabled and resources released

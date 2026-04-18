@@ -1,0 +1,42 @@
+== parameter verification 2026-04-04 ==
+profile=/home/root/hardware_profile_adapt_imu.json
+mode=LS2K_ALLOW_DEGRADED_STARTUP=1
+
+== valid ==
+params_path=/home/root/default_params.json
+load_path=params.loaded
+critical_timing=params.critical.apply emitted before power.init / camera.init
+fallback_or_stop=no fallback; configured values accepted
+actuator_arming_outcome=startup completes and control starts, but runtime immediately enters control.veto because imu is adaptation-hook with no phase-1 implementation
+
+[INFO][params.loaded] runtime parameters loaded from /home/root/default_params.json
+[INFO][params.critical.apply] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][startup.complete] startup validated required adapters and applied critical params
+[INFO][control.start] control loop started with PIT-equivalent periodic callback
+[FAIL_SAFE][control.veto] vetoing actuator update due to stale perception or invalid sensor data
+
+== malformed ==
+params_path=/home/root/default_params_malformed.json
+load_path=params.parse
+critical_timing=params.critical.apply still emitted before power.init / camera.init
+fallback_or_stop=fallback to built-in defaults, no startup stop
+actuator_arming_outcome=startup completes and control starts under defaults, then runtime immediately enters control.veto for the same imu-hook reason
+
+[FAIL_SAFE][params.parse] parameter parse failure (missing or malformed required fields), using defaults
+[INFO][params.critical.apply] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][startup.complete] startup validated required adapters and applied critical params
+[INFO][control.start] control loop started with PIT-equivalent periodic callback
+[FAIL_SAFE][control.veto] vetoing actuator update due to stale perception or invalid sensor data
+
+== missing ==
+params_path=/home/root/params_missing.json
+load_path=params.missing
+critical_timing=params.critical.apply still emitted before power.init / camera.init
+fallback_or_stop=fallback to built-in defaults, no startup stop
+actuator_arming_outcome=startup completes and control starts under defaults, then runtime immediately enters control.veto for the same imu-hook reason
+
+[WARN][params.missing] parameter file missing, using built-in defaults: /home/root/params_missing.json
+[INFO][params.critical.apply] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][startup.complete] startup validated required adapters and applied critical params
+[INFO][control.start] control loop started with PIT-equivalent periodic callback
+[FAIL_SAFE][control.veto] vetoing actuator update due to stale perception or invalid sensor data

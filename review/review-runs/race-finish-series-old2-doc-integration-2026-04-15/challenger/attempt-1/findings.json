@@ -1,0 +1,17 @@
+{
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "old2-integration-progress-doc-overstates-review-closure",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "`07-current-progress.md` states that the current `race-finish-series.zh-CN` series has already completed a working + fresh challenger review closure, but the `old_2` documentation integration under review here has not yet reached challenger-confirmed closure.",
+      "evidence": "`new/docs/race-finish-series.zh-CN/07-current-progress.md:48-55` and `:103-116` present the whole series as already challenger-closed while also treating the newly absorbed `old_2` conclusions as current confirmed facts. The cited legacy closure artifact `review/race-finish-series-docs/challenger-verifier-evidence.json:10-20` only covers the earlier doc surface (`README`, `00`, `01`-`06`) and predates the 2026-04-15 `old_2` integration recorded in `07-current-progress.md:186-215`. The active standalone review for this integration is still only a working-pass zero-findings baseline with `closure_authority` set to `working_evidence_only` in `review/review-runs/race-finish-series-old2-doc-integration-2026-04-15/working/attempt-2/verifier-evidence.json:2-14`.",
+      "recommendation": "Scope the existing challenger-closed claim to the pre-`old_2` baseline, and mark the 2026-04-15 `old_2` documentation absorption as analyzed and merged but still pending challenger-confirmed closure until this standalone review loop completes.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

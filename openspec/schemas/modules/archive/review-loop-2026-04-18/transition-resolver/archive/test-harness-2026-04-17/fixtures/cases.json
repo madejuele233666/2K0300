@@ -1,0 +1,408 @@
+[
+  {
+    "id": "positive-working-entry-spawn",
+    "input": "positive/working-entry-spawn.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "spawn_initial_working",
+        "reason_code": "initial_working_session",
+        "required_session_mode": "initial_working",
+        "required_invocation_mode": "built_in_subagent_spawn",
+        "required_output_artifacts": ["spawn-decision.json"]
+      }
+    }
+  },
+  {
+    "id": "positive-working-rerun-send-input",
+    "input": "positive/working-rerun-send-input.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "send_input_same_working",
+        "reason_code": "ordinary_rerun_same_session",
+        "required_session_mode": "reuse_working_same_session",
+        "required_invocation_mode": "built_in_session_message",
+        "required_output_artifacts": []
+      }
+    }
+  },
+  {
+    "id": "positive-working-rerun-resume",
+    "input": "positive/working-rerun-resume.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "resume_same_working",
+        "reason_code": "ordinary_rerun_resumable_session",
+        "required_session_mode": "reuse_working_same_session",
+        "required_invocation_mode": "built_in_session_resume",
+        "required_output_artifacts": []
+      }
+    }
+  },
+  {
+    "id": "positive-working-rerun-exception-spawn",
+    "input": "positive/working-rerun-exception-spawn.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "spawn_exception_working",
+        "reason_code": "agent_not_found",
+        "required_session_mode": "fresh_working_exception",
+        "required_invocation_mode": "built_in_subagent_spawn",
+        "required_output_artifacts": ["spawn-decision.json"]
+      }
+    }
+  },
+  {
+    "id": "positive-working-rerun-explicit-unresumable",
+    "input": "positive/working-rerun-explicit-unresumable.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "spawn_exception_working",
+        "reason_code": "session_completed_unresumable",
+        "required_session_mode": "fresh_working_exception",
+        "required_invocation_mode": "built_in_subagent_spawn",
+        "required_output_artifacts": ["spawn-decision.json"]
+      }
+    }
+  },
+  {
+    "id": "positive-post-working-docs-repair",
+    "input": "positive/post-working-docs-repair.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "enter_repair",
+        "reason_code": "blocking_findings_require_repair",
+        "reroute_destination": "docs_artifact_repair",
+        "reroute_class": "docs_blocking_findings",
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "positive-post-working-source-auto-fix",
+    "input": "positive/post-working-source-auto-fix.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "enter_repair",
+        "reason_code": "blocking_findings_require_repair",
+        "reroute_destination": "source_repair",
+        "reroute_class": "implementation_auto_fix",
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "positive-post-working-converged-return",
+    "input": "positive/post-working-converged-return.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "return_caller_flow",
+        "reason_code": "working_converged_ready_for_challenger_entry",
+        "reroute_destination": "return_caller_flow",
+        "required_invocation_mode": "no_invocation"
+      }
+    }
+  },
+  {
+    "id": "positive-post-working-converged-pause",
+    "input": "positive/post-working-converged-pause.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "wait_for_user",
+        "reason_code": "caller_pause_requested",
+        "reroute_class": "caller_pause",
+        "required_invocation_mode": "no_invocation"
+      }
+    }
+  },
+  {
+    "id": "positive-challenger-entry-spawn",
+    "input": "positive/challenger-entry-spawn.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "spawn_fresh_challenger",
+        "reason_code": "challenger_pass",
+        "required_session_mode": "fresh_challenger",
+        "required_invocation_mode": "built_in_subagent_spawn",
+        "required_output_artifacts": ["spawn-decision.json"]
+      }
+    }
+  },
+  {
+    "id": "positive-post-challenger-reopen",
+    "input": "positive/post-challenger-reopen.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "record_challenger_reopen",
+        "reason_code": "challenger_found_new_findings",
+        "required_session_mode": "promoted_challenger_to_working",
+        "required_invocation_mode": "no_invocation",
+        "required_output_artifacts": ["reopen-record.json"]
+      }
+    }
+  },
+  {
+    "id": "positive-post-challenger-close",
+    "input": "positive/post-challenger-close.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "allow_close",
+        "reason_code": "challenger_confirmed_zero_findings",
+        "required_mechanical_gate": "review_loop_guard_run_dir",
+        "mechanical_gate_status": "passed"
+      }
+    }
+  },
+  {
+    "id": "positive-close-allow",
+    "input": "positive/close-allow.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "allow_close",
+        "reason_code": "challenger_confirmed_zero_findings",
+        "required_mechanical_gate": "review_loop_guard_run_dir",
+        "mechanical_gate_status": "passed"
+      }
+    }
+  },
+  {
+    "id": "negative-close-deny-pending-gate",
+    "input": "negative/close-deny-pending-gate.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "deny_close",
+        "reason_code": "closure_prerequisites_unsatisfied",
+        "required_mechanical_gate": "review_loop_guard_run_dir",
+        "mechanical_gate_status": "pending",
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-working-rerun-no-session",
+    "input": "negative/working-rerun-no-session.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "ordinary_rerun_without_reusable_session",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-working-rerun-exception-without-probe",
+    "input": "negative/working-rerun-exception-without-probe.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "invalid_working_session_normalization",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-working-rerun-missing-active-working-agent",
+    "input": "negative/working-rerun-missing-active-working-agent.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "working_rerun_requires_active_working_agent",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-challenger-entry-missing-source-review",
+    "input": "negative/challenger-entry-missing-source-review.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "missing_source_review_binding",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-challenger-entry-agent-mismatch",
+    "input": "negative/challenger-entry-agent-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "predecessor_agent_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-challenger-entry-source-review-path-role-mismatch",
+    "input": "negative/challenger-entry-source-review-path-role-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "source_review_path_role_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-challenger-reopen-agent-mismatch",
+    "input": "negative/post-challenger-reopen-agent-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "promoted_working_agent_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-challenger-failed-path-role-mismatch",
+    "input": "negative/post-challenger-failed-path-role-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "failed_challenger_path_role_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-challenger-reopen-record-path-role-mismatch",
+    "input": "negative/post-challenger-reopen-record-path-role-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "reopen_record_path_role_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-broad-context-rejected",
+    "input": "negative/broad-context-rejected.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "context_scope_too_broad",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-working-current-path-role-mismatch",
+    "input": "negative/post-working-current-path-role-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "working_path_role_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-challenger-current-path-role-mismatch",
+    "input": "negative/post-challenger-current-path-role-mismatch.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "challenger_path_role_mismatch",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-authorization-missing",
+    "input": "negative/authorization-missing.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "reviewer_not_authorized",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "negative-post-working-not-converged",
+    "input": "negative/post-working-not-converged.json",
+    "expect": {
+      "mode": "decision",
+      "fields": {
+        "decision": "blocked",
+        "reason_code": "working_result_not_converged",
+        "authorized": false,
+        "blocking": true
+      }
+    }
+  },
+  {
+    "id": "invalid-missing-caller",
+    "input": "invalid/missing-caller.json",
+    "expect": {
+      "mode": "error",
+      "contains": [
+        "transition-resolver resolve failed:",
+        "Expected object field 'caller'"
+      ]
+    }
+  },
+  {
+    "id": "invalid-wrong-contract",
+    "input": "invalid/wrong-contract.json",
+    "expect": {
+      "mode": "error",
+      "contains": [
+        "transition-resolver resolve failed:",
+        "Expected contract=transition-resolver-input-v1"
+      ]
+    }
+  },
+  {
+    "id": "invalid-missing-predecessor-evidence-review-pass-type",
+    "input": "invalid/missing-predecessor-evidence-review-pass-type.json",
+    "expect": {
+      "mode": "error",
+      "contains": [
+        "Missing required field predecessor.evidence.'review_pass_type'"
+      ]
+    }
+  }
+]

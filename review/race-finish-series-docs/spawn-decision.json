@@ -1,0 +1,41 @@
+{
+  "change": "race-finish-series-docs",
+  "mode": "implementation",
+  "review_phase": "implementation",
+  "review_pass_type": "working",
+  "requested_agent_type": "verify-reviewer",
+  "spawn_reason": "fresh working session after challenger findings repair; previous working session was closed when the workflow was paused",
+  "fresh_session_required": true,
+  "fork_context": false,
+  "risk_tier": "STANDARD",
+  "findings_contract": "shared-findings-v1",
+  "cache_mode": "bypassed",
+  "created_at": "2026-04-14T00:25:00+08:00",
+  "evidence_paths_or_diff_scope": [
+    "new/docs/race-finish-series.zh-CN/README.md",
+    "new/docs/race-finish-series.zh-CN/00-master-roadmap.md",
+    "new/docs/race-finish-series.zh-CN/01-phase-a-hardware-and-closure.md",
+    "new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md",
+    "new/docs/race-finish-series.zh-CN/03-phase-c-perception-and-semantics.md",
+    "new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md",
+    "new/docs/race-finish-series.zh-CN/05-phase-e-finish-gate.md",
+    "new/docs/race-finish-series.zh-CN/06-implementation-and-verification-contract.md"
+  ],
+  "reference_paths": [
+    "new/docs/superseded/track-readiness-gap.zh-CN.md",
+    "new/docs/superseded/race-finish-series-source/proposal.md",
+    "new/docs/superseded/race-finish-series-source/design.md",
+    "new/docs/superseded/race-finish-series-source/tasks.md",
+    "new/docs/superseded/race-finish-series-source/debugging.md",
+    "new/docs/superseded/race-finish-series-source/hardware-matrix.md",
+    "new/docs/superseded/race-finish-series-source/mapping.md",
+    "new/docs/superseded/race-finish-series-source/adapter_spec.md",
+    "new/docs/superseded/race-finish-series-source/workspace_spec.md",
+    "new/docs/superseded/race-finish-series-source/vendor-baseline.md"
+  ],
+  "output_paths": {
+    "findings_path": "review/race-finish-series-docs/working-findings.json",
+    "verifier_evidence_path": "review/race-finish-series-docs/working-verifier-evidence.json",
+    "spawn_decision_path": "review/race-finish-series-docs/spawn-decision.json"
+  }
+}

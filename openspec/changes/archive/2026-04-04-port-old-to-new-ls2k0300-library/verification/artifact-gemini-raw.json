@@ -1,0 +1,114 @@
+{
+  "session_id": "281dd77a-c0e9-4e12-8827-9e9f6f1d799f",
+  "response": "```json\n{\n  \"verdict\": \"pass\",\n  \"findings\": [\n    {\n      \"severity\": \"low\",\n      \"summary\": \"Numeric scaling for motor/servo duty ranges and encoder polarity remain as 'Open Questions' rather than resolved contracts in the design.\",\n      \"path\": \"openspec/changes/port-old-to-new-ls2k0300-library/design.md\"\n    },\n    {\n      \"severity\": \"low\",\n      \"summary\": \"The camera adapter input pixel format (BGR vs MJPG) is not explicitly contracted, though conversion to grayscale is required.\",\n      \"path\": \"openspec/changes/port-old-to-new-ls2k0300-library/specs/tc264-to-ls2k0300-adapter-layer/spec.md\"\n    }\n  ],\n  \"notes\": [\n    \"The design explicitly handles the UVC 160x120 to legacy 160x128 geometry mismatch via bottom-anchoring and row duplication.\",\n    \"Strong guardrails are in place to prevent LS2K0300/OpenCV type leakage into legacy logic modules.\",\n    \"Verification completeness is high, including board-side smoke tests, parameter failure path exercises, and hardware profile mismatch checks.\",\n    \"The transition from an interrupt-driven dual-core model to a single-process periodic loop is well-documented with appropriate risk acknowledgment.\"\n  ]\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2350
+        },
+        "tokens": {
+          "input": 3321,
+          "prompt": 3321,
+          "candidates": 98,
+          "total": 3847,
+          "cached": 0,
+          "thoughts": 428,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2350,
+            "tokens": {
+              "input": 3321,
+              "prompt": 3321,
+              "candidates": 98,
+              "total": 3847,
+              "cached": 0,
+              "thoughts": 428,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 9,
+          "totalErrors": 0,
+          "totalLatencyMs": 40864
+        },
+        "tokens": {
+          "input": 37053,
+          "prompt": 182159,
+          "candidates": 1205,
+          "total": 185941,
+          "cached": 145106,
+          "thoughts": 2577,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 9,
+            "totalErrors": 0,
+            "totalLatencyMs": 40864,
+            "tokens": {
+              "input": 37053,
+              "prompt": 182159,
+              "candidates": 1205,
+              "total": 185941,
+              "cached": 145106,
+              "thoughts": 2577,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 12,
+      "totalSuccess": 12,
+      "totalFail": 0,
+      "totalDurationMs": 69,
+      "totalDecisions": {
+        "accept": 12,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "list_directory": {
+          "count": 5,
+          "success": 5,
+          "fail": 0,
+          "durationMs": 27,
+          "decisions": {
+            "accept": 5,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 7,
+          "success": 7,
+          "fail": 0,
+          "durationMs": 42,
+          "decisions": {
+            "accept": 7,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

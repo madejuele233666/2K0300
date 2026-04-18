@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "target_ref": "workflow:standalone-resume-repair-close",
+  "agents": [
+    {
+      "agent_id": "verifier-1",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "full",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-18T10:05:00Z"
+    },
+    {
+      "agent_id": "verifier-2",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "full",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-18T10:10:00Z"
+    }
+  ]
+}

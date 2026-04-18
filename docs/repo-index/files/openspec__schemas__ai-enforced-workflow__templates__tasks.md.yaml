@@ -1,0 +1,41 @@
+path: openspec/schemas/ai-enforced-workflow/templates/tasks.md
+kind: file
+layer: workflow-template
+owner_role: task artifact scaffolding
+responsibilities:
+  - Seeds generated task files with a Repository Index Plan section.
+  - Seeds generated task files with a shared governed verification contract block that names the minimal bundle, `index_context`, routing target, and caller-local runtime guardrails.
+  - Requires checkpoint tasks to include preflight evidence, index telemetry, and exhaustive coverage fields.
+  - Requires checkpoint tasks to name the spawn-decision schema, the spawn reason category, and forbid opening a second working verifier while the active working session remains reusable and unresolved.
+  - Carries stable governed scope objects, deterministic contract-lint policy, closure-based refresh policy, required-path / required-axis evidence, and the Gemini maximum-attempts rule into generated tasks.
+  - Keeps the checkpoint preflight report auxiliary unless explicit policy opts it into required_paths.
+must_not_do:
+  - Must not generate governed checkpoints that rely on the old verifier template.
+  - Must not omit skip-reason and deep-scan evidence requirements.
+  - Must not describe governed checkpoint reuse as unconditional or pre-refresh everything by default.
+  - Must not leave checkpoint wording on stale retry-policy vocabulary after caller-local guardrails replace it.
+inputs:
+  - Shared schema rules for governed verification checkpoints.
+outputs:
+  - Task template bullets for Repository Index Plan and governed checkpoint wording.
+depends_on:
+  - openspec/schemas/ai-enforced-workflow/schema.yaml
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+public_symbols:
+  - "## 1. Shared Governed Verification Contract"
+  - "## 0. Repository Index Plan"
+  - "[Checkpoint] Run verifier-subagent review"
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - shared governed verification contract block omits the minimal verification bundle or routing target
+  - checkpoint wording omits Stage 0 preflight
+  - checkpoint wording omits index telemetry fields
+  - checkpoint wording omits required_paths or required_axes from preflight evidence
+  - checkpoint wording omits the spawn reason category or Gemini maximum-attempts rule
+  - checkpoint wording still references retry policy instead of caller-local runtime guardrails
+confidence: high
+digest: sha256:e17645196c712049380c057ce941befe4bdded3856f3cf9a14ed0c587bd4132f
+last_verified_at: 2026-04-09T17:30:00+08:00

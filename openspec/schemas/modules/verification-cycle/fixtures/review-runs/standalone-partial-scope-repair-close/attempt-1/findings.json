@@ -1,0 +1,16 @@
+{
+  "target_ref": "workflow:standalone-partial-scope-repair-close",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "partial-scope-block-1",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The scoped verifier found a blocking docs-first defect.",
+      "evidence": "The review only covered docs/specs and found a missing requirement.",
+      "recommendation": "Repair the scoped defect and rerun the same verifier.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

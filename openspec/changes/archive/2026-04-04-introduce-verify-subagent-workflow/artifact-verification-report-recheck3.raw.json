@@ -1,0 +1,102 @@
+{
+  "session_id": "e59d6c25-5be3-41f4-b68c-855b53f6052b",
+  "response": "```json\n{\n  \"change\": \"introduce-verify-subagent-workflow\",\n  \"scope\": \"all\",\n  \"scorecard\": {\n    \"Completeness\": \"pass\",\n    \"Correctness\": \"pass\",\n    \"Coherence\": \"pass\"\n  },\n  \"findings\": [],\n  \"final_assessment\": \"pass\"\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 3024
+        },
+        "tokens": {
+          "input": 3568,
+          "prompt": 3568,
+          "candidates": 124,
+          "total": 4052,
+          "cached": 0,
+          "thoughts": 360,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 3024,
+            "tokens": {
+              "input": 3568,
+              "prompt": 3568,
+              "candidates": 124,
+              "total": 4052,
+              "cached": 0,
+              "thoughts": 360,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 2,
+          "totalErrors": 0,
+          "totalLatencyMs": 16804
+        },
+        "tokens": {
+          "input": 20780,
+          "prompt": 27880,
+          "candidates": 269,
+          "total": 30074,
+          "cached": 7100,
+          "thoughts": 1925,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 2,
+            "totalErrors": 0,
+            "totalLatencyMs": 16804,
+            "tokens": {
+              "input": 20780,
+              "prompt": 27880,
+              "candidates": 269,
+              "total": 30074,
+              "cached": 7100,
+              "thoughts": 1925,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 5,
+      "totalSuccess": 5,
+      "totalFail": 0,
+      "totalDurationMs": 142,
+      "totalDecisions": {
+        "accept": 5,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "read_file": {
+          "count": 5,
+          "success": 5,
+          "fail": 0,
+          "durationMs": 142,
+          "decisions": {
+            "accept": 5,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

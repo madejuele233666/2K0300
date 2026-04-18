@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/verification-cycle/orchestrator/contracts/orchestrator-decision-v1.json",
+  "contract": "verification-cycle-orchestrator-decision-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "decision",
+    "reason"
+  ],
+  "properties": {
+    "contract": {
+      "const": "verification-cycle-orchestrator-decision-v1"
+    },
+    "decision": {
+      "enum": [
+        "resume_active",
+        "spawn_active",
+        "enter_repair",
+        "mark_non_active",
+        "terminate",
+        "wait_for_user",
+        "blocked_invalid_state"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spawn_reason_code": {
+      "enum": [
+        "no_usable_active_agent",
+        "active_agent_missing",
+        "active_agent_not_resumable"
+      ]
+    },
+    "agent_id": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "spawn_active"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "required": [
+          "spawn_reason_code"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "spawn_reason_code"
+          ]
+        }
+      }
+    }
+  ]
+}

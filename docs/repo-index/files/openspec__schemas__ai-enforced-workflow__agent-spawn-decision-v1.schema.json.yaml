@@ -1,0 +1,37 @@
+path: openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json
+kind: file
+layer: workflow-schema
+owner_role: verifier spawn-governance contract
+responsibilities:
+  - Defines the normalized JSON contract required before any new verifier or index-maintainer session is spawned.
+  - Constrains spawn decisions to policy-required and exception paths with explicit reason codes.
+  - Requires prior-session reuse metadata when a caller claims an exception spawn.
+  - Binds fresh confirmation, initial working session, and index refresh to distinct policy rule references.
+must_not_do:
+  - Must not allow ad hoc spawn reasons outside the shared verification sequence.
+  - Must not allow exception spawns without failed reuse metadata.
+  - Must not allow a verifier-session spawn record to omit the governing sequence reference.
+inputs:
+  - Shared verification-sequence spawn rules.
+outputs:
+  - Machine-validatable spawn-decision JSON records for verifier and index-maintainer orchestration.
+depends_on:
+  - openspec/schemas/ai-enforced-workflow/verification-sequence.md
+public_symbols:
+  - contract
+  - requested_agent_type
+  - spawn_kind
+  - reason_code
+  - prior_session
+  - policy_basis
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - a new verifier session is opened without a recorded decision file
+  - exception records omit failed-reuse metadata
+  - fresh confirmation or initial working-session decisions violate the enumerated reason-code policy
+confidence: high
+digest: sha256:f52376926d12af72cf4bef275e6d898365715b262e1c66cb5314bbc6600a6859
+last_verified_at: 2026-04-09T14:47:40+08:00

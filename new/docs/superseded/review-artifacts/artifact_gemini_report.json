@@ -1,0 +1,34 @@
+{
+  "change": "port-old-to-new-ls2k0300-library",
+  "scope": "all",
+  "scorecard": {
+    "Completeness": "blocked",
+    "Correctness": "pass",
+    "Coherence": "pass"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The mandatory Gemini verification command is PowerShell-specific and uses Windows environment variables ($env:APPDATA), but the current workspace is Linux (zsh) and lacks powershell/pwsh.",
+      "evidence": "tasks.md tasks 1.3, 1.4, 2.6, 4.2, 4.3 and design.md 'Independent Verification Plan' hardcode: powershell -NoProfile -ExecutionPolicy Bypass -File $env:APPDATA\\openspec\\bin\\gemini_capture.ps1 ...",
+      "recommendation": "Replace the PowerShell wrapper with a shell-neutral fallback or a Linux-native script (e.g., gemini_capture.sh) that invokes 'gemini -y --output-format json' directly while maintaining the raw-envelope and normalized-report contract. Update all task and design references to use the available 'gemini' CLI command.",
+      "redirect_layer": "tasks",
+      "blocking": true
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "artifact": "design",
+      "problem": "Generic 'runtime_state' language may be insufficient to capture all ISR-owned and algorithm-global states such as 'bcount', 'circle_find', 'zebra_flag', and 'cross_flag', which are scattered across isr.c and camera.c.",
+      "evidence": "old/user/isr.c defines 'int bcount = 0;' and camera.c defines multiple global control flags. While design.md Decision 3 mentions explicit cycle counters, it only explicitly names 'W_Target_last' as a repair example.",
+      "recommendation": "Explicitly require that all global control state and ISR-persistent counters (including bcount, circle_find, zebra_flag, and cross_flag) must be moved into the 'new/code/runtime/runtime_state.hpp' struct to ensure thread safety and avoid global state leakage in the C++ target.",
+      "redirect_layer": "design",
+      "blocking": false
+    }
+  ],
+  "final_assessment": "blocked"
+}

@@ -1,0 +1,64 @@
+== runtime smoke 2026-04-17T14:21:40Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+params_source=/home/madejuele/projects/2K0300/new/user/../config/default_params.json
+profile_source=/home/madejuele/projects/2K0300/new/user/../config/hardware_profile.json
+smoke_enable_motor=0
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][118820] starting ls2k migration runtime
+[INFO][profile.loaded][118826] hardware profile loaded from /home/root/hardware_profile.smoke.json
+[INFO][params.loaded][118827] runtime parameters loaded from /home/root/default_params.smoke.json
+[INFO][profile.camera][118827] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][118827] direct-match:imu-core-device-detect
+[INFO][profile.encoder][118827] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][118827] disabled:smoke-motor-disabled
+[INFO][profile.timer][118827] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][118827] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.motor.degraded][118827] motor profile is disabled:smoke-motor-disabled (allowed only in degraded startup mode)
+[INFO][params.critical.apply][118827] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][118827] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][118827] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=1989 threshold=400
+[INFO][startup.low_voltage.clear][118828] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][119109] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][119110] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][119110] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][119152] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][119153] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][119153] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right for direct speed samples
+[INFO][motor.disabled][119153] motor subsystem disabled by hardware profile
+[WARN][startup.motor.disabled.degraded][119153] motor is disabled by profile and degraded startup mode is enabled
+[INFO][startup.complete][119153] startup validated required adapters and applied critical params
+[WARN][control.start.degraded.motor_disabled][119153] degraded startup keeps control loop running with motor disabled; actuators stay disarmed
+[INFO][timer.start.pit][119153] timer started with true_ls2k0300 pit bridge
+[FAIL_SAFE][control.arm.motor_disabled][119153] motor profile is disabled; control loop stays diagnostics-only with actuators disarmed
+[INFO][control.start][119153] control loop started with PIT-equivalent periodic callback
+[INFO][imu.sample.summary][119159] imu normalized sample acc_z=-4.845466mps2 gyro_z=0.003093radps valid_streak=1
+[INFO][encoder.delta.summary][119161] logical encoder sample left=0 right=0 mean=0 diff=0
+[FAIL_SAFE][control.veto][119161] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][119161] dominant control veto reason: perception_stale
+[WARN][control.apply.suppressed][119161] drive command suppressed because the active motor profile is diagnostics-only
+[WARN][control.veto.sustained][119362] control remained vetoed for 201 ms with dominant reason=perception_stale
+[INFO][imu.continuity.ready][119367] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][control.veto.interval.closed][119480] previous veto interval closed after 319 ms (reason=perception_stale)
+[INFO][control.command.requested_nonzero][119480] non-zero differential-drive command requested
+[INFO][control.unveto.sustained][119684] control remained non-veto for 204 ms; actuator path stayed eligible for drive application
+[INFO][startup.low_voltage.raw][119831] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=1978 threshold=400
+[INFO][imu.sample.summary][120165] imu normalized sample acc_z=-4.850132mps2 gyro_z=-0.002228radps valid_streak=142
+[INFO][encoder.delta.summary][120167] logical encoder sample left=0 right=0 mean=0 diff=0
+[WARN][control.apply.suppressed][120167] drive command suppressed because the active motor profile is diagnostics-only
+[INFO][control.command.requested_nonzero][120485] non-zero differential-drive command requested
+[INFO][main.frame_limit][120771] bounded runtime loop reached LS2K_MAX_FRAMES=160
+[INFO][timer.stop][120772] timer bridge stopped
+[INFO][camera.shutdown][120772] camera adapter shutdown complete
+[INFO][imu.shutdown][120772] imu adapter shutdown complete
+[INFO][encoder.shutdown][120772] encoder adapter shutdown complete
+[INFO][motor.shutdown][120772] motor adapter shutdown complete
+[INFO][shutdown.complete][120772] actuators disabled and resources released
+[INFO][main.exit][120772] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

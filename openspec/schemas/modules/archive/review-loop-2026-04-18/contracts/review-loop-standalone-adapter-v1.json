@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/contracts/review-loop-standalone-adapter-v1.json",
+  "contract": "review-loop-standalone-adapter-v1",
+  "core_contract_ref": "openspec/schemas/modules/review-loop/contracts/review-loop-core-v1.json",
+  "subject_key": "target_ref",
+  "bootstrap_target_ref_templates": [
+    "diff:<name>",
+    "paths:<comma-separated-paths>",
+    "workflow:<name>",
+    "repo:<repo-name>-adhoc-review-YYYY-MM-DD"
+  ],
+  "bundle_required": [
+    "target_ref",
+    "review_goal",
+    "review_phase",
+    "review_pass_type",
+    "risk_tier",
+    "evidence_paths_or_diff_scope",
+    "findings_contract"
+  ],
+  "verifier_evidence_subject_fields": [
+    "target_ref"
+  ],
+  "spawn_decision_contract": "openspec/schemas/modules/review-loop/contracts/review-loop-standalone-spawn-decision-v1.json"
+}

@@ -1,0 +1,75 @@
+== camera exposure checks 2026-04-17T11:03:23Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+scenario=unsupported_exp_light
+[INFO][main.start][2078887] starting ls2k migration runtime
+[INFO][profile.loaded][2078888] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][2078889] runtime parameters loaded from /home/root/ls2k-camera-exp-unsupported.json
+[INFO][profile.camera][2078889] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][2078889] direct-match:imu-core-device-detect
+[INFO][profile.encoder][2078889] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][2078889] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][2078889] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][2078889] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[WARN][params.critical.exp_light][2078889] non-default exp_light requests explicit true-baseline camera support; direct-match camera path may fail closed without an adaptation hook
+[INFO][power.init][2078889] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][2078889] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2338 threshold=400
+[INFO][startup.low_voltage.clear][2078889] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][2079163] camera initialized through true_ls2k0300 bridge: /dev/video0
+[WARN][camera.exposure.unsupported][2079163] true_ls2k0300 direct camera path cannot apply non-default exp_light via the vendor public API; use an adaptation hook or degraded diagnostics-only startup
+[FAIL_SAFE][startup.camera.init][2079163] camera adapter initialization failed
+[FAIL_SAFE][main.startup][2079164] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][2079164] camera adapter shutdown complete
+[INFO][imu.shutdown][2079164] imu adapter shutdown complete
+[INFO][encoder.shutdown][2079164] encoder adapter shutdown complete
+[INFO][motor.shutdown][2079164] motor adapter shutdown complete
+[INFO][shutdown.complete][2079164] actuators disabled and resources released
+remote_runtime_exit=1
+
+scenario=forced_non_phase1_geometry
+[INFO][main.start][2080295] starting ls2k migration runtime
+[INFO][profile.loaded][2080296] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][2080297] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][2080297] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][2080297] direct-match:imu-core-device-detect
+[INFO][profile.encoder][2080297] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][2080297] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][2080297] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][2080297] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][2080297] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][2080297] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2334 threshold=400
+[INFO][startup.low_voltage.clear][2080297] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][2080449] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][2080451] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][2080451] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][2080493] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][2080493] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][2080493] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right
+[INFO][motor.init][2080493] motor initialized through true_ls2k0300 bridge: logical_left maps to pwm=/dev/zf_device_pwm_motor_2, gpio=/dev/zf_driver_gpio_motor_2; logical_right maps to pwm=/dev/zf_device_pwm_motor_1, gpio=/dev/zf_driver_gpio_motor_1
+[INFO][startup.complete][2080493] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][2080494] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][2080494] control loop started with PIT-equivalent periodic callback
+[WARN][camera.geometry.override][2080494] forced non-160x120 geometry marker path
+[INFO][imu.sample.summary][2080500] imu normalized sample acc_z=-4.840680mps2 gyro_z=-0.003159radps valid_streak=1
+[WARN][encoder.baseline][2080501] encoder baseline established; first absolute sample is not emitted as a delta and logical right-wheel sign is normalized at the adapter boundary
+[FAIL_SAFE][control.veto][2080501] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][2080501] dominant control veto reason: perception_stale
+[FAIL_SAFE][control.apply.emergency_stop][2080501] emergency-stop command applied to keep actuators fail-safe
+[INFO][encoder.delta.summary][2080510] logical encoder delta left=0 right=0 mean=0 diff=0
+[INFO][main.frame_limit][2080544] bounded runtime loop reached LS2K_MAX_FRAMES=40
+[INFO][timer.stop][2080545] timer bridge stopped
+[INFO][camera.shutdown][2080546] camera adapter shutdown complete
+[INFO][imu.shutdown][2080546] imu adapter shutdown complete
+[INFO][encoder.shutdown][2080546] encoder adapter shutdown complete
+[INFO][motor.shutdown][2080546] motor adapter shutdown complete
+[INFO][shutdown.complete][2080546] actuators disabled and resources released
+[INFO][main.exit][2080546] runtime exit complete
+remote_runtime_exit=0

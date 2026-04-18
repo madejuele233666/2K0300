@@ -1,0 +1,21 @@
+{
+  "contract": "review-loop-standalone-spawn-decision-v1",
+  "target_ref": "workflow:fix-board-runtime-hardware-detection-2026-04-15",
+  "next_session_role": "challenger",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "challenger_pass",
+  "decision": "allow",
+  "recorded_at": "2026-04-15T11:05:30Z",
+  "prior_session": {
+    "agent_id": "codex-gpt5-reviewer",
+    "session_role": "working",
+    "reuse_blocker": "policy_requires_challenger"
+  },
+  "evidence": {
+    "source_review": {
+      "agent_id": "codex-gpt5-reviewer",
+      "findings_path": "working/attempt-1/findings.json",
+      "verifier_evidence_path": "working/attempt-1/verifier-evidence.json"
+    }
+  }
+}

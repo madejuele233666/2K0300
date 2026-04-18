@@ -1,0 +1,43 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "The implemented schema still contains old verification-policy wording that conflicts with the new verifier-subagent-first contract.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/schema.yaml:190-193 still says 'Codex local review and Gemini-driven openspec-artifact-verify'; openspec/schemas/ai-enforced-workflow/schema.yaml:229-235 still defines LIGHT/STANDARD/STRICT in terms of 'Codex pre-review' and 'Gemini-based' verification instead of verifier-subagent-first review with tier-gated Gemini second opinion.",
+      "recommendation": "Update the remaining schema review-gate and risk-tier-gating text so it consistently describes verifier-subagent-first review, shared sequence verify-sequence/default, and Gemini as mandatory only for STRICT or explicitly dual-gated checkpoints.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "F-002",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Workflow execution skills still instruct the old 'Codex local review first, Gemini-based verification second' contract, which can reintroduce the deprecated flow during apply and repair.",
+      "evidence": ".codex/skills/openspec-apply-change/SKILL.md:107-109 still says 'Do not skip the Codex local review before a Gemini verification task'; .codex/skills/openspec-repair-change/SKILL.md:19-21, 47-49, 97-109 still talk about 'Codex local review' and 'Gemini-based' reruns instead of verifier-subagent review plus tier-gated Gemini second opinion.",
+      "recommendation": "Refactor apply and repair skills to reference verify-sequence/default, verifier-subagent local review, optional-or-mandatory Gemini second opinion by policy, and the normalized findings contract without reverting to Codex-self-review wording.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "F-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "Artifact-generation helper skills still teach the superseded verification contract, so newly generated ai-enforced-workflow artifacts can drift back to the old model.",
+      "evidence": ".codex/skills/openspec-propose/SKILL.md:101, .codex/skills/openspec-ff-change/SKILL.md:92, and .codex/skills/openspec-continue-change/SKILL.md:116 still instruct 'Codex local review first, Gemini independent verification second'.",
+      "recommendation": "Update propose, ff-change, and continue-change guidance to reference verifier-subagent-first review, shared sequence verify-sequence/default, and tier-gated Gemini second opinion so future generated artifacts match the new workflow.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": true
+    }
+  ]
+}

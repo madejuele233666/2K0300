@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/transition-resolver/contracts/transition-resolver-routing-v1.json",
+  "contract": "transition-resolver-routing-v1",
+  "decision_enum": [
+    "spawn_initial_working",
+    "send_input_same_working",
+    "resume_same_working",
+    "spawn_fresh_challenger",
+    "record_challenger_reopen",
+    "spawn_exception_working",
+    "enter_repair",
+    "return_caller_flow",
+    "wait_for_user",
+    "allow_close",
+    "deny_close",
+    "blocked"
+  ],
+  "decision_classes": [
+    "allow",
+    "deny"
+  ],
+  "session_modes": [
+    "initial_working",
+    "reuse_working_same_session",
+    "fresh_challenger",
+    "promoted_challenger_to_working",
+    "fresh_working_exception",
+    "no_session_change"
+  ],
+  "invocation_modes": [
+    "built_in_subagent_spawn",
+    "built_in_session_message",
+    "built_in_session_resume",
+    "no_invocation"
+  ],
+  "reroute_destinations": [
+    "openspec-repair-change",
+    "docs_artifact_repair",
+    "source_repair",
+    "return_caller_flow",
+    "none"
+  ],
+  "reroute_classes": [
+    "none",
+    "docs_blocking_findings",
+    "source_blocking_findings",
+    "implementation_auto_fix",
+    "caller_pause"
+  ],
+  "mechanical_gates": [
+    "none",
+    "review_loop_guard_run_dir"
+  ],
+  "mechanical_gate_statuses": [
+    "not_required",
+    "pending",
+    "passed",
+    "failed"
+  ],
+  "output_artifact_names": [
+    "spawn-decision.json",
+    "reopen-record.json"
+  ]
+}

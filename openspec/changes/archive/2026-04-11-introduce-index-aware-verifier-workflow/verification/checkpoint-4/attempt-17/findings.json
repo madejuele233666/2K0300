@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "specs",
+      "problem": "The change-local capability specs do not fully encode the shared spawn-governance contract for index refresh. They require `agent-spawn-decision-v1` before spawning a fresh verifier, but they do not normatively require the same decision record before spawning `index-maintainer`, even though the shared workflow contracts and the change's own design/tasks treat that rule as mandatory for any new verifier or index-maintainer session.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md` requires stale or missing coverage to invoke `index-maintainer`, but it does not require writing or validating an `agent-spawn-decision-v1` record before that spawn. `openspec/changes/introduce-index-aware-verifier-workflow/specs/ai-enforced-workflow/spec.md` explicitly requires `agent-spawn-decision-v1` only for fresh verifier spawns. In contrast, `openspec/schemas/ai-enforced-workflow/verification-sequence.md`, `openspec/schemas/ai-enforced-workflow/index-sequence.md`, `/home/madejuele/.codex/skills/openspec-index-preflight/SKILL.md`, and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md` all require a validated spawn-decision record before any new verifier or index-maintainer session. The frozen artifact set therefore still has a specs-to-design/tasks/shared-sequence mismatch on a checkpoint-gating rule.",
+      "recommendation": "Add a normative requirement and scenario in the change-local specs that any `index-maintainer` spawn for refresh is preceded by an `agent-spawn-decision-v1` record validated against `openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json`, and align the preflight and ai-enforced-workflow capability specs with the shared sequence wording that no new verifier or index-maintainer session may be opened ad hoc.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

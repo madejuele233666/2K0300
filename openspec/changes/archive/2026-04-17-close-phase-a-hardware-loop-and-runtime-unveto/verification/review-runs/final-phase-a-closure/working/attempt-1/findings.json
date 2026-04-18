@@ -1,0 +1,36 @@
+{
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The encoder bridge still narrows raw absolute counts to 16 bits before handing them to the adapter, so long-running counts will wrap and the implementation does not actually provide the \"full-width encoder counts\" claimed by the Phase A closure evidence.",
+      "evidence": "`new/code/platform/true_ls2k0300/encoder_bridge.cpp:17-24` reads a 32-bit value into `raw` and then assigns `out = static_cast<int16_t>(raw)`. `new/code/platform/true_ls2k0300/bridge.hpp:46-50` and `new/code/platform/true_ls2k0300/encoder_bridge.cpp:45-60` otherwise carry encoder counts as `int`, so the narrowing is unnecessary. The closure note simultaneously claims the opposite in `openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-encoder-closure.md:10-16`.",
+      "recommendation": "Keep encoder counts at full width from device read through `EncoderCounts`, then rerun or update the encoder-closure evidence so the note matches the real implementation.",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "F002",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The low-level hardware I/O helpers accept partial transfers as success, which can make encoder samples and motor apply/disable operations look successful after only a short read/write.",
+      "evidence": "`new/code/platform/true_ls2k0300/encoder_bridge.cpp:18-24` treats any non-negative `read()` result as success instead of requiring `bytes == sizeof(raw)`. `new/code/platform/true_ls2k0300/motor_bridge.cpp:37-39` does the same for `write()`, so a short write is reported as success during `ApplyMotorCommand` and `DisableMotorOutput`. That undermines the Phase A fail-safe contract in `openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md:17-31`, which requires write-failure handling to return the system to fail-safe rather than relying on software-side success alone.",
+      "recommendation": "Require exact-size transfers for these device-node reads/writes, treat short transfers as failures, and propagate those failures through the existing rollback/fail-safe paths.",
+      "blocking": true,
+      "auto_fixable": true
+    },
+    {
+      "id": "F003",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The env-gated bench PWM path can energize the motor even when startup has already asserted low-voltage emergency, so this new diagnostic entrypoint bypasses the same fail-safe power boundary the normal control loop respects.",
+      "evidence": "`new/code/runtime/startup.cpp:148-160` stores `sample.emergency` into `state.low_voltage_emergency` but still returns startup success. `new/user/main.cpp:145-149` enters bench mode before the control loop starts, and `new/user/main.cpp:65-68` calls `platform.motor->Apply(...)` directly without checking low-voltage state. The normal low-voltage disarm behavior only exists later in `new/code/runtime/control_loop.cpp:239-257`. This conflicts with the bench note's \"safe pulse\" framing in `openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-bench-pwm.md:9-15`.",
+      "recommendation": "Block bench PWM pulses when startup or a fresh power sample indicates low-voltage emergency, and emit an explicit diagnostic instead of applying output in that state.",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

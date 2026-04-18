@@ -1,0 +1,16 @@
+{
+  "target_ref": "workflow:standalone-challenger-reopen-close",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "challenger-reopen-required",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The challenger pass found that the standalone instructions still allowed an invalid reviewer handoff and required reopening the working pass.",
+      "evidence": "The challenger detected a flow mismatch severe enough to reopen the review loop.",
+      "recommendation": "Record a challenger_reopen reopen record and promote the challenger session into the next working baseline.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-CHK3-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "specs",
+      "problem": "Rerun identity semantics remain incoherent. The shared verification contract says cross-rerun finding-ID churn is not a contract failure without explicit rerun-comparison input, but the same sequence stops the implementation auto-fix loop when the same blocker repeats by `id + redirect_layer`, and the schema apply instructions still require stable IDs across consecutive reruns. The loop-stop rule therefore depends on unstated ID stability.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:139-149` says ID churn alone is not a failure without explicit rerun-comparison input, while `openspec/schemas/ai-enforced-workflow/verification-sequence.md:321-323` stops the loop when the same finding repeats by `id` + `redirect_layer`. `openspec/schemas/ai-enforced-workflow/schema.yaml:390-393` still requires stable IDs across consecutive reruns, and `.codex/agents/verify-reviewer.toml:73-77` matches the non-mandatory ID-stability rule.",
+      "recommendation": "Define an explicit rerun-comparison mechanism in the shared contract and invocation surface, then align `verification-sequence.md`, `schema.yaml`, and the verifier agent instructions so repeated-finding detection does not rely on unstated cross-rerun ID stability.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-CHK3-002",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "specs",
+      "problem": "The execution-evidence contract is incomplete for nongoverned verification. The shared sequence lists index telemetry fields as minimum execution-evidence requirements for every verifier iteration, but later only validates those fields for governed review, and the schema narrows them to governed execution evidence. Nongoverned checkpoints therefore do not have a single coherent compliant evidence shape.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:80-93` lists `index_contract`, `index_manifest_path`, `index_preflight_report_path`, and `index_mode` as minimum execution-evidence fields, but `openspec/schemas/ai-enforced-workflow/verification-sequence.md:271-273` only requires index fields for governed review. `openspec/schemas/ai-enforced-workflow/schema.yaml:410-412` likewise scopes those fields to governed execution evidence.",
+      "recommendation": "Make the shared sequence explicit that index telemetry fields are governed-only, or define required null/omission semantics for nongoverned passes and mirror that rule in `schema.yaml` and related verifier-contract text.",
+      "redirect_layer": "specs",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-CHK3-003",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "design",
+      "problem": "`design.md` still allows bypass-or-block behavior when `index_context` is unreadable, but the verifier contract requires a fail-closed blocking result when the preflight report is unreadable, missing frozen-surface fields, or contradicts the bundle. Allowing bypass here would permit review without authoritative `required_paths` and `required_axes`.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/design.md:349-350` says unreadable `index_context` may bypass or block according to preflight policy. `.codex/agents/verify-reviewer.toml:46-51` requires a blocking finding when the preflight report is unreadable, missing required fields, or contradictory. `openspec/schemas/ai-enforced-workflow/verification-sequence.md:258-263` and `:280-282` require authoritative `required_paths`/`required_axes` from preflight for governed validation, and `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:155-158` makes that preflight report the frozen review surface.",
+      "recommendation": "Update `design.md` to require fail-closed blocking behavior when the preflight report is unreadable or incoherent, and reserve bypass only for cases where a readable authoritative preflight report explicitly records `index_mode=bypassed`.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

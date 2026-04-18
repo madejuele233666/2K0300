@@ -1,0 +1,31 @@
+== runtime smoke 2026-04-04T13:20:47Z ==
+board=root@10.236.192.226
+binary=/home/root/new
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][6408282] starting ls2k migration runtime
+[INFO][profile.loaded][6408283] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][6408284] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][6408284] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][6408284] direct-match:imu-core-device-detect
+[INFO][profile.encoder][6408284] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][6408284] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][6408284] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][6408284] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][6408284] power monitor initialized with true_ls2k0300 adc bridge
+[INFO][startup.low_voltage.raw][6408284] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2462 threshold=400
+[INFO][startup.low_voltage.clear][6408285] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][6408555] camera initialized through true_ls2k0300 bridge
+can not open file /sys/bus/iio/devices/iio:device1/name
+imu init error
+[FAIL_SAFE][imu.init][6408555] imu unavailable
+[FAIL_SAFE][startup.imu.init][6408556] imu adapter initialization failed
+[FAIL_SAFE][main.startup][6408556] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][6408556] camera adapter shutdown complete
+[INFO][imu.shutdown][6408556] imu adapter shutdown complete
+[INFO][encoder.shutdown][6408556] encoder adapter shutdown complete
+[INFO][motor.shutdown][6408556] motor adapter shutdown complete
+[INFO][shutdown.complete][6408556] actuators disabled and resources released

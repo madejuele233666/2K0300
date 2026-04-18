@@ -1,0 +1,45 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "scope": "all",
+  "scorecard": {
+    "Completeness": "blocked",
+    "Correctness": "pass",
+    "Coherence": "pass"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "Unresolved core contract decisions in Open Questions prevent consistent implementation.",
+      "evidence": "design.md, section 'Open Questions': 'Should the verifier agent report directly in final normalized JSON...?', 'Should auto-fix eligibility be encoded per finding as auto_fixable, inferred from redirect_layer == implementation, or both?', 'Is a single retry budget sufficient...?', 'Should schema tasks reference the logical runner contract only...?'",
+      "recommendation": "Resolve all Open Questions within the 'Decisions' section. For a STRICT tier change, the findings contract (normalization path, field encoding) and repair-loop policy (retry budget, audit requirements) must be finalized before implementation tasks begin.",
+      "redirect_layer": "design",
+      "blocking": true
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "specs",
+      "problem": "Missing normative enumerations and schema for the findings contract.",
+      "evidence": "verify-subagent-orchestration/spec.md, section 'Requirement: Structured Findings and Routing Contract' describes fields like 'redirect layer' but does not provide a formal JSON schema or the full set of allowed values.",
+      "recommendation": "Enumerate the valid set of 'redirect_layer' values (e.g., proposal, specs, design, tasks, implementation) and define a normative JSON schema for the findings report to ensure cross-agent compatibility.",
+      "redirect_layer": "specs",
+      "blocking": false
+    },
+    {
+      "id": "F-003",
+      "severity": "SUGGESTION",
+      "dimension": "Completeness",
+      "artifact": "proposal",
+      "problem": "Empty 'Modified Capabilities' section.",
+      "evidence": "proposal.md, section 'Modified Capabilities' is present but contains no content.",
+      "recommendation": "Identify existing capabilities that are being refactored, such as the core 'ai-enforced-workflow' verification gates.",
+      "redirect_layer": "proposal",
+      "blocking": false
+    }
+  ],
+  "final_assessment": "blocked"
+}

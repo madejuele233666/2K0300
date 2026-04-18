@@ -1,0 +1,11 @@
+{
+  "active_working_agent_id": "worker-1",
+  "active_challenger_agent_id": "",
+  "wait_status": "completed",
+  "verifier_evidence": {
+    "final_state": "completed"
+  },
+  "send_input_ready": false,
+  "resume_probe_attempted": false,
+  "resume_probe_result": "not_attempted"
+}

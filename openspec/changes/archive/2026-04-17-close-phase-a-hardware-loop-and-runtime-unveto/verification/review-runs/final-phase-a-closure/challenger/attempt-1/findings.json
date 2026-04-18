@@ -1,0 +1,16 @@
+{
+  "change": "close-phase-a-hardware-loop-and-runtime-unveto",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The motor bridge can emit an unintended reverse/forward impulse whenever a wheel command changes sign, because it flips the direction GPIO before updating the PWM duty on a contract that explicitly allows signed wheel commands.",
+      "evidence": "`new/code/platform/true_ls2k0300/motor_bridge.cpp:42-55` writes `gpio_level` first and only then writes `pwm_duty`. The public actuator contract carries signed wheel outputs (`new/code/port/control_types.hpp:79-82`), and the active mixer can generate negative wheel commands (`new/code/legacy/motor_logic.cpp:16-22`). On any sign change, the device node will therefore see the new direction while the previous non-zero PWM value is still active until the second write lands. The Phase A bench evidence only exercises positive short pulses (`openspec/changes/close-phase-a-hardware-loop-and-runtime-unveto/verification/phase-a-bench-pwm.md:20-36`), so this transient is not covered by the current closure logs.",
+      "recommendation": "Make direction changes fail-safe at the bridge boundary by zeroing PWM before changing GPIO when the requested sign differs from the previous applied sign, then apply the new duty; alternatively always write zero PWM before any GPIO update. Re-run the motor closure evidence after the bridge ordering is fixed.",
+      "blocking": true,
+      "auto_fixable": true
+    }
+  ]
+}

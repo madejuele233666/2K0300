@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "tasks",
+      "problem": "The task-layer checkpoint contract is still out of sync with the schema's spawn-decision rules, so generated and change-local checkpoint tasks can require `agent-spawn-decision-v1` without also requiring the spawn reason category (`policy_required` or `exception`).",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:375-380` requires any checkpoint that spawns a new verifier or index-maintainer session to name the `agent-spawn-decision-v1` record path and state the reason category (`policy_required` or `exception`) before the spawn. `openspec/schemas/ai-enforced-workflow/templates/tasks.md:38-39` requires spawn-decision validation and optional `output_paths.spawn_decision_path`, but it never requires the reason category. The change-local shared task contract names spawn-decision paths at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:52-59`, requires the contract at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:92-97`, and checkpoint `4.4` inherits that shared contract at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:175`, but the required task wording still never names `policy_required|exception`.",
+      "recommendation": "Update both the shared tasks template and the change-local shared checkpoint contract so any checkpoint that can spawn a verifier or index-maintainer explicitly records the spawn-decision path and whether the spawn is `policy_required` or `exception`.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The governed checkpoint task template still omits the Gemini runner maximum-attempts rule that the schema now requires, so generated checkpoint tasks can specify raw/report outputs and recovery without declaring the retry ceiling before blocking.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:381-385` says checkpoint tasks MUST name the runner's maximum-attempts rule and the recovery step. `openspec/schemas/ai-enforced-workflow/templates/tasks.md:38` names runner contract, raw/report paths, and fallback, and `openspec/schemas/ai-enforced-workflow/templates/tasks.md:39` requires raw plus normalized output, JSON-normalized output, and recovery via `input_raw_path -> report_path`, but neither line states the maximum-attempts rule (for example, retry once / two total attempts).",
+      "recommendation": "Add the Gemini maximum-attempts rule explicitly to the tasks template placeholder and checkpoint text so generated governed checkpoint tasks fully mirror the schema contract.",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

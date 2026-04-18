@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/transition-resolver/contracts/transition-resolver-decision-v1.json",
+  "title": "transition-resolver-decision-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "decision",
+    "decision_class",
+    "reason_code",
+    "required_session_mode",
+    "required_invocation_mode",
+    "reroute_destination",
+    "reroute_class",
+    "required_evidence_checks",
+    "required_path_checks",
+    "required_output_artifacts",
+    "authorized",
+    "blocking",
+    "required_mechanical_gate",
+    "mechanical_gate_status"
+  ],
+  "properties": {
+    "contract": {
+      "const": "transition-resolver-decision-v1"
+    },
+    "decision": {
+      "enum": [
+        "spawn_initial_working",
+        "send_input_same_working",
+        "resume_same_working",
+        "spawn_fresh_challenger",
+        "record_challenger_reopen",
+        "spawn_exception_working",
+        "enter_repair",
+        "return_caller_flow",
+        "wait_for_user",
+        "allow_close",
+        "deny_close",
+        "blocked"
+      ]
+    },
+    "decision_class": {
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_session_mode": {
+      "enum": [
+        "initial_working",
+        "reuse_working_same_session",
+        "fresh_challenger",
+        "promoted_challenger_to_working",
+        "fresh_working_exception",
+        "no_session_change"
+      ]
+    },
+    "required_invocation_mode": {
+      "enum": [
+        "built_in_subagent_spawn",
+        "built_in_session_message",
+        "built_in_session_resume",
+        "no_invocation"
+      ]
+    },
+    "reroute_destination": {
+      "enum": [
+        "openspec-repair-change",
+        "docs_artifact_repair",
+        "source_repair",
+        "return_caller_flow",
+        "none"
+      ]
+    },
+    "reroute_class": {
+      "enum": [
+        "none",
+        "docs_blocking_findings",
+        "source_blocking_findings",
+        "implementation_auto_fix",
+        "caller_pause"
+      ]
+    },
+    "required_evidence_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "required_path_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "required_output_artifacts": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "spawn-decision.json",
+          "reopen-record.json"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "authorized": {
+      "type": "boolean"
+    },
+    "blocking": {
+      "type": "boolean"
+    },
+    "required_mechanical_gate": {
+      "enum": [
+        "none",
+        "review_loop_guard_run_dir"
+      ]
+    },
+    "mechanical_gate_status": {
+      "enum": [
+        "not_required",
+        "pending",
+        "passed",
+        "failed"
+      ]
+    },
+    "denial_reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "blocked"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "required": [
+          "denial_reason"
+        ],
+        "properties": {
+          "decision_class": {
+            "const": "deny"
+          },
+          "required_session_mode": {
+            "const": "no_session_change"
+          },
+          "required_invocation_mode": {
+            "const": "no_invocation"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "allow_close"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "decision_class": {
+            "const": "allow"
+          },
+          "required_session_mode": {
+            "const": "no_session_change"
+          },
+          "required_invocation_mode": {
+            "const": "no_invocation"
+          },
+          "reroute_destination": {
+            "const": "none"
+          },
+          "required_mechanical_gate": {
+            "const": "review_loop_guard_run_dir"
+          },
+          "mechanical_gate_status": {
+            "const": "passed"
+          },
+          "blocking": {
+            "const": false
+          },
+          "authorized": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "spawn_initial_working",
+              "spawn_fresh_challenger",
+              "spawn_exception_working"
+            ]
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "required_invocation_mode": {
+            "const": "built_in_subagent_spawn"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "record_challenger_reopen"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "required_session_mode": {
+            "const": "promoted_challenger_to_working"
+          },
+          "required_invocation_mode": {
+            "const": "no_invocation"
+          }
+        }
+      }
+    }
+  ]
+}

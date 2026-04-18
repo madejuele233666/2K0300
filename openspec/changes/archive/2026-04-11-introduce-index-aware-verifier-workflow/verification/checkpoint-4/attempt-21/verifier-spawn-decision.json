@@ -1,0 +1,29 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "introduce-index-aware-verifier-workflow",
+  "phase": "artifact_gate",
+  "requested_agent_type": "verify-reviewer",
+  "spawn_kind": "policy_required",
+  "reason_code": "fresh_confirmation",
+  "decision": "allow",
+  "recorded_at": "2026-04-09T16:53:25+08:00",
+  "summary": "The active working verifier session reached zero findings at checkpoint-4 attempt-20, so policy requires a fresh confirmation verifier session before the checkpoint can close.",
+  "prior_session": {
+    "agent_id": "019d715f-00a4-7f50-a97d-c20f745439bf",
+    "session_role": "working",
+    "reuse_expected": false,
+    "reuse_attempted": false,
+    "reuse_succeeded": false,
+    "reuse_blocker": "policy_requires_fresh_confirmation"
+  },
+  "policy_basis": {
+    "sequence_ref": "openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default",
+    "rule_ref": "fresh-confirmation"
+  },
+  "evidence": {
+    "findings_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-20/findings.json",
+    "verifier_evidence_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-20/verifier-evidence.json",
+    "preflight_report_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-21/artifact-index-preflight.json"
+  },
+  "notes": []
+}

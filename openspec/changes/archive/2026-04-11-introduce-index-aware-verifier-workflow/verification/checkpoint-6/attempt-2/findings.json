@@ -1,0 +1,55 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "implementation",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "IDX-IMPL-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The repaired implementation checkpoint was not rerun to completion after the attempt-2 preflight, so the strict end-to-end implementation gate still lacks authoritative verifier and Gemini outputs for the repaired review surface.",
+      "evidence": "The authoritative preflight for this pass is openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-6/attempt-2/implementation-index-preflight.json, but openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-6/attempt-2/ contained only implementation-index-preflight.json and gemini-prompt.txt when the fresh verifier reviewed the repaired surface. openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-6/latest-attempt.json still pointed to attempt-1 as the authoritative attempt and recorded accepted=false, checkpoint_status=blocked, verifier_final_assessment=blocked. tasks.md item 6.6 requires findings.json, verifier-evidence.json, gemini-raw.json, and gemini-report.json for the implementation checkpoint.",
+      "recommendation": "Run checkpoint-6 attempt-2 through the full strict verification flow and write the missing authoritative findings, verifier-evidence, and Gemini artifacts before treating the repaired implementation surface as verified.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-IMPL-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "Several exercise preflight fixtures freeze an incomplete required path universe because they do not expand interface entries through their governed_paths, which breaks the deterministic frozen-surface rules the change itself defines.",
+      "evidence": "reuse-preflight.json includes openspec/schemas/ai-enforced-workflow/verification-sequence.md in entry_refs, but its required_paths omit openspec/schemas/ai-enforced-workflow/index-sequence.md and .codex/agents/verify-reviewer.toml even though docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml lists them in governed_paths. refresh-preflight.json includes .codex/agents/verify-reviewer.toml in entry_refs, but its required_paths omit openspec/schemas/ai-enforced-workflow/verification-sequence.md even though docs/repo-index/interfaces/.codex__agents__verify-reviewer.toml.yaml governs that file too. saturation-preflight.json likewise omits openspec/schemas/ai-enforced-workflow/index-sequence.md and openspec/schemas/ai-enforced-workflow/schema.yaml from required_paths even though its verification-sequence interface card governs both. This contradicts openspec/schemas/ai-enforced-workflow/index-sequence.md and openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md, which require interface-card required_paths to come from governed_paths.",
+      "recommendation": "Regenerate the reuse, refresh, and saturation preflight fixtures so required_paths is the deduplicated union derived from the active interface cards' governed_paths plus the nongoverned evidence in scope.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-IMPL-003",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The exercise verifier-evidence fixtures do not model a complete verifier iteration because each omits required execution metadata fields that the shared verification contract marks as mandatory authoritative evidence.",
+      "evidence": "openspec/schemas/ai-enforced-workflow/verification-sequence.md requires execution evidence to include agent_id, start_at, end_at, and final_state. All four exercise verifier-evidence files under openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/ record template_id, findings_contract, verifier_output_path, coverage_status, and saturation_status, but none include agent_id, start_at, end_at, or final_state.",
+      "recommendation": "Add the missing invocation metadata to each exercise verifier-evidence fixture so every scenario represents a structurally valid verifier run under verify-sequence/default.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "IDX-IMPL-004",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "Three exercise findings fixtures no longer mirror the normalized shared-findings-v1 envelope because they add top-level fixture metadata that is not part of the contract.",
+      "evidence": "openspec/changes/introduce-index-aware-verifier-workflow/verification/exercises/deep-scan-findings.json, refresh-findings.json, and saturation-findings.json include a top-level fixture field, while the shared-findings-v1 envelope defined in openspec/schemas/ai-enforced-workflow/verification-sequence.md and .codex/agents/verify-reviewer.toml is change, mode, final_assessment, and findings.",
+      "recommendation": "Keep fixture metadata outside the normalized findings envelope or move it into a separate sidecar file so the exercise findings remain contract-shaped.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

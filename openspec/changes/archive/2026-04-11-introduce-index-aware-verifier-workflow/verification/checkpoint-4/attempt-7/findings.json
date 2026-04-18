@@ -1,0 +1,31 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-004",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "design",
+      "problem": "The change design's Independent Verification Plan is not self-contained: its per-step verification sections omit governed-only execution-evidence fields and the canonical originating-phase markers that the shared design template requires for governed artifact and implementation verification.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/templates/design.md:97-117` requires the plan to state governed execution evidence (`index_contract / index_manifest_path / index_preflight_report_path / index_mode / deep_scanned_paths / deep_scan_reasons`), and `openspec/schemas/ai-enforced-workflow/templates/design.md:151-152` plus `openspec/schemas/ai-enforced-workflow/templates/design.md:201-204` require explicit originating-phase and continuation fields for artifact vs implementation verification. In `openspec/changes/introduce-index-aware-verifier-workflow/design.md:568-682`, the Independent Verification Plan lists required paths/axes, output paths, Gemini policy, and continuation targets, but it does not add the governed-only execution-evidence bullets or the originating-phase values to the Artifact Verification / Implementation Verification sections. The governed-only evidence fields appear earlier only in `openspec/changes/introduce-index-aware-verifier-workflow/design.md:331-337`, outside the plan section those verification steps are supposed to define.",
+      "recommendation": "Update `openspec/changes/introduce-index-aware-verifier-workflow/design.md` so the Independent Verification Plan itself includes the governed-only execution-evidence fields and explicit originating-phase values for both Artifact Verification and Implementation Verification, matching the shared template contract.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-005",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks",
+      "problem": "The shared governed verification contract in `tasks.md` under-specifies what each checkpoint must record: it omits the governed-only execution-evidence fields and the verifier-caller skill entry point that the schema/template require checkpoint tasks to carry or clearly inherit.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/schema.yaml:281-295` requires each independent verification step in `STANDARD`/`STRICT` changes to name governed-only execution evidence (`index_contract / index_manifest_path / index_preflight_report_path / index_mode / deep_scanned_paths / deep_scan_reasons`) and the relevant skill entry points. The tasks template mirrors that at `openspec/schemas/ai-enforced-workflow/templates/tasks.md:36-37`. In the actual change tasks, the shared governed verification contract at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:57-118` includes the minimal bundle, `index_context`, `output_paths`, retry policy, and review-completion fields, but it does not include the governed-only execution-evidence fields or the invoking verifier skill. The checkpoint tasks at `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:124-146` and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:153-162` explicitly rely on that shared contract. The governed-only fields only appear incidentally inside implementation work item `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:137-138`, not in the reusable checkpoint contract block.",
+      "recommendation": "Expand the shared governed verification contract in `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md` or each checkpoint task so every governed checkpoint explicitly inherits the governed-only execution-evidence fields and the appropriate verifier skill entry point (`openspec-artifact-verify` or `openspec-verify-change`).",
+      "redirect_layer": "tasks",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

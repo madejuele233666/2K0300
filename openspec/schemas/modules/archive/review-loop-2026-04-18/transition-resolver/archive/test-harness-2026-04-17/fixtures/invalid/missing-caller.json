@@ -1,0 +1,85 @@
+{
+  "contract": "transition-resolver-input-v1",
+  "intent": "working_entry",
+  "subject": {
+    "subject_key": "change",
+    "subject_value": "demo-change",
+    "review_goal": "implementation_correctness",
+    "review_phase": "source_first",
+    "risk_tier": "STANDARD",
+    "evidence_paths_or_diff_scope": [
+      "src/demo.py"
+    ],
+    "findings_contract": "shared-findings-v1"
+  },
+  "session": {
+    "active_working_agent_id": "",
+    "active_challenger_agent_id": "",
+    "session_open": false,
+    "resumable": false,
+    "exception_reason": "",
+    "send_input_ready": false,
+    "resume_probe_attempted": false,
+    "resume_probe_result": "not_attempted"
+  },
+  "review_result": {
+    "review_pass_type": "working",
+    "final_assessment": "pass",
+    "findings_count": 0,
+    "has_blocking_findings": false,
+    "has_auto_fixable_findings": false,
+    "reroute_class": "none",
+    "coverage_status": "complete",
+    "saturation_status": "exhaustive",
+    "closure_authority": "none"
+  },
+  "predecessor": {
+    "source_review": {
+      "agent_id": "",
+      "findings_path": "",
+      "verifier_evidence_path": ""
+    },
+    "findings_final_assessment": "pass",
+    "evidence": {
+      "agent_id": "",
+      "review_goal": "implementation_correctness",
+      "review_pass_type": "working",
+      "coverage_status": "complete",
+      "saturation_status": "exhaustive"
+    }
+  },
+  "reopen": {
+    "promoted_working_agent_id": "",
+    "failed_challenger": {
+      "agent_id": "",
+      "findings_path": "",
+      "verifier_evidence_path": ""
+    },
+    "reopen_record_path": ""
+  },
+  "authorization": {
+    "module_root_invocation": true,
+    "minimal_bundle_present": true,
+    "bundle_field_validation": true,
+    "reviewer_required": true
+  },
+  "invocation": {
+    "requested_invocation_mode": "built_in_subagent_spawn",
+    "built_in_subagent_available": true,
+    "shell_fallback_allowed": false,
+    "provided_context_scope": "minimal_bundle",
+    "fork_context_requested": false
+  },
+  "paths": {
+    "review_run_dir": "/tmp/review-runs/demo-change",
+    "spawn_decision_path": "/tmp/review-runs/demo-change/working/attempt-1/spawn-decision.json",
+    "findings_path": "/tmp/review-runs/demo-change/working/attempt-1/findings.json",
+    "verifier_evidence_path": "/tmp/review-runs/demo-change/working/attempt-1/verifier-evidence.json",
+    "verifier_output_path": "/tmp/review-runs/demo-change/working/attempt-1/verifier-output.json"
+  },
+  "mechanical_gate": {
+    "guard_command": "python3 openspec/schemas/modules/review-loop/bin/review_loop_guard.py --run-dir /tmp/review-runs/demo-change",
+    "mechanical_gate_status": "not_required",
+    "guard_checked_at": "2026-04-17T00:00:00Z"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "target_ref": "workflow:standalone-resume-repair-close",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verifier-2",
+  "start_at": "2026-04-18T10:08:00Z",
+  "end_at": "2026-04-18T10:10:00Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "full"
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true
+  },
+  "reviewed_paths": [
+    "new/code/runtime/control_loop.cpp",
+    "new/code/runtime/runtime_state.hpp"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Correctness",
+    "Completeness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

@@ -1,0 +1,102 @@
+{
+  "session_id": "d6c1e1a7-4e08-4bb9-95a7-4b959eb13f86",
+  "response": "```json\n{\n  \"change\": \"introduce-verify-subagent-workflow\",\n  \"scope\": \"all\",\n  \"scorecard\": {\n    \"Completeness\": \"blocked\",\n    \"Correctness\": \"pass\",\n    \"Coherence\": \"pass\"\n  },\n  \"findings\": [\n    {\n      \"id\": \"F-001\",\n      \"severity\": \"CRITICAL\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"design\",\n      \"problem\": \"Unresolved core contract decisions in Open Questions prevent consistent implementation.\",\n      \"evidence\": \"design.md, section 'Open Questions': 'Should the verifier agent report directly in final normalized JSON...?', 'Should auto-fix eligibility be encoded per finding as auto_fixable, inferred from redirect_layer == implementation, or both?', 'Is a single retry budget sufficient...?', 'Should schema tasks reference the logical runner contract only...?'\",\n      \"recommendation\": \"Resolve all Open Questions within the 'Decisions' section. For a STRICT tier change, the findings contract (normalization path, field encoding) and repair-loop policy (retry budget, audit requirements) must be finalized before implementation tasks begin.\",\n      \"redirect_layer\": \"design\",\n      \"blocking\": true\n    },\n    {\n      \"id\": \"F-002\",\n      \"severity\": \"WARNING\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"specs\",\n      \"problem\": \"Missing normative enumerations and schema for the findings contract.\",\n      \"evidence\": \"verify-subagent-orchestration/spec.md, section 'Requirement: Structured Findings and Routing Contract' describes fields like 'redirect layer' but does not provide a formal JSON schema or the full set of allowed values.\",\n      \"recommendation\": \"Enumerate the valid set of 'redirect_layer' values (e.g., proposal, specs, design, tasks, implementation) and define a normative JSON schema for the findings report to ensure cross-agent compatibility.\",\n      \"redirect_layer\": \"specs\",\n      \"blocking\": false\n    },\n    {\n      \"id\": \"F-003\",\n      \"severity\": \"SUGGESTION\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"proposal\",\n      \"problem\": \"Empty 'Modified Capabilities' section.\",\n      \"evidence\": \"proposal.md, section 'Modified Capabilities' is present but contains no content.\",\n      \"recommendation\": \"Identify existing capabilities that are being refactored, such as the core 'ai-enforced-workflow' verification gates.\",\n      \"redirect_layer\": \"proposal\",\n      \"blocking\": false\n    }\n  ],\n  \"final_assessment\": \"blocked\"\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2810
+        },
+        "tokens": {
+          "input": 3726,
+          "prompt": 3726,
+          "candidates": 114,
+          "total": 4180,
+          "cached": 0,
+          "thoughts": 340,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2810,
+            "tokens": {
+              "input": 3726,
+              "prompt": 3726,
+              "candidates": 114,
+              "total": 4180,
+              "cached": 0,
+              "thoughts": 340,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 2,
+          "totalErrors": 0,
+          "totalLatencyMs": 24656
+        },
+        "tokens": {
+          "input": 20690,
+          "prompt": 27706,
+          "candidates": 800,
+          "total": 31411,
+          "cached": 7016,
+          "thoughts": 2905,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 2,
+            "totalErrors": 0,
+            "totalLatencyMs": 24656,
+            "tokens": {
+              "input": 20690,
+              "prompt": 27706,
+              "candidates": 800,
+              "total": 31411,
+              "cached": 7016,
+              "thoughts": 2905,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 5,
+      "totalSuccess": 5,
+      "totalFail": 0,
+      "totalDurationMs": 168,
+      "totalDecisions": {
+        "accept": 5,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "read_file": {
+          "count": 5,
+          "success": 5,
+          "fail": 0,
+          "durationMs": 168,
+          "decisions": {
+            "accept": 5,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

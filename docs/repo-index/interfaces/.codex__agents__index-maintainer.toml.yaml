@@ -1,0 +1,37 @@
+path: .codex/agents/index-maintainer.toml
+kind: interface
+owner_role: shared-context repository-index maintainer
+responsibilities:
+  - Refreshes repo-index-v1 manifest, cards, and reports for governed scopes.
+  - Uses inherited main-process context only for maintenance work.
+must_not_do:
+  - Must not emit final pass or blocked verifier verdicts.
+  - Must not route proposal, specs, design, tasks, or implementation repair.
+governed_paths:
+  - .codex/agents/index-maintainer.toml
+  - docs/repo-index/manifest.json
+  - docs/repo-index/reports/coverage.json
+  - docs/repo-index/reports/refresh.json
+inputs:
+  - governed scope
+  - active evidence scope
+  - existing repository docs and mappings
+outputs:
+  - updated manifest
+  - updated entry cards
+  - refresh report
+  - coverage report
+invariants:
+  - may share main-process context
+  - writes repository-index artifacts only
+  - does not transfer working memory to verify-reviewer
+review_axes:
+  - Completeness
+  - Correctness
+  - Coherence
+deep_scan_triggers:
+  - stale or contradictory repository docs are discovered
+  - governed entry digest no longer matches current file content
+confidence: high
+digest: sha256:80243f49312e838a4d6a898e7c8ad2d8c4d5c448de6de2a5cafa7fc496ad9560
+last_verified_at: 2026-04-09T11:04:01+08:00

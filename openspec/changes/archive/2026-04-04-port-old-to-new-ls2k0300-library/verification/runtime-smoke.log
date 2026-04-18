@@ -1,0 +1,27 @@
+[INFO][main.start][943236] starting ls2k migration runtime
+[INFO][profile.loaded][943243] hardware profile loaded from /home/root/hardware_profile.json
+[INFO][params.loaded][943244] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][943244] direct-match:phase1-160x120-to-160x128
+[INFO][profile.imu][943244] direct-match:imu660ra-default
+[INFO][profile.encoder][943244] direct-match:quadrature-default
+[INFO][profile.motor][943244] direct-match:pwm-gpio-default
+[INFO][profile.timer][943244] direct-match:zf_driver_pit
+[INFO][params.critical.apply][943244] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][943244] power monitor initialized with zf_driver_adc backend
+[INFO][startup.low_voltage.raw][943244] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2556 threshold=400
+[INFO][startup.low_voltage.clear][943244] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160
+get uvc height = 120
+get uvc fps = 180
+get uvc auto exposure mode = 3
+[INFO][camera.init][943559] uvc device initialized
+IMU open event file fail: /sys/bus/iio/devices/iio:device1/events/in_voltage_change_en, errno:2
+[FAIL_SAFE][imu.init][943559] imu unavailable
+[FAIL_SAFE][startup.imu.init][943559] imu adapter initialization failed
+[FAIL_SAFE][main.startup][943559] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][943560] camera adapter shutdown complete
+[INFO][imu.shutdown][943560] imu adapter shutdown complete
+[INFO][encoder.shutdown][943560] encoder adapter shutdown complete
+[INFO][motor.shutdown][943560] motor adapter shutdown complete
+[INFO][shutdown.complete][943560] actuators disabled and resources released

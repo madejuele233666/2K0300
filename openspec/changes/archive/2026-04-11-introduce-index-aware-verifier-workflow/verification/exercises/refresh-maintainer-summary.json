@@ -1,0 +1,24 @@
+{
+  "fixture": true,
+  "agent_contract": ".codex/agents/index-maintainer.toml",
+  "context_inheritance": "allowed",
+  "governed_scope": "workflow-agent-surface",
+  "resolved_root": "docs/repo-index",
+  "manifest_path": "docs/repo-index/manifest.json",
+  "coverage_report_path": "docs/repo-index/reports/coverage.json",
+  "refresh_report_path": "docs/repo-index/reports/refresh.json",
+  "updated_entries": [
+    "docs/repo-index/files/openspec__schemas__ai-enforced-workflow__schema.yaml.yaml",
+    "docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml",
+    "docs/repo-index/interfaces/.codex__agents__verify-reviewer.toml.yaml",
+    "docs/repo-index/interfaces/.codex__agents__index-maintainer.toml.yaml"
+  ],
+  "failed_entries": [],
+  "final_review_verdict_emitted": false,
+  "repair_routing_emitted": false,
+  "handoff_to_verifier": {
+    "template_id": "verify-reviewer-inline-v2",
+    "index_context_only": true,
+    "inherits_shared_context": false
+  }
+}

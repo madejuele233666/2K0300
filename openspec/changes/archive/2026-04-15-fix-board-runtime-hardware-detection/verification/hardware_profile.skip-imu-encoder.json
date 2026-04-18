@@ -1,0 +1,30 @@
+{
+  "camera": {
+    "mode": "direct-match",
+    "hook": "phase1-160x120-to-160x128-no-exp-light-control"
+  },
+  "imu": {
+    "mode": "disabled",
+    "hook": "imu-core-device-detect"
+  },
+  "encoder": {
+    "mode": "disabled",
+    "hook": "absolute-count-delta-baseline"
+  },
+  "motor": {
+    "mode": "direct-match",
+    "hook": "pwm-gpio-free-function"
+  },
+  "timer": {
+    "mode": "direct-match",
+    "hook": "pit-timer-bridge"
+  },
+  "persistence": {
+    "mode": "direct-match",
+    "hook": "json-file-store"
+  },
+  "display": {
+    "mode": "disabled",
+    "hook": "phase1-deferred"
+  }
+}

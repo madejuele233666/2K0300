@@ -1,0 +1,102 @@
+{
+  "session_id": "0c72aab1-f7ab-422e-8aa4-d27f37281847",
+  "response": "{\n  \"change\": \"introduce-verify-subagent-workflow\",\n  \"scope\": \"all\",\n  \"scorecard\": {\n    \"Completeness\": \"warning\",\n    \"Correctness\": \"pass\",\n    \"Coherence\": \"blocked\"\n  },\n  \"findings\": [\n    {\n      \"id\": \"F-001\",\n      \"severity\": \"CRITICAL\",\n      \"dimension\": \"Coherence\",\n      \"artifact\": \"tasks\",\n      \"problem\": \"Ambiguous 'Codex local pre-review' wording in verification tasks.\",\n      \"evidence\": \"Tasks 1.2, 2.3, and 3.3 in tasks.md prescribe 'Perform a Codex local pre-review' as a manual step before invoking Gemini.\",\n      \"recommendation\": \"Replace 'Codex local pre-review' with 'Verifier subagent local review' or 'Invoke verify-reviewer subagent' to align with the isolated role model defined in design.md.\",\n      \"redirect_layer\": \"tasks\",\n      \"blocking\": true\n    },\n    {\n      \"id\": \"F-002\",\n      \"severity\": \"WARNING\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"specs\",\n      \"problem\": \"Missing explicit enum for redirect_layer values.\",\n      \"evidence\": \"specs/verify-subagent-orchestration/spec.md mentions redirect_layer: implementation but does not list other valid layers required for routing.\",\n      \"recommendation\": \"Explicitly define the set of valid redirect_layer values (e.g., proposal, specs, design, tasks, implementation) in the findings contract section.\",\n      \"redirect_layer\": \"specs\",\n      \"blocking\": false\n    },\n    {\n      \"id\": \"F-003\",\n      \"severity\": \"SUGGESTION\",\n      \"dimension\": \"Completeness\",\n      \"artifact\": \"proposal\",\n      \"problem\": \"Empty 'Modified Capabilities' section.\",\n      \"evidence\": \"The 'Modified Capabilities' section in proposal.md contains no entries despite the change affecting ai-enforced-workflow.\",\n      \"recommendation\": \"List 'ai-enforced-workflow' (or the relevant existing capability being refactored) to improve impact auditability.\",\n      \"redirect_layer\": \"proposal\",\n      \"blocking\": false\n    }\n  ],\n  \"final_assessment\": \"blocked\"\n}",
+  "stats": {
+    "models": {
+      "gemini-2.5-flash-lite": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 2987
+        },
+        "tokens": {
+          "input": 3834,
+          "prompt": 3834,
+          "candidates": 112,
+          "total": 4397,
+          "cached": 0,
+          "thoughts": 451,
+          "tool": 0
+        },
+        "roles": {
+          "utility_router": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 2987,
+            "tokens": {
+              "input": 3834,
+              "prompt": 3834,
+              "candidates": 112,
+              "total": 4397,
+              "cached": 0,
+              "thoughts": 451,
+              "tool": 0
+            }
+          }
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 2,
+          "totalErrors": 0,
+          "totalLatencyMs": 41910
+        },
+        "tokens": {
+          "input": 20781,
+          "prompt": 27882,
+          "candidates": 695,
+          "total": 34417,
+          "cached": 7101,
+          "thoughts": 5840,
+          "tool": 0
+        },
+        "roles": {
+          "main": {
+            "totalRequests": 2,
+            "totalErrors": 0,
+            "totalLatencyMs": 41910,
+            "tokens": {
+              "input": 20781,
+              "prompt": 27882,
+              "candidates": 695,
+              "total": 34417,
+              "cached": 7101,
+              "thoughts": 5840,
+              "tool": 0
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 5,
+      "totalSuccess": 5,
+      "totalFail": 0,
+      "totalDurationMs": 73,
+      "totalDecisions": {
+        "accept": 5,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {
+        "read_file": {
+          "count": 5,
+          "success": 5,
+          "fail": 0,
+          "durationMs": 73,
+          "decisions": {
+            "accept": 5,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

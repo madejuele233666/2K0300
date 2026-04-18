@@ -1,0 +1,16 @@
+{
+  "target_ref": "repo:standalone-context-free-bootstrap-2026-04-15",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "bootstrap-clarity-gap",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The first working pass found that the standalone bootstrap instructions still needed explicit machine-readable spawn guidance before closure.",
+      "evidence": "The review loop had not yet recorded the allowed standalone spawn values directly in the reusable standalone flow.",
+      "recommendation": "Add explicit standalone machine-readable spawn guidance, then rerun the same working session.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

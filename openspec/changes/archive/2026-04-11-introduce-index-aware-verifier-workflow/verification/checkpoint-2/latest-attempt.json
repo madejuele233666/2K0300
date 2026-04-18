@@ -1,0 +1,12 @@
+{
+  "checkpoint": 2,
+  "latest_attempt": "attempt-1",
+  "authoritative_attempt_path": "openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-2/attempt-1",
+  "updated_at": "2026-04-09T01:14:04+08:00",
+  "accepted": true,
+  "checkpoint_status": "pass",
+  "verifier_final_assessment": "pass",
+  "gemini_final_assessment": "pass",
+  "gemini_status": "completed",
+  "superseded_attempts": []
+}

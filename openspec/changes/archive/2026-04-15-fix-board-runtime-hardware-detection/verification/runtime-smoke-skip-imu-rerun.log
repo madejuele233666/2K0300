@@ -1,0 +1,36 @@
+== runtime smoke 2026-04-12T14:19:44Z ==
+board=root@10.100.170.226
+binary=/home/root/run_skip_imu_profile.sh
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+[INFO][main.start][1141854] starting ls2k migration runtime
+[INFO][profile.loaded][1141855] hardware profile loaded from /home/root/hardware_profile.skip-imu.json
+[INFO][params.loaded][1141856] runtime parameters loaded from /home/root/default_params.json
+[INFO][profile.camera][1141856] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][1141856] disabled:imu-core-device-detect
+[INFO][profile.encoder][1141856] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][1141856] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][1141856] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][1141856] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.imu.degraded][1141856] imu profile is disabled:imu-core-device-detect (allowed only in degraded startup mode)
+[INFO][params.critical.apply][1141856] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][1141856] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][1141856] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2412 threshold=400
+[INFO][startup.low_voltage.clear][1141857] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][1142127] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.disabled][1142127] imu subsystem disabled by hardware profile
+[WARN][startup.imu.disabled.degraded][1142127] imu is disabled by profile and degraded startup mode is enabled
+[FAIL_SAFE][encoder.init][1142127] encoder backend unavailable: encoder resource unavailable: /dev/zf_encoder_1
+[FAIL_SAFE][startup.encoder.init][1142127] encoder adapter initialization failed
+[FAIL_SAFE][main.startup][1142128] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][1142128] camera adapter shutdown complete
+[INFO][imu.shutdown][1142128] imu adapter shutdown complete
+[INFO][encoder.shutdown][1142128] encoder adapter shutdown complete
+[INFO][motor.shutdown][1142128] motor adapter shutdown complete
+[INFO][shutdown.complete][1142128] actuators disabled and resources released
+remote_runtime_exit=1
+remote_log_copy_exit=0
+remote_runtime_invoked=1

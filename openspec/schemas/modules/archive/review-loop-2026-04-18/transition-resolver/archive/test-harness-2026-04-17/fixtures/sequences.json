@@ -1,0 +1,131 @@
+[
+  {
+    "id": "positive-artifact-gate-full-loop",
+    "description": "Artifact gate enters docs-first working review, routes docs repair, reruns in the same working session, then closes through a fresh challenger.",
+    "steps": [
+      {
+        "input": "sequences/inputs/docs-working-entry-spawn.json",
+        "expect": {
+          "decision": "spawn_initial_working",
+          "reason_code": "initial_working_session"
+        }
+      },
+      {
+        "input": "positive/post-working-docs-repair.json",
+        "expect": {
+          "decision": "enter_repair",
+          "reroute_destination": "docs_artifact_repair"
+        }
+      },
+      {
+        "input": "sequences/inputs/docs-working-rerun-send-input.json",
+        "expect": {
+          "decision": "send_input_same_working",
+          "reason_code": "ordinary_rerun_same_session"
+        }
+      },
+      {
+        "input": "sequences/inputs/docs-post-working-converged-return.json",
+        "expect": {
+          "decision": "return_caller_flow",
+          "reason_code": "working_converged_ready_for_challenger_entry"
+        }
+      },
+      {
+        "input": "sequences/inputs/docs-challenger-entry-spawn.json",
+        "expect": {
+          "decision": "spawn_fresh_challenger",
+          "reason_code": "challenger_pass"
+        }
+      },
+      {
+        "input": "sequences/inputs/docs-post-challenger-close.json",
+        "expect": {
+          "decision": "allow_close",
+          "reason_code": "challenger_confirmed_zero_findings"
+        }
+      }
+    ]
+  },
+  {
+    "id": "negative-skip-repair-jump-to-challenger",
+    "description": "Artifact verification finds blocking docs issues, but the main process skips repair and tries to enter challenger anyway.",
+    "steps": [
+      {
+        "input": "positive/post-working-docs-repair.json",
+        "expect": {
+          "decision": "enter_repair",
+          "reroute_destination": "docs_artifact_repair"
+        }
+      },
+      {
+        "input": "sequences/inputs/docs-challenger-entry-from-blocked-working.json",
+        "expect": {
+          "decision": "blocked",
+          "reason_code": "predecessor_not_pass"
+        }
+      }
+    ]
+  },
+  {
+    "id": "negative-after-reopen-tries-fresh-working",
+    "description": "A challenger finds issues and is promoted into the next working baseline, but the main process incorrectly tries to open a fresh working pass instead of rerunning the promoted session.",
+    "steps": [
+      {
+        "input": "positive/post-challenger-reopen.json",
+        "expect": {
+          "decision": "record_challenger_reopen",
+          "reason_code": "challenger_found_new_findings"
+        }
+      },
+      {
+        "input": "sequences/inputs/reopen-promoted-working-rerun-send-input.json",
+        "expect": {
+          "decision": "send_input_same_working",
+          "reason_code": "ordinary_rerun_same_session"
+        }
+      },
+      {
+        "input": "sequences/inputs/reopen-promoted-working-entry-open.json",
+        "expect": {
+          "decision": "send_input_same_working",
+          "reason_code": "active_working_session_open"
+        }
+      },
+      {
+        "input": "sequences/inputs/reopen-promoted-working-entry-missing-baseline.json",
+        "expect": {
+          "decision": "blocked",
+          "reason_code": "reopen_promoted_working_baseline_mismatch"
+        }
+      },
+      {
+        "input": "sequences/inputs/reopen-promoted-working-entry-missing-reopen-metadata.json",
+        "expect": {
+          "decision": "blocked",
+          "reason_code": "missing_reopen_continuation_binding"
+        }
+      }
+    ]
+  },
+  {
+    "id": "negative-continue-after-spawn-tries-to-spawn-again",
+    "description": "A caller resumes after the docs-first gate already spawned the working reviewer, but wrongly behaves as if no active session exists and tries to start over.",
+    "steps": [
+      {
+        "input": "sequences/inputs/docs-working-entry-spawn.json",
+        "expect": {
+          "decision": "spawn_initial_working",
+          "reason_code": "initial_working_session"
+        }
+      },
+      {
+        "input": "sequences/inputs/continue-after-artifact-gate-working-open.json",
+        "expect": {
+          "decision": "send_input_same_working",
+          "reason_code": "active_working_session_open"
+        }
+      }
+    ]
+  }
+]

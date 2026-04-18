@@ -1,0 +1,55 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "design",
+      "problem": "The shared findings contract requires unchanged unresolved findings to keep the same `id` across reruns, but the verifier is also required to run as a fresh instance with no inherited verifier memory and the invocation contract provides no prior-findings input or deterministic ID-generation rule. As written, the contract cannot be satisfied or validated reliably.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:29-55` defines the minimal bundle and optional envelope fields without any prior-findings handoff; `openspec/schemas/ai-enforced-workflow/verification-sequence.md:139-147` and `:285-293` require `id` stability across consecutive reruns; `.codex/agents/verify-reviewer.toml:38-43` carries only `output_paths`, while `.codex/agents/verify-reviewer.toml:73-75` repeats the stable-id requirement; `openspec/changes/introduce-index-aware-verifier-workflow/design.md:481-483` and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:86-90` require each rerun to use a fresh verifier instance with no inherited verifier memory.",
+      "recommendation": "Add an explicit prior-findings input/reference for reruns, or define a deterministic finding-ID derivation scheme that a fresh verifier and validator can both apply without inherited memory. Update the sequence, verifier contract, and supporting artifacts to use that mechanism consistently.",
+      "redirect_layer": "design",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "artifact": "implementation",
+      "problem": "The shared verification sequence contradicts the frozen-surface contract by allowing validators to re-derive required paths and axes from active evidence after Stage 0 has already frozen `required_paths` and `required_axes`. That reopens the review universe during validation and undermines the checkpoint's authoritative preflight snapshot.",
+      "evidence": "Checkpoint-3 preflight freezes `required_paths` and `required_axes` in `openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-3/attempt-1/artifact-index-preflight.json:40-58`. `openspec/schemas/ai-enforced-workflow/verification-sequence.md:258-264` says governed preflight output must be treated as the frozen review surface, but `openspec/schemas/ai-enforced-workflow/verification-sequence.md:282-284` then says validators derive required axes and paths from preflight and active evidence scope. That conflicts with `openspec/changes/introduce-index-aware-verifier-workflow/specs/index-aware-verification-preflight/spec.md:155-158`, `openspec/changes/introduce-index-aware-verifier-workflow/design.md:562-565`, and the interface invariant in `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__verification-sequence.md.yaml:9-10` and `:35-40`.",
+      "recommendation": "Revise the review-coverage contract and sequence step 6 so governed validation uses the preflight report's `required_paths` and `required_axes` as the authoritative surface. Active evidence scope should only support contradiction checks against preflight, not derive a replacement universe during validation.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-003",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The mandatory Gemini second-opinion path is missing an explicit failure branch when recovery still does not produce the normalized Gemini report. In a STRICT checkpoint, the shared sequence currently allows control to continue past recovery without stating that the checkpoint must block.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:294-300` only says to execute Gemini and run recovery if raw exists but `report_path` is missing, then proceeds to merge findings only \"when both exist\"; `openspec/schemas/ai-enforced-workflow/verification-sequence.md:324-337` defines the runner outputs but does not say missing normalized output blocks the gate. This conflicts with `openspec/schemas/ai-enforced-workflow/schema.yaml:337-340`, `openspec/changes/introduce-index-aware-verifier-workflow/design.md:620-623` and `:670-673`, and `openspec/changes/introduce-index-aware-verifier-workflow/tasks.md:91-95`, all of which require recovery first and blocking if recovery still fails.",
+      "recommendation": "Add an explicit shared-sequence rule that when Gemini is mandatory, failure to produce a valid normalized report at `report_path` after the allowed recovery attempts blocks the checkpoint before merge/classification.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-004",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "The shared Automatic Continuation Policy defines artifact-pass handoff to `openspec-apply-change` but does not define the corresponding implementation-pass continuation. That leaves the shared sequence incomplete and pushes implementation success behavior back into local skill/design text.",
+      "evidence": "`openspec/schemas/ai-enforced-workflow/verification-sequence.md:352-359` ends the policy after the artifact-success rule. `openspec/schemas/ai-enforced-workflow/schema.yaml:340-343` requires checkpoints to document the expected continuation target on pass, and `openspec/changes/introduce-index-aware-verifier-workflow/design.md:674-675` specifies implementation continuation as `archive/report completion` unless the active caller is still in apply.",
+      "recommendation": "Extend the shared Automatic Continuation Policy to cover successful implementation verification and align it with the implementation-verification design contract so continuation behavior remains centralized in the shared sequence.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "mode": "implementation",
+  "final_assessment": "pass_with_warnings",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "implementation",
+      "problem": "Artifact-generation helper skills still teach the superseded verification contract, so newly generated ai-enforced-workflow artifacts can drift back to the old model.",
+      "evidence": ".codex/skills/openspec-propose/SKILL.md:101, .codex/skills/openspec-ff-change/SKILL.md:92, and .codex/skills/openspec-continue-change/SKILL.md:116 still instruct 'Codex local review first, Gemini independent verification second'.",
+      "recommendation": "Update propose, ff-change, and continue-change guidance to reference verifier-subagent-first review, shared sequence verify-sequence/default, and tier-gated Gemini second opinion so future generated artifacts match the new workflow.",
+      "redirect_layer": "implementation",
+      "blocking": false,
+      "auto_fixable": true
+    }
+  ]
+}

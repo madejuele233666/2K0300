@@ -1,0 +1,39 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "risk_tier": "STRICT",
+  "runtime_profile_selected": {
+    "model": "gpt-5.4",
+    "reasoning_effort": "high"
+  },
+  "runtime_profile_fallback_order": [
+    "gpt-5.4/high",
+    "gpt-5.4/medium",
+    "gpt-5.3-codex/medium"
+  ],
+  "agent_invocation_test": [
+    {
+      "iteration": 1,
+      "agent_id": "019d57c0-23d4-79f3-84a8-d125eabf7087",
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "assessment": "pass_with_warnings",
+      "findings": [
+        {
+          "id": "FALLBACK-ORDER-AUTHORING-DRIFT",
+          "severity": "WARNING",
+          "problem": "Three artifact-authoring skills referenced fallback order without spelling out the exact chain.",
+          "auto_fix_action": "Updated propose/ff-change/continue-change with explicit chain gpt-5.4/high -> gpt-5.4/medium -> gpt-5.3-codex/medium."
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "agent_id": "019d57c2-86b5-7211-b530-ba5cfec86423",
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "assessment": "pass",
+      "findings": []
+    }
+  ],
+  "loop_semantics_confirmed": "fresh verifier instance per rerun; no inherited verifier memory"
+}

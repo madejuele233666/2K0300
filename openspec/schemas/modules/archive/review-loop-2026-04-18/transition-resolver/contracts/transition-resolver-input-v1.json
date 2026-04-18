@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openspec/schemas/modules/review-loop/transition-resolver/contracts/transition-resolver-input-v1.json",
+  "contract": "transition-resolver-input-v1",
+  "intent_enum": [
+    "working_entry",
+    "working_rerun",
+    "post_working",
+    "challenger_entry",
+    "post_challenger",
+    "close"
+  ],
+  "required_top_level_objects": [
+    "subject",
+    "session",
+    "review_result",
+    "predecessor",
+    "reopen",
+    "caller",
+    "authorization",
+    "invocation",
+    "paths",
+    "mechanical_gate"
+  ],
+  "subject": {
+    "required": [
+      "subject_key",
+      "subject_value",
+      "review_goal",
+      "review_phase",
+      "risk_tier",
+      "evidence_paths_or_diff_scope",
+      "findings_contract"
+    ]
+  },
+  "session": {
+    "required": [
+      "active_working_agent_id",
+      "active_challenger_agent_id",
+      "session_open",
+      "resumable",
+      "exception_reason",
+      "send_input_ready",
+      "resume_probe_attempted",
+      "resume_probe_result"
+    ]
+  },
+  "review_result": {
+    "required": [
+      "review_pass_type",
+      "final_assessment",
+      "findings_count",
+      "has_blocking_findings",
+      "has_auto_fixable_findings",
+      "reroute_class",
+      "coverage_status",
+      "saturation_status",
+      "closure_authority"
+    ]
+  },
+  "predecessor": {
+    "required": [
+      "source_review",
+      "findings_final_assessment",
+      "evidence"
+    ],
+    "source_review": {
+      "required": [
+        "agent_id",
+        "findings_path",
+        "verifier_evidence_path"
+      ]
+    },
+    "evidence": {
+      "required": [
+        "agent_id",
+        "review_goal",
+        "review_pass_type",
+        "coverage_status",
+        "saturation_status"
+      ]
+    }
+  },
+  "reopen": {
+    "required": [
+      "promoted_working_agent_id",
+      "failed_challenger",
+      "reopen_record_path"
+    ],
+    "failed_challenger": {
+      "required": [
+        "agent_id",
+        "findings_path",
+        "verifier_evidence_path"
+      ]
+    }
+  },
+  "caller": {
+    "required": [
+      "entrypoint",
+      "step_name",
+      "verify_only",
+      "dry_run",
+      "manual_pause"
+    ]
+  },
+  "authorization": {
+    "required": [
+      "module_root_invocation",
+      "minimal_bundle_present",
+      "bundle_field_validation",
+      "reviewer_required"
+    ]
+  },
+  "invocation": {
+    "required": [
+      "requested_invocation_mode",
+      "built_in_subagent_available",
+      "shell_fallback_allowed",
+      "provided_context_scope",
+      "fork_context_requested"
+    ]
+  },
+  "paths": {
+    "required": [
+      "review_run_dir",
+      "spawn_decision_path",
+      "findings_path",
+      "verifier_evidence_path",
+      "verifier_output_path"
+    ]
+  },
+  "mechanical_gate": {
+    "required": [
+      "guard_command",
+      "mechanical_gate_status",
+      "guard_checked_at"
+    ]
+  },
+  "notes": [
+    "This contract is orchestration-only.",
+    "It should be produced from normalized reviewer state rather than from raw prose findings.",
+    "A deterministic resolver should consume this input and emit transition-resolver-decision-v1 output.",
+    "The session object must follow working-session-normalization-v1 rather than inferring reuse state from wait_agent or verifier_evidence observer fields alone."
+  ]
+}

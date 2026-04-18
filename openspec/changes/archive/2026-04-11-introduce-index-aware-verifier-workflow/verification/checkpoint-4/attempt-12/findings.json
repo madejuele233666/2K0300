@@ -1,0 +1,19 @@
+{
+  "change": "introduce-index-aware-verifier-workflow",
+  "mode": "artifact",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "artifact": "implementation",
+      "problem": "The frozen checkpoint-4 preflight incorrectly treats the repository index as trusted and reusable even though the active `index-sequence.md` interface card is stale against its governed source, so the fresh-confirmation pass is starting from an invalid trust decision.",
+      "evidence": "`openspec/changes/introduce-index-aware-verifier-workflow/verification/checkpoint-4/attempt-12/artifact-index-preflight.json:38-40` records `index_mode: \"reused\"` and claims there is no trust drift; the same report includes `openspec/schemas/ai-enforced-workflow/index-sequence.md` in the active frozen surface at `:47`. The manifest maps that source to `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__index-sequence.md.yaml` at `docs/repo-index/manifest.json:52-56`, and the refresh report still marks that entry `unchanged` at `docs/repo-index/reports/refresh.json:47-53`. But the card digest is `sha256:dac81b51ef730b68c6fbb4217d25ee7b902025c04330211a130f457f6202d057` at `docs/repo-index/interfaces/openspec__schemas__ai-enforced-workflow__index-sequence.md.yaml:44`, while the current source file `openspec/schemas/ai-enforced-workflow/index-sequence.md` hashes to `sha256:1921a44a145d6d56ca297df37681a3872bca879afe8866309a7afb0595121832` in this review. The authoritative contract forbids reuse when digest signals indicate drift and requires refresh when required cards are stale at `openspec/schemas/ai-enforced-workflow/index-sequence.md:109-120` and `:160-168`.",
+      "recommendation": "Regenerate the stale `index-sequence.md` interface card and any dependent manifest/report freshness metadata, then rerun Stage 0 preflight for checkpoint-4. The refreshed preflight may report `reused` only if digest validation passes for the active governed surface; otherwise it must record `refreshed` or block according to policy.",
+      "redirect_layer": "implementation",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

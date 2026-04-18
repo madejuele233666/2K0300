@@ -1,0 +1,7 @@
+{
+  "active_working_agent_id": "worker-1",
+  "active_challenger_agent_id": "",
+  "send_input_ready": false,
+  "resume_probe_attempted": true,
+  "resume_probe_result": "agent_not_found"
+}

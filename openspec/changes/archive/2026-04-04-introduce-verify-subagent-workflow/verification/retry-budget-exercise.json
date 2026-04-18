@@ -1,0 +1,27 @@
+{
+  "change": "introduce-verify-subagent-workflow",
+  "policy_ref": "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+  "initial_budgets": {
+    "artifact_rerun_budget": 2,
+    "implementation_auto_fix_budget": 2
+  },
+  "exercise_trace": [
+    {
+      "step": "artifact_rerun_example",
+      "trigger": "artifact-layer finding repaired and artifact verification rerun",
+      "artifact_rerun_budget_before": 2,
+      "artifact_rerun_budget_after": 1,
+      "implementation_auto_fix_budget_before": 2,
+      "implementation_auto_fix_budget_after": 2
+    },
+    {
+      "step": "implementation_auto_fix_example",
+      "trigger": "implementation finding with redirect_layer=implementation and auto_fixable=true",
+      "artifact_rerun_budget_before": 1,
+      "artifact_rerun_budget_after": 1,
+      "implementation_auto_fix_budget_before": 2,
+      "implementation_auto_fix_budget_after": 1
+    }
+  ],
+  "assertion": "artifact and implementation retry budgets are tracked independently"
+}

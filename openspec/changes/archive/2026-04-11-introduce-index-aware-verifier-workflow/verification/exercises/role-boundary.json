@@ -1,0 +1,21 @@
+{
+  "fixture": true,
+  "change": "introduce-index-aware-verifier-workflow",
+  "roles": {
+    "index_maintainer": {
+      "agent_path": ".codex/agents/index-maintainer.toml",
+      "shared_main_process_context": true,
+      "writes_index_artifacts": true,
+      "may_emit_final_review_verdict": false,
+      "may_emit_repair_routing": false
+    },
+    "verify_reviewer": {
+      "agent_path": ".codex/agents/verify-reviewer.toml",
+      "shared_main_process_context": false,
+      "read_only": true,
+      "fresh_per_rerun": true,
+      "consumes_index_context_only": true
+    }
+  },
+  "handoff_rule": "maintainer outputs repository-index artifacts and preflight context; verifier receives only normalized index_context and no inherited maintainer memory"
+}
