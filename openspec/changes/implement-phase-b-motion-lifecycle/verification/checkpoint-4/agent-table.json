@@ -3,6 +3,18 @@
   "change": "implement-phase-b-motion-lifecycle",
   "agents": [
     {
+      "agent_id": "codex-verify-reviewer-source-first-attempt-3",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Targeted checkpoint-4 source-first rerun for the post-attempt-2 stop-path repairs across real-motor STOPPING convergence, effective-command stop completion, and the new board-executed evidence logs.",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-19T08:47:24+08:00"
+    },
+    {
       "agent_id": "codex-verify-reviewer-source-first",
       "status": "non_active",
       "resumable": false,
