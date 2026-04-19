@@ -57,3 +57,30 @@ The wrapper log must contain a dedicated `harness_context_begin ... harness_cont
 - Real wheel direction or low-speed ground behavior.
 - Sensor-quality or closed-loop tuning quality.
 - Fault-latch recovery under injected failures.
+
+## Result
+
+Status: `completed` on `2026-04-19`
+
+Accepted evidence:
+
+- `new/verification/phase-b-b1-static-safety-rerun.log`
+- `new/verification/phase-b-b1-manual-lifecycle.log`
+
+## Observed Outcome
+
+Diagnostics-only wrapper rerun:
+
+- `phase-b-b1-static-safety-rerun.log` completed with `remote_runtime_exit=0`.
+- Observed markers include `main.harness_context`, repeated `main.frame.processed`, `startup.complete`, `control.start`, `motion.stop.requested`, `main.exit.ready`, and `shutdown.complete`.
+- This is the accepted `B-1` wrapper-owned bounded-stop evidence for the current tree.
+
+Manual signal-driven lifecycle run:
+
+- `phase-b-b1-manual-lifecycle.log` showed successful startup on the accepted board path, then `motion.start.requested` from `SIGUSR2`, followed by `DISARMED -> START_REQUESTED -> SPINUP`.
+- The same run then entered `FAIL_SAFE_LATCHED` on `perception_stale` before a clean `motion.stop.complete`, but it still recorded `motion.stop.requested` and finished with `shutdown.complete` after operator stop / teardown.
+- For `B-1`, this is accepted as evidence that the product-owned signal boundary exists and that the runtime preserves fail-safe-first behavior under an interrupted early manual start. It is not reused as `B-2+` motion-quality evidence.
+
+## Closure Note
+
+`B-1` is closed as a static safety and lifecycle-boundary checkpoint, not as a low-speed motion-quality checkpoint. The remaining motion-quality work stays in `B-2` through `B-5`.

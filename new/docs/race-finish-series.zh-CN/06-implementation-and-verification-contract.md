@@ -459,8 +459,8 @@
 1. `SMOKE_MAX_FRAMES` 是 `run_remote_smoke.sh` 的外层帧数控制开关。
 2. `run_remote_smoke.sh` 默认把 `motor` 切到 disabled 的 smoke profile，并自动带 `LS2K_ALLOW_DEGRADED_STARTUP=1`，避免默认 smoke 触发真实电机出力。
 3. 只有显式设置 `SMOKE_ENABLE_MOTOR=1`，`run_remote_smoke.sh` 才会按给定 profile 运行真实电机路径。
-4. `run_remote_smoke.sh` 会把 `SMOKE_MAX_FRAMES` 传递给 runtime 的 `LS2K_MAX_FRAMES`。
-5. 直接运行 `../out/new` 时，才应直接设置 `LS2K_MAX_FRAMES`。
+4. 当设置 `SMOKE_MAX_FRAMES` 时，`run_remote_smoke.sh` 必须观察 runtime 的 `main.frame.processed` marker，再由 wrapper 发送 `SIGINT` 请求 controlled stop；只有 graceful shutdown 失败时，wrapper 才应升级到 `SIGTERM` / `SIGKILL`。
+5. 直接运行 `../out/new` 时，如确有单独的 runtime bounded-run 调试需求，才应直接设置 `LS2K_MAX_FRAMES`；它不再是 `run_remote_smoke.sh` 的 accepted stop contract。
 
 这些开关只能用于验证和诊断，不得被当成比赛正式配置的一部分。
 

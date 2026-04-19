@@ -20,7 +20,7 @@
 
 当前记录时间点：
 
-- `2026-04-18`
+- `2026-04-19`
 
 如果后续推进了代码、板测或实车测试，这份文档也必须同步更新。
 
@@ -64,6 +64,7 @@
 7. 主线 actuator contract 已清理为 `left_pwm + right_pwm + emergency_stop`；`turn_output` 现在只表示左右轮差速调节量。
 8. `runtime` 已经增加 project-owned 的控制观测边界，当前日志可区分 `control.veto.*` 原因、`control.command.requested_nonzero`、`control.apply.*` 和 `control.arm.transition`。
 9. 对应 OpenSpec change 已完成主规格同步并归档到 `openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/`；归档证据包含 `implementation-challenger-evidence.json` 和 `runtime-smoke-2026-04-15.md`，可直接作为这次 contract/observability 收口的历史记录。
+10. `2026-04-19` 的 `implement-phase-b-motion-lifecycle` source-first verification 已完成 pass；`checkpoint-4` attempt-3 已把 repaired stop-path、diagnostics-only rerun 和 motor-enabled rerun v2 一并收口到 authoritative findings / verifier evidence 中。
 
 当前仍然不能确认：
 
@@ -76,7 +77,8 @@
 - `2026-04-14` 基线文档与验证契约：已闭环
 - `2026-04-15` 的 `old_2` 吸收增量：已并入主文档，并已完成历史独立验证闭环
 - `2026-04-17` 的 Phase A 实机证据已补齐，允许进入 `Phase B`
-- `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm、wrapper-owned frame budget stop 与 harness context contract；板端实车证据与最终 source-first review 仍待完成
+- `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm、wrapper-owned frame budget stop 与 harness context contract
+- `2026-04-19` 已补齐 stop-exit 修复后的 board rerun evidence，并完成 final source-first review pass；当前剩余问题集中在 `B-1` 到 `B-5` 的板端/实车证据闭环，而不是实现契约或 review gate
 
 ## 4. 已完成事项
 
@@ -142,7 +144,7 @@
 2. Phase C 的语义/策略接口还没有变成真实运行时能力。
 3. `old_2` 中高价值规则链虽然已经完成文档吸收，但尚未转译成 `new/` 的 project-owned 实现。
 4. 默认 smoke 入口已经收口为 bench-safe；后续真实电机验证必须显式 opt-in，不能再把 generic smoke 当成默认可安全上电机的回归入口。
-5. Phase B 的代码主线现在已经具备 project-owned motion lifecycle，但还没有形成板端通过的 B-1 ~ B-5 实测证据包。
+5. Phase B 的代码主线现在已经具备 project-owned motion lifecycle，且 source-first review 已通过，但还没有形成板端通过的 B-1 ~ B-5 实测证据包。
 
 ## 6. 当前推荐下一步
 
@@ -155,7 +157,7 @@
 5. 进入 Phase C 时，优先把 `old_2` 的中线生成链和场景状态拆成 project-owned 接口，不要直接整体搬 `camera.cpp`。
 6. 如果代码行为与系列文档再次偏离，先修文档或代码的一侧，再继续阶段推进。
 7. 板端上传后优先先跑默认 diagnostics-only smoke；只有在验证目标明确需要真实出力时，才使用 `SMOKE_ENABLE_MOTOR=1`。
-8. 继续推进时，默认以 `new/verification/phase-b-b1-static-safety.md` 到 `phase-b-b5-fault-injection.md` 作为 Phase B evidence checklist。
+8. 继续推进时，默认以 `new/verification/phase-b-board-test-checklist.md` 作为 Phase B 总测试入口，再回填 `new/verification/phase-b-b1-static-safety.md` 到 `phase-b-b5-fault-injection.md`。
 
 ## 7. 当前不该做的事
 
@@ -170,7 +172,7 @@
 
 当前项目的最准状态是：
 
-- 路线文档和验证契约已经闭环，Phase A 的硬件闭环与控制解锁证据现已补齐；下一阶段主问题已经转移到 `Phase B` 的低速实车闭环。
+- 路线文档和验证契约已经闭环，Phase A 的硬件闭环与控制解锁证据现已补齐；Phase B 的 motion lifecycle 实现和 source-first verification 也已闭环，下一阶段主问题已经收敛到 `B-1` 到 `B-5` 的低速实车证据。
 
 ## 9. 推进时间线
 
@@ -295,7 +297,7 @@
 本次未完成：
 
 1. 还没有板端实跑 `B-1` 到 `B-5`，因此 Phase B 仍未进入可验收状态。
-2. 尚未完成 `openspec-verify-change` 和所有 checkpoint review 的 authoritative pass 证据。
+2. 当日时点尚未完成 `openspec-verify-change` 和所有 checkpoint review 的 authoritative pass 证据。
 
 阶段状态变化：
 
@@ -307,6 +309,38 @@
 2. `new/user/main.cpp`
 3. `new/user/run_remote_smoke.sh`
 4. `new/verification/phase-b-b5-fault-injection.md`
+
+### 2026-04-19
+
+类型：
+
+- 代码推进
+- 板测推进
+- 文档推进
+- review 收口
+
+本次完成：
+
+1. 修复了 `SMOKE_MAX_FRAMES` bounded run 到点后仍需外部强制结束的问题：`STOPPING` 现在直接拥有执行器降零路径，不再让 residual PID 输出拖住 real-motor stop。
+2. `STOPPING -> DISARMED` 的 stop-completion 复判改为基于当前 cycle 仍可到达执行器的 effective command zero，而不是仅依赖 diagnostics-oriented requested PWM 零值。
+3. 重新采集并落盘 diagnostics-only stop-exit 修复日志与 motor-enabled stop-exit v2 日志；两者都已出现 `motion.stop.complete`、`main.exit.ready`，且不再以 `main.exit.forced` 作为正常退出证据。
+4. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-3/` 已写入 authoritative `findings.json` 与 `verifier-evidence.json`，`agent-table.json` 已更新到 active valid pass 终态，orchestrator 对当前 active verifier 的机械决议为 `terminate`。
+
+本次未完成：
+
+1. 仍未形成 `B-1` 到 `B-5` 的完整板端/实车 evidence bundle。
+2. Phase B 退出条件要求的轻弯修正、fault recovery 和参数集固化，仍待实测关闭。
+
+阶段状态变化：
+
+- 仍停留在 Phase B；但主问题已经从“runtime contract 与 stop-exit 语义是否成立”收敛到“板端证据是否足够通过 B-1 ~ B-5”。
+
+关联证据：
+
+1. `new/code/runtime/control_loop.cpp`
+2. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-stop-exit-fix.log`
+3. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-motor-enabled-stop-exit-fix-v2.log`
+4. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-3/verifier-evidence.json`
 
 ## 10. 后续记录模板
 

@@ -21,7 +21,7 @@
   "emergency_threshold": 40,
   "control_period_ms": 5,
   "perception_stale_ms": 40,
-  "pwm_limit": 9000,
+  "pwm_limit": 3000,
   "motion_unveto_confirm_cycles": 3,
   "motion_spinup_ms": 600,
   "motion_turn_limit_spinup": 0.35,

@@ -3,6 +3,8 @@
 阶段状态：
 
 - 当前激活阶段
+- `2026-04-19` 时点下，Phase B 的 runtime lifecycle contract、controlled stop-before-exit 语义和 source-first review 已闭环通过。
+- 当前剩余主问题不再是文档或 stop-exit 语义，而是板端 `B-1` 到 `B-5` 实测证据包尚未闭环。
 
 ## 1. 阶段目标
 
@@ -368,3 +370,20 @@ Phase B 通过后，项目必须能够回答：
 1. 车是否真的会按控制输出运动，而不是只在日志里“看起来正确”。
 2. 车是否已经具备“可重复低速测试”的安全边界。
 3. 后续的主矛盾是否已经转移到“稳不稳、聪不聪明”，而不是“能不能动”。
+
+## 6. 当前实现状态（截至 2026-04-19）
+
+当前已经成立：
+
+1. `new/code/runtime/motion_supervisor.*`、`control_loop.cpp`、`new/user/main.cpp` 与 `run_remote_smoke.sh` 已经把 Phase B start / spinup / running / stop / fail-safe / re-arm 的 contract 落到 accepted runtime entrypoint 上。
+2. `SMOKE_MAX_FRAMES` 的 accepted 语义已经固定为 wrapper-owned bounded run budget；wrapper 观察 `main.frame.processed` 后发送 `SIGINT` 请求 controlled stop，而不是把帧数退出语义继续留在产品 runtime 内。
+3. `checkpoint-4` 的 source-first review 已在 `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-3/` 通过；stop-exit 修复后的 diagnostics-only 与 motor-enabled rerun 都已经出现 `motion.stop.complete` 和 `main.exit.ready`，不再依赖 `main.exit.forced` 作为正常退出路径。
+
+当前仍未成立：
+
+1. `B-1` 到 `B-5` 的板端/实车 evidence bundle 还没有形成完整可验收包。
+2. `Phase B 退出条件` 中要求的轻弯修正、fault injection recovery、参数集固化，仍然需要以实测证据而不是 source review 结论来关闭。
+
+当前执行入口：
+
+- `new/verification/phase-b-board-test-checklist.md` 是 `B-1` 到 `B-5` 的持久化总测试文档；后续板测默认先更新这份 checklist，再分别回填各子 note。

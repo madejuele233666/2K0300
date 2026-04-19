@@ -1,0 +1,208 @@
+== runtime smoke 2026-04-19T02:34:30Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+params_source=/home/madejuele/projects/2K0300/new/user/../config/default_params.json
+profile_source=/home/madejuele/projects/2K0300/new/user/../config/hardware_profile.json
+smoke_enable_motor=1
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+harness_context_begin
+LS2K_AUTO_START=1
+LS2K_AUTO_START_DELAY_MS=200
+LS2K_AUTO_STOP_AFTER_MS=0
+LS2K_AUTO_RESET_FAULT=0
+SMOKE_MAX_FRAMES=80
+LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=0
+LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=0
+LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=0
+LS2K_FORCE_LOW_VOLTAGE=unset
+harness_context_end
+[INFO][main.start][672497] starting ls2k migration runtime
+[INFO][profile.loaded][672498] hardware profile loaded from /home/root/hardware_profile.smoke.json
+[INFO][params.loaded][672499] runtime parameters loaded from /home/root/default_params.smoke.json
+[INFO][profile.camera][672499] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][672499] direct-match:imu-core-device-detect
+[INFO][profile.encoder][672499] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][672499] direct-match:pwm-gpio-free-function
+[INFO][profile.timer][672499] direct-match:pit-timer-bridge
+[INFO][params.critical.apply][672499] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][672500] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][672500] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2432 threshold=400
+[INFO][startup.low_voltage.clear][672500] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][672772] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][672774] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][672774] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][672827] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][672827] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][672827] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right for direct speed samples
+[INFO][motor.init][672827] motor initialized through true_ls2k0300 bridge: logical_left maps to pwm=/dev/zf_device_pwm_motor_2, gpio=/dev/zf_driver_gpio_motor_2; logical_right maps to pwm=/dev/zf_device_pwm_motor_1, gpio=/dev/zf_driver_gpio_motor_1
+[INFO][startup.complete][672827] startup validated required adapters and applied critical params
+[INFO][timer.start.pit][672828] timer started with true_ls2k0300 pit bridge
+[INFO][control.start][672828] control loop started with gate -> motion supervisor -> shaping/apply sequencing
+[INFO][main.harness_context][672828] automation_context auto_start=true auto_start_delay_ms=200 auto_stop_after_ms=0 auto_reset_fault=false emit_frame_progress=true
+[INFO][imu.sample.summary][672834] imu normalized sample acc_z=-4.846662mps2 gyro_z=-0.000931radps valid_streak=1
+[INFO][encoder.delta.summary][672835] logical encoder sample left=0 right=0 mean=0 diff=0
+[FAIL_SAFE][control.veto][672836] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][672836] dominant control veto reason: perception_stale
+[FAIL_SAFE][control.apply.emergency_stop][672836] emergency-stop command applied to keep actuators fail-safe
+[WARN][control.veto.sustained][673039] control remained vetoed for 203 ms with dominant reason=perception_stale
+[INFO][imu.continuity.ready][673052] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][main.frame.processed][672828] processed_frames=1
+[INFO][motion.start.requested][673126] motion start requested by LS2K_AUTO_START
+[INFO][motion.phase.transition][673133] motion phase transitioned from DISARMED to START_REQUESTED
+[WARN][motion.start.blocked][673133] start request remains blocked while gate reason=perception_stale
+[INFO][main.frame.processed][673126] processed_frames=2
+[INFO][control.veto.interval.closed][673148] previous veto interval closed after 312 ms (reason=perception_stale)
+[INFO][control.apply.hold_disarmed][673148] gate is clear but runtime is intentionally held disarmed in phase START_REQUESTED
+[INFO][main.frame.processed][673145] processed_frames=3
+[INFO][motion.phase.transition][673163] motion phase transitioned from START_REQUESTED to SPINUP
+[INFO][motion.spinup.enter][673163] motion start request cleared the gate-confirmation boundary and entered spinup
+[INFO][control.command.requested_nonzero][673163] non-zero differential-drive command requested
+[INFO][control.apply.drive][673163] drive command applied to motor adapter
+[INFO][control.apply.command][673163] logical drive command left_pwm=280 right_pwm=-280
+[INFO][control.arm.transition][673163] actuator armed state transitioned from disarmed to armed (apply_outcome=drive_command_applied, phase=SPINUP)
+[INFO][main.frame.processed][673158] processed_frames=4
+[INFO][main.frame.processed][673175] processed_frames=5
+[INFO][main.frame.processed][673187] processed_frames=6
+[INFO][main.frame.processed][673196] processed_frames=7
+[INFO][main.frame.processed][673204] processed_frames=8
+[INFO][main.frame.processed][673212] processed_frames=9
+[INFO][main.frame.processed][673221] processed_frames=10
+[INFO][main.frame.processed][673231] processed_frames=11
+[INFO][main.frame.processed][673240] processed_frames=12
+[INFO][main.frame.processed][673255] processed_frames=13
+[INFO][main.frame.processed][673266] processed_frames=14
+[INFO][main.frame.processed][673285] processed_frames=15
+[INFO][main.frame.processed][673296] processed_frames=16
+[INFO][main.frame.processed][673304] processed_frames=17
+[INFO][main.frame.processed][673312] processed_frames=18
+[INFO][main.frame.processed][673321] processed_frames=19
+[INFO][main.frame.processed][673329] processed_frames=20
+[INFO][control.unveto.sustained][673354] control remained non-veto for 206 ms; actuator path stayed eligible for lifecycle evaluation
+[INFO][main.frame.processed][673340] processed_frames=21
+[INFO][main.frame.processed][673357] processed_frames=22
+[INFO][main.frame.processed][673372] processed_frames=23
+[INFO][main.frame.processed][673386] processed_frames=24
+[INFO][main.frame.processed][673397] processed_frames=25
+[INFO][main.frame.processed][673406] processed_frames=26
+[INFO][main.frame.processed][673416] processed_frames=27
+[INFO][main.frame.processed][673424] processed_frames=28
+[INFO][main.frame.processed][673431] processed_frames=29
+[INFO][main.frame.processed][673440] processed_frames=30
+[INFO][main.frame.processed][673455] processed_frames=31
+[INFO][main.frame.processed][673468] processed_frames=32
+[INFO][main.frame.processed][673484] processed_frames=33
+[INFO][startup.low_voltage.raw][673501] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2403 threshold=400
+[INFO][main.frame.processed][673498] processed_frames=34
+[INFO][main.frame.processed][673506] processed_frames=35
+[INFO][main.frame.processed][673515] processed_frames=36
+[INFO][main.frame.processed][673525] processed_frames=37
+[INFO][main.frame.processed][673533] processed_frames=38
+[INFO][main.frame.processed][673540] processed_frames=39
+[INFO][main.frame.processed][673557] processed_frames=40
+[INFO][main.frame.processed][673570] processed_frames=41
+[INFO][main.frame.processed][673584] processed_frames=42
+[INFO][main.frame.processed][673598] processed_frames=43
+[INFO][main.frame.processed][673607] processed_frames=44
+[INFO][main.frame.processed][673615] processed_frames=45
+[INFO][main.frame.processed][673625] processed_frames=46
+[INFO][main.frame.processed][673633] processed_frames=47
+[INFO][main.frame.processed][673641] processed_frames=48
+[INFO][main.frame.processed][673650] processed_frames=49
+[INFO][main.frame.processed][673663] processed_frames=50
+[INFO][main.frame.processed][673685] processed_frames=51
+[INFO][main.frame.processed][673699] processed_frames=52
+[INFO][main.frame.processed][673707] processed_frames=53
+[INFO][main.frame.processed][673716] processed_frames=54
+[INFO][main.frame.processed][673724] processed_frames=55
+[INFO][main.frame.processed][673732] processed_frames=56
+[INFO][main.frame.processed][673743] processed_frames=57
+[INFO][motion.phase.transition][673764] motion phase transitioned from SPINUP to RUNNING
+[INFO][motion.spinup.complete][673764] spinup timer completed and running authority is now released
+[INFO][main.frame.processed][673760] processed_frames=58
+[INFO][main.frame.processed][673774] processed_frames=59
+[INFO][main.frame.processed][673788] processed_frames=60
+[INFO][main.frame.processed][673801] processed_frames=61
+[INFO][main.frame.processed][673811] processed_frames=62
+[INFO][main.frame.processed][673820] processed_frames=63
+[INFO][main.frame.processed][673828] processed_frames=64
+[INFO][imu.sample.summary][673839] imu normalized sample acc_z=-4.855707mps2 gyro_z=0.019287radps valid_streak=134
+[INFO][encoder.delta.summary][673841] logical encoder sample left=298 right=-255 mean=21 diff=-553
+[INFO][main.frame.processed][673837] processed_frames=65
+[INFO][main.frame.processed][673845] processed_frames=66
+[INFO][main.frame.processed][673864] processed_frames=67
+[INFO][main.frame.processed][673873] processed_frames=68
+[INFO][main.frame.processed][673891] processed_frames=69
+[INFO][main.frame.processed][673903] processed_frames=70
+[INFO][main.frame.processed][673914] processed_frames=71
+[INFO][main.frame.processed][673921] processed_frames=72
+[INFO][main.frame.processed][673929] processed_frames=73
+[INFO][main.frame.processed][673936] processed_frames=74
+[INFO][main.frame.processed][673944] processed_frames=75
+[INFO][main.frame.processed][673953] processed_frames=76
+[INFO][main.frame.processed][673970] processed_frames=77
+[INFO][main.frame.processed][673984] processed_frames=78
+[INFO][main.frame.processed][673996] processed_frames=79
+[INFO][main.frame.processed][674009] processed_frames=80
+[INFO][main.frame.processed][674018] processed_frames=81
+[INFO][main.frame.processed][674026] processed_frames=82
+[INFO][main.frame.processed][674034] processed_frames=83
+[INFO][main.frame.processed][674045] processed_frames=84
+[INFO][main.frame.processed][674053] processed_frames=85
+[INFO][main.frame.processed][674062] processed_frames=86
+[INFO][main.frame.processed][674075] processed_frames=87
+[INFO][main.frame.processed][674096] processed_frames=88
+[INFO][motion.stop.requested][674108] controlled stop requested by signal
+[INFO][main.frame.processed][674108] processed_frames=89
+[INFO][main.frame.processed][674118] processed_frames=90
+[INFO][main.frame.processed][674126] processed_frames=91
+[INFO][main.frame.processed][674133] processed_frames=92
+[INFO][main.frame.processed][674141] processed_frames=93
+[INFO][main.frame.processed][674148] processed_frames=94
+[INFO][control.command.requested_nonzero][674163] non-zero differential-drive command requested
+[INFO][control.apply.drive][674163] drive command applied to motor adapter
+[INFO][control.apply.command][674163] logical drive command left_pwm=760 right_pwm=0
+[INFO][main.frame.processed][674156] processed_frames=95
+[INFO][main.frame.processed][674168] processed_frames=96
+[INFO][main.frame.processed][674186] processed_frames=97
+[INFO][main.frame.processed][674193] processed_frames=98
+[INFO][main.frame.processed][674201] processed_frames=99
+[INFO][main.frame.processed][674209] processed_frames=100
+[INFO][main.frame.processed][674216] processed_frames=101
+[INFO][main.frame.processed][674223] processed_frames=102
+[INFO][main.frame.processed][674231] processed_frames=103
+[INFO][main.frame.processed][674248] processed_frames=104
+[INFO][main.frame.processed][674258] processed_frames=105
+[INFO][main.frame.processed][674268] processed_frames=106
+[INFO][main.frame.processed][674276] processed_frames=107
+[INFO][main.frame.processed][674284] processed_frames=108
+[INFO][main.frame.processed][674292] processed_frames=109
+[INFO][main.frame.processed][674301] processed_frames=110
+[INFO][main.frame.processed][674312] processed_frames=111
+[INFO][main.frame.processed][674325] processed_frames=112
+[INFO][main.frame.processed][674337] processed_frames=113
+[INFO][main.frame.processed][674345] processed_frames=114
+[INFO][main.frame.processed][674355] processed_frames=115
+[INFO][main.frame.processed][674363] processed_frames=116
+[INFO][main.frame.processed][674372] processed_frames=117
+[INFO][main.frame.processed][674382] processed_frames=118
+[INFO][main.frame.processed][674395] processed_frames=119
+[INFO][motion.phase.transition][674414] motion phase transitioned from STOPPING to DISARMED
+[INFO][motion.stop.complete][674414] controlled stop completed and runtime returned to DISARMED
+[INFO][control.apply.hold_disarmed][674414] gate is clear but runtime is intentionally held disarmed in phase DISARMED
+[FAIL_SAFE][control.arm.transition][674414] actuator armed state transitioned from armed to disarmed (apply_outcome=held_disarmed_applied, phase=DISARMED)
+[INFO][main.frame.processed][674411] processed_frames=120
+[INFO][main.exit.ready][674419] controlled stop reached DISARMED; process may now exit
+[INFO][timer.stop][674420] timer bridge stopped
+[INFO][camera.shutdown][674420] camera adapter shutdown complete
+[INFO][imu.shutdown][674420] imu adapter shutdown complete
+[INFO][encoder.shutdown][674420] encoder adapter shutdown complete
+[INFO][motor.shutdown][674420] motor adapter shutdown complete
+[INFO][shutdown.complete][674420] actuators disabled and resources released
+[INFO][main.exit][674420] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

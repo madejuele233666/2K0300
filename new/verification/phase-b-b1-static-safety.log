@@ -1,0 +1,44 @@
+== runtime smoke 2026-04-19T02:25:44Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+params_source=/home/madejuele/projects/2K0300/new/user/../config/default_params.json
+profile_source=/home/madejuele/projects/2K0300/new/user/../config/hardware_profile.json
+smoke_enable_motor=0
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+harness_context_begin
+LS2K_AUTO_START=0
+LS2K_AUTO_START_DELAY_MS=200
+LS2K_AUTO_STOP_AFTER_MS=0
+LS2K_AUTO_RESET_FAULT=0
+SMOKE_MAX_FRAMES=20
+LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=0
+LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=0
+LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=0
+LS2K_FORCE_LOW_VOLTAGE=unset
+harness_context_end
+[INFO][main.start][146671] starting ls2k migration runtime
+[INFO][profile.loaded][146682] hardware profile loaded from /home/root/hardware_profile.smoke.json
+[INFO][params.loaded][146683] runtime parameters loaded from /home/root/default_params.smoke.json
+[INFO][profile.camera][146683] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][146683] direct-match:imu-core-device-detect
+[INFO][profile.encoder][146683] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][146683] disabled:smoke-motor-disabled
+[INFO][profile.timer][146683] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][146683] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.motor.degraded][146683] motor profile is disabled:smoke-motor-disabled (allowed only in degraded startup mode)
+[INFO][params.critical.apply][146683] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][146685] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][146685] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2433 threshold=400
+[INFO][startup.low_voltage.clear][146685] startup low-voltage check is clear
+find uvc camera error.
+[FAIL_SAFE][camera.init.failed][146710] true_ls2k0300 camera bridge init failed for direct-match path: /dev/video0
+[FAIL_SAFE][startup.camera.init][146711] camera adapter initialization failed
+[FAIL_SAFE][main.startup][146711] startup failed, refusing to arm actuators
+[INFO][camera.shutdown][146711] camera adapter shutdown complete
+[INFO][imu.shutdown][146711] imu adapter shutdown complete
+[INFO][encoder.shutdown][146711] encoder adapter shutdown complete
+[INFO][motor.shutdown][146711] motor adapter shutdown complete
+[INFO][shutdown.complete][146711] actuators disabled and resources released
+remote_runtime_exit=1
+remote_log_copy_exit=0
+remote_runtime_invoked=1
