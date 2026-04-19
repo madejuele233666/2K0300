@@ -7,8 +7,8 @@ This note defines the concrete runbooks for collecting wheel-level `control.snap
 Current repo status on `2026-04-19`:
 
 - `control.snapshot` export is implemented in source.
-- No accepted saved Phase B log under `new/verification/` currently contains `control.snapshot`.
-- Assistant waveform and image evidence are still support-only and still need explicit collection runs.
+- Accepted saved Phase B logs now contain wheel-level `control.snapshot` evidence for both assistant-disabled and motor-enabled runs.
+- Assistant waveform and image evidence remain support-only, but board-side TCP transport captures now exist under `new/verification/`.
 
 ## Primary Board-Owned Evidence
 
@@ -50,28 +50,31 @@ Recommended artifact names:
 
 - `new/verification/phase-b-assistant-disabled.log`
 - `new/verification/phase-b-assistant-waveform.log`
+- `new/verification/phase-b-assistant-waveform.bin`
 - `new/verification/phase-b-assistant-image.log`
+- `new/verification/phase-b-assistant-image.bin`
+- `new/verification/phase-b-assistant-ignored-receive.log`
+- `new/verification/phase-b-assistant-ignored-receive.bin`
 - `new/verification/phase-b-wheel-control.log`
 
-If assistant UI evidence is collected, also save:
+If assistant UI evidence is collected manually, also save:
 
 - `new/verification/phase-b-assistant-waveform.png`
 - `new/verification/phase-b-assistant-image.png`
 
 ## Run 1: Assistant-Disabled Bench Snapshot
 
-Command:
+Accepted command shape:
 
 ```bash
 (cd new/user && \
-  mkdir -p ../verification && \
   VERIFY_LOG_PATH=../verification/phase-b-assistant-disabled.log \
-  LS2K_PARAMS_PATH=../config/default_params.json \
+  LS2K_PARAMS_PATH=../verification/params/assistant-disabled.json \
   SMOKE_ENABLE_MOTOR=0 \
   SMOKE_AUTO_START=1 \
   SMOKE_AUTO_START_DELAY_MS=200 \
   SMOKE_MAX_FRAMES=80 \
-  ./run_remote_smoke.sh)
+  ./debug.sh smoke run)
 ```
 
 Expected runtime markers:
@@ -89,6 +92,10 @@ Expected artifacts:
 
 - `new/verification/phase-b-assistant-disabled.log`
 
+Accepted evidence:
+
+- `new/verification/phase-b-assistant-disabled.log`
+
 Proves:
 
 - `control.snapshot` can be collected without assistant connectivity.
@@ -102,22 +109,17 @@ Does Not Prove:
 
 ## Run 2: Assistant-Enabled Waveform
 
-Prerequisite:
-
-- Verify `new/verification/params/assistant-tcp-enabled.json` points at the current PC-side Seekfree Assistant TCP listener before the run.
-
-Command:
+Accepted command shape:
 
 ```bash
 (cd new/user && \
-  mkdir -p ../verification && \
   VERIFY_LOG_PATH=../verification/phase-b-assistant-waveform.log \
-  LS2K_PARAMS_PATH=../verification/params/assistant-tcp-enabled.json \
+  LS2K_PARAMS_PATH=../verification/params/assistant-waveform-local.json \
   SMOKE_ENABLE_MOTOR=0 \
   SMOKE_AUTO_START=1 \
   SMOKE_AUTO_START_DELAY_MS=200 \
   SMOKE_MAX_FRAMES=80 \
-  ./run_remote_smoke.sh)
+  ./debug.sh smoke run)
 ```
 
 Expected runtime markers:
@@ -129,38 +131,39 @@ Expected runtime markers:
 
 Expected external evidence:
 
-- waveform channels `0` through `7` visible in Seekfree Assistant with the mapping listed above
-- screenshot saved as `new/verification/phase-b-assistant-waveform.png`
+- raw TCP capture saved as `new/verification/phase-b-assistant-waveform.bin`
+- optional manual UI screenshot saved as `new/verification/phase-b-assistant-waveform.png`
+
+Accepted evidence:
+
+- `new/verification/phase-b-assistant-waveform.log`
+- `new/verification/phase-b-assistant-waveform.bin`
 
 Proves:
 
 - TCP-only assistant transport works without changing the board-owned control surface.
-- Seekfree Assistant waveform values can be mapped back to `control.snapshot`.
+- A connected assistant-enabled run publishes wheel-level waveform payloads alongside `control.snapshot`.
 
 Does Not Prove:
 
 - Image publication quality.
 - Real-wheel motion quality.
 - Writable tuning support.
+- Manual Seekfree Assistant UI rendering unless a screenshot is additionally saved.
 
 ## Run 3: Assistant-Enabled Image
 
-Prerequisite:
-
-- Reuse `new/verification/params/assistant-tcp-enabled.json` after confirming host and port.
-
-Command:
+Accepted command shape:
 
 ```bash
 (cd new/user && \
-  mkdir -p ../verification && \
   VERIFY_LOG_PATH=../verification/phase-b-assistant-image.log \
-  LS2K_PARAMS_PATH=../verification/params/assistant-tcp-enabled.json \
+  LS2K_PARAMS_PATH=../verification/params/assistant-image-local.json \
   SMOKE_ENABLE_MOTOR=0 \
   SMOKE_AUTO_START=1 \
   SMOKE_AUTO_START_DELAY_MS=200 \
   SMOKE_MAX_FRAMES=80 \
-  ./run_remote_smoke.sh)
+  ./debug.sh smoke run)
 ```
 
 Expected runtime markers:
@@ -171,8 +174,13 @@ Expected runtime markers:
 
 Expected external evidence:
 
-- grayscale image visible in Seekfree Assistant
-- screenshot saved as `new/verification/phase-b-assistant-image.png`
+- raw TCP capture saved as `new/verification/phase-b-assistant-image.bin`
+- optional manual UI screenshot saved as `new/verification/phase-b-assistant-image.png`
+
+Accepted evidence:
+
+- `new/verification/phase-b-assistant-image.log`
+- `new/verification/phase-b-assistant-image.bin`
 
 Proves:
 
@@ -184,21 +192,67 @@ Does Not Prove:
 - Ground-contact behavior.
 - Any closed-loop benefit from the image surface by itself.
 - Non-TCP transport support.
+- Manual Seekfree Assistant UI rendering unless a screenshot is additionally saved.
 
-## Run 4: Low-Speed Wheel-Control Evidence
+## Run 4: Assistant Ignored-Receive Loopback
 
-Command:
+Accepted command shape:
 
 ```bash
 (cd new/user && \
-  mkdir -p ../verification && \
+  BOARD_IP=10.100.170.226 \
+  LS2K_PARAMS_PATH=../verification/params/assistant-ignored-receive-loopback.json \
+  LS2K_PROFILE_PATH=../config/hardware_profile.json \
+  ./debug.sh build)
+```
+
+Then run a host-owned TCP listener plus SSH reverse tunnel so the board reaches
+`127.0.0.1:18890` through the same TCP-only assistant boundary while the host
+periodically injects unsupported inbound bytes.
+
+Expected runtime markers:
+
+- `assistant.connecting`
+- `assistant.connected`
+- `assistant.receive.ignored`
+
+Expected external evidence:
+
+- raw TCP capture saved as `new/verification/phase-b-assistant-ignored-receive.bin`
+- sidecar exchange log saved as `new/verification/phase-b-assistant-ignored-receive-sidecar.log`
+
+Accepted evidence:
+
+- `new/verification/phase-b-assistant-ignored-receive.log`
+- `new/verification/phase-b-assistant-ignored-receive.bin`
+- `new/verification/phase-b-assistant-ignored-receive-sidecar.log`
+- `new/verification/params/assistant-ignored-receive-loopback.json`
+
+Proves:
+
+- First-release assistant receive traffic is ignored without mutating runtime state.
+- The project-owned warning marker `assistant.receive.ignored` is emitted when inbound bytes arrive on the read-only sidecar boundary.
+- TCP assistant connectivity can remain healthy while unsupported inbound payloads are drained.
+
+Does Not Prove:
+
+- Any writable tuning or parameter update path.
+- Non-TCP transport support.
+- Manual Seekfree Assistant UI rendering.
+
+## Run 5: Low-Speed Wheel-Control Evidence
+
+Accepted command shape:
+
+```bash
+(cd new/user && \
   VERIFY_LOG_PATH=../verification/phase-b-wheel-control.log \
   LS2K_PARAMS_PATH=../config/default_params.json \
   SMOKE_ENABLE_MOTOR=1 \
   SMOKE_AUTO_START=1 \
   SMOKE_AUTO_START_DELAY_MS=200 \
   SMOKE_MAX_FRAMES=120 \
-  ./run_remote_smoke.sh)
+  ./debug.sh smoke run)
 ```
 
 Expected runtime markers:
@@ -214,6 +268,10 @@ Expected artifacts:
 
 - `new/verification/phase-b-wheel-control.log`
 - paired operator note or video that fixes the surface and battery condition
+
+Accepted evidence:
+
+- `new/verification/phase-b-wheel-control.log`
 
 Proves:
 

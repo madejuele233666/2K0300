@@ -25,6 +25,8 @@ struct AssistantBridgePollResult {
     AssistantBridgeState state = AssistantBridgeState::kUnconfigured;
     bool state_changed = false;
     std::string detail;
+    bool ignored_receive = false;
+    std::uint32_t ignored_receive_bytes = 0;
 };
 
 bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string& detail);

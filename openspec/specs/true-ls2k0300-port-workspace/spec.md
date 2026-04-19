@@ -31,6 +31,16 @@ The migration SHALL keep `new/` as the owned workspace boundary instead of sprea
 - **WHEN** a reviewer inspects `new/user/CMakeLists.txt`, `new/user/build.sh`, and related build configuration
 - **THEN** they SHALL find that the configured vendor root is the true LS2K0300 project tree, and the build graph SHALL NOT require superseded-only files such as `zf_driver_file_buffer.cpp`, `zf_driver_file_string.cpp`, `zf_driver_pit_fd.cpp`, or `zf_device_imu.cpp`
 
+### Requirement: Build Integration Treats Assistant As A New-Owned Sidecar
+`new/user/` build integration SHALL compile any assistant sidecar implementation from the `new/` workspace while sourcing vendor assistant libraries only from the accepted true baseline, and assistant support SHALL remain optional at runtime.
+
+#### Scenario: Assistant build graph stays inside the owned workspace boundary
+- **WHEN** reviewers inspect `new/user/CMakeLists.txt` and related build files after this change
+- **THEN** they SHALL find assistant sidecar source files owned under `new/`
+- **AND** any vendor assistant source references SHALL resolve only to the accepted `true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library` tree
+- **AND** the accepted sidecar release surface for this change SHALL be TCP-only waveform publication plus E07_04-style image publication
+- **AND** the build SHALL NOT require moving business logic into vendor example directories
+
 ### Requirement: Verification Evidence Names The Active Baseline
 The retarget SHALL record which vendor baseline, build entrypoint, runtime verification verdict, and accepted board evidence were actually used for artifact and implementation verification, and phase documents SHALL stay aligned with that accepted evidence.
 
@@ -67,6 +77,11 @@ The board-side smoke helper SHALL preserve the runtime process outcome as the sm
 - **WHEN** the remote runtime fails after producing a partial log
 - **THEN** the smoke helper SHALL attempt to copy the remote log back into the change verification directory before returning failure so the startup/runtime problem remains diagnosable
 
+#### Scenario: Bounded automation does not replace runtime truth
+- **WHEN** the smoke helper injects bounded Phase B automation or fault-injection env for repeatable evidence collection
+- **THEN** the copied log SHALL still represent the product runtime's own motion-phase and fail-safe markers
+- **AND** the wrapper SHALL record the injected automation inputs as harness context rather than treating them as a different runtime contract
+
 ### Requirement: Verification Evidence Records Resolved Hardware Inputs
 Board-runtime verification evidence SHALL name the resolved hardware resources or discovery results that were used during direct-match startup for critical subsystems.
 
@@ -95,3 +110,36 @@ Phase A closure work SHALL end with an explicit stage-exit judgment rather than 
 - **WHEN** a Phase A closure change reaches implementation verification or final document sync
 - **THEN** the resulting progress and phase documents SHALL explicitly state whether Phase A exit conditions are met, which blockers remain if they are not met, and whether entry into `Phase B` is allowed
 
+### Requirement: Phase B Uses A Lifecycle-Oriented Evidence Flow
+The `new/docs/race-finish-series.zh-CN/` Phase B material and change-local verification references SHALL describe low-speed motion closure as a lifecycle-oriented flow that proves start, spinup, running, stop, and fail-safe recovery behavior rather than treating "car moved once" as sufficient evidence.
+
+#### Scenario: Phase B evidence follows lifecycle checkpoints
+- **WHEN** reviewers inspect the Phase B document set, tasks, or verification notes
+- **THEN** they SHALL find explicit evidence targets for startup safety, shaped start behavior, low-speed running, controlled stop, and fail-safe recovery
+- **AND** the phase SHALL NOT be treated as complete based only on marker presence or a single non-zero motor command
+
+### Requirement: Test Automation Stays Separate From Product Motion Semantics
+Phase B verification MAY use bounded automation for repeatable board tests, but the accepted workspace contract SHALL keep that automation separate from the long-lived product runtime semantics.
+
+#### Scenario: Bounded automation is documented as test harness behavior
+- **WHEN** Phase B verification references auto-start, auto-stop, bounded frame limits, or post-fault auto-reset
+- **THEN** those behaviors SHALL be described as smoke/bench/test harness policy
+- **AND** the product runtime contract SHALL remain "controlled stop before exit" rather than "always auto-run"
+
+### Requirement: Phase B Verification Notes Are Concrete And Bounded
+The accepted Phase B verification bundle SHALL include implementation-grade notes for `B-1` through `B-5` that document the exact command or env entrypoint used, the expected markers, and what each artifact proves versus what it does not prove.
+
+#### Scenario: Phase B note deliverables are explicit
+- **WHEN** reviewers inspect Phase B verification notes or change-local verification bundles
+- **THEN** they SHALL find notes covering static safety/start-stop, half-load output behavior, straight-run behavior, turn/run behavior, and fault injection
+- **AND** each note SHALL record the concrete command or env contract used to produce the artifact
+- **AND** each note SHALL explicitly state the evidentiary limits of the corresponding log, video, or tuning artifact
+
+### Requirement: Phase B Verification Uses Wheel-Level Evidence
+The `new/` workspace documentation and verification flow SHALL describe dual-wheel control with wheel-level targets, wheel-level feedback, and wheel-level outputs, and SHALL treat assistant evidence as optional support evidence rather than as the acceptance gate itself.
+
+#### Scenario: Phase B docs and evidence distinguish wheel-level behavior from sidecar convenience
+- **WHEN** Phase B task docs, progress notes, or verification bundles are updated for this change
+- **THEN** they SHALL name left/right target, left/right feedback, and left/right PWM observability as accepted evidence for the refactored control path
+- **AND** they SHALL name at least one project-owned non-assistant evidence surface, such as structured diagnostics or harness-visible snapshot export, for assistant-disabled verification
+- **AND** they SHALL describe assistant waveforms and image publication as optional convenience evidence that supports diagnosis but does not replace the primary runtime or board-test verdict

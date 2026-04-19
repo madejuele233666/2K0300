@@ -27,7 +27,7 @@
 - `motion.stop.requested`
 - `motion.stop.complete`
 
-For the currently accepted short `pwm_limit=3000` log, `control.snapshot` remains a pending follow-up marker rather than a closed evidence point.
+For the originally accepted short `pwm_limit=3000` log, `control.snapshot` was still a follow-up marker. Final change-closure evidence now uses `new/verification/phase-b-wheel-control.log` to cover wheel-level target/feedback/PWM observability under the same conservative PWM limit family.
 
 ## Harness Context
 
@@ -41,7 +41,7 @@ Record the wrapper header plus any PWM-safety controls used on the board side. I
 
 ## Does Not Prove
 
-- Wheel-level `control.snapshot` observability for this accepted log.
+- Wheel-level `control.snapshot` observability for this accepted log alone.
 - Ground-contact stability.
 - Straight-line tracking quality.
 - Turn correction quality.
@@ -68,8 +68,8 @@ Accepted run shape:
 - The lifecycle progressed through `motion.start.requested`, `DISARMED -> START_REQUESTED -> SPINUP -> RUNNING -> STOPPING -> DISARMED`.
 - The run recorded `motion.spinup.enter`, `motion.spinup.complete`, `control.apply.drive`, `control.apply.command`, `motion.stop.requested`, `motion.stop.complete`, and `main.exit.ready`.
 - The highest observed command in this accepted short run was `left_pwm=760 right_pwm=0`, well below the current `pwm_limit=3000`.
-- The accepted short log does not yet contain `control.snapshot`; wheel-level target/feedback observability remains an explicit follow-up evidence item.
+- The accepted short log does not yet contain `control.snapshot`; final change-closure evidence now supplements it with `new/verification/phase-b-wheel-control.log`, which does contain wheel-level target/feedback/PWM snapshots.
 
 ## Closure Note
 
-`B-2` is accepted as a short half-load board pass under the current conservative PWM limit. This closes the lifecycle-oriented half-load checkpoint for the present board-testing phase, but it does not yet close wheel-level `control.snapshot` observability and it does not replace later `B-3` / `B-4` ground-contact motion evidence.
+`B-2` is accepted as a short half-load board pass under the current conservative PWM limit. This closes the lifecycle-oriented half-load checkpoint for the present board-testing phase. Final change closure additionally relies on `new/verification/phase-b-wheel-control.log` for wheel-level `control.snapshot` observability, and `B-2` still does not replace later `B-3` / `B-4` ground-contact motion evidence.

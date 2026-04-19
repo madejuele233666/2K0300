@@ -72,6 +72,13 @@ void AssistantLink::Poll(port::DiagnosticSink& diagnostics) {
                           result.detail,
                           port::NowMs()});
     }
+    if (result.ignored_receive) {
+        diagnostics.Emit({port::DiagnosticLevel::kWarning,
+                          "assistant.receive.ignored",
+                          "ignored " + std::to_string(result.ignored_receive_bytes) +
+                              " byte(s) of inbound assistant traffic; first-release sidecar remains read-only",
+                          port::NowMs()});
+    }
 }
 
 bool AssistantLink::PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics) {

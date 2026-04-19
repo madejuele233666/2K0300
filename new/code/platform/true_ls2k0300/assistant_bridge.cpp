@@ -21,6 +21,7 @@ namespace ls2k::platform::true_ls2k0300 {
 namespace {
 
 constexpr uint64_t kReconnectBackoffMs = 1000;
+constexpr uint64_t kIgnoredReceiveReportIntervalMs = 500;
 
 enum class IoStatus {
     kOk = 0,
@@ -39,6 +40,8 @@ struct AssistantBridgeContext {
     std::string detail = "assistant bridge not configured";
     IoStatus last_io_status = IoStatus::kOk;
     std::string last_io_detail;
+    std::uint32_t ignored_receive_bytes_pending = 0;
+    uint64_t next_ignored_receive_report_at_ms = 0;
 };
 
 AssistantBridgeContext g_bridge{};
@@ -185,6 +188,7 @@ void DrainReceiveBuffer() {
         if (received == 0 || g_bridge.last_io_status == IoStatus::kClosed || g_bridge.last_io_status == IoStatus::kError) {
             return;
         }
+        g_bridge.ignored_receive_bytes_pending += received;
     }
 }
 
@@ -274,11 +278,18 @@ void FinishPendingConnect() {
                  "assistant TCP connected to " + g_bridge.config.host + ":" + std::to_string(g_bridge.config.port));
 }
 
-AssistantBridgePollResult TakePollResult() {
+AssistantBridgePollResult TakePollResult(const uint64_t now_ms) {
     AssistantBridgePollResult result{};
     result.state = g_bridge.state;
     result.state_changed = g_bridge.state_dirty;
     result.detail = g_bridge.detail;
+    if (g_bridge.ignored_receive_bytes_pending > 0 &&
+        (g_bridge.next_ignored_receive_report_at_ms == 0 || now_ms >= g_bridge.next_ignored_receive_report_at_ms)) {
+        result.ignored_receive = true;
+        result.ignored_receive_bytes = g_bridge.ignored_receive_bytes_pending;
+        g_bridge.ignored_receive_bytes_pending = 0;
+        g_bridge.next_ignored_receive_report_at_ms = now_ms + kIgnoredReceiveReportIntervalMs;
+    }
     g_bridge.state_dirty = false;
     return result;
 }
@@ -323,6 +334,7 @@ bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string&
 }
 
 AssistantBridgePollResult PollAssistantBridge() {
+    const uint64_t now_ms = MonotonicNowMs();
     ResetIoStatus();
 
     switch (g_bridge.state) {
@@ -330,7 +342,7 @@ AssistantBridgePollResult PollAssistantBridge() {
             break;
         case AssistantBridgeState::kDisconnected:
         case AssistantBridgeState::kBackoff:
-            if (MonotonicNowMs() >= g_bridge.next_retry_at_ms) {
+            if (now_ms >= g_bridge.next_retry_at_ms) {
                 (void)BeginConnectAttempt();
             }
             break;
@@ -345,7 +357,7 @@ AssistantBridgePollResult PollAssistantBridge() {
             break;
     }
 
-    return TakePollResult();
+    return TakePollResult(now_ms);
 }
 
 bool AssistantBridgeReady() {

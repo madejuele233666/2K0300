@@ -3,6 +3,14 @@
 ## Purpose
 Define the accepted adapter-layer contracts and fail-safe runtime behavior that map preserved TC264-era logic onto the real LS2K0300 vendor surface without leaking vendor APIs outside the platform bridge slice.
 ## Requirements
+### Requirement: Motion Lifecycle Boundary Stays Above Vendor Adapters
+The Phase B start/stop/fail-safe lifecycle SHALL remain a project-owned runtime contract and SHALL NOT be delegated to vendor-facing adapters, raw bridge state, or preserved `old_2` hardware UI assumptions.
+
+#### Scenario: Motion semantics stay in runtime-owned modules
+- **WHEN** reviewers inspect the Phase B implementation
+- **THEN** they SHALL find motion phases, motion intent, and lifecycle transitions in project-owned runtime code
+- **AND** they SHALL NOT find vendor adapters or bridges acting as the primary owner of Phase B start/stop state
+
 ### Requirement: Public Port Contracts Stay Project-Owned
 Reused legacy logic from `old/code/` SHALL continue to depend only on project-owned port contracts and runtime state, not on true-baseline vendor headers, free functions, globals, raw device-node paths, or servo-shaped compatibility fields that misrepresent the active platform topology.
 
@@ -64,7 +72,10 @@ The retarget SHALL continue to veto or clamp actuator output when perception or 
 
 #### Scenario: Invalid normalized state is both suppressed and explained
 - **WHEN** perception is stale, perception requests emergency veto, low voltage is active, IMU normalization fails, encoder delta state is not yet trustworthy, or a non-empty actuator command is rejected by the motor apply path
-- **THEN** the control path SHALL suppress actuator updates or force actuator arming back to fail-safe, SHALL record the corresponding project-owned veto or apply outcome instead of continuing with stale or partially normalized control state, and SHALL support later Phase A evidence that distinguishes transient startup suppression from sustained runtime blockers
+- **THEN** the control path SHALL suppress actuator updates or force actuator arming back to fail-safe
+- **AND** it SHALL record the corresponding project-owned veto or apply outcome instead of continuing with stale or partially normalized control state
+- **AND** it SHALL distinguish true fail-safe suppression from Phase B hold-disarmed lifecycle suppression so reviewers can tell whether the blocker is safety-owned or lifecycle-owned
+- **AND** it SHALL support later Phase A evidence that distinguishes transient startup suppression from sustained runtime blockers
 
 ### Requirement: Control Gate Observability Is Project-Owned
 The runtime SHALL normalize control-veto, actuator-arming, and actuator-application outcomes into project-owned observability data before publishing diagnostics or verification evidence.
@@ -73,9 +84,32 @@ The runtime SHALL normalize control-veto, actuator-arming, and actuator-applicat
 - **WHEN** the control path suppresses actuator output because perception is stale, perception requests emergency veto, low voltage is active, IMU data is invalid, or encoder data is invalid
 - **THEN** the runtime SHALL emit project-owned diagnostics or state that identify the dominant veto cause without exposing vendor bridge internals or raw device-node details
 
+#### Scenario: Hold-disarmed is distinguishable from fail-safe
+- **WHEN** the safety gate is clear but the Phase B motion lifecycle has not yet allowed drive output
+- **THEN** the runtime SHALL publish a project-owned hold-disarmed outcome that is distinguishable from `control.veto.*`
+- **AND** verification evidence SHALL be able to tell whether the car was idle by policy or blocked by fault
+
 #### Scenario: Apply outcome is visible without vendor leakage
 - **WHEN** the runtime requests a non-empty actuator command and the motor path either applies or rejects it
-- **THEN** the runtime SHALL record whether the command was requested, whether it was applied, and whether actuator arming remained true, while keeping vendor-specific write-path details inside platform-owned diagnostics
+- **THEN** the runtime SHALL record whether the command was requested, whether it was applied, whether actuator arming remained true, and whether the lifecycle was running, stopping, or held disarmed
+- **AND** vendor-specific write-path details SHALL remain inside platform-owned diagnostics
+
+### Requirement: Assistant Vendor Integration Stays Inside Owning Bridges
+Seekfree Assistant protocol types, vendor component headers, and transport free functions SHALL remain confined to assistant-owning bridge files and SHALL NOT leak into `legacy`, `runtime`, or public port contracts.
+
+#### Scenario: Assistant vendor APIs are isolated from runtime and legacy code
+- **WHEN** reviewers inspect the assistant integration path for this change
+- **THEN** any direct use of `seekfree_assistant_*`, `tcp_client_*`, or equivalent vendor protocol/transport APIs SHALL appear only in assistant-owning bridge or link files
+- **AND** any E07_04-style image-transfer glue SHALL follow the same owning-bridge confinement rule
+- **AND** `new/code/legacy/*`, `new/code/runtime/*`, and `new/code/port/*` SHALL continue to depend only on project-owned types and interfaces
+
+### Requirement: Dual-Wheel Control Consumes Normalized Logical Wheel Data
+The dual-wheel controller SHALL continue to consume normalized logical left/right encoder semantics and SHALL continue to produce logical left/right actuator commands without embedding vendor mapping or device-path assumptions in controller code.
+
+#### Scenario: Wheel controller does not own vendor polarity or side mapping
+- **WHEN** reviewers inspect the wheel-target and wheel-PID implementation
+- **THEN** they SHALL find that encoder sign normalization and motor-side mapping remain owned by platform adapters or bridges
+- **AND** controller code SHALL operate on project-owned logical left/right values rather than raw vendor ordering, raw device-node paths, or ad hoc sign fixes
 
 ### Requirement: Direct-Match Hardware Discovery Is Truthful
 Direct-match bridge and adapter code SHALL verify the concrete board resource it intends to use before it reports a subsystem as ready.
@@ -123,4 +157,3 @@ The motor path SHALL not treat successful PWM/GPIO writes as sufficient evidence
 #### Scenario: Physical-output proof is required for actuator closure
 - **WHEN** reviewers inspect motor closure evidence or control-unlock claims that depend on the actuator path
 - **THEN** they SHALL find evidence that non-zero commands produce real output in a safe test setup, that differential direction is interpretable, and that emergency-stop or write-failure handling returns the system to fail-safe rather than relying on software write success alone
-

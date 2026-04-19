@@ -1,6 +1,0 @@
-{
-  "contract": "verification-cycle-orchestrator-decision-v1",
-  "decision": "mark_non_active",
-  "reason": "active agent transitioned from block to valid pass",
-  "agent_id": "019da3e9-4091-7e71-a6fe-8c13c50869a4"
-}

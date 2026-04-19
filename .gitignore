@@ -111,3 +111,12 @@ dataset/
 *.hdf5
 *.tflite
 # models/ (if you don't track weights)
+
+*.bin
+*.pt
+*.pth
+*.log
+*.csv
+*.md
+*.json
+*.yaml
