@@ -41,6 +41,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o.d"
+  "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o"
+  "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o"

@@ -16,6 +16,7 @@
 ## Expected Markers
 
 - `main.harness_context`
+- `main.frame.processed`
 - `motion.start.requested`
 - `motion.phase.transition`
 - `motion.spinup.enter`
@@ -27,7 +28,7 @@
 
 ## Harness Context
 
-Record the wrapper header plus any PWM-safety controls used on the board side. If extra motor-limiting hardware settings or battery limits are in effect, note them adjacent to the log path.
+Record the wrapper header plus any PWM-safety controls used on the board side. If `SMOKE_MAX_FRAMES` is non-zero, confirm the log also contains `main.frame.processed` so the wrapper-owned budget can trigger `SIGINT` rather than leaving frame-stop semantics inside the product runtime. If extra motor-limiting hardware settings or battery limits are in effect, note them adjacent to the log path.
 
 ## Proves
 

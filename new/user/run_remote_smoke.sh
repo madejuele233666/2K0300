@@ -4,7 +4,7 @@ set -euo pipefail
 WORK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${WORK_DIR}/../.." && pwd)"
 TRUE_VENDOR_ROOT="${REPO_ROOT}/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library"
-VERIFY_LOG="${VERIFY_LOG_PATH:-${REPO_ROOT}/openspec/changes/fix-board-runtime-hardware-detection/verification/runtime-smoke.log}"
+VERIFY_LOG="${VERIFY_LOG_PATH:-${REPO_ROOT}/openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-3/runtime-smoke.log}"
 
 BOARD_IP="${BOARD_IP:-10.236.192.226}"
 BOARD_USER="${BOARD_USER:-root}"
@@ -43,7 +43,7 @@ write_header() {
         echo "LS2K_AUTO_START_DELAY_MS=${SMOKE_AUTO_START_DELAY_MS}"
         echo "LS2K_AUTO_STOP_AFTER_MS=${SMOKE_AUTO_STOP_AFTER_MS}"
         echo "LS2K_AUTO_RESET_FAULT=${SMOKE_AUTO_RESET_FAULT}"
-        echo "LS2K_MAX_FRAMES=${SMOKE_MAX_FRAMES}"
+        echo "SMOKE_MAX_FRAMES=${SMOKE_MAX_FRAMES}"
         echo "LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}"
         echo "LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N}"
         echo "LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N}"
@@ -75,9 +75,13 @@ smoke_runtime_env() {
         prefix="LS2K_ALLOW_DEGRADED_STARTUP=1 "
     fi
 
-    printf '%sLS2K_PARAMS_PATH=%s LS2K_PROFILE_PATH=%s LS2K_MAX_FRAMES=%s LS2K_AUTO_START=%s LS2K_AUTO_START_DELAY_MS=%s LS2K_AUTO_STOP_AFTER_MS=%s LS2K_AUTO_RESET_FAULT=%s' \
-        "${prefix}" "${params_path}" "${profile_path}" "${SMOKE_MAX_FRAMES}" \
+    printf '%sLS2K_PARAMS_PATH=%s LS2K_PROFILE_PATH=%s LS2K_AUTO_START=%s LS2K_AUTO_START_DELAY_MS=%s LS2K_AUTO_STOP_AFTER_MS=%s LS2K_AUTO_RESET_FAULT=%s' \
+        "${prefix}" "${params_path}" "${profile_path}" \
         "${SMOKE_AUTO_START}" "${SMOKE_AUTO_START_DELAY_MS}" "${SMOKE_AUTO_STOP_AFTER_MS}" "${SMOKE_AUTO_RESET_FAULT}"
+
+    if [[ "${SMOKE_MAX_FRAMES}" != "0" ]]; then
+        printf ' LS2K_EMIT_FRAME_PROGRESS=1'
+    fi
 
     if [[ "${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}" != "0" ]]; then
         printf ' LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=%s' "${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N}"
@@ -91,6 +95,57 @@ smoke_runtime_env() {
     if [[ -n "${SMOKE_FORCE_LOW_VOLTAGE}" ]]; then
         printf ' LS2K_FORCE_LOW_VOLTAGE=%s' "${SMOKE_FORCE_LOW_VOLTAGE}"
     fi
+}
+
+frame_progress_count() {
+    local log_path="$1"
+    grep -c '^\[INFO\]\[main\.frame\.processed\]' "${log_path}" 2>/dev/null || true
+}
+
+monitor_local_runtime() {
+    local runtime_pid="$1"
+    local log_path="$2"
+    local start_ts
+    local stop_sent
+    local timed_out
+    local force_exit_sent
+    start_ts="$(date +%s)"
+    stop_sent=0
+    timed_out=0
+    force_exit_sent=0
+
+    while kill -0 "${runtime_pid}" 2>/dev/null; do
+        local now_ts
+        now_ts="$(date +%s)"
+        if [[ "${SMOKE_MAX_FRAMES}" -gt 0 && "${stop_sent}" -eq 0 ]]; then
+            local frame_count
+            frame_count="$(frame_progress_count "${log_path}")"
+            if [[ "${frame_count}" -ge "${SMOKE_MAX_FRAMES}" ]]; then
+                kill -INT "${runtime_pid}" 2>/dev/null || true
+                stop_sent=1
+            fi
+        fi
+        if (( now_ts - start_ts >= 12 )); then
+            kill -TERM "${runtime_pid}" 2>/dev/null || true
+            timed_out=1
+            force_exit_sent=1
+            start_ts=$(( now_ts + 2 ))
+        fi
+        if [[ "${force_exit_sent}" -eq 1 ]] && (( now_ts >= start_ts )); then
+            kill -KILL "${runtime_pid}" 2>/dev/null || true
+            break
+        fi
+        sleep 0.05
+    done
+
+    set +e
+    wait "${runtime_pid}"
+    local runtime_status=$?
+    set -e
+    if [[ "${timed_out}" -eq 1 ]] && [[ "${runtime_status}" -eq 143 ]]; then
+        return 124
+    fi
+    return "${runtime_status}"
 }
 
 run_remote() {
@@ -119,7 +174,49 @@ run_remote() {
         if scp -O "${tmp_profile}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PROFILE}"; then
             runtime_invoked=1
             if ssh "${BOARD_USER}@${BOARD_IP}" \
-                "chmod +x ${BOARD_BIN}; ${runtime_env} timeout 12s ${BOARD_BIN} > ${REMOTE_LOG} 2>&1"; then
+                "BOARD_BIN='${BOARD_BIN}' REMOTE_LOG='${REMOTE_LOG}' RUNTIME_ENV='${runtime_env}' SMOKE_MAX_FRAMES='${SMOKE_MAX_FRAMES}' bash -s" <<'EOF'
+set -euo pipefail
+chmod +x "${BOARD_BIN}"
+rm -f "${REMOTE_LOG}"
+bash -lc "${RUNTIME_ENV} \"${BOARD_BIN}\"" > "${REMOTE_LOG}" 2>&1 &
+runtime_pid=$!
+start_ts="$(date +%s)"
+stop_sent=0
+timed_out=0
+force_exit_sent=0
+
+while kill -0 "${runtime_pid}" 2>/dev/null; do
+    now_ts="$(date +%s)"
+    if [[ "${SMOKE_MAX_FRAMES}" -gt 0 && "${stop_sent}" -eq 0 ]]; then
+        frame_count="$(grep -c '^\[INFO\]\[main\.frame\.processed\]' "${REMOTE_LOG}" 2>/dev/null || true)"
+        if [[ "${frame_count}" -ge "${SMOKE_MAX_FRAMES}" ]]; then
+            kill -INT "${runtime_pid}" 2>/dev/null || true
+            stop_sent=1
+        fi
+    fi
+    if (( now_ts - start_ts >= 12 )); then
+        kill -TERM "${runtime_pid}" 2>/dev/null || true
+        timed_out=1
+        force_exit_sent=1
+        start_ts=$(( now_ts + 2 ))
+    fi
+    if [[ "${force_exit_sent}" -eq 1 ]] && (( now_ts >= start_ts )); then
+        kill -KILL "${runtime_pid}" 2>/dev/null || true
+        break
+    fi
+    sleep 0.05
+done
+
+set +e
+wait "${runtime_pid}"
+runtime_status=$?
+set -e
+if [[ "${timed_out}" -eq 1 ]] && [[ "${runtime_status}" -eq 143 ]]; then
+    exit 124
+fi
+exit "${runtime_status}"
+EOF
+            then
                 remote_status=0
             else
                 remote_status=$?
@@ -206,14 +303,16 @@ run_local() {
     fi
 
     runtime_env="$(smoke_runtime_env "${PARAMS_SOURCE}" "${tmp_profile}")"
-    eval "${runtime_env} timeout 12s \"${LOCAL_BIN}\" >> \"${VERIFY_LOG}\" 2>&1" || true
+    bash -lc "${runtime_env} \"${LOCAL_BIN}\"" >> "${VERIFY_LOG}" 2>&1 &
+    local runtime_pid=$!
+    monitor_local_runtime "${runtime_pid}" "${VERIFY_LOG}"
 }
 
 write_header
 
 if [[ "${SMOKE_LOCAL_ONLY:-0}" == "1" ]]; then
     run_local
-    exit 0
+    exit $?
 fi
 
 run_remote

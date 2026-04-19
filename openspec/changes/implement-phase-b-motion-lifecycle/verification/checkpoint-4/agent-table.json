@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "agents": [
+    {
+      "agent_id": "codex-verify-reviewer-source-first",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Targeted checkpoint-4 source-first rerun for repaired findings F001-F003 across the repaired runtime stop-path, wrapper harness-context contract, and directly impacted Phase B docs/verification notes.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-19T07:47:30+08:00"
+    }
+  ]
+}

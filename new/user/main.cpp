@@ -16,6 +16,7 @@
 namespace {
 
 volatile std::sig_atomic_t g_exit_signal = 0;
+volatile std::sig_atomic_t g_force_exit_signal = 0;
 volatile std::sig_atomic_t g_start_signal = 0;
 volatile std::sig_atomic_t g_reset_signal = 0;
 
@@ -59,7 +60,7 @@ struct AutomationConfig {
     int auto_start_delay_ms = 0;
     int auto_stop_after_ms = 0;
     bool auto_reset_fault = false;
-    int max_frames = 0;
+    bool emit_frame_progress = false;
 };
 
 struct MotionSnapshot {
@@ -70,6 +71,10 @@ struct MotionSnapshot {
 
 void HandleExitSignal(int) {
     g_exit_signal = 1;
+}
+
+void HandleForceExitSignal(int) {
+    g_force_exit_signal = 1;
 }
 
 void HandleStartSignal(int) {
@@ -86,7 +91,7 @@ AutomationConfig LoadAutomationConfig() {
     config.auto_start_delay_ms = std::max(0, ReadIntEnv("LS2K_AUTO_START_DELAY_MS", 0));
     config.auto_stop_after_ms = std::max(0, ReadIntEnv("LS2K_AUTO_STOP_AFTER_MS", 0));
     config.auto_reset_fault = ReadBoolEnv("LS2K_AUTO_RESET_FAULT").value_or(false);
-    config.max_frames = std::max(0, ReadIntEnv("LS2K_MAX_FRAMES", 0));
+    config.emit_frame_progress = ReadBoolEnv("LS2K_EMIT_FRAME_PROGRESS").value_or(false);
     return config;
 }
 
@@ -143,9 +148,25 @@ void RequestControlledStop(ls2k::runtime::RuntimeState& state,
 void RequestFaultReset(ls2k::runtime::RuntimeState& state,
                        ls2k::port::DiagnosticSink& diagnostics,
                        const std::string& source) {
+    bool accepted = false;
+    bool already_pending = false;
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
-        state.motion_intent.reset_fault_requested = true;
+        if (state.motion_state.phase == ls2k::runtime::MotionPhase::kFailSafeLatched) {
+            already_pending = state.motion_intent.reset_fault_requested;
+            state.motion_intent.reset_fault_requested = true;
+            accepted = !already_pending;
+        } else {
+            state.motion_intent.reset_fault_requested = false;
+        }
+    }
+    if (!accepted) {
+        diagnostics.Emit({ls2k::port::DiagnosticLevel::kWarning,
+                          "motion.failsafe.reset_ignored",
+                          already_pending ? "fail-safe reset already pending for current fault episode"
+                                          : "fail-safe reset ignored because runtime is not latched",
+                          ls2k::port::NowMs()});
+        return;
     }
     diagnostics.Emit({ls2k::port::DiagnosticLevel::kInfo,
                       "motion.failsafe.reset_requested",
@@ -159,7 +180,7 @@ void EmitHarnessContext(ls2k::port::DiagnosticSink& diagnostics, const Automatio
             << " auto_start_delay_ms=" << config.auto_start_delay_ms
             << " auto_stop_after_ms=" << config.auto_stop_after_ms
             << " auto_reset_fault=" << (config.auto_reset_fault ? "true" : "false")
-            << " max_frames=" << config.max_frames;
+            << " emit_frame_progress=" << (config.emit_frame_progress ? "true" : "false");
     diagnostics.Emit({ls2k::port::DiagnosticLevel::kInfo,
                       "main.harness_context",
                       summary.str(),
@@ -245,7 +266,7 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
 
 int main() {
     std::signal(SIGINT, HandleExitSignal);
-    std::signal(SIGTERM, HandleExitSignal);
+    std::signal(SIGTERM, HandleForceExitSignal);
     std::signal(SIGUSR1, HandleResetSignal);
     std::signal(SIGUSR2, HandleStartSignal);
 
@@ -329,6 +350,14 @@ int main() {
             g_exit_signal = 0;
             RequestControlledStop(runtime_state, diagnostics, "signal");
         }
+        if (g_force_exit_signal != 0) {
+            g_force_exit_signal = 0;
+            RequestControlledStop(runtime_state, diagnostics, "SIGTERM");
+            runtime_state.stop_requested = true;
+            diagnostics.Warn("main.exit.forced",
+                             "forced shutdown requested by SIGTERM; exiting without waiting for DISARMED");
+            break;
+        }
 
         const uint64_t now_ms = ls2k::port::NowMs();
         const uint64_t elapsed_ms = now_ms >= loop_start_ms ? now_ms - loop_start_ms : 0;
@@ -340,13 +369,16 @@ int main() {
 
         perception.ProcessOneFrame(params);
         ++processed_frames;
+        if (automation.emit_frame_progress) {
+            diagnostics.Emit({ls2k::port::DiagnosticLevel::kInfo,
+                              "main.frame.processed",
+                              "processed_frames=" + std::to_string(processed_frames),
+                              now_ms});
+        }
 
         if (automation.auto_stop_after_ms > 0 &&
             elapsed_ms >= static_cast<uint64_t>(automation.auto_stop_after_ms)) {
             RequestControlledStop(runtime_state, diagnostics, "LS2K_AUTO_STOP_AFTER_MS");
-        }
-        if (automation.max_frames > 0 && processed_frames >= automation.max_frames) {
-            RequestControlledStop(runtime_state, diagnostics, "LS2K_MAX_FRAMES");
         }
 
         const MotionSnapshot motion = ReadMotionSnapshot(runtime_state);

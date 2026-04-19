@@ -65,6 +65,7 @@ Forced low voltage:
 ## Expected Markers
 
 - `main.harness_context`
+- `main.frame.processed`
 - `perception.inject.drop_frame` or `imu.inject.invalid` or `encoder.inject.invalid` or `power.low_voltage.injected`
 - `control.veto.*`
 - `motion.failsafe.latched`
@@ -74,7 +75,7 @@ Forced low voltage:
 
 ## Harness Context
 
-The wrapper header is authoritative for which automation and fault env values were injected. Do not rely on runtime markers alone to infer the test setup.
+The wrapper header is authoritative for which automation and fault env values were injected. When `SMOKE_MAX_FRAMES` is non-zero, pair that header with `main.frame.processed` in the runtime log so the bounded stop remains wrapper-owned even during fault drills. Do not rely on runtime markers alone to infer the test setup.
 
 ## Proves
 

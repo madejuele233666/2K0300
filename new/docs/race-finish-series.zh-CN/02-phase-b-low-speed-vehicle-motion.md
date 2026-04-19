@@ -42,8 +42,10 @@
 3. `control.veto.*` 只表示真实 safety blocker；`control.apply.hold_disarmed` 用来表示“安全门已开，但当前仍故意不出力”。
 4. 产品运行时的基线 reset 触发是 `SIGUSR1`，用于把 `FAIL_SAFE_LATCHED` 映射到 `reset_fault_requested`。
 5. 产品运行时的基线 start 触发保持在 accepted runtime entrypoint 上；当前实现使用 `SIGUSR2` 作为最小可用 operator-owned start intent。
-6. `LS2K_AUTO_START`、`LS2K_AUTO_START_DELAY_MS`、`LS2K_AUTO_STOP_AFTER_MS`、`LS2K_AUTO_RESET_FAULT`、`LS2K_MAX_FRAMES` 只作为 harness-owned 自动化入口使用。
-7. `run_remote_smoke.sh` 产出的日志头必须单独记录 `harness_context_begin ... harness_context_end`，不能只靠 runtime marker 反推测试注入条件。
+6. 当前实现中，`SIGINT` 表示 operator-owned controlled stop；`SIGTERM` 保留为 forced shutdown fallback，用于 wrapper timeout 或 faulted session 无法自然回到 `DISARMED` 的兜底退出。
+7. `LS2K_AUTO_START`、`LS2K_AUTO_START_DELAY_MS`、`LS2K_AUTO_STOP_AFTER_MS`、`LS2K_AUTO_RESET_FAULT` 仍是 accepted runtime entrypoint 上的可移除 harness helper；bounded frame budget 则由 wrapper 侧的 `SMOKE_MAX_FRAMES` 持有。
+8. 当设置 `SMOKE_MAX_FRAMES` 时，`run_remote_smoke.sh` 必须观察 runtime 的 `main.frame.processed` marker，再通过 `SIGINT` 请求 controlled stop；若 timeout 或 faulted session 不能 graceful shutdown，wrapper 再升级到 `SIGTERM` / `SIGKILL` 兜底退出。
+9. `run_remote_smoke.sh` 产出的日志头必须单独记录 `harness_context_begin ... harness_context_end`，不能只靠 runtime marker 反推测试注入条件。
 
 ## 1B. `old_2` 对本阶段的补充约束
 
@@ -95,6 +97,7 @@
 预期 marker：
 
 - `main.harness_context`
+- `main.frame.processed`
 - `startup.complete`
 - `control.start`
 - `motion.start.requested`
@@ -147,7 +150,9 @@
 预期 marker：
 
 - `main.harness_context`
+- `main.frame.processed`
 - `motion.phase.transition`
+- `main.frame.processed`
 - `motion.spinup.enter`
 - `motion.spinup.complete`
 - `control.apply.drive`
@@ -202,6 +207,7 @@
 
 预期 marker：
 
+- `main.frame.processed`
 - `motion.spinup.enter`
 - `motion.spinup.complete`
 - `control.apply.drive`
@@ -315,6 +321,7 @@
 预期 marker：
 
 - `main.harness_context`
+- `main.frame.processed`
 - `perception.inject.drop_frame` / `imu.inject.invalid` / `encoder.inject.invalid` / `power.low_voltage.injected`
 - `control.veto.*`
 - `motion.failsafe.latched`

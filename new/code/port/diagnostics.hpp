@@ -77,6 +77,7 @@ public:
         stream << "[" << LevelString(event.level) << "]"
                << "[" << event.code << "]"
                << "[" << event.timestamp_ms << "] " << event.message << "\n";
+        stream.flush();
     }
 
     void Info(const std::string& code, const std::string& message) {

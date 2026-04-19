@@ -17,11 +17,20 @@ double ClampRatio(uint64_t elapsed_ms, int window_ms) {
     return std::clamp(static_cast<double>(elapsed_ms) / static_cast<double>(window_ms), 0.0, 1.0);
 }
 
+double StopDecayTarget(double entry_speed_target, uint64_t elapsed_ms, int stop_ms) {
+    if (stop_ms <= 0) {
+        return 0.0;
+    }
+    const double stop_ratio = 1.0 - ClampRatio(elapsed_ms, stop_ms);
+    return std::max(0.0, entry_speed_target * std::max(0.0, stop_ratio));
+}
+
 MotionDecision Finalize(const MotionSupervisorInputs& inputs,
                         MotionSupervisorState next_state,
                         MotionPhase previous_phase,
                         bool hold_disarmed,
                         bool allow_drive,
+                        bool require_emergency_stop,
                         bool reset_controllers,
                         bool consume_reset_request,
                         bool blocked_start,
@@ -34,6 +43,7 @@ MotionDecision Finalize(const MotionSupervisorInputs& inputs,
     decision.phase_changed = next_state.phase != previous_phase;
     decision.hold_disarmed = hold_disarmed;
     decision.allow_drive = allow_drive;
+    decision.require_emergency_stop = require_emergency_stop;
     decision.reset_controllers = reset_controllers;
     decision.consume_reset_request = consume_reset_request;
     decision.blocked_start = blocked_start;
@@ -41,6 +51,10 @@ MotionDecision Finalize(const MotionSupervisorInputs& inputs,
     decision.effective_speed_target = effective_speed_target;
     decision.turn_limit_scale = std::clamp(turn_limit_scale, 0.0, 1.0);
     decision.pwm_step_limit = inputs.motion_pwm_step_limit;
+    decision.state.last_effective_speed_target = std::max(0.0, effective_speed_target);
+    if (decision.state.phase != MotionPhase::kStopping) {
+        decision.state.stop_entry_speed_target = 0.0;
+    }
     if (decision.phase_changed) {
         decision.state.phase_entry_ms = inputs.now_ms;
         if (decision.state.phase == MotionPhase::kFailSafeLatched) {
@@ -66,6 +80,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                         phase,
                         true,
                         false,
+                        false,
                         phase != MotionPhase::kDisarmed,
                         false,
                         false,
@@ -84,6 +99,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                         false,
                         false,
                         true,
+                        true,
                         false,
                         false,
                         false,
@@ -94,9 +110,8 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
     switch (phase) {
         case MotionPhase::kDisarmed:
             next_state.clean_gate_cycles = 0;
-            if (start_requested) {
-                next_state.phase = MotionPhase::kStartRequested;
-            }
+        if (start_requested) {
+            next_state.phase = MotionPhase::kStartRequested;
             return Finalize(inputs,
                             next_state,
                             phase,
@@ -105,6 +120,20 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                             false,
                             false,
                             false,
+                            !inputs.gate_clear,
+                            false,
+                            0.0,
+                            0.0);
+        }
+        return Finalize(inputs,
+                        next_state,
+                        phase,
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
                             false,
                             0.0,
                             0.0);
@@ -121,6 +150,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 false,
                                 false,
                                 false,
+                                false,
                                 0.0,
                                 0.0);
             }
@@ -131,6 +161,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 next_state,
                                 phase,
                                 true,
+                                false,
                                 false,
                                 false,
                                 false,
@@ -150,6 +181,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 phase,
                                 false,
                                 true,
+                                false,
                                 true,
                                 false,
                                 false,
@@ -167,6 +199,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                             false,
                             false,
                             false,
+                            false,
                             0.0,
                             0.0);
         }
@@ -174,6 +207,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
             if (inputs.intent.stop_requested) {
                 next_state.phase = MotionPhase::kStopping;
                 next_state.clean_gate_cycles = 0;
+                next_state.stop_entry_speed_target = std::max(0.0, next_state.last_effective_speed_target);
                 return Finalize(inputs,
                                 next_state,
                                 phase,
@@ -183,8 +217,9 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 false,
                                 false,
                                 false,
-                                inputs.running_speed_target,
-                                inputs.motion_turn_limit_spinup);
+                                false,
+                                StopDecayTarget(next_state.stop_entry_speed_target, 1, inputs.motion_stop_ms),
+                                0.0);
             }
 
             const double spinup_ratio = ClampRatio(phase_elapsed_ms, inputs.motion_spinup_ms);
@@ -196,6 +231,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 phase,
                                 false,
                                 true,
+                                false,
                                 false,
                                 false,
                                 false,
@@ -213,12 +249,14 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                             false,
                             false,
                             false,
+                            false,
                             effective_speed,
                             inputs.motion_turn_limit_spinup);
         }
         case MotionPhase::kRunning:
             if (inputs.intent.stop_requested) {
                 next_state.phase = MotionPhase::kStopping;
+                next_state.stop_entry_speed_target = std::max(0.0, next_state.last_effective_speed_target);
             }
             return Finalize(inputs,
                             next_state,
@@ -229,22 +267,27 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                             false,
                             false,
                             false,
-                            next_state.phase == MotionPhase::kStopping ? inputs.running_speed_target
-                                                                       : inputs.running_speed_target,
-                            1.0);
+                            false,
+                            next_state.phase == MotionPhase::kStopping
+                                ? StopDecayTarget(next_state.stop_entry_speed_target, 1, inputs.motion_stop_ms)
+                                : inputs.running_speed_target,
+                            next_state.phase == MotionPhase::kStopping ? 0.0 : 1.0);
         case MotionPhase::kStopping: {
-            const double stop_ratio = 1.0 - ClampRatio(phase_elapsed_ms, inputs.motion_stop_ms);
-            const double effective_speed = inputs.running_speed_target * std::max(0.0, stop_ratio);
-            const bool stop_time_satisfied = phase_elapsed_ms >= static_cast<uint64_t>(std::max(0, inputs.motion_stop_ms));
+            const double effective_speed =
+                StopDecayTarget(next_state.stop_entry_speed_target, phase_elapsed_ms, inputs.motion_stop_ms);
+            const bool stop_time_satisfied =
+                phase_elapsed_ms >= static_cast<uint64_t>(std::max(0, inputs.motion_stop_ms));
             const bool encoder_quiet =
                 inputs.encoder_mean_abs <= std::max(0, inputs.motion_stop_encoder_threshold);
-            if (stop_time_satisfied && encoder_quiet) {
+            const bool command_zero = inputs.shaped_command_zero;
+            if (stop_time_satisfied && encoder_quiet && command_zero) {
                 next_state.phase = MotionPhase::kDisarmed;
                 next_state.clean_gate_cycles = 0;
                 return Finalize(inputs,
                                 next_state,
                                 phase,
                                 true,
+                                false,
                                 false,
                                 true,
                                 false,
@@ -262,8 +305,9 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                             false,
                             false,
                             false,
+                            false,
                             effective_speed,
-                            1.0);
+                            0.0);
         }
         case MotionPhase::kFailSafeLatched: {
             next_state.clean_gate_cycles = 0;
@@ -273,6 +317,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 phase,
                                 false,
                                 false,
+                                true,
                                 false,
                                 false,
                                 false,
@@ -293,6 +338,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                                 phase,
                                 true,
                                 false,
+                                false,
                                 true,
                                 true,
                                 false,
@@ -304,8 +350,9 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
             return Finalize(inputs,
                             next_state,
                             phase,
-                            true,
                             false,
+                            false,
+                            true,
                             false,
                             false,
                             false,
@@ -321,6 +368,7 @@ MotionDecision MotionSupervisor::Evaluate(const MotionSupervisorInputs& inputs) 
                     next_state,
                     phase,
                     true,
+                    false,
                     false,
                     true,
                     false,

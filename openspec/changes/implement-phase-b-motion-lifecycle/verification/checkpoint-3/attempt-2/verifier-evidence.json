@@ -1,0 +1,48 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verify-reviewer",
+  "start_at": "2026-04-18T22:52:00Z",
+  "end_at": "2026-04-18T23:04:41Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Checkpoint-3 source-first review of motion lifecycle runtime-boundary changes: product exit handling, smoke harness behavior, and fault-injection hooks, using declared change artifacts and directly impacted runtime integration files.",
+    "notes": "Static source review plus a successful local build of `new` via `cmake --build new/out -j4`."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": "All declared evidence paths were reviewed, and directly impacted lifecycle integration files were inspected where needed to validate the changed behavior."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/design.md",
+    "/home/madejuele/projects/2K0300/new/user/main.cpp",
+    "/home/madejuele/projects/2K0300/new/user/run_remote_smoke.sh",
+    "/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/imu_adapter.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/encoder_adapter.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/power_adapter.cpp",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+    "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/runtime_state.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/motion_types.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_decision.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

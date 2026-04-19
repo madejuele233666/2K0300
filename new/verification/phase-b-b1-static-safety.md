@@ -25,13 +25,14 @@ Baseline product-owned lifecycle path:
   ../out/new > ../verification/phase-b-b1-manual-lifecycle.log 2>&1 & \
   RUNTIME_PID=$! && \
   sleep 1 && kill -USR2 "${RUNTIME_PID}" && \
-  sleep 1 && kill -TERM "${RUNTIME_PID}" && \
+  sleep 1 && kill -INT "${RUNTIME_PID}" && \
   wait "${RUNTIME_PID}")
 ```
 
 ## Expected Markers
 
 - `main.harness_context`
+- `main.frame.processed`
 - `startup.complete`
 - `control.start`
 - `motion.start.requested`
@@ -43,7 +44,7 @@ Baseline product-owned lifecycle path:
 
 ## Harness Context
 
-The wrapper log must contain a dedicated `harness_context_begin ... harness_context_end` block showing the injected `LS2K_AUTO_*`, `LS2K_MAX_FRAMES`, and fault-injection env values. The direct product-owned command above intentionally does not use that harness block; its evidence is the signal-driven lifecycle markers in the runtime log.
+The wrapper log must contain a dedicated `harness_context_begin ... harness_context_end` block showing the injected `LS2K_AUTO_*`, `SMOKE_MAX_FRAMES`, and fault-injection env values. When bounded frame budget is enabled, the wrapper also relies on `main.frame.processed` and then sends `SIGINT` so the runtime reaches `DISARMED` before exit; timeout recovery may escalate to `SIGTERM` / `SIGKILL` if a faulted session cannot terminate gracefully. The direct product-owned command above intentionally does not use that harness block; its evidence is the signal-driven lifecycle markers in the runtime log.
 
 ## Proves
 

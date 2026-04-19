@@ -25,6 +25,9 @@ struct MotionSupervisorState {
     uint64_t phase_entry_ms = 0;
     uint64_t fail_safe_latched_at_ms = 0;
     int clean_gate_cycles = 0;
+    bool last_shaped_command_zero = true;
+    double last_effective_speed_target = 0.0;
+    double stop_entry_speed_target = 0.0;
 };
 
 struct MotionSupervisorInputs {
@@ -42,6 +45,7 @@ struct MotionSupervisorInputs {
     int motion_stop_ms = 0;
     int motion_stop_encoder_threshold = 0;
     int motion_fault_rearm_hold_ms = 0;
+    bool shaped_command_zero = false;
 };
 
 struct MotionDecision {
@@ -50,6 +54,7 @@ struct MotionDecision {
     bool phase_changed = false;
     bool hold_disarmed = true;
     bool allow_drive = false;
+    bool require_emergency_stop = false;
     bool reset_controllers = false;
     bool consume_reset_request = false;
     bool blocked_start = false;

@@ -48,7 +48,7 @@
 1. `race-finish-series.zh-CN` 当前主文档面已经完成两轮 review 闭环：
    - `2026-04-14` 基线文档完成 working + fresh challenger 闭环
    - `2026-04-15` 的 `old_2` 吸收增量也已完成当时的独立验证闭环；对应证据现视作历史归档验证记录
-2. 当前文档面上的命令、marker、证据文件、`SMOKE_MAX_FRAMES`、`exp_light` fail-closed 分支、future semantic marker 命名等问题，已经与代码和现行 review 证据重新对齐。
+2. 当前文档面上的命令、marker、证据文件、`SMOKE_MAX_FRAMES` wrapper 预算语义、`exp_light` fail-closed 分支、future semantic marker 命名等问题，已经与代码和现行 review 证据重新对齐。
 3. `old_2/` 已完成补充分析，并已被吸收到本系列，作为 `old/` 之外的第二条迁移证据链。
 4. 这次吸收明确修正了三个关键认识：
    - 当前真正高价值的视觉迁移对象是 `mid_servo` 生成链，而不只是 `Err`
@@ -76,7 +76,7 @@
 - `2026-04-14` 基线文档与验证契约：已闭环
 - `2026-04-15` 的 `old_2` 吸收增量：已并入主文档，并已完成历史独立验证闭环
 - `2026-04-17` 的 Phase A 实机证据已补齐，允许进入 `Phase B`
-- `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm 与 harness context contract；板端实车证据与 source-first review 仍待完成
+- `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm、wrapper-owned frame budget stop 与 harness context contract；板端实车证据与最终 source-first review 仍待完成
 
 ## 4. 已完成事项
 
@@ -96,7 +96,7 @@
 2. degraded startup 只用于诊断，不是比赛部署路径。
 3. 图片识别和未来距离传感器都必须通过 project-owned semantic/strategy 层接入。
 4. phase-scoped `.log` 证据文件必须在命令块里显式生成。
-5. `run_remote_smoke.sh` 的 wrapper 帧数控制开关是 `SMOKE_MAX_FRAMES`。
+5. `run_remote_smoke.sh` 的 wrapper 帧数控制开关是 `SMOKE_MAX_FRAMES`，实际 stop 通过观察 `main.frame.processed` 后发送 `SIGINT` 完成。
 6. `2026-04-17` 起，`run_remote_smoke.sh` 默认使用 diagnostics-only 的 `motor=disabled` smoke profile，并自动带 `LS2K_ALLOW_DEGRADED_STARTUP=1`；只有显式设置 `SMOKE_ENABLE_MOTOR=1` 才允许真实电机出力。
 6. `exp_light=66` 这类“语法合法但 direct-match 不支持”的分支，已经被写入共享参数验证矩阵。
 7. 当前平台没有独立舵机，`servo_pwm` 已从主线 contract 删除；`turn_output` 的文档语义固定为“差速调节量”。
@@ -184,7 +184,7 @@
 
 1. `race-finish-series.zh-CN` 系列文档完成 working + challenger 双通过。
 2. phase-scoped 日志生成规则与命令块完成统一。
-3. `SMOKE_MAX_FRAMES` / `LS2K_MAX_FRAMES` 语义完成与实现对齐。
+3. `SMOKE_MAX_FRAMES` 的 wrapper-owned 预算语义与 `main.frame.processed` 观测路径完成对齐；产品运行时不再把 `LS2K_MAX_FRAMES` 当成退出语义。
 4. `exp_light=66` direct-match fail-closed 分支写入共享参数验证矩阵。
 5. 新增本文件，作为当前推进记录页。
 
@@ -288,8 +288,8 @@
 
 1. 在 `runtime` 中新增 project-owned `motion_supervisor`、`motion_types`、Phase B 参数面和 runtime state，显式区分 `DISARMED`、`START_REQUESTED`、`SPINUP`、`RUNNING`、`STOPPING`、`FAIL_SAFE_LATCHED`。
 2. `control_loop` 已改成 `sample -> gate -> motion supervisor -> shaping/apply -> observation` 顺序，并补入 `control.apply.hold_disarmed`、`motion.phase.transition`、`motion.spinup.*`、`motion.stop.complete`、`motion.failsafe.*` marker。
-3. `main.cpp` 已把 start / stop / reset intent 与进程退出拆开；当前 accepted baseline 是 `SIGUSR2` start、`SIGUSR1` fault reset、signal-triggered controlled stop-before-exit。
-4. `run_remote_smoke.sh` 已记录独立 harness context block，并显式传递 `LS2K_AUTO_*`、`LS2K_MAX_FRAMES`、Phase B fault injection env。
+3. `main.cpp` 已把 start / stop / reset intent 与进程退出拆开；当前 accepted baseline 是 `SIGUSR2` start、`SIGUSR1` fault reset、`SIGINT` controlled stop、`SIGTERM` forced shutdown fallback。
+4. `run_remote_smoke.sh` 已记录独立 harness context block，并记录 `LS2K_AUTO_*`、`SMOKE_MAX_FRAMES`、Phase B fault injection env；当启用 bounded frame budget 时，wrapper 通过 `main.frame.processed` 观察 frame 进度并先发出 `SIGINT`，必要时再升级到 `SIGTERM` / `SIGKILL`。
 5. 新增 `new/verification/phase-b-b1-static-safety.md` 到 `phase-b-b5-fault-injection.md` 五份 implementation-grade Phase B notes。
 
 本次未完成：

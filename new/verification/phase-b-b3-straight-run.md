@@ -15,6 +15,7 @@
 
 ## Expected Markers
 
+- `main.frame.processed`
 - `motion.spinup.enter`
 - `motion.spinup.complete`
 - `control.apply.drive`
@@ -25,7 +26,7 @@
 
 ## Harness Context
 
-The wrapper header must show the exact `LS2K_AUTO_*` and `LS2K_MAX_FRAMES` values. Pair the log with a video clip or operator note that fixes the path shape, battery pack, and current parameter file.
+The wrapper header must show the exact `LS2K_AUTO_*` and `SMOKE_MAX_FRAMES` values. The runtime log must also expose `main.frame.processed` when the bounded frame budget is active, proving that wrapper-owned stop logic observed frame progress before sending `SIGINT`. Pair the log with a video clip or operator note that fixes the path shape, battery pack, and current parameter file.
 
 ## Proves
 

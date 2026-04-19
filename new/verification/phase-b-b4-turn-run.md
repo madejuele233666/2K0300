@@ -15,6 +15,7 @@
 
 ## Expected Markers
 
+- `main.frame.processed`
 - `motion.spinup.enter`
 - `motion.spinup.complete`
 - `control.apply.command`
@@ -26,7 +27,7 @@ The review focus is that turn corrections stay inside the lifecycle-owned start/
 
 ## Harness Context
 
-Keep the wrapper header with the exact automation env block. Add a short track note naming the bend direction, surface, and any temporary speed reduction used for the test.
+Keep the wrapper header with the exact automation env block. When using `SMOKE_MAX_FRAMES`, confirm `main.frame.processed` exists before the eventual `motion.stop.requested` / `motion.stop.complete` pair so the stop is demonstrably wrapper-owned. Add a short track note naming the bend direction, surface, and any temporary speed reduction used for the test.
 
 ## Proves
 

@@ -633,6 +633,30 @@ home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.s
 
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.o: home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
+
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.i: home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
+
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.s: home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
+
 home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.o: home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.o
 
@@ -1233,6 +1257,9 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_loop.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_loop.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_loop.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.s"

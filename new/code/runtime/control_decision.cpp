@@ -64,8 +64,8 @@ ControlCycleObservation ObserveControlCycle(const ControlCycleInputs& inputs) {
         observation.apply_outcome = ControlApplyOutcome::kZeroCommandApplied;
     }
 
-    observation.actuators_armed =
-        !inputs.apply_suppressed_by_profile && inputs.apply_ok && !inputs.command.emergency_stop;
+    observation.actuators_armed = !inputs.apply_suppressed_by_profile && !inputs.hold_disarmed &&
+                                  inputs.apply_ok && !inputs.command.emergency_stop;
     observation.arming_transition = observation.actuators_armed != inputs.previously_armed;
     return observation;
 }

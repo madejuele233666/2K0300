@@ -48,6 +48,7 @@ MotionSupervisorInputs BuildMotionSupervisorInputs(bool startup_complete,
     inputs.motion_stop_ms = params.motion_stop_ms;
     inputs.motion_stop_encoder_threshold = params.motion_stop_encoder_threshold;
     inputs.motion_fault_rearm_hold_ms = params.motion_fault_rearm_hold_ms;
+    inputs.shaped_command_zero = motion_state.last_shaped_command_zero;
     return inputs;
 }
 
@@ -477,7 +478,6 @@ void ControlLoop::Tick() {
 
     const MotionDecision motion = motion_supervisor_.Evaluate(BuildMotionSupervisorInputs(
         state_.startup_complete, previous_motion_state, motion_intent, gate, encoder, now_ms, params_));
-    EmitMotionDiagnostics(diagnostics_, motion, gate, motion_reset_ready_reported_, now_ms);
 
     if (motion.reset_controllers) {
         ResetControllerState(pid_, attitude_, state_);
@@ -485,11 +485,15 @@ void ControlLoop::Tick() {
 
     port::ActuatorCommand command{};
     bool hold_disarmed = false;
-    if (gate.veto_active) {
+    if (gate.veto_active || motion.require_emergency_stop) {
         command = {};
     } else if (motion.hold_disarmed || !motion.allow_drive) {
         hold_disarmed = true;
         command = {0, 0, false};
+    } else if (motion.state.phase == MotionPhase::kStopping) {
+        // STOPPING owns the actuator ramp-down directly so real motor output converges
+        // to zero even if the legacy speed controller still carries residual integral state.
+        command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
         const float w_target = pid_.ComputeTurnTarget(perception, state_.W_Target_last);
@@ -506,10 +510,29 @@ void ControlLoop::Tick() {
             command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
         }
     }
-
     const bool diagnostics_only_motor =
         profile_.motor.mode == port::SubsystemMode::kAdaptationHook ||
         profile_.motor.mode == port::SubsystemMode::kDisabled;
+    const bool current_requested_command_zero =
+        !command.emergency_stop && command.left_pwm == 0 && command.right_pwm == 0;
+    const bool current_effective_command_zero =
+        diagnostics_only_motor || hold_disarmed ||
+        (!command.emergency_stop && command.left_pwm == 0 && command.right_pwm == 0);
+
+    MotionDecision final_motion = motion;
+    if (motion.state.phase == MotionPhase::kStopping) {
+        MotionSupervisorInputs stop_completion_inputs = BuildMotionSupervisorInputs(
+            state_.startup_complete, motion.state, motion_intent, gate, encoder, now_ms, params_);
+        // Lifecycle stop completion is keyed to the command that can still reach the actuator path,
+        // not the controller's diagnostic-only requested PWM.
+        stop_completion_inputs.shaped_command_zero = current_effective_command_zero;
+        final_motion = motion_supervisor_.Evaluate(stop_completion_inputs);
+        if (final_motion.reset_controllers && !motion.reset_controllers) {
+            ResetControllerState(pid_, attitude_, state_);
+        }
+    }
+    EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
+
     bool apply_ok = true;
     if (diagnostics_only_motor || hold_disarmed) {
         platform_.motor->Disable(diagnostics_);
@@ -518,14 +541,15 @@ void ControlLoop::Tick() {
     }
 
     ControlCycleObservation observation = ObserveControlCycle(
-        {gate, command, motion.state.phase, apply_ok, diagnostics_only_motor, hold_disarmed, previous_observation.actuators_armed});
-    observation.motion_reset_ready = motion.reset_ready;
+        {gate, command, final_motion.state.phase, apply_ok, diagnostics_only_motor, hold_disarmed, previous_observation.actuators_armed});
+    observation.motion_reset_ready = final_motion.reset_ready;
     EmitObservationDiagnostics(diagnostics_, previous_observation, observation, now_ms);
 
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        state_.motion_state = motion.state;
-        if (motion.consume_reset_request) {
+        state_.motion_state = final_motion.state;
+        state_.motion_state.last_shaped_command_zero = current_requested_command_zero;
+        if (final_motion.consume_reset_request) {
             state_.motion_intent.reset_fault_requested = false;
         }
         state_.last_command = (apply_ok && !diagnostics_only_motor && !hold_disarmed && !command.emergency_stop)

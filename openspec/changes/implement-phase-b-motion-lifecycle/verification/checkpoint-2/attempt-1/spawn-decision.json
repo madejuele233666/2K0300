@@ -1,0 +1,15 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "phase": "checkpoint-2",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "no_usable_active_agent",
+  "decision": "allow",
+  "recorded_at": "2026-04-18T14:44:21Z",
+  "prior_agent": null,
+  "evidence": {
+    "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/agent-table.json",
+    "findings_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-1/findings.json",
+    "verifier_evidence_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/attempt-1/verifier-evidence.json"
+  }
+}
