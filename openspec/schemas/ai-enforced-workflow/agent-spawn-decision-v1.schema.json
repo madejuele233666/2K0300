@@ -28,14 +28,12 @@
         "artifact_gate",
         "apply",
         "implementation_verify",
-        "preflight",
         "repair"
       ]
     },
     "requested_agent_type": {
       "enum": [
-        "verify-reviewer",
-        "index-maintainer"
+        "verify-reviewer"
       ]
     },
     "reason_code": {
@@ -43,8 +41,7 @@
         "no_usable_active_agent",
         "active_agent_missing",
         "active_agent_not_resumable",
-        "tooling_recovery",
-        "index_refresh_required"
+        "tooling_recovery"
       ]
     },
     "decision": {
@@ -77,8 +74,7 @@
             "none",
             "active",
             "non_active",
-            "closed",
-            "maintenance"
+            "closed"
           ]
         },
         "resumable": {
@@ -102,10 +98,6 @@
           "minLength": 1
         },
         "verifier_evidence_path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "preflight_report_path": {
           "type": "string",
           "minLength": 1
         }
@@ -256,35 +248,6 @@
               },
               "resumable": {
                 "const": false
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "reason_code": {
-            "const": "index_refresh_required"
-          }
-        },
-        "required": [
-          "reason_code"
-        ]
-      },
-      "then": {
-        "properties": {
-          "requested_agent_type": {
-            "const": "index-maintainer"
-          },
-          "decision": {
-            "const": "allow"
-          },
-          "prior_agent": {
-            "properties": {
-              "status": {
-                "const": "maintenance"
               }
             }
           }

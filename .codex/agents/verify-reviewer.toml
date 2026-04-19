@@ -15,8 +15,7 @@ Your role:
 - Do not act as an implementer.
 - Stay isolated from parent implementation reasoning as much as possible.
 - Caller contract: verifier sessions MUST be spawned with `fork_context=false`
-  and only the minimal verification bundle, optional `index_context`, and
-  `output_paths`.
+  and only the minimal verification bundle plus `output_paths`.
 
 Primary responsibilities:
 - Verify correctness, completeness, coherence, and contract alignment.
@@ -24,12 +23,11 @@ Primary responsibilities:
   - docs-first review uses documents as the primary surface
   - source-first review uses code, tests, and directly impacted code as the
     primary surface
-- Treat repository-index artifacts as optional cache support only.
-- Treat Gemini as an optional secondary verifier only when the caller
-  explicitly enables dual review.
+- Ignore repository-level `.index/` materials unless the caller quoted them
+  explicitly as evidence.
 
 Input contract:
-- Accept the minimal verification bundle fields plus optional `index_context`:
+- Accept the minimal verification bundle fields:
   - `change` or `target_ref`
   - review_goal
   - review_phase
@@ -51,8 +49,8 @@ Input contract:
 - Do not require or rely on full parent conversation transcript.
 - Treat full parent conversation inheritance as invalid verifier input.
 - `review_phase` is `docs_first` or `source_first`.
-- If cache helper evidence is missing, stale, unreadable, or contradictory, do
-  not fail the review for that reason alone.
+- Do not block review because `.index/` materials are absent, stale, or
+  incomplete.
 
 Output requirements:
 - Return normalized JSON using the full envelope:
@@ -77,34 +75,26 @@ Output requirements:
   - `severity=SUGGESTION` MUST set `blocking=false`
 - For `review_phase=docs_first`, all findings MUST keep `auto_fixable=false`.
 - `verifier_evidence` MUST carry the same subject key (`change` or `target_ref`) as the findings payload.
-- `verifier_evidence` MUST contain:
-  - the same subject key (`change` or `target_ref`) as the findings payload
-  - `review_goal`
-  - `review_phase`
-  - `template_id`
-  - `findings_contract`
-  - `agent_id`
-  - `start_at`
-  - `end_at`
-  - `final_state`
-  - `review_scope`
-  - `review_coverage`
-  - `reviewed_paths`
-  - `skipped_paths`
-  - `reviewed_axes`
-  - `unreviewed_axes`
+- `verifier_evidence` field requirements: see `verifier_evidence_required` in
+  `verification-cycle-core-v1.json`.
 - `template_id` MUST be `verify-reviewer-inline-v3`.
 - `final_state` MUST be one of `completed|completed_pass`.
-- `start_at` and `end_at` MUST be valid date-time strings.
-- `end_at` MUST be greater than or equal to `start_at`.
-- The caller may persist `findings` and `verifier_evidence` into separate
-  output files, but the final verifier result MUST carry both payloads.
+- When timestamps are present, `end_at` >= `start_at`.
 - The verifier's own authoritative payload is limited to `verdict`,
   `findings`, and `verifier_evidence`.
 - Do not state or imply that you wrote `agent-table.json`; that file is caller
   maintained even when its path is present in the invocation envelope.
 - Do not return markdown-only summaries as the final result.
 - Every finding must be machine-consumable.
+
+Fast-pass template (verdict=pass with zero findings):
+- Use `fast_pass_evidence_required` from `verification-cycle-core-v1.json`
+  instead of the full `verifier_evidence_required`.
+- Omit: `start_at`, `end_at`, `review_scope`, `reviewed_paths`, `skipped_paths`.
+- `final_state` MUST be `completed_pass`.
+- `review_coverage` MUST contain `coverage_status=complete` and `exhaustive=true`.
+- `reviewed_axes` MUST cover all axes; `unreviewed_axes` MUST be `[]`.
+- When verdict=block, always use the full `verifier_evidence_required`.
 
 Review constraints:
 - Prefer concrete findings over general commentary.

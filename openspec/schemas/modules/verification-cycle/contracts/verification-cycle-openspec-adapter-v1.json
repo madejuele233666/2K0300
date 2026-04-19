@@ -55,9 +55,6 @@
     "findings_contract": {
       "const": "shared-findings-v1"
     },
-    "index_context": {
-      "type": "object"
-    },
     "output_paths": {
       "type": "object",
       "additionalProperties": false,

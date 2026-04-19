@@ -153,5 +153,24 @@
     "Only block->pass may mark an agent non_active.",
     "Close or exit does not imply non_active.",
     "Termination may use only a valid pass."
+  ],
+  "fast_pass_evidence_required": [
+    "review_goal",
+    "review_phase",
+    "template_id",
+    "findings_contract",
+    "agent_id",
+    "final_state",
+    "review_coverage",
+    "reviewed_axes",
+    "unreviewed_axes"
+  ],
+  "fast_pass_rules": [
+    "When verdict=pass with no findings, the verifier MAY use fast_pass_evidence_required instead of the full verifier_evidence_required.",
+    "fast_pass omits: start_at, end_at, review_scope, reviewed_paths, skipped_paths.",
+    "review_coverage MUST still contain coverage_status=complete and exhaustive=true.",
+    "reviewed_axes MUST cover all review_axes_allowed values; unreviewed_axes MUST be empty.",
+    "final_state MUST be completed_pass.",
+    "When verdict=block, the full verifier_evidence_required is always mandatory."
   ]
 }

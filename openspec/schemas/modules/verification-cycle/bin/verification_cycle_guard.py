@@ -171,10 +171,15 @@ def _validate_agent_table_payload(
 
 
 def _validate_required_evidence_fields(
-    evidence: dict[str, Any], evidence_path: Path, contract: dict[str, Any]
+    evidence: dict[str, Any], evidence_path: Path, contract: dict[str, Any],
+    *, is_fast_pass: bool = False,
 ) -> list[str]:
     errors: list[str] = []
-    for field in contract.get("verifier_evidence_required", []):
+    if is_fast_pass:
+        required_fields = contract.get("fast_pass_evidence_required", contract.get("verifier_evidence_required", []))
+    else:
+        required_fields = contract.get("verifier_evidence_required", [])
+    for field in required_fields:
         if field not in evidence:
             errors.append(f"Missing required verifier evidence field {field!r} in {evidence_path}")
             continue
@@ -209,6 +214,8 @@ def _validate_evidence_semantics(
     parsed_timestamps: dict[str, datetime] = {}
     for field in timestamp_fields:
         value = evidence.get(field)
+        if value is None:
+            continue  # field not present (e.g. fast-pass omits timestamps)
         parsed = _parse_datetime_value(value)
         if parsed is None:
             errors.append(
@@ -395,11 +402,14 @@ def validate_run_dir(run_dir: Path) -> list[str]:
                 errors.append(
                     f"agent-table/findings subject value mismatch in {attempt}: {table_subject_value!r} != {findings_subject_value!r}"
                 )
-        errors.extend(_validate_required_evidence_fields(evidence, evidence_path, core_contract))
+        findings_items = findings.get("findings")
+        errors.extend(_validate_required_evidence_fields(
+            evidence, evidence_path, core_contract,
+            is_fast_pass=(verdict == "pass" and not findings_items),
+        ))
         errors.extend(_validate_evidence_semantics(evidence, evidence_path, core_contract))
         if verdict not in {"block", "pass"}:
             errors.append(f"Invalid verdict in {findings_path}")
-        findings_items = findings.get("findings")
         if not isinstance(findings_items, list):
             errors.append(f"findings must be an array in {findings_path}")
             continue

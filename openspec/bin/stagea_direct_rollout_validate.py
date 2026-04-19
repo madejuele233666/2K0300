@@ -69,7 +69,6 @@ YAML_FILES = [
 
 TOML_FILES = [
     AGENTS_ROOT / "verify-reviewer.toml",
-    AGENTS_ROOT / "index-maintainer.toml",
 ]
 
 PYTHON_FILES = [
@@ -131,12 +130,7 @@ SCOPE_PATTERNS = {
         "verification-cycle-openspec-adapter-v1.json",
         "verification-cycle-agent-table-v1.json",
         "verify-reviewer-inline-v3",
-        "active/non_active/closed cycle",
-        "prefer `send_input` while the same active agent is still open",
-        "`send_input` returning `agent not found` still routes to `resume`, not",
-        "use `resume` only when that same active agent was closed",
-        "`no_usable_active_agent` means only that `agent-table.json` literally",
-        "block -> pass",
+        "cycle_rules",
         "agent-table.json",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/design.md": [
@@ -165,7 +159,7 @@ SCOPE_PATTERNS = {
     AGENTS_ROOT / "verify-reviewer.toml": [
         'sandbox_mode = "read-only"',
         "`fork_context=false`",
-        "Accept the minimal verification bundle fields plus optional `index_context`:",
+        "Accept the minimal verification bundle fields:",
         "findings_path",
         "verifier_evidence_path",
         "agent_table_path",
@@ -176,6 +170,7 @@ SCOPE_PATTERNS = {
         "Do not return markdown-only summaries as the final result.",
         "If the pass is partial, explicitly describe scope in verifier evidence.",
         "A pass is valid only when coverage is complete and exhaustive.",
+        "fast_pass_evidence_required",
     ],
     MODULE_ROOT / "fixtures/README.md": [
         "attempt-*",
@@ -195,52 +190,28 @@ SCOPE_PATTERNS = {
         "agent-table.json",
     ],
     CODEX_HOME / "skills/openspec-repair-change/SKILL.md": [
-        "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+        "CALLER-INTEGRATION.md",
         "current `agent-table.json`",
-        "continue the active verifier first when it is still usable",
-        "prefer `send_input` while that same `active` verifier is still open",
-        "`agent not found`",
-        "use `resume` only when that same `active` verifier was closed",
-        "mark an agent `non_active` only on `block -> pass`",
+        "cycle_rules",
     ],
     CODEX_HOME / "skills/openspec-apply-change/SKILL.md": [
-        "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+        "CALLER-INTEGRATION.md",
         "verification-cycle-core-v1.json",
         "verification-cycle-openspec-adapter-v1.json",
         "verification-cycle-agent-table-v1.json",
         "verify-reviewer-inline-v3",
-        "usable `active` verifier exists",
-        "prefer `send_input` while that same `active` verifier is still open",
-        "`agent not found`",
-        "use `resume` only when that same `active` verifier was closed",
-        "only `block -> pass` marks an agent `non_active`",
+        "cycle_rules",
+        "agent-table.json",
     ],
     CODEX_HOME / "skills/openspec-continue-change/SKILL.md": [
-        "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
-        "usable `active` verifier first",
-        "prefer `send_input` while that same `active` verifier is still open",
-        "`agent not found`",
-        "use `resume` only when that same `active` verifier was closed",
-        "actual verifier invocation",
+        "CALLER-INTEGRATION.md",
+        "cycle_rules",
         "agent-table.json",
-    ],
-    CODEX_HOME / "skills/openspec-ff-change/SKILL.md": [
-        "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
-        "usable `active` verifier first",
-        "prefer `send_input` while that same `active` verifier is still open",
-        "`agent not found`",
-        "use `resume` only when that same `active` verifier was closed",
-        "agent-table.json",
-        "valid active pass",
     ],
     CODEX_HOME / "skills/openspec-propose/SKILL.md": [
-        "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
-        "usable `active` verifier first",
-        "prefer `send_input` while that same `active` verifier is still open",
-        "`agent not found`",
-        "use `resume` only when that same `active` verifier was closed",
+        "CALLER-INTEGRATION.md",
+        "cycle_rules",
         "agent-table.json",
-        "valid active pass",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json": [
         "no_usable_active_agent",
@@ -311,7 +282,6 @@ LEGACY_FORBID_PATHS = [
     AGENTS_ROOT / "verify-reviewer.toml",
     CODEX_HOME / "skills/openspec-apply-change/SKILL.md",
     CODEX_HOME / "skills/openspec-continue-change/SKILL.md",
-    CODEX_HOME / "skills/openspec-ff-change/SKILL.md",
     CODEX_HOME / "skills/openspec-propose/SKILL.md",
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
 ]
@@ -1575,7 +1545,6 @@ def validate_spawn_schema_semantics() -> list[str]:
         "active_agent_missing",
         "active_agent_not_resumable",
         "tooling_recovery",
-        "index_refresh_required",
     }
     errors: list[str] = []
     missing = required - reasons
@@ -1681,39 +1650,20 @@ def validate_spawn_schema_semantics() -> list[str]:
 
 def validate_send_input_resume_contract() -> list[str]:
     errors: list[str] = []
-    schema_path = OPENSPEC_ROOT / "schemas/ai-enforced-workflow/schema.yaml"
     tasks_template_path = OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/tasks.md"
 
     errors += require_tokens_between(
-        schema_path,
-        "State that usable",
-        "If the checkpoint",
-        [
-            "active agents are continued first",
-            "callers prefer `send_input`",
-            "callers use `resume` only when that same active agent was closed",
-            "`send_input` returning `agent not found` still routes to `resume`, not spawn",
-            "new agents are spawned only when no usable active agent exists",
-            "`no_usable_active_agent` means only that `agent-table.json` literally contains no `active` agent",
-            "recovery spawns keep distinct reason codes such as `active_agent_missing` or `active_agent_not_resumable`",
-            "`spawn_active` decisions expose machine-readable `spawn_reason_code`",
-            "termination depends on a valid active pass",
-        ],
-    )
-    errors += require_tokens_between(
         tasks_template_path,
         "- [ ] 2.3 [Checkpoint]",
-        "If the checkpoint explicitly enables Gemini dual review",
+        "## 3.",
         [
-            "usable active agents are continued first",
-            "callers prefer `send_input` while the same active agent is still open",
-            "callers use `resume` only when that same active agent was closed and must be restored",
-            "`send_input` returning `agent not found` still routes to `resume`, not spawn",
-            "new agents are spawned only when no usable active agent exists",
-            "`no_usable_active_agent` means only that `agent-table.json` literally contains no `active` agent",
-            "recovery spawns keep distinct reason codes such as `active_agent_missing` or `active_agent_not_resumable`",
-            "`spawn_active` decisions expose machine-readable `spawn_reason_code`",
-            "termination depends on a valid active pass",
+            "verify-sequence/default",
+            "verification-cycle-core-v1.json",
+            "verification-cycle-openspec-adapter-v1.json",
+            "review_goal=implementation_correctness",
+            "cycle_rules",
+            "verifier_evidence_required",
+            "agent-table.json",
         ],
     )
     return errors
@@ -1761,30 +1711,16 @@ def validate_verify_reviewer_contract() -> list[str]:
             "`verdict`",
             "`findings`",
             "`verifier_evidence`",
-            "`review_goal`",
-            "`review_phase`",
-            "`template_id`",
-            "`findings_contract`",
-            "`agent_id`",
-            "`start_at`",
-            "`end_at`",
-            "`final_state`",
-            "`review_scope`",
-            "`review_coverage`",
-            "`reviewed_paths`",
-            "`skipped_paths`",
-            "`reviewed_axes`",
-            "`unreviewed_axes`",
             "`blocking=true` forbids `verdict=pass`",
             "`auto_fixable=true` requires `blocking=true`",
             "`severity=SUGGESTION` MUST set `blocking=false`",
             "For `review_phase=docs_first`, all findings MUST keep `auto_fixable=false`.",
             "`verifier_evidence` MUST carry the same subject key (`change` or `target_ref`) as the findings payload.",
+            "`verifier_evidence` field requirements: see `verifier_evidence_required` in",
             "`template_id` MUST be `verify-reviewer-inline-v3`.",
             "`final_state` MUST be one of `completed|completed_pass`.",
-            "`start_at` and `end_at` MUST be valid date-time strings.",
-            "`end_at` MUST be greater than or equal to `start_at`.",
-            "final verifier result MUST carry both payloads",
+            "When timestamps are present, `end_at` >= `start_at`.",
+            "Fast-pass template (verdict=pass with zero findings):",
             "Do not return markdown-only summaries as the final result.",
         ],
     )
@@ -2473,25 +2409,12 @@ def validate_findings_routing_contract() -> list[str]:
 
     errors += require_tokens_between(
         schema_path,
-        "- allow automatic repair only when",
-        "- use Gemini only when repository or checkpoint policy explicitly enables",
+        "- finding semantics: follow `finding_semantics` and",
+        "- do not substitute user confirmation for verification",
         [
-            "`review_goal=implementation_correctness && blocking=true && auto_fixable=true`",
-            "`severity=SUGGESTION` findings to keep `blocking=false`",
-            "`review_phase=docs_first` findings to keep `auto_fixable=false`",
+            "`finding_semantics`",
+            "`repair_routing_rules`",
             "route blocking non-auto-fixable findings to `openspec-repair-change`",
-        ],
-    )
-    errors += require_tokens_between(
-        schema_path,
-        "- shared field groups from `verification-cycle-core-v1.json` and",
-        "- session semantics:",
-        [
-            "subject_required_any_of",
-            "findings_required",
-            "finding_object_required",
-            "finding_semantics",
-            "repair_routing_rules",
         ],
     )
     errors += require_tokens_between(
@@ -2501,18 +2424,6 @@ def validate_findings_routing_contract() -> list[str]:
         [
             "subject_required_any_of",
             "findings_required / finding_object_required / finding_semantics / repair_routing_rules",
-        ],
-    )
-    errors += require_tokens_between(
-        schema_path,
-        "Any task group that modifies core workflow gates, verification logic, or",
-        "SKILL AWARENESS:",
-        [
-            "subject_required_any_of",
-            "findings_required",
-            "finding_object_required",
-            "finding_semantics",
-            "repair_routing_rules",
         ],
     )
     errors += require_tokens_between(

@@ -8,7 +8,6 @@ Consumers:
 - `$CODEX_HOME/skills/openspec-verify-change/SKILL.md`
 - `$CODEX_HOME/skills/openspec-repair-change/SKILL.md`
 - `openspec/schemas/ai-enforced-workflow/schema.yaml`
-- `openspec/schemas/ai-enforced-workflow/index-sequence.md`
 
 ## Stage A Goal
 
@@ -27,16 +26,16 @@ continue active verifier
   -> terminate on valid active pass
 ```
 
-Repository-index support is optional cache help only.
-It is never the authority for termination.
+Repository-level indexing, when present under `.index/`, is external reference
+material only. It is outside the verifier bundle and never the authority for
+termination.
 
 ## Verifier Agent Contract
 
 - Agent definition: `.codex/agents/verify-reviewer.toml`
 - Role: reviewer only
 - Parent-context rule: verifier spawns MUST use `fork_context=false`
-- Bundle rule: pass only the minimal verification bundle, optional
-  `index_context`, and `output_paths`
+- Bundle rule: pass only the minimal verification bundle and `output_paths`
 - Output rule: normalized JSON only; malformed output blocks the step
 - Invocation rule: built-in subagent invocation is the default path
 - Automatic continuation rule: if verification is required, continue in the
@@ -181,9 +180,6 @@ Caller passes:
   "risk_tier": "LIGHT|STANDARD|STRICT",
   "evidence_paths_or_diff_scope": ["..."],
   "findings_contract": "shared-findings-v1",
-  "index_context": {
-    "...": "Optional cache-helper fields"
-  },
   "output_paths": {
     "findings_path": "...",
     "verifier_evidence_path": "...",

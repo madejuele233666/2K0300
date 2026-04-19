@@ -1,6 +1,6 @@
 name: ai-enforced-workflow
 version: 8
-description: Spec-driven workflow with unified verification-cycle checkpoints, optional repository-index cache support, resumable active verifier sessions, and valid-pass termination
+description: Spec-driven workflow with unified verification-cycle checkpoints, optional external `.index/` reference material, resumable active verifier sessions, and valid-pass termination
 artifacts:
   - id: proposal
     generates: proposal.md
@@ -123,14 +123,13 @@ artifacts:
       - All verification stages MUST use the shared sequence
         `verify-sequence/default` from
         `openspec/schemas/ai-enforced-workflow/verification-sequence.md`.
-      - Repository-index support uses `index-sequence/default` only as optional
-        cache discovery or refresh, never as a Stage 0 gate.
+      - Repository-level indexing, when published under `.index/`, is external
+        reference material only and MUST NOT become a Stage A gate.
       - `openspec-artifact-verify` and `openspec-verify-change` MUST stay thin
         and delegate orchestration to the shared sequence.
       - The docs-first artifact gate belongs to the caller that finishes the
-        `applyRequires` artifact set (`openspec-propose`,
-        `openspec-ff-change`, or `openspec-continue-change`), not to
-        `openspec-apply-change`.
+        `applyRequires` artifact set (`openspec-propose` or
+        `openspec-continue-change`), not to `openspec-apply-change`.
       - Those artifact-completion callers MUST start that docs-first gate
         automatically in the same turn unless the caller explicitly requested
         `dry-run` or `manual_pause`.
@@ -145,60 +144,21 @@ artifacts:
 
       For each independent verification step, design.md MUST document:
 
-      - sequence reference:
-        `openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default`
-      - shared JSON verification contract:
-        `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json`
-      - OpenSpec subject adapter:
-        `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json`
-      - agent-table contract:
-        `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json`
-      - cache-helper reference:
-        `openspec/schemas/ai-enforced-workflow/index-sequence.md#index-sequence/default`
-      - verifier agent path:
-        `.codex/agents/verify-reviewer.toml`
-      - index-maintainer agent path:
-        `.codex/agents/index-maintainer.toml`
-      - index skill entry points:
-        `openspec-index-preflight` and `openspec-index-maintain`
-      - verifier invocation method:
-        built-in subagent API in the main process with `fork_context=false`
-        and only the minimal verification bundle, optional `index_context`,
-        and `output_paths`
-      - verifier invocation template:
+      - sequence reference: `verification-sequence.md#verify-sequence/default`
+      - contracts: `verification-cycle-core-v1.json`,
+        `verification-cycle-openspec-adapter-v1.json`,
+        `verification-cycle-agent-table-v1.json`
+      - verifier agent: `.codex/agents/verify-reviewer.toml`
+      - invocation: built-in subagent API, `fork_context=false`, template
         `verify-reviewer-inline-v3`
-      - shared field groups from `verification-cycle-core-v1.json` and
-        `verification-cycle-openspec-adapter-v1.json`:
-        `invocation_common_required / output_paths_required /
-        verifier_evidence_required / subject_required_any_of /
-        findings_required / finding_object_required / finding_semantics /
-        repair_routing_rules / valid_pass_requirements / partial_scope_rule`
-      - session semantics:
-        checkpoints use the same active/non_active/closed cycle;
-        usable active agents are continued first;
-        callers prefer `send_input` while the same active agent is still open;
-        `send_input` returning `agent not found` still routes to `resume`, not
-        spawn;
-        callers use `resume` only when that same active agent was closed and
-        must be restored;
-        new agents are spawned only when no usable active agent exists;
-        `no_usable_active_agent` means only that `agent-table.json` literally
-        contains no `active` agent;
-        recovery spawns keep distinct reason codes such as
-        `active_agent_missing` or `active_agent_not_resumable`;
-        `spawn_active` decisions expose machine-readable `spawn_reason_code`;
-        only `block -> pass` marks `non_active`;
-        termination depends on a valid active pass
-      - transition ownership:
-        only the main orchestrator may authorize resume, spawn, repair, or
-        termination; it must not substitute its own judgment for verifier
-        output
-      - Gemini policy:
-        optional only when repository or checkpoint policy explicitly enables
-        dual review; not a default Stage A gate
-      - runner contract details when Gemini is used:
-        `gemini-capture`, raw report path, normalized report path, recovery
-        semantics, and command-resolution evidence
+      - agent lifecycle: follow `cycle_rules` in
+        `verification-cycle-core-v1.json`
+      - external repository indexing, if documented, MUST reference `.index/`
+        as non-authoritative background only; it MUST NOT add verifier bundle
+        fields, spawn authority, repair routing, or closure authority
+      - transition ownership: only the orchestrator may authorize resume,
+        spawn, repair, or termination
+
 
 
       REVIEW GATE:
@@ -244,24 +204,8 @@ artifacts:
         `findings_required / finding_object_required / finding_semantics /
         repair_routing_rules`
       - Review tasks MUST require `agent-table.json`
-      - Tasks MUST state that usable active agents are continued first, that
-        callers prefer `send_input` while the same active agent is still open,
-        that `send_input` returning `agent not found` still routes to
-        `resume`, not spawn, that callers use `resume` only when that same
-        active agent was closed
-        and must be restored, that new agents are spawned only when no usable
-        active agent exists, that `no_usable_active_agent` means only that
-        `agent-table.json` literally contains no `active` agent, that
-        recovery spawns keep distinct reason codes such as
-        `active_agent_missing` or `active_agent_not_resumable`, that
-        `spawn_active` decisions expose machine-readable `spawn_reason_code`,
-        that only `block -> pass` marks `non_active`, and that termination
-        depends on a valid active pass
-        and must be restored, that new agents are spawned only when no usable
-        active agent exists, that `no_usable_active_agent` means only that
-        `agent-table.json` literally contains no `active` agent, that only
-        `block -> pass` marks `non_active`, and that termination depends on a
-        valid active pass
+      - Agent lifecycle: follow `cycle_rules` in
+        `verification-cycle-core-v1.json`
       - If the task list completes the schema's `applyRequires` set, tasks
         MUST make clear that the artifact-completion caller owns the
         docs-first review before implementation entry; `openspec-apply-change`
@@ -274,8 +218,7 @@ artifacts:
 
       - `LIGHT`: verifier-subagent review
       - `STANDARD`: explicit verification-cycle checkpoints
-      - `STRICT`: same as `STANDARD`, plus explicit exercises and, only when
-        repository policy opts in, Gemini dual-review checkpoints
+      - `STRICT`: same as `STANDARD`, plus explicit exercises
 
 
       CHECKPOINTS:
@@ -284,35 +227,11 @@ artifacts:
       repair routing MUST end with a checkpoint task in this exact format:
 
       - [ ] X.Y [Checkpoint] Run verifier-subagent review using
-        `verify-sequence/default` for [specific output]. Use repository-index
-        cache helper `index-sequence/default` only when cache discovery or
-        refresh is useful; do not require cache authority before review.
-        Reference the shared field groups in
-        `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json`
-        and
-        `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json`
-        for `invocation_common_required`, `output_paths_required`,
-        `verifier_evidence_required`, `subject_required_any_of`,
-        `findings_required`, `finding_object_required`,
-        `finding_semantics`, `repair_routing_rules`,
-        `valid_pass_requirements`, and `partial_scope_rule`, plus the routing
-        target and any caller-local guardrails. Require authoritative verifier
-        findings JSON, verifier execution evidence JSON, and
-        `agent-table.json`. State that usable active agents are continued
-        first, that callers prefer `send_input` while the same active agent is
-        still open, that `send_input` returning `agent not found` still routes
-        to `resume`, not spawn, that callers use `resume` only when that same
-        active agent was closed and must be restored, that new agents are
-        spawned only when no usable active agent exists, that
-        `no_usable_active_agent` means only that `agent-table.json` literally
-        contains no `active` agent, that recovery spawns keep distinct reason
-        codes such as `active_agent_missing` or
-        `active_agent_not_resumable`, that `spawn_active` decisions expose
-        machine-readable `spawn_reason_code`, that only `block -> pass` marks
-        an agent `non_active`, and that termination depends on a valid active pass. If the checkpoint
-        explicitly enables Gemini dual review, require logical runner contract
-        `gemini-capture`, raw plus normalized output, and recovery via
-        `input_raw_path -> report_path`.
+        `verify-sequence/default` for [specific output]. Reference field
+        groups in `verification-cycle-core-v1.json` and
+        `verification-cycle-openspec-adapter-v1.json`. Follow `cycle_rules`
+        for agent lifecycle. Require authoritative findings JSON, verifier
+        evidence JSON, and `agent-table.json`.
 
 
       SKILL AWARENESS:
@@ -333,56 +252,22 @@ apply:
 
     For any verification or checkpoint task in `ai-enforced-workflow`:
     - execute shared sequence `verify-sequence/default`
-    - use repository-index helper `index-sequence/default` only for optional
-      cache discovery or refresh
-    - do not require cache authority before review can start or
-      complete
     - use verifier agent `.codex/agents/verify-reviewer.toml` in read-only mode
-      with bundle fields from
-      `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json`
-      -> `required_fields`
-    - when cache helper runs, pass optional `index_context`
-    - pass `output_paths`
-      from `verification-cycle-core-v1.json` -> `output_paths_required`
-    - invoking an `ai-enforced-workflow` step that requires
-      `verify-sequence/default` explicitly authorizes the verifier sub-agent
-      spawns required by that step, limited to the reviewer sessions required
-      by the workflow
-    - verifier reviewer spawns MUST use `fork_context=false` and pass only the
-      minimal verification bundle, optional `index_context`, and
-      `output_paths`
-    - maintain `agent-table.json` as the authoritative agent-state record
-    - use the built-in subagent API for verifier execution; do not replace it with shell/exec when the subagent API is available
-    - require authoritative verifier findings JSON plus verifier execution
-      evidence JSON plus `agent-table.json`
-    - assume docs-first artifact verification already closed before apply
-      started; do not re-run that artifact gate as an apply prerequisite
-    - require review execution evidence to include `review_scope` and
-      `review_coverage`
-    - require usable active agents to be continued first
-    - require callers to prefer `send_input` while the same active agent is
-      still open
-    - require `continuation_probe` when the current active agent already went
-      through a `send_input` / `resume` recovery attempt
-    - require `resume` only when that same active agent was closed and must be
-      restored
-    - allow new verifier spawn when no usable active agent exists, including
-      the literal no-active case and distinct recovery cases
-    - require `no_usable_active_agent` to mean only that `agent-table.json`
-      literally contains no `active` agent
-    - require recovery spawns to keep distinct reason codes such as
-      `active_agent_missing` or `active_agent_not_resumable`
-    - require `spawn_active` decisions to expose machine-readable
-      `spawn_reason_code`
-    - allow `non_active` only on `block -> pass`
-    - require termination to come only from a valid active pass
-    - allow automatic repair only when
-      `review_goal=implementation_correctness && blocking=true &&
-      auto_fixable=true`
-    - require `severity=SUGGESTION` findings to keep `blocking=false`
-    - require `review_phase=docs_first` findings to keep
-      `auto_fixable=false`
+    - bundle fields: `verification-cycle-openspec-adapter-v1.json` ->
+      `required_fields`; output paths: `verification-cycle-core-v1.json` ->
+      `output_paths_required`
+    - verifier spawns MUST use `fork_context=false` with minimal bundle
+    - agent lifecycle: follow `cycle_rules` in
+      `verification-cycle-core-v1.json`; require `continuation_probe` on
+      recovery re-attempts
+    - maintain `agent-table.json` as authoritative agent-state record
+    - use built-in subagent API; do not substitute shell/exec
+    - treat `.index/` as optional external background only; do not turn it
+      into a verifier bundle field or review-completion dependency
+    - assume docs-first artifact gate already closed before apply started
+    - require findings JSON, verifier evidence JSON (with `review_scope` and
+      `review_coverage`), and `agent-table.json`
+    - finding semantics: follow `finding_semantics` and
+      `repair_routing_rules` in `verification-cycle-core-v1.json`
     - route blocking non-auto-fixable findings to `openspec-repair-change`
-    - use Gemini only when repository or checkpoint policy explicitly enables
-      dual review
     - do not substitute user confirmation for verification

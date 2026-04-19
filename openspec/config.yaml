@@ -1,20 +1,41 @@
 schema: ai-enforced-workflow
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Embedded bare-metal to Linux migration project for the Loongson 2K0300 (LS2K0300) SoC.
+  Migrating an autonomous line-following car from TC264 (dual-core MCU, ISR-driven)
+  to LS2K0300 (MIPS64, Linux userspace).
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Tech stack: C++17, CMake, cross-compilation via mipsel-linux-gnu-g++.
+  Runtime: single-process Linux application with timer-driven control loop and
+  foreground perception loop. No RTOS. Signal-based shutdown.
+
+  Architecture: layered separation in new/code/:
+    - port/    — project-owned contracts and shared types (hardware-free)
+    - platform/ — LS2K0300 driver adapters (camera/IMU/encoder/motor/power)
+    - legacy/   — migrated perception/PID/steering/motor-mix algorithms
+    - runtime/  — lifecycle orchestration (startup/perception/control/shutdown)
+    - config/   — JSON-based runtime parameters and hardware profile
+
+  Key constraints:
+    - Board deployment via SSH + SCP (see new/user/build.sh)
+    - Camera input is 160x120 UVC adapted to 160x128 legacy grayscale layout
+    - Hardware profile enforces subsystem modes: direct-match / adaptation-hook / disabled
+    - Fail-safe: motors disarmed on veto/sensor-invalid; fail-closed by default
+    - MobileNetV3-Small TFLite model training in model_training/ (Python/TensorFlow)
+
+  Conventions:
+    - Keep port/ free of vendor and OpenCV concrete types in public interfaces
+    - Use conventional commits
+    - Build artifacts go to new/out/ (not tracked)
+
+rules:
+  proposal:
+    - Always classify Risk Tier using concrete triggers from the codebase
+    - Name affected layers explicitly (port/platform/legacy/runtime/config)
+  design:
+    - Include board deployment/smoke-test considerations when hardware behavior changes
+    - Every Decision must name at least one on-board verification hook
+  tasks:
+    - Include a board smoke-test task when platform/ or runtime/ files change
+    - Break tasks into chunks that can be verified independently
+    - Keep individual tasks under 2 hours of estimated work
