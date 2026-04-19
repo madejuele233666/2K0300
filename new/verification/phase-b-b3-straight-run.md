@@ -20,6 +20,7 @@
 - `motion.spinup.complete`
 - `control.apply.drive`
 - `control.apply.command`
+- `control.snapshot`
 - `imu.sample.summary`
 - `encoder.delta.summary`
 - `motion.stop.complete`
@@ -33,6 +34,7 @@ The wrapper header must show the exact `LS2K_AUTO_*` and `SMOKE_MAX_FRAMES` valu
 - The accepted runtime entrypoint can produce a lifecycle-complete straight-run trace.
 - IMU, encoder, and drive-command markers are time-aligned with motion phases.
 - Controlled stop returns the runtime to `DISARMED` after a bounded run.
+- Straight-run evidence can explain left/right wheel target, feedback, and PWM without requiring assistant connectivity.
 
 ## Does Not Prove
 

@@ -130,6 +130,18 @@ int ClampTurnOutput(float turn_output, double turn_limit_scale, int pwm_limit) {
     return static_cast<int>(std::round(std::clamp(turn_output, -turn_limit, turn_limit)));
 }
 
+legacy::WheelSpeedTargets BuildSnapshotWheelTargets(const MotionDecision& decision,
+                                                    int turn_pwm_command,
+                                                    const legacy::WheelTargetMixer& mixer,
+                                                    int pwm_limit) {
+    if (decision.require_emergency_stop || decision.hold_disarmed || !decision.allow_drive) {
+        return {};
+    }
+
+    const int snapshot_turn_pwm = decision.state.phase == MotionPhase::kStopping ? 0 : turn_pwm_command;
+    return mixer.Compute(decision.effective_speed_target, snapshot_turn_pwm, pwm_limit);
+}
+
 port::ActuatorCommand ApplyPwmStepLimit(const port::ActuatorCommand& previous,
                                         port::ActuatorCommand command,
                                         int pwm_step_limit) {
@@ -145,9 +157,13 @@ port::ActuatorCommand ApplyPwmStepLimit(const port::ActuatorCommand& previous,
 
 void ResetControllerState(legacy::LegacyPidControl& pid,
                           legacy::LegacyAttitudeLogic& attitude,
+                          legacy::WheelPidController& left_wheel_pid,
+                          legacy::WheelPidController& right_wheel_pid,
                           RuntimeState& state) {
     pid.Reset();
     attitude.Reset();
+    left_wheel_pid.Reset();
+    right_wheel_pid.Reset();
     state.W_Target_last = 0.0F;
     state.bcount = 0;
 }
@@ -352,10 +368,18 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     pid_.Configure(params_);
     pid_.Reset();
     attitude_.Reset();
+    wheel_target_mixer_.Configure(params_);
+    left_wheel_pid_.Configure(params_.left_wheel_pid);
+    right_wheel_pid_.Configure(params_.right_wheel_pid);
+    left_wheel_pid_.Reset();
+    right_wheel_pid_.Reset();
+    debug_reporter_.Configure(params_);
+    debug_reporter_.Reset();
 
     state_.timer_started = false;
     state_.actuators_armed = false;
     state_.control_observation = {};
+    state_.control_debug_snapshot = {};
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -421,6 +445,7 @@ void ControlLoop::Stop() {
         state_.actuators_armed = false;
         state_.last_command = {};
         state_.control_observation = {};
+        state_.control_debug_snapshot = {};
         state_.motion_state.phase = MotionPhase::kDisarmed;
         state_.motion_state.clean_gate_cycles = 0;
     }
@@ -480,11 +505,13 @@ void ControlLoop::Tick() {
         state_.startup_complete, previous_motion_state, motion_intent, gate, encoder, now_ms, params_));
 
     if (motion.reset_controllers) {
-        ResetControllerState(pid_, attitude_, state_);
+        ResetControllerState(pid_, attitude_, left_wheel_pid_, right_wheel_pid_, state_);
     }
 
     port::ActuatorCommand command{};
+    legacy::WheelSpeedTargets wheel_targets{};
     bool hold_disarmed = false;
+    int limited_turn_output = 0;
     if (gate.veto_active || motion.require_emergency_stop) {
         command = {};
     } else if (motion.hold_disarmed || !motion.allow_drive) {
@@ -498,14 +525,12 @@ void ControlLoop::Tick() {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
         const float w_target = pid_.ComputeTurnTarget(perception, state_.W_Target_last);
         const float turn_output = pid_.ComputeGyroTurn(w_target, imu.gyro_z);
-        const int limited_turn_output = ClampTurnOutput(turn_output, motion.turn_limit_scale, params_.pwm_limit);
-        const double measured_speed = static_cast<double>(encoder.left + encoder.right) * 0.5;
-        const int mean_pwm =
-            pid_.ComputeMeanSpeedPwm(motion.effective_speed_target, measured_speed, params_.pwm_limit);
-        command = motor_logic_.Mix(mean_pwm,
-                                   static_cast<float>(limited_turn_output),
-                                   false,
-                                   params_.pwm_limit);
+        limited_turn_output = ClampTurnOutput(turn_output, motion.turn_limit_scale, params_.pwm_limit);
+        wheel_targets =
+            wheel_target_mixer_.Compute(motion.effective_speed_target, limited_turn_output, params_.pwm_limit);
+        const int left_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
+        const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
+        command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
         if (motion.state.phase == MotionPhase::kSpinup || motion.state.phase == MotionPhase::kStopping) {
             command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
         }
@@ -528,10 +553,12 @@ void ControlLoop::Tick() {
         stop_completion_inputs.shaped_command_zero = current_effective_command_zero;
         final_motion = motion_supervisor_.Evaluate(stop_completion_inputs);
         if (final_motion.reset_controllers && !motion.reset_controllers) {
-            ResetControllerState(pid_, attitude_, state_);
+            ResetControllerState(pid_, attitude_, left_wheel_pid_, right_wheel_pid_, state_);
         }
     }
     EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
+    const legacy::WheelSpeedTargets snapshot_wheel_targets =
+        BuildSnapshotWheelTargets(final_motion, limited_turn_output, wheel_target_mixer_, params_.pwm_limit);
 
     bool apply_ok = true;
     if (diagnostics_only_motor || hold_disarmed) {
@@ -545,6 +572,24 @@ void ControlLoop::Tick() {
     observation.motion_reset_ready = final_motion.reset_ready;
     EmitObservationDiagnostics(diagnostics_, previous_observation, observation, now_ms);
 
+    ControlDebugSnapshot debug_snapshot{};
+    debug_snapshot.valid = true;
+    debug_snapshot.cycle_count = state_.control_cycle_count.load() + 1;
+    debug_snapshot.timestamp_ms = now_ms;
+    debug_snapshot.motion_phase = final_motion.state.phase;
+    debug_snapshot.veto_active = gate.veto_active;
+    debug_snapshot.veto_reason = gate.veto_reason;
+    debug_snapshot.effective_speed_target = final_motion.effective_speed_target;
+    debug_snapshot.left_speed_target = snapshot_wheel_targets.left;
+    debug_snapshot.right_speed_target = snapshot_wheel_targets.right;
+    debug_snapshot.left_measured_speed = static_cast<double>(encoder.left);
+    debug_snapshot.right_measured_speed = static_cast<double>(encoder.right);
+    debug_snapshot.turn_pwm_command = limited_turn_output;
+    debug_snapshot.left_pwm_command = command.left_pwm;
+    debug_snapshot.right_pwm_command = command.right_pwm;
+    debug_snapshot.emergency_stop = command.emergency_stop;
+    debug_reporter_.MaybeEmit(debug_snapshot, diagnostics_);
+
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
         state_.motion_state = final_motion.state;
@@ -556,6 +601,7 @@ void ControlLoop::Tick() {
                                   ? command
                                   : port::ActuatorCommand{};
         state_.control_observation = observation;
+        state_.control_debug_snapshot = debug_snapshot;
         state_.actuators_armed = observation.actuators_armed;
         if (observation.apply_outcome == ControlApplyOutcome::kDriveCommandApplied) {
             state_.bcount = std::min(state_.bcount + 1, 200);

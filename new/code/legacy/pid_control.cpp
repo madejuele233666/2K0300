@@ -15,8 +15,6 @@ void LegacyPidControl::Reset() {
     camera_error_last_ = 0.0F;
     gyro_error_last_ = 0.0F;
     gyro_i_count_ = 0.0F;
-    speed_error_last_ = 0.0F;
-    speed_i_count_ = 0.0F;
 }
 
 float LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last) {
@@ -40,15 +38,6 @@ float LegacyPidControl::ComputeGyroTurn(float w_target, float gyro_z) {
         gyro_p_ * error + gyro_i_ * gyro_i_count_ + gyro_d_ * (error - gyro_error_last_);
     gyro_error_last_ = error;
     return std::clamp(output, -9000.0F, 9000.0F);
-}
-
-int LegacyPidControl::ComputeMeanSpeedPwm(double speed_target, double speed_measured, int pwm_limit) {
-    const float error = static_cast<float>(speed_target - speed_measured);
-    speed_i_count_ = std::clamp(speed_i_count_ + error, -2200.0F, 2200.0F);
-    const float output =
-        speed_p_ * error + speed_i_ * speed_i_count_ + speed_d_ * (error - speed_error_last_);
-    speed_error_last_ = error;
-    return static_cast<int>(std::round(std::clamp(output, -static_cast<float>(pwm_limit), static_cast<float>(pwm_limit))));
 }
 
 }  // namespace ls2k::legacy

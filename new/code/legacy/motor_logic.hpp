@@ -7,7 +7,7 @@ namespace ls2k::legacy {
 
 class LegacyMotorLogic {
 public:
-    port::ActuatorCommand Mix(int mean_pwm, float turn_output, bool emergency_veto, int pwm_limit) const;
+    port::ActuatorCommand Compose(int left_pwm, int right_pwm, bool emergency_veto, int pwm_limit) const;
 };
 
 }  // namespace ls2k::legacy

@@ -1,0 +1,15 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "phase": "checkpoint-3",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "no_usable_active_agent",
+  "decision": "allow",
+  "recorded_at": "2026-04-19T04:22:38Z",
+  "prior_agent": null,
+  "evidence": {
+    "agent_table_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-3/agent-table.json",
+    "findings_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-3/attempt-1/findings.json",
+    "verifier_evidence_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-3/attempt-1/verifier-evidence.json"
+  }
+}

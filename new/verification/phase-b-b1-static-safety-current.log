@@ -1,0 +1,103 @@
+== runtime smoke 2026-04-19T06:54:35Z ==
+board=root@10.100.170.226
+binary=/home/root/new
+params_source=/home/madejuele/projects/2K0300/new/user/../config/default_params.json
+profile_source=/home/madejuele/projects/2K0300/new/user/../config/hardware_profile.json
+smoke_enable_motor=0
+true_vendor_root=/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library
+harness_context_begin
+LS2K_AUTO_START=0
+LS2K_AUTO_START_DELAY_MS=200
+LS2K_AUTO_STOP_AFTER_MS=0
+LS2K_AUTO_RESET_FAULT=0
+SMOKE_MAX_FRAMES=20
+LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N=0
+LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N=0
+LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N=0
+LS2K_FORCE_LOW_VOLTAGE=unset
+harness_context_end
+[INFO][main.start][383242] starting ls2k migration runtime
+[INFO][profile.loaded][383253] hardware profile loaded from /home/root/hardware_profile.smoke.json
+[INFO][params.loaded][383257] runtime parameters loaded from /home/root/default_params.smoke.json
+[INFO][profile.camera][383257] direct-match:phase1-160x120-to-160x128-no-exp-light-control
+[INFO][profile.imu][383257] direct-match:imu-core-device-detect
+[INFO][profile.encoder][383257] direct-match:absolute-count-delta-baseline
+[INFO][profile.motor][383257] disabled:smoke-motor-disabled
+[INFO][profile.timer][383257] direct-match:pit-timer-bridge
+[WARN][startup.mode.degraded][383257] degraded startup mode enabled: non-direct-match profiles may pass startup for diagnostics only
+[WARN][startup.profile.motor.degraded][383257] motor profile is disabled:smoke-motor-disabled (allowed only in degraded startup mode)
+[INFO][params.critical.apply][383257] applied startup-critical fields P_Mode and exp_light before adapter bring-up
+[INFO][power.init][383258] power monitor initialized with true_ls2k0300 adc bridge path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw
+[INFO][startup.low_voltage.raw][383258] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2579 threshold=400
+[INFO][startup.low_voltage.clear][383258] startup low-voltage check is clear
+find uvc camera Successfully.
+get uvc width = 160.000000.
+get uvc height = 120.000000.
+get uvc fps = 120.000000.
+[INFO][camera.init][383561] camera initialized through true_ls2k0300 bridge: /dev/video0
+[INFO][imu.init][383563] imu initialized through true_ls2k0300 bridge: resolved IMU resource at /sys/bus/iio/devices/iio:device1
+[INFO][imu.detect][383563] imu detection path selected: imu660ra source=/sys/bus/iio/devices/iio:device1/name
+[INFO][imu.calibration.ready][383664] imu gyro zero-bias calibrated from 32 startup sample(s)
+[INFO][encoder.init][383668] encoder initialized through true_ls2k0300 bridge: left=/dev/zf_encoder_1, right=/dev/zf_encoder_2
+[INFO][encoder.normalization][383668] encoder direct-match normalization keeps logical left=raw_left and logical right=-raw_right for direct speed samples
+[INFO][motor.disabled][383668] motor subsystem disabled by hardware profile
+[WARN][startup.motor.disabled.degraded][383668] motor is disabled by profile and degraded startup mode is enabled
+[INFO][startup.complete][383668] startup validated required adapters and applied critical params
+[WARN][control.start.degraded.motor_disabled][383668] degraded startup keeps control loop running with motor disabled; actuators stay disarmed
+[INFO][timer.start.pit][383668] timer started with true_ls2k0300 pit bridge
+[FAIL_SAFE][control.arm.motor_disabled][383668] motor profile is disabled; control loop stays diagnostics-only with actuators disarmed
+[INFO][control.start][383668] control loop started with gate -> motion supervisor -> shaping/apply sequencing
+[INFO][assistant.disabled][383668] assistant sidecar disabled by runtime parameters
+[INFO][main.harness_context][383668] automation_context auto_start=false auto_start_delay_ms=200 auto_stop_after_ms=0 auto_reset_fault=false emit_frame_progress=true
+[INFO][imu.sample.summary][383675] imu normalized sample acc_z=-4.850252mps2 gyro_z=-0.001297radps valid_streak=1
+[INFO][encoder.delta.summary][383676] logical encoder sample left=0 right=0 mean=0 diff=0
+[FAIL_SAFE][control.veto][383677] vetoing actuator update due to perception_stale
+[FAIL_SAFE][control.veto.perception_stale][383677] dominant control veto reason: perception_stale
+[WARN][control.apply.suppressed][383677] drive command suppressed because the active motor profile is diagnostics-only
+[WARN][control.snapshot][383677] phase=DISARMED veto=true reason=perception_stale effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=true
+[WARN][control.snapshot][383780] phase=DISARMED veto=true reason=perception_stale effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=true
+[WARN][control.veto.sustained][383879] control remained vetoed for 202 ms with dominant reason=perception_stale
+[WARN][control.snapshot][383886] phase=DISARMED veto=true reason=perception_stale effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=true
+[INFO][imu.continuity.ready][383892] imu sample stream stayed valid for 32 consecutive reads after bridge normalization
+[INFO][main.frame.processed][383668] processed_frames=1
+[WARN][control.snapshot][383996] phase=DISARMED veto=true reason=perception_stale effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=true
+[INFO][main.frame.processed][383992] processed_frames=2
+[INFO][control.veto.interval.closed][384013] previous veto interval closed after 336 ms (reason=perception_stale)
+[INFO][main.frame.processed][384008] processed_frames=3
+[INFO][main.frame.processed][384017] processed_frames=4
+[INFO][main.frame.processed][384038] processed_frames=5
+[INFO][main.frame.processed][384051] processed_frames=6
+[INFO][main.frame.processed][384060] processed_frames=7
+[INFO][main.frame.processed][384068] processed_frames=8
+[INFO][main.frame.processed][384078] processed_frames=9
+[INFO][main.frame.processed][384086] processed_frames=10
+[INFO][control.snapshot][384101] phase=DISARMED veto=false reason=none effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][384094] processed_frames=11
+[INFO][main.frame.processed][384106] processed_frames=12
+[INFO][main.frame.processed][384135] processed_frames=13
+[INFO][main.frame.processed][384147] processed_frames=14
+[INFO][main.frame.processed][384164] processed_frames=15
+[INFO][main.frame.processed][384171] processed_frames=16
+[INFO][main.frame.processed][384178] processed_frames=17
+[INFO][main.frame.processed][384186] processed_frames=18
+[INFO][main.frame.processed][384193] processed_frames=19
+[INFO][main.frame.processed][384200] processed_frames=20
+[INFO][control.snapshot][384208] phase=DISARMED veto=false reason=none effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 turn_pwm=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][control.unveto.sustained][384215] control remained non-veto for 202 ms; actuator path stayed eligible for lifecycle evaluation
+[INFO][main.frame.processed][384208] processed_frames=21
+[INFO][main.frame.processed][384225] processed_frames=22
+[INFO][main.frame.processed][384240] processed_frames=23
+[INFO][motion.stop.requested][384254] controlled stop requested by signal
+[INFO][startup.low_voltage.raw][384259] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2570 threshold=400
+[INFO][main.frame.processed][384254] processed_frames=24
+[INFO][main.exit.ready][384264] controlled stop reached DISARMED; process may now exit
+[INFO][timer.stop][384267] timer bridge stopped
+[INFO][camera.shutdown][384267] camera adapter shutdown complete
+[INFO][imu.shutdown][384267] imu adapter shutdown complete
+[INFO][encoder.shutdown][384267] encoder adapter shutdown complete
+[INFO][motor.shutdown][384267] motor adapter shutdown complete
+[INFO][shutdown.complete][384267] actuators disabled and resources released
+[INFO][main.exit][384267] runtime exit complete
+remote_runtime_exit=0
+remote_log_copy_exit=0
+remote_runtime_invoked=1

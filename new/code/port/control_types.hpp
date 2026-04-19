@@ -82,6 +82,18 @@ struct ActuatorCommand {
     bool emergency_stop = true;
 };
 
+struct WheelPidParameters {
+    double p = 240.0;
+    double i = 10.0;
+    double d = 20.0;
+    double integral_limit = 2200.0;
+};
+
+struct AssistantTcpParameters {
+    std::string host = "192.168.2.32";
+    int port = 8888;
+};
+
 struct RuntimeParameters {
     double Speed_base = 77.0;
     double JWJC = 1.0;
@@ -111,6 +123,14 @@ struct RuntimeParameters {
     int motion_stop_ms = 300;
     int motion_stop_encoder_threshold = 8;
     int motion_fault_rearm_hold_ms = 600;
+    double wheel_turn_target_scale = 35.0;
+    WheelPidParameters left_wheel_pid{};
+    WheelPidParameters right_wheel_pid{};
+    int control_snapshot_emit_interval_ms = 100;
+    bool assistant_enabled = false;
+    int assistant_waveform_publish_interval_ms = 40;
+    int assistant_image_publish_interval_ms = 80;
+    AssistantTcpParameters assistant_tcp{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

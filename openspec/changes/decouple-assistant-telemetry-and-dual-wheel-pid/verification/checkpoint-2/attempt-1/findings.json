@@ -1,0 +1,38 @@
+{
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "Assistant enablement is not non-blocking: startup performs a synchronous TCP connect on the foreground thread before the main perception loop begins, so an unreachable or slow assistant endpoint can stall the runtime even though assistant integration is required to remain optional and non-blocking.",
+      "evidence": [
+        "new/user/main.cpp:334-335 calls AssistantService::Start before entering the foreground loop.",
+        "new/code/runtime/assistant_service.cpp:24-36 immediately invokes link_.Initialize when assistant_enabled is true.",
+        "new/code/platform/assistant_link.cpp:18-26 forwards initialization directly into InitializeAssistantBridge(...).",
+        "new/code/platform/true_ls2k0300/assistant_bridge.cpp:25-29 calls tcp_client_init(...) during initialization.",
+        "true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp:45-56 performs connect() before the socket is switched to non-blocking mode."
+      ],
+      "recommendation": "Move assistant connection establishment off the startup path or implement it as a non-blocking state machine in the bridge/poll path so assistant enablement can never delay control-loop startup or foreground frame processing.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "A dropped assistant TCP session is not safely isolated from the runtime: publish calls continue through a raw send() path that neither suppresses SIGPIPE nor reports transport failure back to the bridge, so an assistant disconnect can terminate the process or leave the sidecar marked ready while every publish silently fails.",
+      "evidence": [
+        "new/user/main.cpp:268-272 installs handlers for SIGINT/SIGTERM/SIGUSR1/SIGUSR2 but does not ignore SIGPIPE.",
+        "new/user/main.cpp:373-374 drives AssistantService::Tick from the foreground loop whenever the assistant is enabled.",
+        "new/code/platform/assistant_link.cpp:36-64 keeps publishing whenever ready_ remains true.",
+        "new/code/platform/true_ls2k0300/assistant_bridge.cpp:47-80 always returns true after calling the vendor send helpers and never clears g_assistant_ready on transport failure or EOF.",
+        "true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp:66-77 calls send(..., 0) with default SIGPIPE behavior and only prints on error."
+      ],
+      "recommendation": "Contain transport failures inside the assistant-owning bridge: suppress SIGPIPE at the socket/send boundary, propagate send/recv errors back to the bridge, and clear readiness when the TCP session drops so assistant failures degrade to a no-op instead of threatening process liveness.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

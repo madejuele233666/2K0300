@@ -7,6 +7,7 @@
 
 #include "port/control_types.hpp"
 #include "runtime/control_decision.hpp"
+#include "runtime/control_debug_snapshot.hpp"
 #include "runtime/motion_types.hpp"
 
 namespace ls2k::runtime {
@@ -24,8 +25,10 @@ struct RuntimeState {
     port::PerceptionResult perception{};
     port::ImuSample imu{};
     port::EncoderDelta encoder{};
+    port::CameraCapture latest_camera_capture{};
     port::ActuatorCommand last_command{};
     ControlCycleObservation control_observation{};
+    ControlDebugSnapshot control_debug_snapshot{};
 
     // Lifecycle flags.
     bool startup_complete = false;

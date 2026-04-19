@@ -64,6 +64,36 @@ bool ReadRequiredInt(const cv::FileNode& root, const char* key, int& value) {
     return ReadIntegerValue(root[key], value);
 }
 
+bool ReadBoolValue(const cv::FileNode& node, bool& value) {
+    if (node.empty()) {
+        return false;
+    }
+    if (node.isInt()) {
+        value = static_cast<int>(node.real()) != 0;
+        return true;
+    }
+    if (node.isString()) {
+        const std::string text = static_cast<std::string>(node);
+        if (text == "true" || text == "TRUE" || text == "1" || text == "yes" || text == "on") {
+            value = true;
+            return true;
+        }
+        if (text == "false" || text == "FALSE" || text == "0" || text == "no" || text == "off") {
+            value = false;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ReadStringValue(const cv::FileNode& node, std::string& value) {
+    if (node.empty() || !node.isString()) {
+        return false;
+    }
+    value = static_cast<std::string>(node);
+    return true;
+}
+
 void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -84,6 +114,16 @@ void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool
     }
 }
 
+void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bool& malformed) {
+    const cv::FileNode node = root[key];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadBoolValue(node, value)) {
+        malformed = true;
+    }
+}
+
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -93,6 +133,28 @@ bool ReadRequiredNestedNumber(const cv::FileNode& root,
         return false;
     }
     return ReadNumberNode(parent_node[child], value);
+}
+
+bool ReadRequiredNestedString(const cv::FileNode& root,
+                              const char* parent,
+                              const char* child,
+                              std::string& value) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty() || !parent_node.isMap()) {
+        return false;
+    }
+    return ReadStringValue(parent_node[child], value);
+}
+
+bool ReadRequiredNestedInt(const cv::FileNode& root,
+                           const char* parent,
+                           const char* child,
+                           int& value) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty() || !parent_node.isMap()) {
+        return false;
+    }
+    return ReadIntegerValue(parent_node[child], value);
 }
 
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
@@ -193,6 +255,18 @@ public:
         all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_GYRO_CAMERA", "D", parsed.pid_turn_gyro_camera_d);
         all_ok &= ReadRequiredInt(root, "P_Mode", parsed.P_Mode);
         all_ok &= ReadRequiredInt(root, "exp_light", parsed.exp_light);
+        all_ok &= ReadRequiredNestedNumber(root, "LEFT_WHEEL_PID", "P", parsed.left_wheel_pid.p);
+        all_ok &= ReadRequiredNestedNumber(root, "LEFT_WHEEL_PID", "I", parsed.left_wheel_pid.i);
+        all_ok &= ReadRequiredNestedNumber(root, "LEFT_WHEEL_PID", "D", parsed.left_wheel_pid.d);
+        all_ok &= ReadRequiredNestedNumber(
+            root, "LEFT_WHEEL_PID", "INTEGRAL_LIMIT", parsed.left_wheel_pid.integral_limit);
+        all_ok &= ReadRequiredNestedNumber(root, "RIGHT_WHEEL_PID", "P", parsed.right_wheel_pid.p);
+        all_ok &= ReadRequiredNestedNumber(root, "RIGHT_WHEEL_PID", "I", parsed.right_wheel_pid.i);
+        all_ok &= ReadRequiredNestedNumber(root, "RIGHT_WHEEL_PID", "D", parsed.right_wheel_pid.d);
+        all_ok &= ReadRequiredNestedNumber(
+            root, "RIGHT_WHEEL_PID", "INTEGRAL_LIMIT", parsed.right_wheel_pid.integral_limit);
+        all_ok &= ReadRequiredNestedString(root, "assistant_tcp", "host", parsed.assistant_tcp.host);
+        all_ok &= ReadRequiredNestedInt(root, "assistant_tcp", "port", parsed.assistant_tcp.port);
 
         bool optional_malformed = false;
         ReadOptionalInt(root, "emergency_threshold", parsed.emergency_threshold, optional_malformed);
@@ -217,6 +291,20 @@ public:
         ReadOptionalInt(root,
                         "motion_fault_rearm_hold_ms",
                         parsed.motion_fault_rearm_hold_ms,
+                        optional_malformed);
+        ReadOptionalNumber(root, "wheel_turn_target_scale", parsed.wheel_turn_target_scale, optional_malformed);
+        ReadOptionalInt(root,
+                        "control_snapshot_emit_interval_ms",
+                        parsed.control_snapshot_emit_interval_ms,
+                        optional_malformed);
+        ReadOptionalBool(root, "assistant_enabled", parsed.assistant_enabled, optional_malformed);
+        ReadOptionalInt(root,
+                        "assistant_waveform_publish_interval_ms",
+                        parsed.assistant_waveform_publish_interval_ms,
+                        optional_malformed);
+        ReadOptionalInt(root,
+                        "assistant_image_publish_interval_ms",
+                        parsed.assistant_image_publish_interval_ms,
                         optional_malformed);
         all_ok = all_ok && !optional_malformed;
 

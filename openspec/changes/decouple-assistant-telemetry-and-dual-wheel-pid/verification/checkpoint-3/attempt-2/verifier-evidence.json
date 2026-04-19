@@ -1,0 +1,88 @@
+{
+  "verifier_evidence": {
+    "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+    "review_goal": "implementation_correctness",
+    "review_phase": "source_first",
+    "template_id": "verify-reviewer-inline-v3",
+    "findings_contract": "shared-findings-v1",
+    "agent_id": "codex-verify-reviewer",
+    "start_at": "2026-04-19T12:32:35+08:00",
+    "end_at": "2026-04-19T12:33:47+08:00",
+    "final_state": "completed_pass",
+    "review_scope": {
+      "checkpoint": "checkpoint-3",
+      "attempt": "attempt-2",
+      "risk_tier": "STANDARD",
+      "declared_evidence_paths": [
+        "new/code/legacy/wheel_target_mixer.hpp",
+        "new/code/legacy/wheel_target_mixer.cpp",
+        "new/code/legacy/wheel_pid.hpp",
+        "new/code/legacy/wheel_pid.cpp",
+        "new/code/legacy/pid_control.hpp",
+        "new/code/legacy/pid_control.cpp",
+        "new/code/legacy/motor_logic.hpp",
+        "new/code/legacy/motor_logic.cpp",
+        "new/code/runtime/control_loop.hpp",
+        "new/code/runtime/control_loop.cpp",
+        "new/code/platform/encoder_adapter.cpp",
+        "new/code/platform/motor_adapter.cpp"
+      ],
+      "caller_guardrails": [
+        "public actuator contract must remain ActuatorCommand{left_pwm,right_pwm,emergency_stop}",
+        "lifecycle semantics must remain unchanged while internal wheel control is refactored",
+        "left/right PID parameters must remain explicitly independent at the project boundary",
+        "left/right logical normalization must stay in adapter/bridge ownership, not leak into controller math"
+      ],
+      "supporting_artifacts_reviewed": [
+        "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/proposal.md",
+        "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/design.md",
+        "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/tasks.md",
+        "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/specs/dual-wheel-motion-control/spec.md",
+        "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md"
+      ],
+      "known_local_validation_inputs": [
+        "cmake --build /tmp/ls2k0300-new-build-check -j2",
+        "git diff --check"
+      ]
+    },
+    "review_coverage": {
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "summary": "Reviewed the full checkpoint-3 dual-wheel control scope source-first, including the repaired snapshot path and directly impacted parameter, snapshot, assistant-consumer, and lifecycle files required to validate correctness."
+    },
+    "reviewed_paths": [
+      "new/code/legacy/wheel_target_mixer.hpp",
+      "new/code/legacy/wheel_target_mixer.cpp",
+      "new/code/legacy/wheel_pid.hpp",
+      "new/code/legacy/wheel_pid.cpp",
+      "new/code/legacy/pid_control.hpp",
+      "new/code/legacy/pid_control.cpp",
+      "new/code/legacy/motor_logic.hpp",
+      "new/code/legacy/motor_logic.cpp",
+      "new/code/runtime/control_loop.hpp",
+      "new/code/runtime/control_loop.cpp",
+      "new/code/platform/encoder_adapter.cpp",
+      "new/code/platform/motor_adapter.cpp",
+      "new/code/port/control_types.hpp",
+      "new/code/platform/param_store.cpp",
+      "new/config/default_params.json",
+      "new/code/runtime/runtime_state.hpp",
+      "new/code/runtime/control_debug_snapshot.hpp",
+      "new/code/runtime/control_debug_reporter.cpp",
+      "new/code/runtime/assistant_service.cpp",
+      "new/code/runtime/motion_supervisor.cpp"
+    ],
+    "skipped_paths": [],
+    "reviewed_axes": [
+      "wheel-target generation before per-wheel PWM computation",
+      "independent left/right wheel PID state and reset behavior",
+      "explicit left/right wheel PID parameter boundary",
+      "public ActuatorCommand contract stability",
+      "lifecycle preservation across hold-disarmed, stopping, and fail-safe paths",
+      "adapter-owned logical wheel normalization and vendor mapping",
+      "project-owned wheel-level observability consistency for diagnostics and assistant consumers",
+      "repair validation for STOPPING-to-DISARMED snapshot coherence"
+    ],
+    "unreviewed_axes": []
+  }
+}

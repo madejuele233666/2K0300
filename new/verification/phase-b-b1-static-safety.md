@@ -78,8 +78,8 @@ Diagnostics-only wrapper rerun:
 Manual signal-driven lifecycle run:
 
 - `phase-b-b1-manual-lifecycle.log` showed successful startup on the accepted board path, then `motion.start.requested` from `SIGUSR2`, followed by `DISARMED -> START_REQUESTED -> SPINUP`.
-- The same run then entered `FAIL_SAFE_LATCHED` on `perception_stale` before a clean `motion.stop.complete`, but it still recorded `motion.stop.requested` and finished with `shutdown.complete` after operator stop / teardown.
-- For `B-1`, this is accepted as evidence that the product-owned signal boundary exists and that the runtime preserves fail-safe-first behavior under an interrupted early manual start. It is not reused as `B-2+` motion-quality evidence.
+- The same run then entered `FAIL_SAFE_LATCHED` on `perception_stale`, later recorded `motion.stop.requested`, and exited through forced teardown (`main.exit.forced` -> `shutdown.complete`) without returning to `DISARMED`.
+- For `B-1`, this log is accepted only as evidence that the product-owned signal boundary exists and that the runtime preserves fail-safe-first behavior under an interrupted early manual start. It is not accepted as clean controlled-stop evidence and is not reused as `B-2+` motion-quality evidence.
 
 ## Closure Note
 

@@ -91,6 +91,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                               1000);
         const port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
+        state_.latest_camera_capture = capture;
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
@@ -124,6 +125,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         }
 
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
+        state_.latest_camera_capture = capture;
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
@@ -137,6 +139,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                              capture.capture_time_ms);
 
     std::lock_guard<std::mutex> lock(state_.shared_mutex);
+    state_.latest_camera_capture = capture;
     state_.perception = perception;
     ++state_.perception_publish_count;
 }

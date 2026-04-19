@@ -68,6 +68,7 @@ Forced low voltage:
 - `main.frame.processed`
 - `perception.inject.drop_frame` or `imu.inject.invalid` or `encoder.inject.invalid` or `power.low_voltage.injected`
 - `control.veto.*`
+- `control.snapshot`
 - `motion.failsafe.latched`
 - `motion.failsafe.reset_ready`
 - `motion.failsafe.reset_requested`
@@ -82,6 +83,7 @@ The wrapper header is authoritative for which automation and fault env values we
 - Fault injection still runs through the accepted product runtime entrypoint.
 - Runtime faults drive `FAIL_SAFE_LATCHED` instead of silent zero-output ambiguity.
 - Re-arm remains explicit; test automation only synthesizes the reset after the latch-clear and hold boundary.
+- The board-owned wheel/control snapshot remains available during assistant-disabled fault drills.
 
 ## Does Not Prove
 

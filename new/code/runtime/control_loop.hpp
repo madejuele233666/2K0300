@@ -7,7 +7,10 @@
 #include "legacy/attitude_logic.hpp"
 #include "legacy/motor_logic.hpp"
 #include "legacy/pid_control.hpp"
+#include "legacy/wheel_pid.hpp"
+#include "legacy/wheel_target_mixer.hpp"
 #include "port/platform_adapter.hpp"
+#include "runtime/control_debug_reporter.hpp"
 #include "runtime/motion_supervisor.hpp"
 #include "runtime/runtime_state.hpp"
 
@@ -36,6 +39,10 @@ private:
     legacy::LegacyPidControl pid_{};
     legacy::LegacyMotorLogic motor_logic_{};
     legacy::LegacyAttitudeLogic attitude_{};
+    legacy::WheelTargetMixer wheel_target_mixer_{};
+    legacy::WheelPidController left_wheel_pid_{};
+    legacy::WheelPidController right_wheel_pid_{};
+    ControlDebugReporter debug_reporter_{};
     MotionSupervisor motion_supervisor_{};
     bool have_gate_interval_ = false;
     bool last_gate_veto_ = true;

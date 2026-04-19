@@ -19,6 +19,7 @@
 - `motion.spinup.enter`
 - `motion.spinup.complete`
 - `control.apply.command`
+- `control.snapshot`
 - `encoder.delta.summary`
 - `motion.stop.requested`
 - `motion.stop.complete`
@@ -33,6 +34,7 @@ Keep the wrapper header with the exact automation env block. When using `SMOKE_M
 
 - Turn corrections happen while the runtime is in explicit `SPINUP` or `RUNNING`, not in an implicit post-start state.
 - Stop behavior remains controlled after a turning segment.
+- Turn evidence can be explained from wheel-level `control.snapshot` data instead of inferring everything from one mixed PWM quantity.
 
 ## Does Not Prove
 

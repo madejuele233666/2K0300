@@ -13,7 +13,6 @@ public:
 
     float ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last);
     float ComputeGyroTurn(float w_target, float gyro_z);
-    int ComputeMeanSpeedPwm(double speed_target, double speed_measured, int pwm_limit);
 
 private:
     FuzzyPidUcas fuzzy_{};
@@ -22,15 +21,10 @@ private:
     float gyro_p_ = 20.0F;
     float gyro_i_ = 0.0F;
     float gyro_d_ = 9.0F;
-    float speed_p_ = 240.0F;
-    float speed_i_ = 10.0F;
-    float speed_d_ = 20.0F;
 
     float camera_error_last_ = 0.0F;
     float gyro_error_last_ = 0.0F;
     float gyro_i_count_ = 0.0F;
-    float speed_error_last_ = 0.0F;
-    float speed_i_count_ = 0.0F;
 };
 
 }  // namespace ls2k::legacy

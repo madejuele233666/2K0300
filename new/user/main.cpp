@@ -8,6 +8,7 @@
 
 #include "platform/bootstrap.hpp"
 #include "port/diagnostics.hpp"
+#include "runtime/assistant_service.hpp"
 #include "runtime/control_loop.hpp"
 #include "runtime/perception_frontend.hpp"
 #include "runtime/shutdown.hpp"
@@ -265,6 +266,7 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
 }  // namespace
 
 int main() {
+    std::signal(SIGPIPE, SIG_IGN);
     std::signal(SIGINT, HandleExitSignal);
     std::signal(SIGTERM, HandleForceExitSignal);
     std::signal(SIGUSR1, HandleResetSignal);
@@ -330,6 +332,8 @@ int main() {
 
     ls2k::runtime::PerceptionFrontend perception(
         *platform.camera, *platform.power, runtime_state, diagnostics);
+    ls2k::runtime::AssistantService assistant_service;
+    assistant_service.Start(params, diagnostics);
     const AutomationConfig automation = LoadAutomationConfig();
     EmitHarnessContext(diagnostics, automation);
 
@@ -368,6 +372,7 @@ int main() {
         }
 
         perception.ProcessOneFrame(params);
+        assistant_service.Tick(runtime_state, diagnostics);
         ++processed_frames;
         if (automation.emit_frame_progress) {
             diagnostics.Emit({ls2k::port::DiagnosticLevel::kInfo,

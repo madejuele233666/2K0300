@@ -249,6 +249,78 @@ home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.i: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.s: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.o: home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.i: home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.s: home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.s
+
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.o: home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o
+
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.i: home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.i
+
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.s: home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s
+
 home/madejuele/projects/2K0300/new/code/platform/bootstrap.o: home/madejuele/projects/2K0300/new/code/platform/bootstrap.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/bootstrap.o
 
@@ -465,6 +537,30 @@ home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.s
 
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.o: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o
+
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.i: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.i
+
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.s: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s
+
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.o: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.o
 
@@ -584,6 +680,54 @@ home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.s: h
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.s
+
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.o: home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o
+
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.i: home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.i
+
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.s: home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s
+
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.o: home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
+
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.i: home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
+
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.s: home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
 
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.o: home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_decision.o
@@ -800,6 +944,54 @@ home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensourc
 home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.s
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.s
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.i: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.i
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.i
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.i
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.s: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.s
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.s
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.s
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.i: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.i
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.i
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.i
+
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.s: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.s
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.s
+.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.s
 
 home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.o
@@ -1113,30 +1305,6 @@ home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensourc
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.s
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.s
 
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.o
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.o
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.o
-
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.i: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.i
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.i
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.i
-
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.s: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.s
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.s
-.PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.cpp.s
-
 home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.o
 
@@ -1209,6 +1377,15 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.s"
@@ -1236,6 +1413,9 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.s"
@@ -1251,6 +1431,12 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/assistant_service.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/assistant_service.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/assistant_service.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_decision.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_decision.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/control_decision.s"
@@ -1278,6 +1464,12 @@ help:
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.s"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.o"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.i"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.s"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.o"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.i"
+	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.s"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.s"
@@ -1317,9 +1509,6 @@ help:
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.s"
-	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.o"
-	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.i"
-	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_tcp_client.s"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.s"

@@ -61,15 +61,19 @@ set(NEW_SRCS
     ../code/platform/power_adapter.cpp
     ../code/platform/param_store.cpp
     ../code/platform/hardware_profile.cpp
+    ../code/platform/assistant_link.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
     ../code/platform/true_ls2k0300/imu_bridge.cpp
     ../code/platform/true_ls2k0300/encoder_bridge.cpp
     ../code/platform/true_ls2k0300/motor_bridge.cpp
     ../code/platform/true_ls2k0300/adc_bridge.cpp
     ../code/platform/true_ls2k0300/timer_bridge.cpp
+    ../code/platform/true_ls2k0300/assistant_bridge.cpp
     ../code/legacy/fuzzy_pid_ucas.cpp
     ../code/legacy/pid_control.cpp
     ../code/legacy/motor_logic.cpp
+    ../code/legacy/wheel_target_mixer.cpp
+    ../code/legacy/wheel_pid.cpp
     ../code/legacy/attitude_logic.cpp
     ../code/legacy/camera_logic.cpp
     ../code/runtime/startup.cpp
@@ -77,6 +81,8 @@ set(NEW_SRCS
     ../code/runtime/motion_supervisor.cpp
     ../code/runtime/control_decision.cpp
     ../code/runtime/control_loop.cpp
+    ../code/runtime/control_debug_reporter.cpp
+    ../code/runtime/assistant_service.cpp
     ../code/runtime/shutdown.cpp
 )
 
@@ -103,8 +109,12 @@ set(LS2K_DRIVER_SRCS
     ${LS2K_LIB_ROOT}/zf_driver/zf_driver_gpio.cpp
     ${LS2K_LIB_ROOT}/zf_driver/zf_driver_pit.cpp
     ${LS2K_LIB_ROOT}/zf_driver/zf_driver_pwm.cpp
-    ${LS2K_LIB_ROOT}/zf_driver/zf_driver_tcp_client.cpp
     ${LS2K_LIB_ROOT}/zf_driver/zf_driver_udp.cpp
+)
+
+set(LS2K_ASSISTANT_SRCS
+    ${LS2K_LIB_ROOT}/zf_components/seekfree_assistant/seekfree_assistant.cpp
+    ${LS2K_LIB_ROOT}/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp
 )
 
 add_executable(
@@ -113,6 +123,7 @@ add_executable(
     ${LS2K_COMMON_SRCS}
     ${LS2K_DEVICE_SRCS}
     ${LS2K_DRIVER_SRCS}
+    ${LS2K_ASSISTANT_SRCS}
 )
 set_target_properties(${PROJ_NAME} PROPERTIES
     INSTALL_RPATH "/opt/ls_2k0300_env/opencv_4_10_build/lib"

@@ -26,6 +26,7 @@ Common artifact expectations:
 - [ ] Update the corresponding `new/verification/phase-b-b*.md` note with result and conclusion
 - [ ] Record operator steps: power on, start, test, stop, reset / power off
 - [ ] Record the parameter snapshot used for that run
+- [ ] Record whether the run used assistant-disabled `control.snapshot` evidence only, or also collected assistant waveform / image evidence
 
 ## 2. Exit Targets
 
@@ -36,6 +37,7 @@ Phase B is not complete until the board evidence can jointly show:
 - [ ] light turn correction works without sustained oscillation
 - [ ] fail-safe latch and re-arm are observable under injected faults
 - [ ] one repeatable low-speed parameter set is fixed and reusable
+- [ ] wheel-level behavior is explainable from `control.snapshot` without requiring assistant connectivity
 
 ## 3. Execution Order
 
@@ -59,7 +61,7 @@ Status:
 
 - Completed on `2026-04-19`
 - Accepted evidence: `new/verification/phase-b-b1-static-safety-rerun.log` and `new/verification/phase-b-b1-manual-lifecycle.log`
-- Closure scope: static safety boundary and operator signal path only; low-speed motion-quality evidence remains in `B-2+`
+- Closure scope: static safety boundary and operator signal path only; clean controlled-stop evidence comes from `phase-b-b1-static-safety-rerun.log`, while `phase-b-b1-manual-lifecycle.log` is accepted only for signal-boundary plus fail-safe-first behavior; low-speed motion-quality evidence remains in `B-2+`
 
 Commands:
 
@@ -122,7 +124,7 @@ Status:
 
 - Completed on `2026-04-19`
 - Accepted evidence: `new/verification/phase-b-b2-half-load-short-pwm3000.log`
-- Closure scope: short half-load board pass with `pwm_limit=3000`
+- Closure scope: short half-load board pass with `pwm_limit=3000`; wheel-level `control.snapshot` evidence is still pending and must be collected separately before Phase B observability is considered closed
 
 Command:
 
@@ -162,6 +164,7 @@ Manual observations to record:
 - [ ] turn correction direction under differential output
 - [ ] startup smoothness, overshoot, stop smoothness
 - [ ] any extra PWM safety limit or battery restriction used during the run
+- [ ] whether `control.snapshot` showed left/right target, left/right measured speed, and left/right PWM with the expected sign and trend
 
 Pass intent:
 
@@ -211,6 +214,7 @@ Manual observations to record:
 - [ ] whether the vehicle immediately snakes or loses control
 - [ ] startup behavior versus the expected no-overshoot goal
 - [ ] parameter adjustments made to IMU / encoder / speed target / PID
+- [ ] whether assistant was disabled, waveform-only, or waveform+image, and what extra evidence that provided beyond the board-owned log
 
 Pass intent:
 

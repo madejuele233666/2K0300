@@ -65,6 +65,7 @@
 8. `runtime` 已经增加 project-owned 的控制观测边界，当前日志可区分 `control.veto.*` 原因、`control.command.requested_nonzero`、`control.apply.*` 和 `control.arm.transition`。
 9. 对应 OpenSpec change 已完成主规格同步并归档到 `openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/`；归档证据包含 `implementation-challenger-evidence.json` 和 `runtime-smoke-2026-04-15.md`，可直接作为这次 contract/observability 收口的历史记录。
 10. `2026-04-19` 的 `implement-phase-b-motion-lifecycle` source-first verification 已完成 pass；`checkpoint-4` attempt-3 已把 repaired stop-path、diagnostics-only rerun 和 motor-enabled rerun v2 一并收口到 authoritative findings / verifier evidence 中。
+11. `2026-04-19` 当前 `new/` 树已新增双轮独立 PID、`control.snapshot` 结构化观测出口、逐飞助手 TCP-only 波形/图传 sidecar 骨架，并完成一次本地交叉构建通过；但 `new/verification/` 下仍未有已接受的 wheel-level snapshot 板端证据日志。
 
 当前仍然不能确认：
 
@@ -145,6 +146,7 @@
 3. `old_2` 中高价值规则链虽然已经完成文档吸收，但尚未转译成 `new/` 的 project-owned 实现。
 4. 默认 smoke 入口已经收口为 bench-safe；后续真实电机验证必须显式 opt-in，不能再把 generic smoke 当成默认可安全上电机的回归入口。
 5. Phase B 的代码主线现在已经具备 project-owned motion lifecycle，且 source-first review 已通过，但还没有形成板端通过的 B-1 ~ B-5 实测证据包。
+6. 新增的 assistant sidecar 与双轮 PID 代码还没有形成 checkpoint-2 ~ checkpoint-5 的 source-first verifier 证据，也还没有形成 assistant-disabled / assistant-enabled 的板端 observability 证据包。
 
 ## 6. 当前推荐下一步
 

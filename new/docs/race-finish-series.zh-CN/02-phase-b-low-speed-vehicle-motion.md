@@ -4,6 +4,8 @@
 
 - 当前激活阶段
 - `2026-04-19` 时点下，Phase B 的 runtime lifecycle contract、controlled stop-before-exit 语义和 source-first review 已闭环通过。
+- `2026-04-19` 时点下，`new/` 已新增 project-owned `control.snapshot` 结构化观测出口、逐飞助手 TCP-only 波形/图传 sidecar 骨架，以及左右轮独立 PID 主路径。
+- `2026-04-19` 时点下，`control.snapshot` 的 source-side export 已经存在，但 `new/verification/` 下仍未形成已接受的 wheel-level snapshot 板端证据包。
 - 当前剩余主问题不再是文档或 stop-exit 语义，而是板端 `B-1` 到 `B-5` 实测证据包尚未闭环。
 
 ## 1. 阶段目标
@@ -34,6 +36,15 @@
 2. 低速实车阶段仍然以 fail-safe 优先，而不是以“先跑起来”为优先。
 3. 本阶段验证的是方向、速度、恢复能力，不是比赛成绩。
 4. 任何实车异常都必须能立刻回退到可人工接管状态。
+
+## 1D. Wheel-Level Observability Contract
+
+本阶段默认以下观测规则已经进入当前实现：
+
+1. `new/code/runtime/control_loop.cpp` 会发布 project-owned `control.snapshot`，用于表达 `effective_speed_target`、`left/right target`、`left/right measured speed`、`turn_pwm`、`left/right pwm`。
+2. 逐飞助手 sidecar 在当前版本只提供 TCP-only 的只读波形和只读图传，不参与参数写入，也不是主验收面。
+3. 当 Phase B 板端证据被接受时，即使逐飞助手未连接，日志也必须能通过 `control.snapshot` 和 lifecycle/apply marker 解释左右轮行为。
+4. 双轮 PID 的左右轮参数从第一版起独立存在，板测记录不能再用“共享速度 PID + 差速 PWM 偏置”的旧口径描述当前主控制链。
 
 ## 1C. Phase B lifecycle contract
 
@@ -159,6 +170,7 @@
 - `motion.spinup.complete`
 - `control.apply.drive`
 - `control.apply.command`
+- `control.snapshot`
 - `motion.stop.complete`
 
 证据文件：
@@ -214,6 +226,7 @@
 - `motion.spinup.complete`
 - `control.apply.drive`
 - `control.apply.command`
+- `control.snapshot`
 - `imu.sample.summary`
 - `encoder.delta.summary`
 - `motion.stop.complete`

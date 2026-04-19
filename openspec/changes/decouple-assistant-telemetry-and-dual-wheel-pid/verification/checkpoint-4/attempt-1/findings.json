@@ -1,0 +1,55 @@
+{
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DUALWHEEL-VERIFY-001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The accepted `B-1` note overstates what the saved manual lifecycle evidence proves. It says the manual run reached a clean `motion.stop.complete`, but the referenced log actually fault-latched and then exited through `SIGTERM` without returning to `DISARMED`.",
+      "evidence": [
+        "[new/verification/phase-b-b1-static-safety.md:78] says the manual run entered `FAIL_SAFE_LATCHED` and then recorded a clean `motion.stop.complete`.",
+        "[new/verification/phase-b-b1-manual-lifecycle.log:49] shows `motion.phase.transition` from `SPINUP` to `FAIL_SAFE_LATCHED`.",
+        "[new/verification/phase-b-b1-manual-lifecycle.log:50] shows `motion.failsafe.latched` with reason `perception_stale`.",
+        "[new/verification/phase-b-b1-manual-lifecycle.log:63] shows only `motion.stop.requested`.",
+        "[new/verification/phase-b-b1-manual-lifecycle.log:387] shows `main.exit.forced`.",
+        "[new/verification/phase-b-b1-manual-lifecycle.log:393] ends at `shutdown.complete`; the log contains no `motion.stop.complete` or `main.exit.ready` entry."
+      ],
+      "recommendation": "Rewrite the `B-1` result section so it matches the saved log, and do not present this artifact as clean controlled-stop evidence. If `B-1` needs manual product-path stop completion as accepted evidence, collect a replacement run that actually reaches `motion.stop.complete` and `main.exit.ready`.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "DUALWHEEL-VERIFY-002",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The updated Phase B docs and accepted `B-2` note treat `control.snapshot` as the primary wheel-level evidence surface, but none of the saved Phase B logs in `new/verification/` actually contain a `control.snapshot` marker or wheel-target/feedback fields. The repo therefore claims board evidence that it does not currently contain.",
+      "evidence": [
+        "[new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md:43] says `control_loop.cpp` publishes project-owned `control.snapshot` with left/right targets, measured speed, and PWM.",
+        "[new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md:45] says board logs must explain wheel behavior through `control.snapshot` even without assistant connectivity.",
+        "[new/verification/phase-b-assistant-observability.md:9] defines `control.snapshot` as the primary acceptance evidence surface for Phase B runs.",
+        "[new/verification/phase-b-board-test-checklist.md:40] requires wheel-level behavior to be explainable from `control.snapshot`, and [new/verification/phase-b-board-test-checklist.md:125] marks `B-2` completed with accepted evidence.",
+        "[new/verification/phase-b-b2-half-load.md:26] lists `control.snapshot` as an expected marker, and [new/verification/phase-b-b2-half-load.md:39] says the accepted half-load evidence explains left/right target, feedback, and PWM through `control.snapshot`.",
+        "`rg -n \"control\\\\.snapshot\" new/verification/*.log` returned no matches.",
+        "`rg -n \"left_target|right_target|left_measured|right_measured|turn_pwm\" new/verification/phase-b-b2-half-load-short-pwm3000.log` returned no matches; the accepted log only shows `control.apply.command` at [new/verification/phase-b-b2-half-load-short-pwm3000.log:65] and [new/verification/phase-b-b2-half-load-short-pwm3000.log:167]."
+      ],
+      "recommendation": "Do not keep `B-2` closed as wheel-level observability evidence until an accepted artifact actually contains `control.snapshot` output. Either collect and reference a real log with `control.snapshot` markers, or downgrade the accepted/closed wording in the checklist and notes so they no longer claim wheel-level snapshot evidence that is absent.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "DUALWHEEL-VERIFY-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "Task `3.3` is marked complete, but the assistant observability note still does not provide implementation-grade instructions for the assistant-disabled, waveform, and image runs. It lacks exact runnable command/env surfaces, expected runtime markers or exported artifacts, and explicit `proves` / `does not prove` sections for those assistant-related evidence modes.",
+      "evidence": [
+        "[openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/tasks.md:48] requires bench-safe assistant-disabled runs, assistant-enabled waveform runs, assistant-enabled image-transfer runs, and low-speed wheel-control runs to state the exact command/env surface, expected markers or exports, and what the evidence proves versus what it does not prove.",
+        "[new/verification/phase-b-assistant-observability.md:33] through [new/verification/phase-b-assistant-observability.md:50] only provide high-level bullet guidance such as `LS2K_PARAMS_PATH` pointing at a file with `assistant_enabled=1`, but no concrete command blocks, no `VERIFY_LOG_PATH`, no expected runtime marker list, no expected waveform channel mapping, and no artifact/output naming.",
+        "Unlike the `B-1` through `B-5` notes, `new/verification/phase-b-assistant-observability.md` has no per-run `Proves` / `Does Not Prove` sections for the assistant-disabled, waveform, or image runs."
+      ],
+      "recommendation": "Expand `phase-b-assistant-observability.md` into implementation-grade runbooks: add exact commands/env for assistant-disabled, waveform, and image runs; specify expected runtime markers and external artifacts; document the expected waveform channel mapping from `assistant_service.cpp`; and add explicit `Proves` / `Does Not Prove` sections for each run mode.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}
