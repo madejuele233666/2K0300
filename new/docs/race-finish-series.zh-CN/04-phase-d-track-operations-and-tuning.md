@@ -97,6 +97,31 @@ accepted 证据：
 3. 在线热写 PID 参数并把它包装成调参 workflow
 4. 用临时 Python socket 草稿替代 `new/user/tune_speed.py`
 
+### 2A-当前状态（2026-04-21）
+
+这条 assistant 双向速度调参子流程已经完成一部分，而且这部分不是停留在设计文档层面。
+
+目前已经可以确认的已完成范围：
+
+1. project-owned inbound command contract、transport-to-decoder-to-runtime 分层、ACK/state/telemetry 编码已经落地到 `new/code/platform/*` 与 `new/code/runtime/*`。
+2. host 侧 accepted workflow 已固定到 `new/user/debug.sh tuning ...` 与 `new/user/tune_speed.py`，并有本地 preserved CSV / host log / board log 证据。
+3. `input_rejected`、`override_cleared`、`snapshot_cleared`、`accepted/rejected` ACK、`raw_turn_output` / `applied_turn_output` 这组协议面已经闭环到当前代码与证据。
+4. 这条子流程的本地 verifier 进度已经推进到：
+   - `checkpoint-1` pass：命令边界、transport/decoder split、ACK/state contract
+   - `checkpoint-3` pass：structured telemetry、host workflow、runbook evidence
+   - `checkpoint-4` pass：final source-first implementation bundle
+
+当前仍未完成的部分：
+
+1. focused runtime/board evidence 仍未补齐，所以 `checkpoint-2` 还没有关闭。
+2. 仍缺少在 active tuning session 下的 disconnect clear、`FAIL_SAFE_LATCHED` 下 remote `start` / `stop` rejection、以及 tuning mode 开启时 fail-safe 仍保持权威的 preserved board/runtime 证据。
+3. 因为上面这些证据缺口仍在，这条子流程只能算“Phase D 的一部分已完成”，不能把它写成“整个 Phase D 已通过”。
+
+换句话说：
+
+1. `Assistant 双向速度调参 accepted workflow` 这一小块，已经从“纯规划”推进到“代码可用 + 本地 verify 大部分闭环”。
+2. `Phase D` 整体仍未退出，因为 `D-1` 到 `D-5` 的大多数赛道运营能力与板端/实车证据还没有闭环。
+
 ### D-1 参数集版本化
 
 目标：

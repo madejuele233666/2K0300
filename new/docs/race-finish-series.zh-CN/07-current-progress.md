@@ -20,7 +20,7 @@
 
 当前记录时间点：
 
-- `2026-04-19`
+- `2026-04-21`
 
 如果后续推进了代码、板测或实车测试，这份文档也必须同步更新。
 
@@ -66,12 +66,21 @@
 9. 对应 OpenSpec change 已完成主规格同步并归档到 `openspec/changes/archive/2026-04-15-align-phase-a-actuator-topology-and-control-observability/`；归档证据包含 `implementation-challenger-evidence.json` 和 `runtime-smoke-2026-04-15.md`，可直接作为这次 contract/observability 收口的历史记录。
 10. `2026-04-19` 的 `implement-phase-b-motion-lifecycle` source-first verification 已完成 pass；`checkpoint-4` attempt-3 已把 repaired stop-path、diagnostics-only rerun 和 motor-enabled rerun v2 一并收口到 authoritative findings / verifier evidence 中。
 11. `2026-04-19` 当前 `new/` 树已新增双轮独立 PID、`control.snapshot` 结构化观测出口、逐飞助手 TCP-only 波形/图传 sidecar 骨架，并完成一次本地交叉构建通过；但 `new/verification/` 下仍未有已接受的 wheel-level snapshot 板端证据日志。
+12. `2026-04-21` 的 `add-bidirectional-assistant-speed-tuning` 本地 verify 已推进到 `15 / 17`：
+   - `checkpoint-1` pass：双向 command boundary、transport/decoder split、ACK/state feedback contract
+   - `checkpoint-3` pass：structured telemetry、host tuning workflow、runbook evidence
+   - `checkpoint-4` pass：final source-first implementation bundle
+13. 同一轮 repair 还修掉了两个真实本地正确性问题：
+   - 断连同 poll 的残留入站 bytes 不再在 `snapshot_cleared` 之后继续驱动 runtime state
+   - `set_turn_suppressed.value` 不再接受 `"true"` / `"false"` 这类超出冻结 contract 的字符串变体
+14. 这意味着 Phase D 至少已有一块子能力从“文档目标”推进到了“代码可用 + 本地 verifier 大部分闭环”的状态：assistant 双向速度调参 accepted workflow。
 
 当前仍然不能确认：
 
 1. 车辆已经完成低速实车闭环。
 2. 图片识别或未来距离传感器能力已经真正接入运行时。
 3. 车辆已经具备上赛道完赛能力。
+4. Assistant 双向速度调参已经完成 focused runtime/board 证据闭环；这部分仍缺 active tuning session disconnect clear、`FAIL_SAFE_LATCHED` rejection 和 fail-safe authority 的 preserved 运行证据。
 
 因此，当前推进位置是：
 
@@ -80,6 +89,7 @@
 - `2026-04-17` 的 Phase A 实机证据已补齐，允许进入 `Phase B`
 - `2026-04-18` 已在 `new/code/runtime/*`、`new/user/main.cpp`、`new/user/run_remote_smoke.sh` 落地 Phase B motion lifecycle、controlled stop-before-exit、fault-latch/re-arm、wrapper-owned frame budget stop 与 harness context contract
 - `2026-04-19` 已补齐 stop-exit 修复后的 board rerun evidence，并完成 final source-first review pass；当前剩余问题集中在 `B-1` 到 `B-5` 的板端/实车证据闭环，而不是实现契约或 review gate
+- `2026-04-21` 仍停留在 `Phase B`，但 `Phase D` 已出现部分实现进展：assistant 双向速度调参 workflow 已完成代码落地和大部分本地 verify，剩余缺口集中在 focused runtime/board evidence，而不是协议面或 host workflow 本身
 
 ## 4. 已完成事项
 
@@ -137,6 +147,23 @@
 
 上述两轮闭环合起来，已经覆盖当前 `race-finish-series.zh-CN` 主文档面的现行内容。
 
+### 4.4 Phase D 局部推进
+
+以下事项已完成：
+
+1. `new/code/platform/assistant_protocol.cpp`、`assistant_link.cpp`、`new/code/runtime/assistant_service.cpp`、`tuning_state.cpp` 已落地 assistant 双向速度调参的 project-owned command / ACK / state / telemetry contract。
+2. `new/user/debug.sh tuning` 与 `new/user/tune_speed.py` 已成为 accepted host workflow，`new/user/simulate_assistant_peer.py` 已补入 local-only host verification 辅助路径。
+3. `new/verification/phase-d-speed-tuning.md` 已固定 accepted workflow、evidence 口径和 plotting fallback 要求。
+4. OpenSpec `add-bidirectional-assistant-speed-tuning` 当前已完成 `15 / 17`，其中本地 verify 已关闭：
+   - `checkpoint-1`
+   - `checkpoint-3`
+   - `checkpoint-4`
+
+这部分尚未完成：
+
+1. `checkpoint-2` 仍缺 focused runtime/board evidence。
+2. 因此这只能算“Phase D 的局部推进”，不能把当前状态写成“Phase D 已通过”。
+
 ## 5. 尚未完成事项
 
 当前真正阻挡“继续往赛道推进”的，不再是文档，而是实机与闭环事实：
@@ -146,7 +173,8 @@
 3. `old_2` 中高价值规则链虽然已经完成文档吸收，但尚未转译成 `new/` 的 project-owned 实现。
 4. 默认 smoke 入口已经收口为 bench-safe；后续真实电机验证必须显式 opt-in，不能再把 generic smoke 当成默认可安全上电机的回归入口。
 5. Phase B 的代码主线现在已经具备 project-owned motion lifecycle，且 source-first review 已通过，但还没有形成板端通过的 B-1 ~ B-5 实测证据包。
-6. 新增的 assistant sidecar 与双轮 PID 代码还没有形成 checkpoint-2 ~ checkpoint-5 的 source-first verifier 证据，也还没有形成 assistant-disabled / assistant-enabled 的板端 observability 证据包。
+6. 新增的 assistant sidecar 与双轮 PID 代码已经形成 assistant 双向速度调参 change 的 `checkpoint-1`、`checkpoint-3`、`checkpoint-4` authoritative verifier 证据，但 `checkpoint-2` 仍缺 focused runtime/board evidence。
+7. Phase D 的其余主任务，例如参数集版本化、现场切换/回滚流程、赛道分阶段测试记录和性能稳定性，仍未进入可验收状态。
 
 ## 6. 当前推荐下一步
 
@@ -174,7 +202,7 @@
 
 当前项目的最准状态是：
 
-- 路线文档和验证契约已经闭环，Phase A 的硬件闭环与控制解锁证据现已补齐；Phase B 的 motion lifecycle 实现和 source-first verification 也已闭环，下一阶段主问题已经收敛到 `B-1` 到 `B-5` 的低速实车证据。
+- 路线文档和验证契约已经闭环，Phase A 的硬件闭环与控制解锁证据现已补齐，Phase B 的 motion lifecycle 实现和 source-first verification 也已闭环；同时 Phase D 的 assistant 双向速度调参 workflow 已完成局部实现与大部分本地 verify，但整阶段仍未退出，当前主问题仍是 `B-1` 到 `B-5` 的低速实车证据和 Phase D focused runtime/board evidence。
 
 ## 9. 推进时间线
 
@@ -343,6 +371,41 @@
 2. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-stop-exit-fix.log`
 3. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-motor-enabled-stop-exit-fix-v2.log`
 4. `openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-3/verifier-evidence.json`
+
+### 2026-04-21
+
+类型：
+
+- 代码推进
+- 文档推进
+- review 收口
+
+本次完成：
+
+1. `add-bidirectional-assistant-speed-tuning` 的本地 verify 已推进到 `15 / 17`；`checkpoint-1`、`checkpoint-3`、`checkpoint-4` 均已形成 authoritative findings / verifier evidence / agent-table，并通过 `verification_cycle_guard.py`。
+2. 这轮 repair 修复了 assistant 双向协议面的两个真实本地正确性问题：
+   - disconnect 同 poll 入站 bytes 不再跨越已关闭 transport epoch 继续驱动 runtime state 或残留 feedback
+   - `set_turn_suppressed.value` 收紧回冻结的 JSON boolean contract
+3. `new/verification/phase-d-speed-tuning.md` 与本阶段文档口径现已能够明确区分：
+   - 已闭环的 host/tooling/protocol/source-first 范围
+   - 未闭环的 focused runtime/board evidence 范围
+
+本次未完成：
+
+1. `2.4` 仍缺 active tuning session disconnect clear、`FAIL_SAFE_LATCHED` rejection、fail-safe authority 等 preserved board/runtime evidence。
+2. `2.5` 仍因上面的 focused runtime/board evidence 缺口而未关闭。
+3. Phase D 的参数版本化、现场切换/回滚、赛道分阶段记录与性能稳定性等其余主任务仍未闭环。
+
+阶段状态变化：
+
+- 仍停留在 `Phase B`；但 `Phase D` 已新增一块“代码可用 + 本地 verify 大部分闭环”的 assistant 双向速度调参子能力。
+
+关联证据：
+
+1. `openspec/changes/add-bidirectional-assistant-speed-tuning/verification/checkpoint-1/agent-table.json`
+2. `openspec/changes/add-bidirectional-assistant-speed-tuning/verification/checkpoint-3/agent-table.json`
+3. `openspec/changes/add-bidirectional-assistant-speed-tuning/verification/checkpoint-4/agent-table.json`
+4. `openspec/changes/add-bidirectional-assistant-speed-tuning/verification/implementation-progress-2026-04-21.md`
 
 ## 10. 后续记录模板
 
