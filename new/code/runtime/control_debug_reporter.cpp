@@ -28,12 +28,19 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
     message << "phase=" << ToString(snapshot.motion_phase)
             << " veto=" << (snapshot.veto_active ? "true" : "false")
             << " reason=" << ToString(snapshot.veto_reason)
+            << " tuning_mode=" << (snapshot.tuning_mode_enabled ? "true" : "false")
+            << " turn_suppressed=" << (snapshot.turn_suppressed ? "true" : "false")
+            << " override_enabled=" << (snapshot.target_speed_override_enabled ? "true" : "false")
+            << " override_value="
+            << (snapshot.target_speed_override_enabled ? std::to_string(snapshot.target_speed_override_value)
+                                                       : std::string("null"))
             << " effective_speed_target=" << snapshot.effective_speed_target
             << " left_target=" << snapshot.left_speed_target
             << " right_target=" << snapshot.right_speed_target
             << " left_measured=" << snapshot.left_measured_speed
             << " right_measured=" << snapshot.right_measured_speed
-            << " turn_pwm=" << snapshot.turn_pwm_command
+            << " raw_turn=" << snapshot.raw_turn_output
+            << " applied_turn=" << snapshot.applied_turn_output
             << " left_pwm=" << snapshot.left_pwm_command
             << " right_pwm=" << snapshot.right_pwm_command
             << " emergency_stop=" << (snapshot.emergency_stop ? "true" : "false");

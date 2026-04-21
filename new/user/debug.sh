@@ -8,6 +8,7 @@ USER_DIR="${WORK_DIR}"
 OUT_DIR="$(cd "${WORK_DIR}/../out" && pwd)"
 REPO_ROOT="$(cd "${WORK_DIR}/../.." && pwd)"
 TRUE_VENDOR_ROOT="${REPO_ROOT}/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library"
+VENV_PYTHON="${WORK_DIR}/.venv/bin/python"
 
 BOARD_IP="${BOARD_IP:-10.100.170.226}"
 BOARD_USER="${BOARD_USER:-root}"
@@ -50,6 +51,14 @@ log_error() {
     echo "[ERROR] $1" >&2
 }
 
+resolve_python() {
+    if [[ -x "${VENV_PYTHON}" ]]; then
+        printf '%s\n' "${VENV_PYTHON}"
+        return 0
+    fi
+    command -v python3
+}
+
 usage() {
     cat <<'EOF'
 Usage:
@@ -58,11 +67,13 @@ Usage:
   ./debug.sh assistant on [host] [port]
   ./debug.sh assistant local [port]
   ./debug.sh assistant off
+  ./debug.sh bench calibrate [calibrate_pwm.py args...]
   ./debug.sh remote start [normal|smoke]
   ./debug.sh remote stop
   ./debug.sh remote restart [normal|smoke]
   ./debug.sh remote status
   ./debug.sh remote logs
+  ./debug.sh tuning [tune_speed.py args...]
   ./debug.sh smoke run
   ./debug.sh smoke local
   ./debug.sh smoke help
@@ -70,7 +81,9 @@ Usage:
 Command groups:
   build      build new/ and upload binary + params + profile to the board
   assistant  switch assistant TCP publish settings in default_params.json
+  bench      run open-loop PWM/encoder bench workflows
   remote     start/stop/check the runtime process on the board
+  tuning     run the Python host-side speed tuning workflow
   smoke      execute the runtime smoke harness and collect a verification log
 
 Common env overrides:
@@ -509,6 +522,46 @@ remote_command() {
     esac
 }
 
+tuning_command() {
+    local script_path="${WORK_DIR}/tune_speed.py"
+    local python_bin
+    require_local_file "${script_path}" "tuning workflow"
+    python_bin="$(resolve_python)"
+    "${python_bin}" "${script_path}" "$@"
+}
+
+bench_usage() {
+    cat <<'EOF'
+Usage:
+  ./debug.sh bench calibrate [calibrate_pwm.py args...]
+
+Behavior:
+  - runs open-loop PWM pulses on the board
+  - captures encoder deltas for each sample
+  - writes CSV via calibrate_pwm.py
+EOF
+}
+
+bench_command() {
+    local action="${1:-calibrate}"
+    local python_bin
+    case "${action}" in
+        calibrate)
+            shift || true
+            require_local_file "${WORK_DIR}/calibrate_pwm.py" "PWM calibration workflow"
+            python_bin="$(resolve_python)"
+            "${python_bin}" "${WORK_DIR}/calibrate_pwm.py" "$@"
+            ;;
+        -h|--help|help)
+            bench_usage
+            ;;
+        *)
+            bench_usage >&2
+            exit 1
+            ;;
+    esac
+}
+
 smoke_usage() {
     cat <<'EOF'
 Usage:
@@ -838,6 +891,14 @@ main() {
         remote)
             shift
             remote_command "$@"
+            ;;
+        tuning)
+            shift
+            tuning_command "$@"
+            ;;
+        bench)
+            shift
+            bench_command "$@"
             ;;
         smoke)
             shift

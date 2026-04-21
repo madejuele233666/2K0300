@@ -101,7 +101,7 @@ MotionSnapshot ReadMotionSnapshot(ls2k::runtime::RuntimeState& state) {
     MotionSnapshot snapshot{};
     snapshot.phase = state.motion_state.phase;
     snapshot.reset_ready = state.control_observation.motion_reset_ready;
-    snapshot.exit_requested = state.exit_requested;
+    snapshot.exit_requested = state.exit_requested.load();
     return snapshot;
 }
 
@@ -131,8 +131,8 @@ void RequestControlledStop(ls2k::runtime::RuntimeState& state,
     bool changed = false;
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
-        if (!state.exit_requested) {
-            state.exit_requested = true;
+        if (!state.exit_requested.load()) {
+            state.exit_requested.store(true);
             changed = true;
         }
         state.motion_intent.stop_requested = true;
@@ -341,7 +341,7 @@ int main() {
     int processed_frames = 0;
     bool auto_reset_sent = false;
 
-    while (!runtime_state.stop_requested) {
+    while (!runtime_state.stop_requested.load()) {
         if (g_start_signal != 0) {
             g_start_signal = 0;
             RequestStart(runtime_state, diagnostics, "SIGUSR2");
@@ -357,7 +357,7 @@ int main() {
         if (g_force_exit_signal != 0) {
             g_force_exit_signal = 0;
             RequestControlledStop(runtime_state, diagnostics, "SIGTERM");
-            runtime_state.stop_requested = true;
+            runtime_state.stop_requested.store(true);
             diagnostics.Warn("main.exit.forced",
                              "forced shutdown requested by SIGTERM; exiting without waiting for DISARMED");
             break;
@@ -397,7 +397,7 @@ int main() {
         }
 
         if (motion.exit_requested && motion.phase == ls2k::runtime::MotionPhase::kDisarmed) {
-            runtime_state.stop_requested = true;
+            runtime_state.stop_requested.store(true);
             diagnostics.Info("main.exit.ready", "controlled stop reached DISARMED; process may now exit");
             break;
         }

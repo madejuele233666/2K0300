@@ -273,6 +273,8 @@ public:
         ReadOptionalInt(root, "control_period_ms", parsed.control_period_ms, optional_malformed);
         ReadOptionalInt(root, "perception_stale_ms", parsed.perception_stale_ms, optional_malformed);
         ReadOptionalInt(root, "pwm_limit", parsed.pwm_limit, optional_malformed);
+        ReadOptionalInt(root, "pwm_floor", parsed.pwm_floor, optional_malformed);
+        ReadOptionalBool(root, "prohibit_reverse_pwm", parsed.prohibit_reverse_pwm, optional_malformed);
         ReadOptionalInt(root,
                         "motion_unveto_confirm_cycles",
                         parsed.motion_unveto_confirm_cycles,

@@ -35,6 +35,7 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     fallback.fresh = false;
     fallback.frame_id = capture.frame_id;
     fallback.capture_time_ms = capture.capture_time_ms;
+    fallback.publish_time_ms = capture.capture_time_ms;
     fallback.geometry_veto = true;
     fallback.emergency_veto = true;
     fallback.perception_tag = "injected-drop-frame";
@@ -89,7 +90,8 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                                "injecting bounded Phase B dropped-frame fault on the accepted runtime entrypoint",
                                port::NowMs()},
                               1000);
-        const port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
+        port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
+        fallback.publish_time_ms = port::NowMs();
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
         state_.latest_camera_capture = capture;
         state_.perception = fallback;
@@ -103,6 +105,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         fallback.fresh = false;
         fallback.frame_id = capture.frame_id;
         fallback.capture_time_ms = capture.capture_time_ms;
+        fallback.publish_time_ms = port::NowMs();
         fallback.geometry_veto = true;
         fallback.emergency_veto = true;
 
@@ -137,6 +140,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                              state_.low_voltage_emergency.load(),
                              capture.frame_id,
                              capture.capture_time_ms);
+    perception.publish_time_ms = port::NowMs();
 
     std::lock_guard<std::mutex> lock(state_.shared_mutex);
     state_.latest_camera_capture = capture;

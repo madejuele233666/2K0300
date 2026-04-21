@@ -9,6 +9,7 @@
 #include "runtime/control_decision.hpp"
 #include "runtime/control_debug_snapshot.hpp"
 #include "runtime/motion_types.hpp"
+#include "runtime/tuning_state.hpp"
 
 namespace ls2k::runtime {
 
@@ -35,11 +36,12 @@ struct RuntimeState {
     bool degraded_startup = false;
     bool timer_started = false;
     bool actuators_armed = false;
-    bool stop_requested = false;
-    bool exit_requested = false;
+    std::atomic<bool> stop_requested{false};
+    std::atomic<bool> exit_requested{false};
     bool automation_start_fired = false;
     MotionIntent motion_intent{};
     MotionSupervisorState motion_state{};
+    RuntimeTuningState tuning_state{};
     std::atomic<bool> low_voltage_emergency{false};
 
     std::atomic<uint64_t> control_cycle_count{0};

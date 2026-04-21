@@ -7,12 +7,14 @@ bool IsPerceptionStale(const ControlGateInputs& inputs) {
     if (!inputs.perception_published || !inputs.perception_fresh) {
         return true;
     }
-    if (inputs.now_ms <= inputs.perception_capture_time_ms) {
+    const uint64_t perception_observed_time_ms =
+        inputs.perception_publish_time_ms != 0 ? inputs.perception_publish_time_ms : inputs.perception_capture_time_ms;
+    if (inputs.now_ms <= perception_observed_time_ms) {
         return false;
     }
     const uint64_t stale_window_ms = static_cast<uint64_t>(inputs.perception_stale_ms <= 0 ? 0
                                                                                             : inputs.perception_stale_ms);
-    return inputs.now_ms - inputs.perception_capture_time_ms > stale_window_ms;
+    return inputs.now_ms - perception_observed_time_ms > stale_window_ms;
 }
 
 }  // namespace

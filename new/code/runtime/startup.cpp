@@ -249,8 +249,8 @@ bool RunStartup(const port::HardwareProfile& profile,
     state.startup_complete = true;
     state.timer_started = false;
     state.actuators_armed = false;
-    state.stop_requested = false;
-    state.exit_requested = false;
+    state.stop_requested.store(false);
+    state.exit_requested.store(false);
     state.automation_start_fired = false;
     state.motion_intent = {};
     state.motion_state = {};

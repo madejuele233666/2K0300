@@ -62,6 +62,7 @@ set(NEW_SRCS
     ../code/platform/param_store.cpp
     ../code/platform/hardware_profile.cpp
     ../code/platform/assistant_link.cpp
+    ../code/platform/assistant_protocol.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
     ../code/platform/true_ls2k0300/imu_bridge.cpp
     ../code/platform/true_ls2k0300/encoder_bridge.cpp
@@ -83,6 +84,7 @@ set(NEW_SRCS
     ../code/runtime/control_loop.cpp
     ../code/runtime/control_debug_reporter.cpp
     ../code/runtime/assistant_service.cpp
+    ../code/runtime/tuning_state.cpp
     ../code/runtime/shutdown.cpp
 )
 

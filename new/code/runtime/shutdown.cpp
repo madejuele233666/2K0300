@@ -3,8 +3,8 @@
 namespace ls2k::runtime {
 
 void RunShutdown(port::PlatformBundle& platform, RuntimeState& state, port::DiagnosticSink& diagnostics) {
-    state.stop_requested = true;
-    state.exit_requested = true;
+    state.stop_requested.store(true);
+    state.exit_requested.store(true);
     if (platform.timer) {
         platform.timer->Stop(diagnostics);
     }

@@ -27,6 +27,9 @@ public:
     void Stop();
 
 private:
+    void HandleTimerFailure();
+    void ResetDisarmedControlState();
+    void LatchTimerFailureState(uint64_t now_ms);
     void Tick();
 
     port::PlatformBundle& platform_;

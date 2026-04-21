@@ -17,6 +17,7 @@ ControlGateInputs BuildControlGateInputs(const port::PerceptionResult& perceptio
     inputs.perception_published = perception.published;
     inputs.perception_fresh = perception.fresh;
     inputs.perception_capture_time_ms = perception.capture_time_ms;
+    inputs.perception_publish_time_ms = perception.publish_time_ms;
     inputs.perception_emergency_veto = perception.emergency_veto;
     inputs.low_voltage_emergency = low_voltage_emergency;
     inputs.imu_valid = imu.valid;
@@ -29,6 +30,7 @@ ControlGateInputs BuildControlGateInputs(const port::PerceptionResult& perceptio
 MotionSupervisorInputs BuildMotionSupervisorInputs(bool startup_complete,
                                                    const MotionSupervisorState& motion_state,
                                                    const MotionIntent& motion_intent,
+                                                   const RuntimeTuningSnapshot& tuning_snapshot,
                                                    const ControlGateDecision& gate,
                                                    const port::EncoderDelta& encoder,
                                                    uint64_t now_ms,
@@ -39,7 +41,9 @@ MotionSupervisorInputs BuildMotionSupervisorInputs(bool startup_complete,
     inputs.startup_complete = startup_complete;
     inputs.gate_clear = !gate.veto_active;
     inputs.now_ms = now_ms;
-    inputs.running_speed_target = params.Speed_base;
+    inputs.running_speed_target =
+        RuntimeTuningOverrideActiveAt(tuning_snapshot, now_ms) ? tuning_snapshot.target_speed_override_value
+                                                               : params.Speed_base;
     inputs.encoder_mean_abs = (std::abs(encoder.left) + std::abs(encoder.right)) / 2;
     inputs.motion_unveto_confirm_cycles = params.motion_unveto_confirm_cycles;
     inputs.motion_spinup_ms = params.motion_spinup_ms;
@@ -131,14 +135,14 @@ int ClampTurnOutput(float turn_output, double turn_limit_scale, int pwm_limit) {
 }
 
 legacy::WheelSpeedTargets BuildSnapshotWheelTargets(const MotionDecision& decision,
-                                                    int turn_pwm_command,
+                                                    int applied_turn_output,
                                                     const legacy::WheelTargetMixer& mixer,
                                                     int pwm_limit) {
     if (decision.require_emergency_stop || decision.hold_disarmed || !decision.allow_drive) {
         return {};
     }
 
-    const int snapshot_turn_pwm = decision.state.phase == MotionPhase::kStopping ? 0 : turn_pwm_command;
+    const int snapshot_turn_pwm = decision.state.phase == MotionPhase::kStopping ? 0 : applied_turn_output;
     return mixer.Compute(decision.effective_speed_target, snapshot_turn_pwm, pwm_limit);
 }
 
@@ -152,6 +156,38 @@ port::ActuatorCommand ApplyPwmStepLimit(const port::ActuatorCommand& previous,
         std::clamp(command.left_pwm, previous.left_pwm - pwm_step_limit, previous.left_pwm + pwm_step_limit);
     command.right_pwm =
         std::clamp(command.right_pwm, previous.right_pwm - pwm_step_limit, previous.right_pwm + pwm_step_limit);
+    return command;
+}
+
+int ApplySinglePwmFloor(int pwm, int pwm_limit, int pwm_floor) {
+    if (pwm == 0 || pwm_floor <= 0) {
+        return pwm;
+    }
+    const int clamped_floor = std::min(std::max(0, pwm_floor), std::max(0, pwm_limit));
+    if (clamped_floor == 0) {
+        return pwm;
+    }
+    if (pwm > 0) {
+        return std::clamp(std::max(pwm, clamped_floor), 0, pwm_limit);
+    }
+    return std::clamp(std::min(pwm, -clamped_floor), -pwm_limit, 0);
+}
+
+port::ActuatorCommand ApplyPwmFloor(port::ActuatorCommand command, int pwm_limit, int pwm_floor) {
+    if (command.emergency_stop) {
+        return command;
+    }
+    command.left_pwm = ApplySinglePwmFloor(command.left_pwm, pwm_limit, pwm_floor);
+    command.right_pwm = ApplySinglePwmFloor(command.right_pwm, pwm_limit, pwm_floor);
+    return command;
+}
+
+port::ActuatorCommand ApplyProhibitReverse(port::ActuatorCommand command, bool prohibit_reverse_pwm) {
+    if (command.emergency_stop || !prohibit_reverse_pwm) {
+        return command;
+    }
+    command.left_pwm = std::max(0, command.left_pwm);
+    command.right_pwm = std::max(0, command.right_pwm);
     return command;
 }
 
@@ -391,6 +427,7 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
         profile_.timer,
         static_cast<uint32_t>(std::max(1, params_.control_period_ms)),
         [this]() { Tick(); },
+        [this]() { HandleTimerFailure(); },
         diagnostics_);
     if (!timer_ok) {
         running_ = false;
@@ -436,19 +473,65 @@ void ControlLoop::Stop() {
     }
     running_ = false;
     platform_.timer->Stop(diagnostics_);
-    state_.timer_started = false;
     if (platform_.motor) {
         platform_.motor->Disable(diagnostics_);
     }
-    {
-        std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        state_.actuators_armed = false;
-        state_.last_command = {};
-        state_.control_observation = {};
-        state_.control_debug_snapshot = {};
-        state_.motion_state.phase = MotionPhase::kDisarmed;
-        state_.motion_state.clean_gate_cycles = 0;
+    ResetDisarmedControlState();
+}
+
+void ControlLoop::HandleTimerFailure() {
+    if (!running_.exchange(false)) {
+        return;
     }
+
+    const uint64_t now_ms = port::NowMs();
+    diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
+                       "control.timer.runtime_failure",
+                       "control timer stopped unexpectedly; runtime entered FAIL_SAFE_LATCHED and will shut down",
+                       now_ms});
+    if (platform_.motor) {
+        platform_.motor->Disable(diagnostics_);
+    }
+    LatchTimerFailureState(now_ms);
+    state_.exit_requested.store(true);
+    state_.stop_requested.store(true);
+}
+
+void ControlLoop::ResetDisarmedControlState() {
+    state_.timer_started = false;
+    std::lock_guard<std::mutex> lock(state_.shared_mutex);
+    state_.actuators_armed = false;
+    state_.last_command = {};
+    state_.control_observation = {};
+    state_.control_debug_snapshot = {};
+    state_.motion_state.phase = MotionPhase::kDisarmed;
+    state_.motion_state.phase_entry_ms = port::NowMs();
+    state_.motion_state.fail_safe_latched_at_ms = 0;
+    state_.motion_state.clean_gate_cycles = 0;
+}
+
+void ControlLoop::LatchTimerFailureState(uint64_t now_ms) {
+    state_.timer_started = false;
+    motion_reset_ready_reported_ = false;
+    std::lock_guard<std::mutex> lock(state_.shared_mutex);
+    state_.actuators_armed = false;
+    state_.last_command = {};
+    state_.control_observation = {};
+    state_.control_observation.motion_phase = MotionPhase::kFailSafeLatched;
+    state_.control_observation.hold_disarmed = true;
+    state_.control_observation.motion_reset_ready = false;
+    state_.control_debug_snapshot = {};
+    state_.control_debug_snapshot.valid = true;
+    state_.control_debug_snapshot.timestamp_ms = now_ms;
+    state_.control_debug_snapshot.motion_phase = MotionPhase::kFailSafeLatched;
+    state_.control_debug_snapshot.emergency_stop = true;
+    state_.motion_state.phase = MotionPhase::kFailSafeLatched;
+    state_.motion_state.phase_entry_ms = now_ms;
+    state_.motion_state.fail_safe_latched_at_ms = now_ms;
+    state_.motion_state.clean_gate_cycles = 0;
+    state_.motion_intent.start_requested = false;
+    state_.motion_intent.stop_requested = false;
+    state_.motion_intent.reset_fault_requested = false;
 }
 
 void ControlLoop::Tick() {
@@ -476,6 +559,7 @@ void ControlLoop::Tick() {
     port::ActuatorCommand previous_command{};
     MotionSupervisorState previous_motion_state{};
     MotionIntent motion_intent{};
+    RuntimeTuningSnapshot tuning_snapshot{};
     ControlCycleObservation previous_observation{};
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
@@ -485,6 +569,7 @@ void ControlLoop::Tick() {
         previous_command = state_.last_command;
         previous_motion_state = state_.motion_state;
         motion_intent = state_.motion_intent;
+        tuning_snapshot = SnapshotRuntimeTuningState(state_.tuning_state);
         previous_observation = state_.control_observation;
     }
 
@@ -502,7 +587,7 @@ void ControlLoop::Tick() {
                                 now_ms);
 
     const MotionDecision motion = motion_supervisor_.Evaluate(BuildMotionSupervisorInputs(
-        state_.startup_complete, previous_motion_state, motion_intent, gate, encoder, now_ms, params_));
+        state_.startup_complete, previous_motion_state, motion_intent, tuning_snapshot, gate, encoder, now_ms, params_));
 
     if (motion.reset_controllers) {
         ResetControllerState(pid_, attitude_, left_wheel_pid_, right_wheel_pid_, state_);
@@ -511,7 +596,8 @@ void ControlLoop::Tick() {
     port::ActuatorCommand command{};
     legacy::WheelSpeedTargets wheel_targets{};
     bool hold_disarmed = false;
-    int limited_turn_output = 0;
+    int raw_turn_output = 0;
+    int applied_turn_output = 0;
     if (gate.veto_active || motion.require_emergency_stop) {
         command = {};
     } else if (motion.hold_disarmed || !motion.allow_drive) {
@@ -525,15 +611,21 @@ void ControlLoop::Tick() {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
         const float w_target = pid_.ComputeTurnTarget(perception, state_.W_Target_last);
         const float turn_output = pid_.ComputeGyroTurn(w_target, imu.gyro_z);
-        limited_turn_output = ClampTurnOutput(turn_output, motion.turn_limit_scale, params_.pwm_limit);
+        raw_turn_output = ClampTurnOutput(turn_output, motion.turn_limit_scale, params_.pwm_limit);
+        applied_turn_output = raw_turn_output;
+        if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
+            applied_turn_output = 0;
+        }
         wheel_targets =
-            wheel_target_mixer_.Compute(motion.effective_speed_target, limited_turn_output, params_.pwm_limit);
+            wheel_target_mixer_.Compute(motion.effective_speed_target, applied_turn_output, params_.pwm_limit);
         const int left_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
         const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
         if (motion.state.phase == MotionPhase::kSpinup || motion.state.phase == MotionPhase::kStopping) {
             command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
         }
+        command = ApplyPwmFloor(command, params_.pwm_limit, params_.pwm_floor);
+        command = ApplyProhibitReverse(command, params_.prohibit_reverse_pwm);
     }
     const bool diagnostics_only_motor =
         profile_.motor.mode == port::SubsystemMode::kAdaptationHook ||
@@ -547,7 +639,7 @@ void ControlLoop::Tick() {
     MotionDecision final_motion = motion;
     if (motion.state.phase == MotionPhase::kStopping) {
         MotionSupervisorInputs stop_completion_inputs = BuildMotionSupervisorInputs(
-            state_.startup_complete, motion.state, motion_intent, gate, encoder, now_ms, params_);
+            state_.startup_complete, motion.state, motion_intent, tuning_snapshot, gate, encoder, now_ms, params_);
         // Lifecycle stop completion is keyed to the command that can still reach the actuator path,
         // not the controller's diagnostic-only requested PWM.
         stop_completion_inputs.shaped_command_zero = current_effective_command_zero;
@@ -558,7 +650,7 @@ void ControlLoop::Tick() {
     }
     EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
     const legacy::WheelSpeedTargets snapshot_wheel_targets =
-        BuildSnapshotWheelTargets(final_motion, limited_turn_output, wheel_target_mixer_, params_.pwm_limit);
+        BuildSnapshotWheelTargets(final_motion, applied_turn_output, wheel_target_mixer_, params_.pwm_limit);
 
     bool apply_ok = true;
     if (diagnostics_only_motor || hold_disarmed) {
@@ -573,18 +665,26 @@ void ControlLoop::Tick() {
     EmitObservationDiagnostics(diagnostics_, previous_observation, observation, now_ms);
 
     ControlDebugSnapshot debug_snapshot{};
+    const bool override_active = RuntimeTuningOverrideActiveAt(tuning_snapshot, now_ms);
     debug_snapshot.valid = true;
     debug_snapshot.cycle_count = state_.control_cycle_count.load() + 1;
     debug_snapshot.timestamp_ms = now_ms;
     debug_snapshot.motion_phase = final_motion.state.phase;
     debug_snapshot.veto_active = gate.veto_active;
     debug_snapshot.veto_reason = gate.veto_reason;
+    debug_snapshot.tuning_mode_enabled = tuning_snapshot.tuning_mode_enabled;
+    debug_snapshot.turn_suppressed = tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed;
+    debug_snapshot.target_speed_override_enabled = override_active;
+    debug_snapshot.target_speed_override_value =
+        override_active ? tuning_snapshot.target_speed_override_value : 0.0;
     debug_snapshot.effective_speed_target = final_motion.effective_speed_target;
     debug_snapshot.left_speed_target = snapshot_wheel_targets.left;
     debug_snapshot.right_speed_target = snapshot_wheel_targets.right;
     debug_snapshot.left_measured_speed = static_cast<double>(encoder.left);
     debug_snapshot.right_measured_speed = static_cast<double>(encoder.right);
-    debug_snapshot.turn_pwm_command = limited_turn_output;
+    debug_snapshot.raw_turn_output = raw_turn_output;
+    debug_snapshot.applied_turn_output = applied_turn_output;
+    debug_snapshot.turn_pwm_command = applied_turn_output;
     debug_snapshot.left_pwm_command = command.left_pwm;
     debug_snapshot.right_pwm_command = command.right_pwm;
     debug_snapshot.emergency_stop = command.emergency_stop;

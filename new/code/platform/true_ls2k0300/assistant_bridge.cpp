@@ -21,7 +21,7 @@ namespace ls2k::platform::true_ls2k0300 {
 namespace {
 
 constexpr uint64_t kReconnectBackoffMs = 1000;
-constexpr uint64_t kIgnoredReceiveReportIntervalMs = 500;
+constexpr std::size_t kMaxReceiveDrainBytesPerPoll = 8192;
 
 enum class IoStatus {
     kOk = 0,
@@ -40,8 +40,7 @@ struct AssistantBridgeContext {
     std::string detail = "assistant bridge not configured";
     IoStatus last_io_status = IoStatus::kOk;
     std::string last_io_detail;
-    std::uint32_t ignored_receive_bytes_pending = 0;
-    uint64_t next_ignored_receive_report_at_ms = 0;
+    std::string received_bytes_pending;
 };
 
 AssistantBridgeContext g_bridge{};
@@ -183,12 +182,18 @@ uint32 BridgeReadData(uint8* buff, uint32 length) {
 
 void DrainReceiveBuffer() {
     uint8_t buffer[256];
+    std::size_t drained_bytes = 0;
     while (true) {
         const uint32 received = BridgeReadData(buffer, sizeof(buffer));
         if (received == 0 || g_bridge.last_io_status == IoStatus::kClosed || g_bridge.last_io_status == IoStatus::kError) {
             return;
         }
-        g_bridge.ignored_receive_bytes_pending += received;
+        g_bridge.received_bytes_pending.append(reinterpret_cast<const char*>(buffer),
+                                              static_cast<std::size_t>(received));
+        drained_bytes += static_cast<std::size_t>(received);
+        if (drained_bytes >= kMaxReceiveDrainBytesPerPoll) {
+            return;
+        }
     }
 }
 
@@ -283,13 +288,7 @@ AssistantBridgePollResult TakePollResult(const uint64_t now_ms) {
     result.state = g_bridge.state;
     result.state_changed = g_bridge.state_dirty;
     result.detail = g_bridge.detail;
-    if (g_bridge.ignored_receive_bytes_pending > 0 &&
-        (g_bridge.next_ignored_receive_report_at_ms == 0 || now_ms >= g_bridge.next_ignored_receive_report_at_ms)) {
-        result.ignored_receive = true;
-        result.ignored_receive_bytes = g_bridge.ignored_receive_bytes_pending;
-        g_bridge.ignored_receive_bytes_pending = 0;
-        g_bridge.next_ignored_receive_report_at_ms = now_ms + kIgnoredReceiveReportIntervalMs;
-    }
+    result.received_bytes.swap(g_bridge.received_bytes_pending);
     g_bridge.state_dirty = false;
     return result;
 }
@@ -362,6 +361,25 @@ AssistantBridgePollResult PollAssistantBridge() {
 
 bool AssistantBridgeReady() {
     return g_bridge.state == AssistantBridgeState::kReady;
+}
+
+bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, std::string& detail) {
+    if (!AssistantBridgeReady()) {
+        detail = "assistant bridge not connected";
+        return false;
+    }
+    if (data == nullptr || length == 0) {
+        detail = "assistant payload is empty";
+        return false;
+    }
+
+    ResetIoStatus();
+    const uint32 unsent = BridgeSendData(reinterpret_cast<const uint8*>(data), static_cast<uint32>(length));
+    if (unsent != 0 && g_bridge.last_io_status == IoStatus::kOk) {
+        detail = "assistant payload send incomplete";
+        return false;
+    }
+    return FinalizeTransferResult(detail);
 }
 
 bool SendAssistantOscilloscope(const std::array<float, 8>& values,

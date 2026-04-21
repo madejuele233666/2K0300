@@ -78,7 +78,7 @@ public:
     TimerBridge();
     ~TimerBridge();
 
-    bool Start(uint32_t period_ms, std::function<void()> callback, bool use_vendor_timer);
+    bool Start(uint32_t period_ms, std::function<void()> callback, std::function<void()> on_failure);
     void Stop();
     bool Running() const;
 

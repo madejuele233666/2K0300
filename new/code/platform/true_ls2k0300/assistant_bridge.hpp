@@ -25,13 +25,13 @@ struct AssistantBridgePollResult {
     AssistantBridgeState state = AssistantBridgeState::kUnconfigured;
     bool state_changed = false;
     std::string detail;
-    bool ignored_receive = false;
-    std::uint32_t ignored_receive_bytes = 0;
+    std::string received_bytes;
 };
 
 bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string& detail);
 AssistantBridgePollResult PollAssistantBridge();
 bool AssistantBridgeReady();
+bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, std::string& detail);
 bool SendAssistantOscilloscope(const std::array<float, 8>& values,
                                std::size_t channel_count,
                                std::string& detail);

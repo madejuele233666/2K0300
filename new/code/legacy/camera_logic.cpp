@@ -111,6 +111,7 @@ port::PerceptionResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     result.fresh = true;
     result.frame_id = frame_id;
     result.capture_time_ms = capture_time_ms;
+    result.publish_time_ms = capture_time_ms;
     result.perception_tag = "otsu+eight-neighbor-equivalent";
 
     result.threshold = OtsuThresholdFast(frame);

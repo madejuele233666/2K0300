@@ -3,7 +3,10 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
+#include <vector>
 
+#include "platform/assistant_protocol.hpp"
 #include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
 
@@ -14,18 +17,30 @@ struct AssistantWaveformFrame {
     std::size_t channel_count = 0;
 };
 
+struct AssistantPollResult {
+    bool ready = false;
+    bool became_ready = false;
+    bool connection_lost = false;
+    std::vector<AssistantInboundMessage> inbound_messages{};
+};
+
 class AssistantLink {
 public:
     bool Initialize(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics);
-    void Poll(port::DiagnosticSink& diagnostics);
+    AssistantPollResult Poll(port::DiagnosticSink& diagnostics);
+    bool PublishJsonLine(const std::string& line, port::DiagnosticSink& diagnostics);
     bool PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics);
     bool PublishImage(const port::CameraCapture& capture, port::DiagnosticSink& diagnostics);
     bool Ready() const;
 
 private:
+    void DecodeReceivedBytes(const std::string& bytes, std::vector<AssistantInboundMessage>& inbound_messages);
+
     bool configured_ = false;
     bool ready_ = false;
     int last_state_code_ = -1;
+    double max_target_speed_ = 0.0;
+    std::string inbound_buffer_{};
 };
 
 }  // namespace ls2k::platform

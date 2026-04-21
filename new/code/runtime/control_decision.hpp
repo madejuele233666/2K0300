@@ -31,6 +31,7 @@ struct ControlGateInputs {
     bool perception_published = false;
     bool perception_fresh = false;
     uint64_t perception_capture_time_ms = 0;
+    uint64_t perception_publish_time_ms = 0;
     bool perception_emergency_veto = true;
     bool low_voltage_emergency = false;
     bool imu_valid = false;

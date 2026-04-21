@@ -57,6 +57,7 @@ public:
     virtual bool Start(const SubsystemProfile& profile,
                        uint32_t period_ms,
                        std::function<void()> callback,
+                       std::function<void()> on_failure,
                        DiagnosticSink& diagnostics) = 0;
     virtual void Stop(DiagnosticSink& diagnostics) = 0;
     virtual bool Running() const = 0;

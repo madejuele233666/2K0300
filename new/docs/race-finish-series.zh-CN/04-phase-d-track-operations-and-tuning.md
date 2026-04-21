@@ -39,6 +39,64 @@
 
 ## 2. Phase D 任务清单
 
+## 2A. Assistant 双向速度调参 accepted workflow
+
+本阶段接受一条 project-owned 的最小现场调参 workflow：
+
+1. 板端通过 assistant TCP sidecar 主动连到上位机。
+2. 上位机只使用一条 newline-delimited JSON session，同时消费 `ack` / `state` / `telemetry`。
+3. 允许的首发命令仅限：
+   - `enable_tuning_mode`
+   - `disable_tuning_mode`
+   - `start`
+   - `stop`
+   - `set_turn_suppressed`
+   - `set_target_speed`
+4. PID 参数本身仍然只通过 JSON 参数文件加重启更新，不允许在线写回。
+
+accepted 现场步骤：
+
+```bash
+(cd new/user && ./debug.sh assistant local 8888)
+(cd new/user && ./debug.sh build)
+(cd new/user && ./debug.sh remote restart normal)
+(cd new/user && ./debug.sh tuning \
+  --sequence 20,40,60,77 \
+  --ttl-ms 2500 \
+  --step-dwell-ms 1200 \
+  --disabled-mode-checks \
+  --invalid-target-speed 90 \
+  --csv ../verification/phase-d-speed-tuning.csv)
+```
+
+accepted 最小调参序列必须是：
+
+1. `enable_tuning_mode`
+2. `start`
+3. 多个 `set_target_speed`
+4. `stop`
+5. `disable_tuning_mode`
+
+accepted rejection coverage：
+
+1. tuning mode 关闭时发送 `set_target_speed`
+2. tuning mode 关闭时发送 `set_turn_suppressed`
+3. 发送超出 `Speed_base` 的无效 target speed
+
+accepted 证据：
+
+1. `ack` 明确区分 `accepted` 与 `rejected`
+2. `state` 明确覆盖 `input_rejected` / `override_cleared` / `snapshot_cleared`
+3. `telemetry` 明确包含左右目标、左右测速、左右 PWM、`raw_turn_output`、`applied_turn_output`
+4. CSV 可直接归档为重复调参 run 的主证据
+
+不允许的 shortcut：
+
+1. 用 `stop` 代替 `disable_tuning_mode`
+2. 直接改 runtime phase 或 actuator 输出来模拟 remote start/stop
+3. 在线热写 PID 参数并把它包装成调参 workflow
+4. 用临时 Python socket 草稿替代 `new/user/tune_speed.py`
+
 ### D-1 参数集版本化
 
 目标：
@@ -72,6 +130,15 @@
 - `new/config/default_params.json`
 - 参数版本目录
 - `new/code/platform/param_store.cpp`
+
+当前运行时参数文件中的执行器相关字段至少应明确包含：
+
+1. `pwm_limit`：PWM 上限。
+2. `pwm_floor`：非零 PWM 命令的最小绝对值；设为 `0` 表示关闭该钳制。
+3. `prohibit_reverse_pwm`：禁止反转；开启后负向 PWM 会被截成 `0`。
+4. `motion_pwm_step_limit`：单周期 PWM 斜率限制。
+
+其中 `pwm_floor` 的目标是把“参数调节”留在配置文件，而不是把最小起转占空比写死在控制代码里。
 
 运行命令：
 

@@ -95,9 +95,10 @@
 4. `02-phase-b-low-speed-vehicle-motion.md`
 5. `03-phase-c-perception-and-semantics.md`
 6. `04-phase-d-track-operations-and-tuning.md`
-7. `05-phase-e-finish-gate.md`
-8. `06-implementation-and-verification-contract.md`
-9. `07-current-progress.md`
+7. `04a-phase-d-wheel-vibration-closure.md`
+8. `05-phase-e-finish-gate.md`
+9. `06-implementation-and-verification-contract.md`
+10. `07-current-progress.md`
 
 ## 5. 使用规则
 
@@ -128,6 +129,14 @@
 如果需要做代码更改，必须同时参考阶段文档和 `06` 中的实现/验证契约，不能只看路线标题就直接改。
 
 对于相机几何、策略层、验证脚本这三类边界，接手者不得只看归档文档或代码注释推断，必须以本系列中的显式契约为准。
+
+如果当前任务直接涉及 assistant 双向调速、远程 `start` / `stop`、或 PID 现场调参，还必须额外读取：
+
+1. `04-phase-d-track-operations-and-tuning.md`
+2. `new/verification/phase-d-speed-tuning.md`
+3. `new/user/tune_speed.py`
+
+并以 `new/user/debug.sh tuning ...` 作为 accepted host workflow 入口，而不是临时拼装 ad hoc socket 脚本。
 
 ## 6. 完赛的定义
 

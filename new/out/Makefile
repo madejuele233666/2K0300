@@ -321,6 +321,30 @@ home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.s
 
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.o: home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o
+
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.i: home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.i
+
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.s: home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s
+
 home/madejuele/projects/2K0300/new/code/platform/bootstrap.o: home/madejuele/projects/2K0300/new/code/platform/bootstrap.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/bootstrap.o
 
@@ -873,6 +897,30 @@ home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.s
 
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o: home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o
+
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.i: home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.i
+
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s: home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
+
 home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o
 
@@ -1386,6 +1434,9 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_link.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/platform/bootstrap.s"
@@ -1455,6 +1506,9 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/startup.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/startup.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/startup.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.s"

@@ -1,6 +1,7 @@
 #include "platform/bootstrap.hpp"
 #include "platform/true_ls2k0300/bridge.hpp"
 
+#include <atomic>
 #include <functional>
 
 namespace ls2k::platform {
@@ -12,6 +13,7 @@ public:
     bool Start(const port::SubsystemProfile& profile,
                uint32_t period_ms,
                std::function<void()> callback,
+               std::function<void()> on_failure,
                port::DiagnosticSink& diagnostics) override {
         Stop(diagnostics);
 
@@ -23,12 +25,25 @@ public:
             return false;
         }
 
-        period_ms_ = period_ms;
-        callback_ = std::move(callback);
+        port::DiagnosticSink* diagnostics_sink = &diagnostics;
+        auto timer_failure = [this, on_failure = std::move(on_failure), diagnostics_sink]() mutable {
+            const bool was_running = running_.exchange(false);
+            if (!was_running) {
+                return;
+            }
+
+            diagnostics_sink->Emit({port::DiagnosticLevel::kFailSafe,
+                                    "timer.runtime.failure",
+                                    "timer backend exited unexpectedly; escalating to control fail-safe handling",
+                                    port::NowMs()});
+            if (on_failure) {
+                on_failure();
+            }
+        };
 
         if (profile.mode == port::SubsystemMode::kAdaptationHook) {
-            const bool started = bridge_.Start(period_ms_, callback_, false);
-            running_ = started;
+            const bool started = bridge_.Start(period_ms, std::move(callback), std::move(timer_failure));
+            running_.store(started);
             diagnostics.Emit({started ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kFailSafe,
                               started ? "timer.start.hook" : "timer.start.hook.failed",
                               started ? "timer routed through adaptation hook: " + profile.hook
@@ -37,34 +52,31 @@ public:
             return started;
         }
 
-        const bool started = bridge_.Start(period_ms_, callback_, true);
-        running_ = started;
+        const bool started = bridge_.Start(period_ms, std::move(callback), std::move(timer_failure));
+        running_.store(started);
         diagnostics.Emit({started ? port::DiagnosticLevel::kInfo : port::DiagnosticLevel::kFailSafe,
                           started ? "timer.start.pit" : "timer.start.pit.failed",
-                          started ? "timer started with true_ls2k0300 pit bridge"
-                                  : "timer direct-match pit bridge failed to start",
+                          started ? "timer started with true_ls2k0300 timerfd bridge"
+                                  : "timer direct-match timerfd bridge failed to start",
                           port::NowMs()});
         return started;
     }
 
     void Stop(port::DiagnosticSink& diagnostics) override {
-        if (!running_) {
-            return;
-        }
+        const bool was_running = running_.exchange(false);
         bridge_.Stop();
-        running_ = false;
-        diagnostics.Emit({port::DiagnosticLevel::kInfo,
-                          "timer.stop",
-                          "timer bridge stopped",
-                          port::NowMs()});
+        if (was_running) {
+            diagnostics.Emit({port::DiagnosticLevel::kInfo,
+                              "timer.stop",
+                              "timer bridge stopped",
+                              port::NowMs()});
+        }
     }
 
-    bool Running() const override { return running_; }
+    bool Running() const override { return running_.load() && bridge_.Running(); }
 
 private:
-    bool running_ = false;
-    uint32_t period_ms_ = 0;
-    std::function<void()> callback_{};
+    std::atomic<bool> running_{false};
     true_ls2k0300::TimerBridge bridge_{};
 };
 

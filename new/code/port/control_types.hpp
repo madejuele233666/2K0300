@@ -46,6 +46,7 @@ struct PerceptionResult {
     int highest_line = 0;
     uint64_t frame_id = 0;
     uint64_t capture_time_ms = 0;
+    uint64_t publish_time_ms = 0;
     std::string perception_tag = "none";
 };
 
@@ -114,8 +115,10 @@ struct RuntimeParameters {
     // Additional phase-1 runtime policy values.
     int emergency_threshold = 40;
     int control_period_ms = 5;
-    int perception_stale_ms = 40;
+    int perception_stale_ms = 120;
     int pwm_limit = 9000;
+    int pwm_floor = 0;
+    bool prohibit_reverse_pwm = false;
     int motion_unveto_confirm_cycles = 3;
     int motion_spinup_ms = 600;
     double motion_turn_limit_spinup = 0.35;
