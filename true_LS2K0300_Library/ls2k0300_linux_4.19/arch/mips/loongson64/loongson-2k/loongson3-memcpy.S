@@ -1,1 +1,0 @@
-../loongson-3/loongson3-memcpy.S

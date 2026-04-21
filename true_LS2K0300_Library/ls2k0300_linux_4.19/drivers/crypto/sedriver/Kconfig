@@ -1,7 +1,0 @@
-#
-# se chip configuration
-#
-config SW_SE_CHIP
-	tristate "se chip driver"
-	---help---
-		If unsure, say N.

@@ -1,3 +1,0 @@
-/home/imanity/2.0baodi_mohu_1/Seekfree_LS2K0300_Opensource_Library/project/out/CMakeFiles/rebuild_cache.dir
-/home/imanity/2.0baodi_mohu_1/Seekfree_LS2K0300_Opensource_Library/project/out/CMakeFiles/edit_cache.dir
-/home/imanity/2.0baodi_mohu_1/Seekfree_LS2K0300_Opensource_Library/project/out/CMakeFiles/project.dir
