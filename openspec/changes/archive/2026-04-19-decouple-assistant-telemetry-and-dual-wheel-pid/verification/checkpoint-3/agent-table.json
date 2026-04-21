@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "agents": [
+    {
+      "agent_id": "019da3fa-25bf-7930-b89e-d4379a728532",
+      "status": "non_active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "",
+      "findings_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-3/attempt-2/findings.json",
+      "verifier_evidence_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-3/attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-19T04:34:18Z"
+    }
+  ]
+}

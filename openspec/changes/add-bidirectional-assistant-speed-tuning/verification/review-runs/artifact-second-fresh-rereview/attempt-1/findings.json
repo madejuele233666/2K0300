@@ -1,0 +1,56 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "ABAST-ARTIFACT-001",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The first-release JSON-line state contract is internally inconsistent about whether hosts receive a structured reason code or only free-form text.",
+      "evidence": "[/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md:50-53] says standalone `state` payloads must carry the event name, reason code, and current tuning snapshot state, but [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:65-84] and [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:378-391] define only a human-readable `reason` string for `state` frames. [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:34] also implements standalone state feedback in terms of `override_cleared`/`snapshot_cleared` events plus reason strings. The claimed fixed host contract therefore still disagrees on the state-frame schema.",
+      "recommendation": "Align proposal-facing artifacts on one exact `state` payload schema, including field names and semantics. If machine-readable causes are required, add a normative `reason_code` field and keep any free-form `reason` text optional; otherwise remove the `reason code` language from the sidecar spec and update the design/tasks to match.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "ABAST-ARTIFACT-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The docs do not normatively define how remote `start`/`stop` commands behave while the runtime is `FAIL_SAFE_LATCHED`, even though the design treats that path as safety-critical.",
+      "evidence": "[/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md:23-25] marks this change STRICT because remote motion control must preserve fail-safe behavior. [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:230-241] says remote commands during `FAIL_SAFE_LATCHED` must not silently re-arm. But [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md:13-24] only specifies remote start from `DISARMED`/`START_REQUESTED` and stop from `SPINUP`/`RUNNING`, and the delta never adds a scenario for remote commands in `FAIL_SAFE_LATCHED` or the host-visible ACK/state behavior for that case.",
+      "recommendation": "Add explicit lifecycle requirements for remote commands received in `FAIL_SAFE_LATCHED`, including whether `start` and `stop` are rejected or ignored, which reset boundary remains authoritative, and what ACK/state/diagnostic evidence the host must receive when a latched fault blocks remote control.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "ABAST-ARTIFACT-003",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The 'fixed' host wire contract still leaves required field values implementation-defined when no speed override is active or the lifecycle is not actively driving.",
+      "evidence": "[/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:65-77] makes `target_speed_override_value` conditional on `target_speed_override_enabled=true` for `state` frames, while [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:86-103] makes the same field unconditionally required in telemetry. The same spec and [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:378-404] also require `effective_speed_target` on `state` and telemetry frames, but they never define what value that field carries in `DISARMED`, `START_REQUESTED`, `STOPPING`, or immediately after `snapshot_cleared` even though lifecycle shaping changes target semantics across those phases [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md:13-24,33-45,59-73]. Implementers still have to invent null-versus-baseline-versus-last-value behavior.",
+      "recommendation": "Specify the exact encoding for `target_speed_override_value` and `effective_speed_target` in every disabled or non-driving state, including whether the fields become `null`, zero, the baseline configured target, or a phase-shaped effective target. The state and telemetry requirements should then use the same rule.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "ABAST-ARTIFACT-004",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "Sequence freshness is declared as part of the command contract, but replay and out-of-order handling are never specified, leaving strict remote-control behavior open to implementation choice.",
+      "evidence": "[/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md:7-8] and [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:101-105,168-184] describe sequence/TTL validation and a runtime tuning snapshot that tracks freshness with fields such as `last_seq`. [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:32,39] also require sequence/freshness handling. But [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:11-17,29-43] only says commands carry `seq` and `set_target_speed` carries `ttl_ms`; it never defines duplicate, stale, reconnect, or out-of-order semantics for `start`, `stop`, or tuning commands.",
+      "recommendation": "Define normative `seq` behavior for the accepted contract: ordering expectations, duplicate detection, reconnect/reset rules, and the required host-visible response when a command is rejected or ignored as stale. If `seq` is intended only for observability, say so and remove freshness claims from the other artifacts.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "ABAST-ARTIFACT-005",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The task list does not require evidence for both mandatory disabled-mode rejection behaviors, so the artifact can complete without proving one of the frozen command semantics.",
+      "evidence": "[/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:154-170] defines separate required scenarios for rejecting `set_target_speed` while tuning mode is off and rejecting `set_turn_suppressed` while tuning mode is off. However [/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:48-50] asks for only one rejected-command case where `set_target_speed` or `set_turn_suppressed` is sent while tuning mode is off. That leaves one required behavior outside the mandatory evidence plan.",
+      "recommendation": "Split the host-workflow evidence task so implementation must demonstrate and preserve evidence for both disabled-mode rejection paths independently: one case for `set_target_speed` and one case for `set_turn_suppressed`.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

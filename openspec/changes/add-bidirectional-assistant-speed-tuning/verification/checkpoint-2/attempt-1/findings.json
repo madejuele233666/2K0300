@@ -1,0 +1,36 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001-missing-board-checkpoint2-coverage",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "problem": "Checkpoint-2 preserved runtime evidence does not exercise the actual board-side assistant/tuning path, so runtime tuning-state isolation, remote lifecycle-intent routing, and applied-turn suppression are not verified on the implementation under review.",
+      "evidence": "openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:39-43 requires focused runtime coverage for blocked remote start, shaped remote stop, override TTL expiry, disconnect snapshot clear, tuning-mode-off runs, FAIL_SAFE_LATCHED rejection, and fail-safe authority while tuning is enabled. new/verification/phase-d-speed-tuning-board-stable.log shows only repeated assistant connection failures and repeated control snapshots with tuning_mode=false, turn_suppressed=false, and override_enabled=false; the preserved board log never reaches an active assistant session or any tuning-state transition.",
+      "recommendation": "Capture real board/runtime evidence for the checkpoint-2 scenarios on the declared implementation, including assistant connection, remote start/stop through motion_intent, TTL/disconnect clear behavior, turn suppression in control telemetry, and fail-safe rejection cases, then rerun the source-first verification.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002-simulator-evidence-diverges-from-contract",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "problem": "The preserved tuning-run artifacts are simulator outputs that contradict the runtime contract, so they cannot be used as authoritative evidence for checkpoint-2 behavior.",
+      "evidence": "new/user/simulate_assistant_peer.py emits state.event=input_rejected and override_cleared in simulator-only paths that do not match the frozen runtime contract used for checkpoint-2 implementation verification.",
+      "recommendation": "Do not use simulator-produced host log/CSV as runtime-correctness proof for checkpoint-2. Replace them with board-captured artifacts from the real runtime, or keep simulator evidence scoped only to host-tool verification.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F003-snapshot-clear-leaves-seq-bookkeeping",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "Full tuning-snapshot clear does not reset the session-local seq bookkeeping, so the runtime does not fully clear the volatile tuning state on disable_tuning_mode or disconnect.",
+      "evidence": "new/code/runtime/tuning_state.hpp defines has_last_seq/last_seq inside RuntimeTuningState, while the pre-fix ClearRuntimeTuningSnapshot() path reset only tuning_mode_enabled, turn_suppressed, and override fields.",
+      "recommendation": "Reset has_last_seq and last_seq inside ClearRuntimeTuningSnapshot(), and add regression coverage that verifies disconnect and disable_tuning_mode clear the entire runtime tuning snapshot, including session-local correlation bookkeeping.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

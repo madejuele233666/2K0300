@@ -1,0 +1,59 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer-docs-first-rereview-attempt-2",
+  "start_at": "2026-04-19T18:34:00+08:00",
+  "end_at": "2026-04-19T18:43:10+08:00",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "scope": "Exhaustive docs-first artifact re-review of proposal, design, tasks, and declared delta/new specs for OpenSpec change add-bidirectional-assistant-speed-tuning, with explicit focus on whether F001 and F002 were resolved and whether the repaired artifact set is implementation-ready under shared verification-cycle rules.",
+    "risk_tier": "STRICT",
+    "evidence_paths": [
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/dual-wheel-motion-control/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md"
+    ],
+    "reference_paths": [
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Reviewed all declared docs-first artifacts and contract references across Completeness, Correctness, and Coherence. F001 is resolved by the added enumerated JSON-line frame contract in spec and design, and F002 is resolved by explicit disabled-mode rejection semantics plus updated workflow/tasks requiring tuning-mode boundaries."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/dual-wheel-motion-control/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+    "/home/madejuele/projects/2K0300/openspec/specs/assistant-telemetry-sidecar/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/specs/dual-wheel-motion-control/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

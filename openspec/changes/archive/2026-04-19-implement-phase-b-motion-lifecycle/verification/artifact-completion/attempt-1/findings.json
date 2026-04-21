@@ -1,0 +1,26 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "problem": "The artifacts require explicit post-fault reset intent for `FAIL_SAFE_LATCHED` recovery, but they do not define the baseline product-owned mechanism that produces `reset_fault_requested` when test-only auto-reset is disabled.",
+      "evidence": "`specs/phase-b-motion-lifecycle/spec.md` requires `reset_fault_requested=true` and a non-automatic baseline re-arm path ([70-73], [96-100]); `design.md` maps that requirement to `MotionIntent.reset_fault_requested` and says manual reset remains required ([378-392], [464-466]); `tasks.md` adds fault re-arm timing and optional `LS2K_AUTO_RESET_FAULT`, but no task defines the product runtime input or API that supplies the baseline reset intent ([29-31], [43-45]).",
+      "recommendation": "Define the accepted non-test re-arm trigger explicitly in the change artifacts and add an implementation task for it. The docs should state where `reset_fault_requested` comes from in product runtime ownership, how it is invoked, and how it stays distinct from `LS2K_AUTO_RESET_FAULT` automation.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The workspace spec requires bounded automation inputs to be recorded as harness context, but the task list does not require any wrapper or evidence work that persists those injected inputs alongside the runtime markers.",
+      "evidence": "`specs/true-ls2k0300-port-workspace/spec.md` requires the wrapper to record injected automation inputs as harness context ([38-41]); `design.md` repeats that wrapper logs must show bounded automation inputs separately from runtime markers ([336-341]); `tasks.md` 3.2 covers env pass-through, controlled stop, and exit-status preservation, but it does not task recording the injected inputs in logs or verification artifacts ([43-45]).",
+      "recommendation": "Add an explicit task for `run_remote_smoke.sh` or the verification note bundle to capture the injected automation and fault-injection inputs as harness-context evidence, so reviewers can distinguish wrapper policy from product runtime markers.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

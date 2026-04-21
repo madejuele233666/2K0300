@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "agents": [
+    {
+      "agent_id": "codex-docs-first-reviewer-attempt-1",
+      "status": "closed",
+      "resumable": false,
+      "last_verdict": "block",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive docs-first review of the declared proposal, design, tasks, and delta spec artifacts for OpenSpec change implement-phase-b-motion-lifecycle.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-18T13:42:30Z"
+    },
+    {
+      "agent_id": "codex-docs-first-reviewer-attempt-2",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive docs-first rerun review of the declared proposal, design, tasks, and delta spec artifacts for OpenSpec change implement-phase-b-motion-lifecycle after repairing attempt-1 findings.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-18T13:52:10Z"
+    }
+  ]
+}

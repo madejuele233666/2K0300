@@ -1,0 +1,26 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DF-001",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "problem": "The artifact set does not freeze one consistent malformed-or-unsupported inbound payload behavior. The task list and design require those payloads to be rejected with a reason string, but the sidecar spec still allows the implementation to either ignore or reject them. That leaves host-visible failure semantics and parser responsibilities implementation-defined for the same first-release command surface.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:32-34 requires malformed or unsupported payloads to be rejected with a reason string; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:120-123 repeats the same rejection rule; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md:11-14 still says the sidecar SHALL ignore or reject malformed and unsupported payloads; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:61-83 and :199-206 define ACK/state semantics only for accepted decoded commands and clear events, not for malformed payloads that may lack a valid command frame or seq.",
+      "recommendation": "Replace the permissive 'ignore or reject' wording with one normative malformed/unsupported-payload contract and specify where the reason surfaces when normal ACK correlation is impossible, so the board-side parser, host workflow, and verification evidence all target the same failure behavior.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "DF-002",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "problem": "The accepted tuning run lifecycle is not frozen to one sequence. The tasks require `enable_tuning_mode -> start -> set_target_speed steps -> stop -> disable_tuning_mode`, but the design also presents `enable_tuning_mode -> set_target_speed -> disable_tuning_mode` as an accepted end-to-end sequence, while the runtime spec clears the full tuning snapshot on an undefined 'accepted stop-to-normal flow'. That leaves it unclear whether `start` is mandatory for a compliant tuning run, whether `stop` alone clears tuning state, whether `disable_tuning_mode` remains required after `stop`, and how many `snapshot_cleared` events the minimal workflow should produce.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:47-50 requires evidence for the minimal sequence `enable_tuning_mode -> start -> set_target_speed steps -> stop -> disable_tuning_mode`; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:78-83 and :145-156 say `snapshot_cleared` covers disconnect, explicit disable, or an accepted stop-to-normal flow, but never define that stop-to-normal flow; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:192-195 says the end-to-end workflow needs disablement or an equivalent documented return-to-normal action after the run; /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:160-178 says disconnect, stop, or tuning-mode exit can clear tuning state, and /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:449-452 calls `enable_tuning_mode`, `set_target_speed`, `disable_tuning_mode` an accepted end-to-end tuning sequence.",
+      "recommendation": "Freeze one normative tuning-run sequence and define the exact trigger for full-snapshot clearing: whether it occurs on `stop`, on the lifecycle returning to `DISARMED`, only on `disable_tuning_mode`, or on a separately named combined return-to-normal action. The specs and tasks should then require the same ACK/state evidence and `snapshot_cleared` count for that single accepted flow.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

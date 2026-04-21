@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "agents": [
+    {
+      "agent_id": "codex-verify-reviewer",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first checkpoint-3 rerun for structured telemetry, host tuning workflow, and runbook evidence, using the declared local source plus preserved stable board artifacts and the new local-only simulation bundle.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-21T02:41:48Z"
+    }
+  ]
+}

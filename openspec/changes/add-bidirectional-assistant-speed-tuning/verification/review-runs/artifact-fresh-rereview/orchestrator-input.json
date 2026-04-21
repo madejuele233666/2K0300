@@ -1,0 +1,10 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "add-bidirectional-assistant-speed-tuning",
+    "agents": []
+  }
+}

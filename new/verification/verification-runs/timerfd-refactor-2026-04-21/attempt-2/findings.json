@@ -1,0 +1,16 @@
+{
+  "target_ref": "timerfd-refactor-2026-04-21",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "TIMERFD-002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The repaired path now latches the motion lifecycle to `FAIL_SAFE_LATCHED`, but the controlled-exit request is not thread-safe. `HandleTimerFailure()` runs on the timer worker thread and writes `stop_requested` and `exit_requested` as plain `bool`s, while the main thread polls those same fields to decide whether to exit. In this control-loop context that makes the new 'latch then shut down' behavior unreliable: the process may continue running its foreground loop after the timer backend has died, even though the code believes it requested a controlled exit.",
+      "evidence": "`HandleTimerFailure()` is invoked from the timer worker callback path (`new/code/platform/bootstrap.cpp:29-41`, `new/code/platform/true_ls2k0300/timer_bridge.cpp:90-93`) and writes `state_.exit_requested = true; state_.stop_requested = true;` without synchronization (`new/code/runtime/control_loop.cpp:482-497`). Those fields are plain non-atomic `bool`s in `RuntimeState` (`new/code/runtime/runtime_state.hpp:34-45`). The main thread polls `while (!runtime_state.stop_requested)` and also reads `exit_requested` through `ReadMotionSnapshot()` (`new/user/main.cpp:99-105`, `new/user/main.cpp:344-405`). Other product-owned stop requests use `state.shared_mutex` when mutating `exit_requested` and motion intent (`new/user/main.cpp:128-140`), but the timer-failure path does not.",
+      "recommendation": "Make the timer-failure shutdown signal thread-safe before accepting this path. Either promote `stop_requested`/`exit_requested` to atomics with consistent memory semantics, or route all cross-thread lifecycle mutations through the existing shared-state lock and make the main-loop reads follow the same contract. After that, recheck that timer failure deterministically reaches the intended controlled-exit path.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

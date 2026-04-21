@@ -1,0 +1,26 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "CHK1-F001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "A TCP session that disconnects in the same poll as inbound bytes can still mutate runtime state and queue stale feedback after the runtime has already emitted `snapshot_cleared`, because the service clears on `connection_lost` and then continues processing the decoded messages from that closed transport epoch.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:151-167 requires disconnect to clear the full volatile tuning snapshot so the next run cannot inherit tuning-only behavior, and :78-84 defines `snapshot_cleared` as the standalone clear event for disconnect. /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md:122-124 and :176-179 say TCP disconnect clears tuning state through runtime policy. In the implementation, /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp:183-193 appends received bytes before noticing socket closure, /home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp:73-89 decodes those bytes even when `ready_` has already dropped to false, and /home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp:184-201 clears the snapshot on `connection_lost` and then immediately calls `HandleInboundMessages(...)`. Those messages still flow into `HandleCommand` at :311-400, where they can re-enable tuning mode, set overrides, or toggle `motion_intent` after the disconnect clear. Because `FlushFeedback()` only sends while `link_.Ready()` is true at :255-261, any ACK/state frames queued from that closed session are retained for a later reconnect instead of being scoped to the connection that originated them.",
+      "recommendation": "Treat a connection-lost poll as a hard session boundary: do not apply decoded messages from that closed transport epoch, and do not carry its pending ACK/state feedback into the next connection. If messages must survive reconnect internals, add explicit session scoping so only the live connection can mutate runtime state or receive correlated feedback.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CHK1-F002",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The decoder accepts string literals like `\"true\"`, `\"false\"`, `\"TRUE\"`, and `\"FALSE\"` for `set_turn_suppressed.value`, which expands the accepted first-release command surface beyond the frozen JSON-line contract.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:21-44 freezes one enumerated newline-delimited JSON command contract, and :117-122 says booleans are encoded as JSON booleans. /home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md:42-48 likewise requires one fixed JSON-line host contract rather than implementation-time variants. In the implementation, /home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp:70-93 treats string forms `true`/`false` and uppercase variants as valid booleans, and `DecodeAssistantJsonLine()` uses that helper for `set_turn_suppressed` at :211-220. That means payloads like `{\"type\":\"command\",\"cmd\":\"set_turn_suppressed\",\"seq\":1,\"value\":\"true\"}` are accepted even though they are outside the fixed first-release command encoding.",
+      "recommendation": "Narrow `set_turn_suppressed.value` parsing to the project-owned representation of a JSON boolean and reject string spellings as malformed command payloads or rejected commands. The first-release command surface should not accept alternate boolean encodings beyond the frozen contract.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

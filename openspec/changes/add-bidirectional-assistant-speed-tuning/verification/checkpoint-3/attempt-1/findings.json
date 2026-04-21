@@ -1,0 +1,26 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The preserved checkpoint-3 evidence bundle does not cover all host-workflow proof points required by the change. It demonstrates accepted/rejected ACKs plus `override_cleared` and `snapshot_cleared`, but it does not preserve any `input_rejected` state-frame exercise or any plotting/install-fallback transcript.",
+      "evidence": "The checkpoint contract explicitly requires preserved evidence for standalone `input_rejected`/clear-event state frames and plotting/install fallback (openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:47-50). The host-workflow spec also requires the host to handle `input_rejected`/`override_cleared`/`snapshot_cleared` state frames and to attempt plotting-package installation when absent (openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:198-201,215-218). In the preserved artifacts, new/verification/phase-d-speed-tuning-host-stable.log:32 and :38 are the only recorded state frames, and line 41 summarizes only {\"override_cleared\": 1, \"snapshot_cleared\": 1}; there is no `input_rejected` event anywhere in that log. The same log also contains no `[plot]` install/fallback lines at all (new/verification/phase-d-speed-tuning-host-stable.log:1-41). The preserved CSV similarly contains state rows only for `override_cleared` and `snapshot_cleared`, with no `input_rejected` row (new/verification/phase-d-speed-tuning-stable.csv).",
+      "recommendation": "Replace or augment the stable evidence bundle with an additional preserved run that 1. injects one malformed or unsupported inbound payload and captures the resulting `state.event=\"input_rejected\"`, and 2. preserves a host-side plotting-fallback transcript showing either the attempted `matplotlib` install path or a CSV-only fallback after install failure/unavailability.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The Phase D runbook narrows the required evidence below the approved checkpoint-3 contract, so following the local runbook as written cannot produce a checkpoint-complete artifact set.",
+      "evidence": "The approved change artifacts require checkpoint-3 evidence to include `input_rejected` state coverage and plotting/install-fallback behavior (openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md:47-50; openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md:198-201,215-218). But the preserved runbook only asks for disabled-mode rejections, invalid-target rejection, `snapshot_cleared`, `target_speed_override_value=null`, and `effective_speed_target=0` (new/verification/phase-d-speed-tuning.md:79-95). It omits both the `input_rejected` requirement and the plotting/install-fallback requirement, which matches the gap in the preserved artifacts.",
+      "recommendation": "Update `new/verification/phase-d-speed-tuning.md` so its required-evidence checklist matches the approved task/spec contract. It should explicitly require preserved `input_rejected` evidence, preserved plotting/install-fallback evidence, and a concrete step for collecting each artifact.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

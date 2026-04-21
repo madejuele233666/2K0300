@@ -1,0 +1,48 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "019da55c-e4c2-79e2-a669-50f6e4109d9b",
+  "start_at": "2026-04-19T18:20:00+08:00",
+  "end_at": "2026-04-19T18:54:48+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Exhaustive fresh independent docs-first artifact verification of the declared proposal, design, tasks, delta spec artifacts, and shared verification-cycle reference documents for OpenSpec change add-bidirectional-assistant-speed-tuning.",
+    "primary_surface": "changed proposal/design/tasks/specs",
+    "contract_alignment_checked_against": [
+      "verification-cycle-core-v1",
+      "verification-cycle-openspec-adapter-v1",
+      "verification-cycle-agent-table-v1",
+      "CALLER-INTEGRATION.md",
+      "verification-sequence/default"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": "Reviewed all declared docs-first evidence paths and reference paths across Completeness, Correctness, and Coherence. Coverage is complete and exhaustive; verdict remains block because the normative artifact set still has blocking contract gaps."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/dual-wheel-motion-control/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

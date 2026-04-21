@@ -1,0 +1,20 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "a3ed6b9a-0531-46f1-b5ec-17f082a2f23f",
+  "final_state": "completed_pass",
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Re-reviewed the full declared docs-first artifact surface plus the shared verification-cycle references. The repaired docs now freeze one malformed-input rejection model and one accepted tuning-run/full-snapshot-clear sequence with no remaining blocking inconsistencies found across Completeness, Correctness, or Coherence."
+  },
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

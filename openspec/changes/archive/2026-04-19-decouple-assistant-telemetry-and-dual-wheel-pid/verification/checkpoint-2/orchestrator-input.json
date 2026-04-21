@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+    "agents": [
+      {
+        "agent_id": "019da3e9-4091-7e71-a6fe-8c13c50869a4",
+        "status": "active",
+        "resumable": true,
+        "last_verdict": "block",
+        "coverage_status": "unknown",
+        "exhaustive": false,
+        "scope": "",
+        "findings_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-2/attempt-1/findings.json",
+        "verifier_evidence_path": "openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/verification/checkpoint-2/attempt-1/verifier-evidence.json",
+        "updated_at": "2026-04-19T04:16:26Z"
+      }
+    ]
+  },
+  "latest_result": {
+    "agent_id": "019da3e9-4091-7e71-a6fe-8c13c50869a4",
+    "verdict": "pass",
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "scope": ""
+  }
+}

@@ -117,8 +117,14 @@ dataset/
 *.pth
 *.log
 *.csv
-*.md
-*.json
-*.yaml
-*.txt
-.gitignore
+
+# Specific temporary/cache directories
+.tmp/
+.codex/
+.index/
+
+# Original and vendor libraries (Do not track, only keep custom code)
+old/
+old_2/
+LS2K0300_Library/
+true_LS2K0300_Library/

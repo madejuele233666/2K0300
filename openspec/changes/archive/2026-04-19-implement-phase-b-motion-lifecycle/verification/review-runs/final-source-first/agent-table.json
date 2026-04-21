@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "agents": [
+    {
+      "agent_id": "codex-reviewer",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Re-review of repaired blockers F001-F002 and direct integration in the repaired source surface.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-19T07:33:10+08:00"
+    }
+  ]
+}

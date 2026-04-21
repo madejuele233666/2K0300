@@ -1,0 +1,19 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "phase": "artifact_gate",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "active_agent_not_resumable",
+  "decision": "allow",
+  "recorded_at": "2026-04-18T13:49:04Z",
+  "prior_agent": {
+    "agent_id": "codex-docs-first-reviewer-attempt-1",
+    "status": "active",
+    "resumable": false
+  },
+  "evidence": {
+    "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/artifact-completion/agent-table.json",
+    "findings_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/artifact-completion/attempt-1/findings.json",
+    "verifier_evidence_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/artifact-completion/attempt-1/verifier-evidence.json"
+  }
+}

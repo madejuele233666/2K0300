@@ -1,0 +1,40 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "a3ed6b9a-0531-46f1-b5ec-17f082a2f23f",
+  "start_at": "2026-04-20T13:01:31Z",
+  "end_at": "2026-04-20T13:01:31Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Exhaustive docs-first review of the requested change artifacts and referenced shared verification-cycle contracts for add-bidirectional-assistant-speed-tuning."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Reviewed all requested evidence and reference paths across Completeness, Correctness, and Coherence; blockers are document-contract inconsistencies, not missing review coverage."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/dual-wheel-motion-control/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

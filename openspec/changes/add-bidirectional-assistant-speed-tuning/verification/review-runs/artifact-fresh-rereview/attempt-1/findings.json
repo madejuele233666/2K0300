@@ -1,0 +1,26 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "AST-FRESH-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The artifacts introduce live remote target-speed override but never define what `set_target_speed.value` counts as valid or how invalid override inputs must be handled. The design explicitly requires invalid override rejection, yet the normative specs and tasks leave the accepted type/range and failure behavior open, so an implementation could clamp, saturate, ignore, or accept unsafe values and still appear compliant.",
+      "evidence": "design.md:175-180 requires \"Invalid override value\" to be rejected without altering the active tuning snapshot. However specs/runtime-speed-tuning-surface/spec.md:89-129 defines TTL expiry and disabled-mode rejection only; it never defines the accepted numeric domain for `set_target_speed.value` or the required behavior for out-of-range, non-finite, or otherwise invalid values. tasks.md:39-43 and 47-50 require TTL/disconnect/disabled-mode coverage, but they do not require invalid-value validation or verification evidence.",
+      "recommendation": "Add normative contract language for `set_target_speed.value` covering its accepted numeric type and safe range semantics, plus the required reject behavior for invalid inputs, then add matching verification tasks and evidence cases.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "AST-FRESH-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The first-release JSON-line contract still does not fully freeze the `state` frame payload even though `state` is declared as a required frame family and the artifacts rely on state feedback for clear events and mode transitions. The docs enumerate command fields and telemetry fields, and they partially define ACK feedback, but they never specify the required keys and meanings for standalone `state` frames that report clears, tuning-mode transitions, or other runtime state changes.",
+      "evidence": "specs/runtime-speed-tuning-surface/spec.md:19-49 says the fixed contract must define frame families, required keys, and field meanings for commands, ACK/state feedback, and telemetry, but only gives minimum shared feedback concepts (`seq` when tied to a command, outcome, reason code). design.md:342-381 defines command frames, gives only `type` and `reason_code` as common ACK/state fields, and then specifies required fields only for `ack` frames. specs/runtime-speed-tuning-surface/spec.md:97-108 and 144-150 require structured state feedback for clear actions and host-visible command outcomes, while tasks.md:47-50 requires host tooling to support the frozen command/ACK/state/telemetry schema, yet no artifact freezes what a host must parse from a `state` frame beyond ad hoc implementation choice.",
+      "recommendation": "Define the required `state` frame schema for the first release, including the mandatory fields used for clear events and runtime state transitions, and add host-workflow verification that exercises those exact state frames rather than relying on telemetry polling alone.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

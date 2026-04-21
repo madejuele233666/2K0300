@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "agents": [
+    {
+      "agent_id": "codex-verify-reviewer-checkpoint-4-attempt-1",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive final source-first checkpoint-4 review of add-bidirectional-assistant-speed-tuning across the changed assistant transport/runtime/control/user-tooling surfaces, the documented Phase D smoke/tuning workflow, preserved stable board and phase-b lifecycle artifacts, and the local-only simulator bundle that remains limited to host-tooling evidence.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-21T04:46:00Z"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "AST-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The normative spec set does not require assistant disconnect, stop, or tuning-mode exit to clear the full volatile tuning state. It only mandates target-speed override expiry/clear, which leaves room for an implementation to keep `tuning_mode_enabled` or turn suppression latched after host loss and still satisfy the written acceptance criteria.",
+      "evidence": "design.md:74,123-125,161-179,285-296,513-514 requires normal-run isolation plus explicit clear paths on disconnect/timeout/stop/tuning-disable and forbids suppression persisting after disconnect; tasks.md:39-43 requires disconnect/timeout/tuning-disable to clear volatile tuning state and to test assistant disconnect clearing tuning state; but specs/runtime-speed-tuning-surface/spec.md:19-33 only normatively clears target-speed override, and specs/dual-wheel-motion-control/spec.md:13-19 never states that turn suppression or tuning-mode flags must auto-clear on disconnect/stop.",
+      "recommendation": "Add normative requirements and scenarios that disconnect, stop, and tuning-mode disable clear the entire runtime tuning snapshot, including `tuning_mode_enabled` and turn-suppression state, and require diagnosable clear-event publication so normal runs cannot inherit tuning-only behavior.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "AST-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "Sequence/freshness handling for inbound commands is described in the proposal, design, and tasks, but it is not turned into normative spec behavior for the bidirectional command surface. As written, an implementation could ignore duplicate or stale commands and still satisfy the spec as long as it exposes typed commands and generic ACK/state feedback.",
+      "evidence": "proposal.md:7-10 says the runtime tuning boundary keeps command freshness separate from static params; design.md:103-124 and 171-179 says the decoder validates sequence/TTL and stale or duplicate sequences are ignored with diagnostics; tasks.md:32-35 requires sequence/freshness handling and stale-sequence checkpoint evidence; however specs/runtime-speed-tuning-surface/spec.md:3-9,11-25,43-49 and specs/assistant-telemetry-sidecar/spec.md:3-14,34-40 never require duplicate/stale detection, monotonic sequence semantics, or ACK reasons for stale/superseded commands.",
+      "recommendation": "Promote command freshness into the normative contract: define the required sequence/freshness fields for accepted commands, specify duplicate/stale rejection behavior, and require structured ACK/state reasons for stale, duplicate, expired, and superseded commands.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "AST-003",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The change claims to define a new project-owned bidirectional tuning contract, but the artifacts leave the wire-level topology for ACK/state and structured telemetry unresolved. The design explicitly leaves open whether feedback shares the assistant command framing or uses a separate channel on the same connection, so implementers and host-tool authors do not have one normative first-release contract to build against.",
+      "evidence": "proposal.md:16-21 introduces `runtime-speed-tuning-surface` as the capability defining command semantics and host workflow; design.md:333-338 lists a structured telemetry schema and ACK/state publication path as deliverables, but design.md:505-508 says implementation may still choose whether ACK/state telemetry reuses the command framing or a side channel is multiplexed on the same TCP connection; specs/runtime-speed-tuning-surface/spec.md:35-49 and specs/assistant-telemetry-sidecar/spec.md:34-40 require structured feedback but do not freeze the first-release framing/topology or minimum schema fields.",
+      "recommendation": "Resolve the open question in the artifacts before implementation entry. Specify one first-release command/feedback transport shape, the framing model, and the minimum command, ACK/state, and telemetry fields the host workflow must interoperate with, then align design and tasks to that fixed contract.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "target_ref": "timerfd-refactor-2026-04-21",
+  "agents": [
+    {
+      "agent_id": "019dad8c-a389-7482-b47c-3aaf7801eb60",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-21T01:08:22Z"
+    },
+    {
+      "agent_id": "019dad97-ce1c-7a61-8255-787c8dd1ce33",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "",
+      "findings_path": "attempt-4/findings.json",
+      "verifier_evidence_path": "attempt-4/verifier-evidence.json",
+      "updated_at": "2026-04-21T01:12:00Z"
+    }
+  ]
+}

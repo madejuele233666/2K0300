@@ -1,0 +1,16 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "final_assessment": "blocked",
+  "findings": [
+    {
+      "id": "AF-003",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The repaired artifact bundle still leaves the `SPINUP` completion boundary and part of the shaping parameter surface implementation-defined. The proposal and tasks require a Phase B runtime with explicit `SPINUP` and `RUNNING` phases plus spinup timing, turn clamp, and PWM slew parameters, but the normative spec only fixes guard semantics for `START_REQUESTED -> SPINUP`, `STOPPING -> DISARMED`, and `FAIL_SAFE_LATCHED -> DISARMED`. As written, multiple materially different implementations could satisfy the docs while disagreeing on when `SPINUP` becomes `RUNNING` and how the shaping knobs are meant to behave.",
+      "evidence": "`openspec/changes/implement-phase-b-motion-lifecycle/proposal.md:8-10` defines `DISARMED -> START_REQUESTED -> SPINUP -> RUNNING -> STOPPING -> FAIL_SAFE_LATCHED` and calls out spinup timing/output shaping. `openspec/changes/implement-phase-b-motion-lifecycle/tasks.md:31` requires tuning parameters for spinup timing, turn clamp during spinup, and PWM slew limit. `openspec/changes/implement-phase-b-motion-lifecycle/design.md:339-387` says transition guards must be fixed normatively, but its listed guard choices cover only start confirmation, stop completion, and post-fault re-arm. `openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md:29-35` requires shaped spinup before full authority, yet `spec.md:42-64` defines semantics for only `motion_unveto_confirm_cycles`, `motion_stop_ms`, `motion_stop_encoder_threshold`, and `motion_fault_rearm_hold_ms`, with no normative completion rule for `SPINUP -> RUNNING` or semantics for the spinup/shaping parameters named by the task list.",
+      "recommendation": "Add normative spec text and aligned design/task language that defines the accepted `SPINUP -> RUNNING` completion condition and the meaning of the remaining shaping parameters at minimum for spinup timing, spinup turn clamp, and PWM slew limiting. The docs should make clear what observable condition or timer ends spinup and how those parameters constrain runtime behavior so the lifecycle contract is fully reviewable.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The `STOPPING` path does not actually force actuator output to converge to zero, because it keeps full turn authority active while only ramping the mean speed target down.",
+      "evidence": "`openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md:37-40,66-68` requires controlled stop behavior to reduce output toward zero and to complete only after the shaped drive command is zero. `openspec/changes/implement-phase-b-motion-lifecycle/design.md:261-266,374-377` repeats that stop commands must collapse toward zero. In implementation, `new/code/runtime/motion_supervisor.cpp:299-310` returns `turn_limit_scale = 1.0` for `kStopping`, and `new/code/runtime/control_loop.cpp:495-508` still computes PID turn output and mixes it during `MotionPhase::kStopping`. `new/code/legacy/motor_logic.cpp:16-23` shows that any non-zero turn term produces non-zero left/right PWM even when the mean speed term has decayed to zero.",
+      "recommendation": "Make `STOPPING` shape the full actuator command, not just the speed target. Clamp or decay turn authority to zero during stop, and ensure the stop policy cannot continue issuing rotation-only PWM while waiting to re-enter `DISARMED`.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The `STOPPING -> DISARMED` transition is decided using the previous cycle's cached zero-command flag, so the supervisor can declare `motion.stop.complete` before proving that the current cycle's shaped command is zero.",
+      "evidence": "`openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md:66-68` and `openspec/changes/implement-phase-b-motion-lifecycle/design.md:374-377` require stop completion only after the shaped drive command has returned to zero. `new/code/runtime/control_loop.cpp:29-52` passes `motion_state.last_shaped_command_zero` into `MotionSupervisorInputs`. `new/code/runtime/motion_supervisor.cpp:280-283` uses that cached value to decide stop completion. But `new/code/runtime/control_loop.cpp:526-530` updates `state_.motion_state.last_shaped_command_zero` only after the current cycle command has already been generated.",
+      "recommendation": "Move the stop-completion check to a point where the current shaped command is known, or feed the current-cycle shaped-command-zero result back into the supervisor before allowing `STOPPING -> DISARMED`.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F003",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The smoke wrapper's harness-context block misreports the bounded frame budget as `LS2K_MAX_FRAMES`, even though Phase B moved that budget out of product runtime semantics and the wrapper no longer injects that variable into the runtime.",
+      "evidence": "`new/docs/race-finish-series.zh-CN/02-phase-b-low-speed-vehicle-motion.md:46-48` says the bounded frame budget is wrapper-owned `SMOKE_MAX_FRAMES` and that the wrapper log must record harness inputs explicitly. `openspec/changes/implement-phase-b-motion-lifecycle/design.md:307-309,319-321,338-341` also makes wrapper-owned bounded-run context authoritative. However, `new/user/run_remote_smoke.sh:41-50` writes `LS2K_MAX_FRAMES=${SMOKE_MAX_FRAMES}` into the harness header, while `new/user/run_remote_smoke.sh:78-97` never injects `LS2K_MAX_FRAMES` into the runtime env and instead keeps the budget in wrapper logic. `new/docs/race-finish-series.zh-CN/07-current-progress.md:291-293` currently documents this header as if it records `SMOKE_MAX_FRAMES` correctly.",
+      "recommendation": "Record the wrapper-owned frame budget as `SMOKE_MAX_FRAMES` in the harness context block, and keep runtime env keys separate so evidence does not imply the product entrypoint still owns frame-limit exit behavior.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "problem": "The artifact set requires a single fixed first-release JSON-line host contract, but it never defines the concrete command, ACK/state, or telemetry frame schema needed to make that contract implementation-ready.",
+      "evidence": "The delta specs require one fixed newline-delimited JSON contract and forbid leaving framing as an implementation-time choice, yet they only name high-level command classes and outcomes without enumerating required frame types, required fields, field meanings, units, or session/multiplexing rules for commands, ACK/state, telemetry, and optional assistant-compatible support evidence. See runtime-speed-tuning-surface/spec.md lines 72-78, assistant-telemetry-sidecar/spec.md lines 42-48, and design.md lines 309-352 and 337-340.",
+      "recommendation": "Add a normative first-release wire contract to the artifacts: define each JSON frame type, required keys, value domains/units, sequencing and TTL fields, ACK/reject/clear payloads, telemetry field names, and how optional waveform/image support coexists with the accepted TCP session. Update tasks and verification evidence expectations to validate that exact schema.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The artifacts make tuning mode mandatory and explicit, but they do not define the command semantics when target-speed override is sent while tuning mode is disabled, and the required end-to-end tuning sequence omits tuning-mode enablement entirely.",
+      "evidence": "runtime-speed-tuning-surface/spec.md lines 48-54 state that target-speed override is inactive unless tuning mode is explicitly enabled, while lines 35-46 clear the tuning snapshot on tuning-mode disable. However no requirement or design section states whether set-target-speed is rejected, accepted-but-inert, or deferred when tuning mode is off. tasks.md lines 47-50 require runbooks to mention tuning-mode enablement, but the mandatory smoke sequence is only `start -> set_target_speed steps -> stop`, which can pass without exercising the explicit tuning-mode boundary the spec requires.",
+      "recommendation": "Define normative behavior for override and turn-suppression commands while tuning mode is disabled, including the expected ACK/state outcome, and update the required workflow/test sequence to include tuning-mode enable/disable or an explicit rejection case before/after target-speed overrides.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

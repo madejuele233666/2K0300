@@ -1,0 +1,35 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "review_phase": "docs_first",
+  "review_goal": "implementation_correctness",
+  "review_pass_type": "working",
+  "template_id": "verify-reviewer-inline-v2",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "019d9ea8-0099-7b03-b214-a4bd77cf3c03",
+  "start_at": "2026-04-18T03:37:03Z",
+  "end_at": "2026-04-18T03:37:03Z",
+  "final_state": "completed",
+  "cache_mode": "bypassed",
+  "closure_authority": "none",
+  "verifier_output_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/review-runs/artifact-completion/working/attempt-2/findings.json",
+  "reviewed_paths": [
+    "openspec/changes/implement-phase-b-motion-lifecycle/proposal.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/design.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/tasks.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/specs/true-ls2k0300-port-workspace/spec.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": [],
+  "coverage_status": "complete",
+  "saturation_status": "exhaustive",
+  "review_scope": "docs-first artifact bundle rerun after repairing transition-guard and evidence-note requirements",
+  "review_coverage": "All declared docs-first evidence paths reviewed across Completeness, Correctness, and Coherence",
+  "spawn_decision_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/review-runs/artifact-completion/working/attempt-2/spawn-decision.json"
+}

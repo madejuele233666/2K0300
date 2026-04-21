@@ -1,0 +1,66 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-source-first-reviewer-checkpoint-1-attempt-1",
+  "start_at": "2026-04-18T14:35:37Z",
+  "end_at": "2026-04-18T14:38:51Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Exhaustive source-first review of checkpoint-1 motion lifecycle contracts and parameter surface for implement-phase-b-motion-lifecycle.",
+    "review_surface": "source_first",
+    "risk_tier": "STRICT",
+    "evidence_paths": [
+      "/home/madejuele/projects/2K0300/new/code/runtime/motion_types.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/runtime_state.hpp",
+      "/home/madejuele/projects/2K0300/new/code/port/control_types.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp",
+      "/home/madejuele/projects/2K0300/new/config/default_params.json"
+    ],
+    "contract_paths": [
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "dimensions_reviewed": [
+      "Completeness",
+      "Correctness",
+      "Coherence"
+    ],
+    "notes": "All declared scope paths were reviewed exhaustively, with the change spec/design/tasks and the directly impacted consumer in control_loop.cpp used only as reference material to validate lifecycle semantics and parameter behavior."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/new/code/runtime/motion_types.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/runtime_state.hpp",
+    "/home/madejuele/projects/2K0300/new/code/port/control_types.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp",
+    "/home/madejuele/projects/2K0300/new/config/default_params.json",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp",
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

@@ -1,0 +1,92 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-source-first-reviewer-checkpoint-1-attempt-1",
+  "start_at": "2026-04-21T03:03:40Z",
+  "end_at": "2026-04-21T03:20:55Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Exhaustive source-first review for task 1.4 of add-bidirectional-assistant-speed-tuning, limited to the bidirectional assistant command boundary, transport/decoder split, ACK/state feedback contract, and the directly impacted runtime foreground call site that proves receive handling stays outside the control timer.",
+    "review_surface": "source_first",
+    "risk_tier": "STANDARD",
+    "evidence_paths": [
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+      "/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/assistant_link.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/runtime_state.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/control_debug_snapshot.hpp",
+      "/home/madejuele/projects/2K0300/new/user/main.cpp"
+    ],
+    "contract_paths": [
+      "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "dimensions_reviewed": [
+      "Completeness",
+      "Correctness",
+      "Coherence"
+    ],
+    "notes": "All source surfaces in the checkpoint bundle and the directly impacted foreground runtime call site were reviewed. Preserved Phase D verification logs were not used as authoritative runtime proof because this checkpoint is source-first and the caller explicitly forbids overclaiming simulator artifacts outside the boundary review."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/assistant-telemetry-sidecar/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+    "/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/assistant_link.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/runtime_state.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_debug_snapshot.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp",
+    "/home/madejuele/projects/2K0300/new/user/main.cpp",
+    "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-host-stable.log",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-stable.csv",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-board-stable.log",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-local-sim-host.log",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-local-sim-peer.log",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning-local-sim.csv",
+    "/home/madejuele/projects/2K0300/new/verification/phase-d-speed-tuning.md"
+  ],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

@@ -1,0 +1,52 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verifier-inline",
+  "start_at": "2026-04-19T00:39:00Z",
+  "end_at": "2026-04-19T00:47:24Z",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "type": "scoped-rerun",
+    "checkpoint": "checkpoint-4",
+    "summary": "Reviewed only the repaired stop-path implementation in `new/code/runtime/control_loop.cpp`, the listed checkpoint-4 board logs, and the approved change artifacts as reference material.",
+    "focus": [
+      "diagnostics-only stop completion keys off effective command zero rather than suppressed requested PWM",
+      "real-motor STOPPING converges applied command to zero under lifecycle ownership",
+      "wrapper-owned frame-budget stop reaches DISARMED and process exit on diagnostics-only and motor-enabled runs",
+      "no obvious regression of accepted Phase B SPINUP/RUNNING/STOPPING semantics within the declared repair surface"
+    ]
+  },
+  "review_coverage": {
+    "status": "complete_within_declared_scope",
+    "declared_scope_complete": true,
+    "artifacts_reviewed": 8,
+    "notes": [
+      "The repaired stop-path logic was verified in `new/code/runtime/control_loop.cpp` at the STOPPING ramp-down and stop-completion re-evaluation path.",
+      "Diagnostics-only rerun evidence shows `motion.stop.complete` followed by `main.exit.ready` and clean process exit.",
+      "Motor-enabled rerun v2 evidence shows `DISARMED` transition, actuator disarm, `main.exit.ready`, and clean process exit.",
+      "The earlier motor-enabled fix log was reviewed as historical checkpoint evidence; the pass decision relies on the repaired code plus the successful rerun evidence."
+    ]
+  },
+  "reviewed_paths": [
+    "openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/design.md",
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-1/findings.json",
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/attempt-2/findings.json",
+    "new/code/runtime/control_loop.cpp",
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-stop-exit-fix.log",
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-motor-enabled-stop-exit-fix.log",
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/runtime-smoke-motor-enabled-stop-exit-fix-v2.log"
+  ],
+  "skipped_paths": [
+    "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-4/* (unchanged artifacts outside the caller-declared rerun scope)"
+  ],
+  "reviewed_axes": [
+    "Correctness",
+    "Completeness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

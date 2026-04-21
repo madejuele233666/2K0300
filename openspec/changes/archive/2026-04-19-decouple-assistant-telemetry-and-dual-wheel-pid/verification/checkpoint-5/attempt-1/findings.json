@@ -1,0 +1,22 @@
+{
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "ASSISTANT-VERIFY-001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The first-release assistant receive path does not emit any diagnosable marker when inbound assistant traffic is ignored, even though the change contract requires malformed, unsupported, or candidate tuning payloads to be ignored with a warning/info marker while remaining read-only. The current bridge drains inbound bytes silently, so the sidecar is read-only but not diagnosable on ignored receive traffic.",
+      "evidence": [
+        "[openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/specs/assistant-telemetry-sidecar/spec.md:27] through [openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/specs/assistant-telemetry-sidecar/spec.md:33] require first-release assistant receive traffic to ignore malformed/unsupported/candidate tuning payloads and emit a diagnosable warning or info marker.",
+        "[openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/design.md:77] through [openspec/changes/decouple-assistant-telemetry-and-dual-wheel-pid/design.md:82] define the same failure semantic: ignored assistant receive payloads must emit a project-owned warning/info without mutating runtime parameters.",
+        "[new/code/platform/true_ls2k0300/assistant_bridge.cpp:181] through [new/code/platform/true_ls2k0300/assistant_bridge.cpp:189] drain any received bytes in `DrainReceiveBuffer()` and return without classifying the payload or emitting any diagnostic.",
+        "[new/code/platform/assistant_link.cpp:62] through [new/code/platform/assistant_link.cpp:74] only emit state-transition markers, and [new/code/platform/assistant_link.cpp:77] through [new/code/platform/assistant_link.cpp:107] only emit waveform/image send-failure markers; there is no project-owned `assistant.receive.*` or equivalent ignored-payload diagnostic path.",
+        "`rg -n \"assistant\\.(receive|ignored|unsupported|payload|tuning|param)\" new/code/runtime new/code/platform` returned no matching project-owned receive-ignore diagnostic markers in the reviewed source surface."
+      ],
+      "recommendation": "Add a project-owned ignored-receive diagnostic path at the assistant boundary. At minimum, when non-empty inbound assistant traffic is drained or recognized as unsupported in the first-release read-only path, emit a rate-limited warning/info marker such as `assistant.receive.ignored` while preserving the no-mutation guarantee for runtime parameters, lifecycle state, control state, and vendor globals.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

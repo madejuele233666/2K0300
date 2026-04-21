@@ -1,0 +1,5 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "verdict": "pass",
+  "findings": []
+}

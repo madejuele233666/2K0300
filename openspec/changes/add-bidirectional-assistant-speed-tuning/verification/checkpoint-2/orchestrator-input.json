@@ -1,0 +1,28 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "add-bidirectional-assistant-speed-tuning",
+    "agents": [
+      {
+        "agent_id": "019daded-8bc6-7542-ac05-035efead257f",
+        "status": "active",
+        "resumable": false,
+        "last_verdict": "unknown",
+        "coverage_status": "unknown",
+        "exhaustive": false,
+        "scope": "",
+        "findings_path": "attempt-1/findings.json",
+        "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+        "updated_at": "2026-04-21T02:50:00Z"
+      }
+    ]
+  },
+  "continuation_probe": {
+    "agent_id": "019daded-8bc6-7542-ac05-035efead257f",
+    "send_input_result": "not_attempted",
+    "resume_result": "not_resumable"
+  }
+}

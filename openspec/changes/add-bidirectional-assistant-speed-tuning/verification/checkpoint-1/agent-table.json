@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "agents": [
+    {
+      "agent_id": "codex-source-first-reviewer-checkpoint-1-attempt-2",
+      "status": "active",
+      "resumable": true,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first re-review for task 1.4 of add-bidirectional-assistant-speed-tuning, limited to the bidirectional assistant command boundary, transport/decoder split, ACK/state feedback contract, and the directly impacted foreground runtime call site that proves receive handling stays outside the control timer.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-21T03:27:58Z"
+    }
+  ]
+}

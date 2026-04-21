@@ -1,0 +1,36 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "CHK1-F001",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "A start request that arrives while the gate is blocked does not raise the blocked-start signal on the first cycle, even though the change contract says that input combination must yield START_REQUESTED plus blocked-start evidence.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/design.md:138-140 says `motion_intent.start_requested=true` with `gate.veto_active=true` yields `START_REQUESTED` plus `motion.start.blocked`. /home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp:95-110 moves `kDisarmed` to `kStartRequested` but returns `blocked_start=false`; `blocked_start` is only set later in the `kStartRequested` blocked-gate branch at :128-140. /home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp:204-211 emits `motion.start.blocked` only when `decision.blocked_start` is true. Direct probe of the scoped implementation returned `START_REQUESTED blocked_start=0` for `phase=DISARMED`, `start_requested=true`, `gate_clear=false`.",
+      "recommendation": "Set `blocked_start=true` on the initial `DISARMED -> START_REQUESTED` transition when the gate is already blocked, or otherwise guarantee same-cycle blocked-start output for that input combination.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CHK1-F002",
+      "severity": "CRITICAL",
+      "dimension": "Coherence",
+      "problem": "The supervisor maps a cleared-but-not-reset `FAIL_SAFE_LATCHED` state to `hold_disarmed`, which collapses a latched runtime fault into the lifecycle-owned idle path instead of keeping fail-safe suppression distinct.",
+      "evidence": "/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp:268-314 returns `hold_disarmed=true`, `allow_drive=false` while remaining in `kFailSafeLatched` once `gate_clear` is true but reset intent is absent. /home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/specs/tc264-to-true-ls2k0300-adapter-layer/spec.md:13-20 and :29-32 require true fail-safe suppression to remain distinguishable from hold-disarmed lifecycle suppression. /home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md:71-74 says `FAIL_SAFE_LATCHED` must stay latched until gate clear, hold time, and explicit reset intent are all satisfied. Direct probe of the scoped implementation returned `fault_phase=FAIL_SAFE_LATCHED hold_disarmed=1 allow_drive=0 reset_ready=1` when the gate was clear but no reset was requested.",
+      "recommendation": "Keep latched-fault suppression distinct from `hold_disarmed` for the entire `kFailSafeLatched` phase. If the current decision shape is insufficient, extend the project-owned runtime contract so latched fail-safe suppression has its own explicit signal instead of reusing hold-disarmed semantics.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CHK1-F003",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The `STOPPING -> DISARMED` completion rule cannot enforce the required \"command returned to zero\" condition because the scoped contract never carries shaped-command quiescence, while PWM slew limiting is applied after the supervisor decides to disarm.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/specs/phase-b-motion-lifecycle/spec.md:66-68 and /home/madejuele/projects/2K0300/openspec/changes/implement-phase-b-motion-lifecycle/design.md:374-377 require stop completion only after `motion_stop_ms`, zero shaped drive command, and encoder quiet. /home/madejuele/projects/2K0300/new/code/runtime/motion_types.hpp:30-45 exposes no input that tells the supervisor whether the shaped command has actually reached zero. /home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp:235-255 exits `kStopping` using only elapsed time and encoder threshold. /home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp:505-507 applies `motion_pwm_step_limit` after the supervisor decision, so a zero target at the supervisor boundary is not proof that the applied command is already zero. A direct probe of the scoped implementation returned `stop_phase=DISARMED effective_speed=0 pwm_step_limit=280` exactly at the stop-time boundary, with no command-zero evidence available to the supervisor.",
+      "recommendation": "Extend the scoped motion contract so stop completion is gated by actual shaped-command quiescence, or move the `STOPPING -> DISARMED` decision to the point where the slew-limited command is known to be zero. The lifecycle must not declare stop complete from time-plus-encoder data alone while PWM step limiting is still active.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

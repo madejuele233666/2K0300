@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "agents": [
+    {
+      "agent_id": "019da55c-e4c2-79e2-a669-50f6e4109d9b",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Fresh independent exhaustive docs-first artifact review of the declared proposal, design, tasks, and delta/new spec artifacts for OpenSpec change add-bidirectional-assistant-speed-tuning under the shared verification-cycle rules.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-19T11:04:22Z"
+    }
+  ]
+}

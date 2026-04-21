@@ -1,0 +1,41 @@
+{
+  "change": "implement-phase-b-motion-lifecycle",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verify-reviewer",
+  "start_at": "2026-04-18T23:10:00Z",
+  "end_at": "2026-04-18T23:14:33Z",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "scope": "Checkpoint-3 source-first rerun focused on repairs for F001-F004 across new/user/main.cpp, new/user/run_remote_smoke.sh, and new/code/port/diagnostics.hpp, with direct validation of the requested build and wrapper commands.",
+    "notes": [
+      "Reviewed the repaired source against the original checkpoint-3 motion lifecycle and harness boundary requirements.",
+      "Executed `cmake -S new/user -B new/out && cmake --build new/out -j2` successfully.",
+      "Executed `bash -n new/user/run_remote_smoke.sh` successfully.",
+      "Executed `SMOKE_LOCAL_ONLY=1 SMOKE_MAX_FRAMES=5 VERIFY_LOG_PATH=/tmp/ls2k-phaseb-local-smoke.log new/user/run_remote_smoke.sh` successfully; on this host the wrapper took the documented architecture-incompatible local fallback path and exited 0 after recording that the LoongArch binary could not be executed on `x86_64`."
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": [
+      "F001-F004 were rechecked by direct source inspection and requested command execution.",
+      "No additional materially independent issues were found within the declared repaired surface."
+    ]
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/new/user/main.cpp",
+    "/home/madejuele/projects/2K0300/new/user/run_remote_smoke.sh",
+    "/home/madejuele/projects/2K0300/new/code/port/diagnostics.hpp",
+    "/tmp/ls2k-phaseb-local-smoke.log"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

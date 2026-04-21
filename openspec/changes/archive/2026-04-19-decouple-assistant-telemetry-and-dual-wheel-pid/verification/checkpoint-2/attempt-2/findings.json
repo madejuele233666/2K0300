@@ -1,0 +1,5 @@
+{
+  "change": "decouple-assistant-telemetry-and-dual-wheel-pid",
+  "verdict": "pass",
+  "findings": []
+}

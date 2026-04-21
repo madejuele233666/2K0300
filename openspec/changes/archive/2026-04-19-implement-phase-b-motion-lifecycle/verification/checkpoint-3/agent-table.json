@@ -1,0 +1,18 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "implement-phase-b-motion-lifecycle",
+  "agents": [
+    {
+      "agent_id": "codex-verify-reviewer",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Checkpoint-3 source-first rerun focused on repairs for F001-F004 across new/user/main.cpp, new/user/run_remote_smoke.sh, and new/code/port/diagnostics.hpp, with direct validation of the requested build and wrapper commands.",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-18T23:14:33Z"
+    }
+  ]
+}

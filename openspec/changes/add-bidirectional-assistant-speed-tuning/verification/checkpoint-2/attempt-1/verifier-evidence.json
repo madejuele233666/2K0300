@@ -1,0 +1,60 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verifier-checkpoint-2-reroute",
+  "start_at": "2026-04-21T03:05:24Z",
+  "end_at": "2026-04-21T03:07:24Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Source-first checkpoint-2 recovery review of the declared OpenSpec docs, runtime/platform source, user tooling, and preserved verification logs for runtime tuning-state isolation, lifecycle-intent routing, and applied-turn suppression.",
+    "constraints": [
+      "No new board execution was available in this session.",
+      "Review was limited to the declared local source and preserved evidence paths."
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "partial",
+    "exhaustive": false,
+    "summary": "All declared paths were inspected, but preserved runtime evidence does not validate the actual board assistant/tuning path for checkpoint-2 and the available tuning-run artifacts are simulator-generated with contract-divergent behavior."
+  },
+  "reviewed_paths": [
+    "openspec/changes/add-bidirectional-assistant-speed-tuning/design.md",
+    "openspec/changes/add-bidirectional-assistant-speed-tuning/tasks.md",
+    "openspec/changes/add-bidirectional-assistant-speed-tuning/specs/runtime-speed-tuning-surface/spec.md",
+    "openspec/changes/add-bidirectional-assistant-speed-tuning/specs/dual-wheel-motion-control/spec.md",
+    "openspec/changes/add-bidirectional-assistant-speed-tuning/specs/phase-b-motion-lifecycle/spec.md",
+    "new/code/runtime/tuning_state.hpp",
+    "new/code/runtime/tuning_state.cpp",
+    "new/code/runtime/assistant_service.hpp",
+    "new/code/runtime/assistant_service.cpp",
+    "new/code/runtime/control_loop.hpp",
+    "new/code/runtime/control_loop.cpp",
+    "new/code/runtime/motion_supervisor.hpp",
+    "new/code/runtime/motion_supervisor.cpp",
+    "new/code/runtime/runtime_state.hpp",
+    "new/code/runtime/control_debug_snapshot.hpp",
+    "new/code/runtime/control_debug_reporter.cpp",
+    "new/code/platform/assistant_protocol.hpp",
+    "new/code/platform/assistant_protocol.cpp",
+    "new/code/platform/assistant_link.hpp",
+    "new/code/platform/assistant_link.cpp",
+    "new/user/tune_speed.py",
+    "new/user/simulate_assistant_peer.py",
+    "new/verification/phase-d-speed-tuning-turn-suppressed.csv",
+    "new/verification/phase-d-speed-tuning-turn-suppressed-host.log",
+    "new/verification/phase-d-speed-tuning-turn-suppressed-peer.log",
+    "new/verification/phase-d-speed-tuning-board-stable.log",
+    "new/verification/phase-b-assistant-default-switch-smoke.log",
+    "new/verification/phase-b-b1-manual-lifecycle.log"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}
