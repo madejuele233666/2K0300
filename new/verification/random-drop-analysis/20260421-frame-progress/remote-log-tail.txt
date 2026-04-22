@@ -1,0 +1,400 @@
+[INFO][main.frame.processed][5568895] processed_frames=317
+[INFO][main.frame.processed][5568905] processed_frames=318
+[INFO][main.frame.processed][5568915] processed_frames=319
+[INFO][main.frame.processed][5568944] processed_frames=320
+[INFO][control.snapshot][5568971] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5568972] processed_frames=321
+[INFO][main.frame.processed][5568988] processed_frames=322
+[INFO][main.frame.processed][5569004] processed_frames=323
+[INFO][main.frame.processed][5569015] processed_frames=324
+[INFO][assistant.connecting][5569035] assistant TCP connecting to 10.100.170.115:8888
+[INFO][main.frame.processed][5569026] processed_frames=325
+[INFO][main.frame.processed][5569039] processed_frames=326
+[INFO][main.frame.processed][5569049] processed_frames=327
+[INFO][main.frame.processed][5569058] processed_frames=328
+[INFO][control.snapshot][5569077] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][startup.low_voltage.raw][5569085] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2369 threshold=400
+[INFO][main.frame.processed][5569074] processed_frames=329
+[INFO][main.frame.processed][5569092] processed_frames=330
+[WARN][assistant.backoff][5569124] assistant TCP connect failed: Connection refused
+[INFO][main.frame.processed][5569107] processed_frames=331
+[INFO][main.frame.processed][5569127] processed_frames=332
+[INFO][main.frame.processed][5569136] processed_frames=333
+[INFO][main.frame.processed][5569149] processed_frames=334
+[INFO][main.frame.processed][5569158] processed_frames=335
+[INFO][main.frame.processed][5569169] processed_frames=336
+[INFO][control.snapshot][5569180] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569181] processed_frames=337
+[INFO][main.frame.processed][5569195] processed_frames=338
+[INFO][main.frame.processed][5569211] processed_frames=339
+[INFO][main.frame.processed][5569228] processed_frames=340
+[INFO][main.frame.processed][5569245] processed_frames=341
+[INFO][main.frame.processed][5569256] processed_frames=342
+[INFO][main.frame.processed][5569266] processed_frames=343
+[INFO][control.snapshot][5569282] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569276] processed_frames=344
+[INFO][main.frame.processed][5569286] processed_frames=345
+[INFO][main.frame.processed][5569296] processed_frames=346
+[INFO][main.frame.processed][5569315] processed_frames=347
+[INFO][main.frame.processed][5569330] processed_frames=348
+[INFO][main.frame.processed][5569348] processed_frames=349
+[INFO][main.frame.processed][5569363] processed_frames=350
+[INFO][main.frame.processed][5569374] processed_frames=351
+[INFO][control.snapshot][5569383] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569384] processed_frames=352
+[INFO][main.frame.processed][5569393] processed_frames=353
+[INFO][imu.sample.summary][5569407] imu normalized sample acc_z=-4.870591mps2 gyro_z=0.001496radps valid_streak=824
+[INFO][encoder.delta.summary][5569409] logical encoder sample left=0 right=0 mean=0 diff=0
+[INFO][main.frame.processed][5569403] processed_frames=354
+[INFO][main.frame.processed][5569415] processed_frames=355
+[INFO][main.frame.processed][5569433] processed_frames=356
+[INFO][main.frame.processed][5569446] processed_frames=357
+[INFO][main.frame.processed][5569465] processed_frames=358
+[INFO][control.snapshot][5569485] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569481] processed_frames=359
+[INFO][main.frame.processed][5569491] processed_frames=360
+[INFO][main.frame.processed][5569501] processed_frames=361
+[INFO][main.frame.processed][5569512] processed_frames=362
+[INFO][main.frame.processed][5569522] processed_frames=363
+[INFO][main.frame.processed][5569536] processed_frames=364
+[INFO][main.frame.processed][5569552] processed_frames=365
+[INFO][main.frame.processed][5569570] processed_frames=366
+[INFO][control.snapshot][5569588] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569586] processed_frames=367
+[INFO][main.frame.processed][5569600] processed_frames=368
+[INFO][main.frame.processed][5569615] processed_frames=369
+[INFO][main.frame.processed][5569625] processed_frames=370
+[INFO][main.frame.processed][5569635] processed_frames=371
+[INFO][main.frame.processed][5569647] processed_frames=372
+[INFO][main.frame.processed][5569661] processed_frames=373
+[INFO][control.snapshot][5569689] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569678] processed_frames=374
+[INFO][control.apply.hold_disarmed][5569708] gate is clear but runtime is intentionally held disarmed in phase DISARMED
+[INFO][main.frame.processed][5569695] processed_frames=375
+[INFO][main.frame.processed][5569711] processed_frames=376
+[INFO][main.frame.processed][5569721] processed_frames=377
+[INFO][main.frame.processed][5569734] processed_frames=378
+[INFO][main.frame.processed][5569743] processed_frames=379
+[INFO][main.frame.processed][5569754] processed_frames=380
+[INFO][main.frame.processed][5569765] processed_frames=381
+[INFO][main.frame.processed][5569781] processed_frames=382
+[INFO][control.snapshot][5569795] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569797] processed_frames=383
+[INFO][main.frame.processed][5569814] processed_frames=384
+[INFO][main.frame.processed][5569830] processed_frames=385
+[INFO][main.frame.processed][5569840] processed_frames=386
+[INFO][main.frame.processed][5569850] processed_frames=387
+[INFO][main.frame.processed][5569861] processed_frames=388
+[INFO][main.frame.processed][5569874] processed_frames=389
+[INFO][control.snapshot][5569895] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569887] processed_frames=390
+[INFO][main.frame.processed][5569904] processed_frames=391
+[INFO][main.frame.processed][5569919] processed_frames=392
+[INFO][main.frame.processed][5569934] processed_frames=393
+[INFO][main.frame.processed][5569949] processed_frames=394
+[INFO][main.frame.processed][5569960] processed_frames=395
+[INFO][main.frame.processed][5569970] processed_frames=396
+[INFO][main.frame.processed][5569980] processed_frames=397
+[INFO][control.snapshot][5569996] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5569991] processed_frames=398
+[INFO][main.frame.processed][5570008] processed_frames=399
+[INFO][main.frame.processed][5570025] processed_frames=400
+[INFO][main.frame.processed][5570039] processed_frames=401
+[INFO][main.frame.processed][5570056] processed_frames=402
+[INFO][main.frame.processed][5570070] processed_frames=403
+[INFO][startup.low_voltage.raw][5570086] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2374 threshold=400
+[INFO][main.frame.processed][5570080] processed_frames=404
+[INFO][control.snapshot][5570098] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570091] processed_frames=405
+[INFO][main.frame.processed][5570103] processed_frames=406
+[INFO][assistant.connecting][5570130] assistant TCP connecting to 10.100.170.115:8888
+[INFO][main.frame.processed][5570115] processed_frames=407
+[INFO][main.frame.processed][5570132] processed_frames=408
+[WARN][assistant.backoff][5570159] assistant TCP connect failed: Connection refused
+[INFO][main.frame.processed][5570148] processed_frames=409
+[INFO][main.frame.processed][5570163] processed_frames=410
+[INFO][main.frame.processed][5570180] processed_frames=411
+[INFO][control.snapshot][5570200] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570193] processed_frames=412
+[INFO][main.frame.processed][5570203] processed_frames=413
+[INFO][main.frame.processed][5570214] processed_frames=414
+[INFO][main.frame.processed][5570224] processed_frames=415
+[INFO][main.frame.processed][5570234] processed_frames=416
+[INFO][main.frame.processed][5570247] processed_frames=417
+[INFO][main.frame.processed][5570264] processed_frames=418
+[INFO][main.frame.processed][5570279] processed_frames=419
+[INFO][control.snapshot][5570303] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570298] processed_frames=420
+[INFO][main.frame.processed][5570310] processed_frames=421
+[INFO][main.frame.processed][5570321] processed_frames=422
+[INFO][main.frame.processed][5570331] processed_frames=423
+[INFO][main.frame.processed][5570343] processed_frames=424
+[INFO][main.frame.processed][5570355] processed_frames=425
+[INFO][main.frame.processed][5570370] processed_frames=426
+[INFO][main.frame.processed][5570387] processed_frames=427
+[INFO][encoder.delta.summary][5570409] logical encoder sample left=0 right=0 mean=0 diff=0
+[INFO][control.snapshot][5570409] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570404] processed_frames=428
+[INFO][imu.sample.summary][5570410] imu normalized sample acc_z=-4.873222mps2 gyro_z=-0.001696radps valid_streak=985
+[INFO][main.frame.processed][5570421] processed_frames=429
+[INFO][main.frame.processed][5570431] processed_frames=430
+[INFO][main.frame.processed][5570440] processed_frames=431
+[INFO][main.frame.processed][5570451] processed_frames=432
+[INFO][main.frame.processed][5570463] processed_frames=433
+[INFO][main.frame.processed][5570474] processed_frames=434
+[INFO][main.frame.processed][5570490] processed_frames=435
+[INFO][control.snapshot][5570513] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570508] processed_frames=436
+[INFO][main.frame.processed][5570522] processed_frames=437
+[INFO][main.frame.processed][5570542] processed_frames=438
+[INFO][main.frame.processed][5570552] processed_frames=439
+[INFO][main.frame.processed][5570562] processed_frames=440
+[INFO][main.frame.processed][5570571] processed_frames=441
+[INFO][main.frame.processed][5570581] processed_frames=442
+[INFO][main.frame.processed][5570594] processed_frames=443
+[INFO][control.snapshot][5570613] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570609] processed_frames=444
+[INFO][main.frame.processed][5570622] processed_frames=445
+[INFO][main.frame.processed][5570640] processed_frames=446
+[INFO][main.frame.processed][5570654] processed_frames=447
+[INFO][main.frame.processed][5570670] processed_frames=448
+[INFO][main.frame.processed][5570681] processed_frames=449
+[INFO][main.frame.processed][5570691] processed_frames=450
+[INFO][control.apply.hold_disarmed][5570709] gate is clear but runtime is intentionally held disarmed in phase DISARMED
+[INFO][main.frame.processed][5570703] processed_frames=451
+[INFO][control.snapshot][5570714] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570714] processed_frames=452
+[INFO][main.frame.processed][5570729] processed_frames=453
+[INFO][main.frame.processed][5570745] processed_frames=454
+[INFO][main.frame.processed][5570760] processed_frames=455
+[INFO][main.frame.processed][5570778] processed_frames=456
+[INFO][main.frame.processed][5570792] processed_frames=457
+[INFO][main.frame.processed][5570802] processed_frames=458
+[INFO][control.snapshot][5570817] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570812] processed_frames=459
+[INFO][main.frame.processed][5570823] processed_frames=460
+[INFO][main.frame.processed][5570835] processed_frames=461
+[INFO][main.frame.processed][5570852] processed_frames=462
+[INFO][main.frame.processed][5570867] processed_frames=463
+[INFO][main.frame.processed][5570883] processed_frames=464
+[INFO][main.frame.processed][5570899] processed_frames=465
+[INFO][control.snapshot][5570918] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5570910] processed_frames=466
+[INFO][main.frame.processed][5570921] processed_frames=467
+[INFO][main.frame.processed][5570931] processed_frames=468
+[INFO][main.frame.processed][5570942] processed_frames=469
+[INFO][main.frame.processed][5570956] processed_frames=470
+[INFO][main.frame.processed][5570973] processed_frames=471
+[INFO][main.frame.processed][5570987] processed_frames=472
+[INFO][main.frame.processed][5571005] processed_frames=473
+[INFO][control.snapshot][5571021] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571018] processed_frames=474
+[INFO][main.frame.processed][5571029] processed_frames=475
+[INFO][main.frame.processed][5571039] processed_frames=476
+[INFO][main.frame.processed][5571049] processed_frames=477
+[INFO][main.frame.processed][5571058] processed_frames=478
+[INFO][main.frame.processed][5571075] processed_frames=479
+[INFO][startup.low_voltage.raw][5571092] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2370 threshold=400
+[INFO][main.frame.processed][5571092] processed_frames=480
+[INFO][main.frame.processed][5571106] processed_frames=481
+[INFO][control.snapshot][5571131] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571122] processed_frames=482
+[INFO][main.frame.processed][5571137] processed_frames=483
+[INFO][main.frame.processed][5571148] processed_frames=484
+[INFO][assistant.connecting][5571166] assistant TCP connecting to 10.100.170.115:8888
+[INFO][main.frame.processed][5571158] processed_frames=485
+[INFO][main.frame.processed][5571169] processed_frames=486
+[INFO][main.frame.processed][5571178] processed_frames=487
+[INFO][main.frame.processed][5571194] processed_frames=488
+[INFO][main.frame.processed][5571212] processed_frames=489
+[INFO][control.snapshot][5571234] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[WARN][assistant.backoff][5571241] assistant TCP connect failed: Connection refused
+[INFO][main.frame.processed][5571227] processed_frames=490
+[INFO][main.frame.processed][5571242] processed_frames=491
+[INFO][main.frame.processed][5571257] processed_frames=492
+[INFO][main.frame.processed][5571268] processed_frames=493
+[INFO][main.frame.processed][5571278] processed_frames=494
+[INFO][main.frame.processed][5571289] processed_frames=495
+[INFO][main.frame.processed][5571298] processed_frames=496
+[INFO][main.frame.processed][5571312] processed_frames=497
+[INFO][control.snapshot][5571335] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571326] processed_frames=498
+[INFO][main.frame.processed][5571343] processed_frames=499
+[INFO][main.frame.processed][5571359] processed_frames=500
+[INFO][main.frame.processed][5571375] processed_frames=501
+[INFO][main.frame.processed][5571385] processed_frames=502
+[INFO][main.frame.processed][5571395] processed_frames=503
+[INFO][encoder.delta.summary][5571410] logical encoder sample left=0 right=0 mean=0 diff=0
+[INFO][main.frame.processed][5571406] processed_frames=504
+[INFO][imu.sample.summary][5571412] imu normalized sample acc_z=-4.874180mps2 gyro_z=-0.001696radps valid_streak=1150
+[INFO][main.frame.processed][5571416] processed_frames=505
+[INFO][control.snapshot][5571436] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571433] processed_frames=506
+[INFO][main.frame.processed][5571447] processed_frames=507
+[INFO][main.frame.processed][5571465] processed_frames=508
+[INFO][main.frame.processed][5571483] processed_frames=509
+[INFO][main.frame.processed][5571494] processed_frames=510
+[INFO][main.frame.processed][5571505] processed_frames=511
+[INFO][main.frame.processed][5571516] processed_frames=512
+[INFO][control.snapshot][5571536] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571529] processed_frames=513
+[INFO][main.frame.processed][5571543] processed_frames=514
+[INFO][main.frame.processed][5571556] processed_frames=515
+[INFO][main.frame.processed][5571573] processed_frames=516
+[INFO][main.frame.processed][5571587] processed_frames=517
+[INFO][main.frame.processed][5571603] processed_frames=518
+[INFO][main.frame.processed][5571615] processed_frames=519
+[INFO][main.frame.processed][5571624] processed_frames=520
+[INFO][control.snapshot][5571640] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571635] processed_frames=521
+[INFO][main.frame.processed][5571645] processed_frames=522
+[INFO][main.frame.processed][5571662] processed_frames=523
+[INFO][main.frame.processed][5571678] processed_frames=524
+[INFO][main.frame.processed][5571693] processed_frames=525
+[INFO][control.apply.hold_disarmed][5571716] gate is clear but runtime is intentionally held disarmed in phase DISARMED
+[INFO][main.frame.processed][5571710] processed_frames=526
+[INFO][main.frame.processed][5571724] processed_frames=527
+[INFO][main.frame.processed][5571734] processed_frames=528
+[INFO][control.snapshot][5571743] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571744] processed_frames=529
+[INFO][main.frame.processed][5571754] processed_frames=530
+[INFO][main.frame.processed][5571763] processed_frames=531
+[INFO][main.frame.processed][5571780] processed_frames=532
+[INFO][main.frame.processed][5571796] processed_frames=533
+[INFO][main.frame.processed][5571811] processed_frames=534
+[INFO][main.frame.processed][5571830] processed_frames=535
+[INFO][control.snapshot][5571846] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571841] processed_frames=536
+[INFO][main.frame.processed][5571851] processed_frames=537
+[INFO][main.frame.processed][5571861] processed_frames=538
+[INFO][main.frame.processed][5571874] processed_frames=539
+[INFO][main.frame.processed][5571886] processed_frames=540
+[INFO][main.frame.processed][5571902] processed_frames=541
+[INFO][main.frame.processed][5571916] processed_frames=542
+[INFO][main.frame.processed][5571933] processed_frames=543
+[INFO][control.snapshot][5571948] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5571949] processed_frames=544
+[INFO][main.frame.processed][5571960] processed_frames=545
+[INFO][main.frame.processed][5571970] processed_frames=546
+[INFO][main.frame.processed][5571981] processed_frames=547
+[INFO][main.frame.processed][5571990] processed_frames=548
+[INFO][main.frame.processed][5572001] processed_frames=549
+[INFO][main.frame.processed][5572020] processed_frames=550
+[INFO][main.frame.processed][5572035] processed_frames=551
+[INFO][control.snapshot][5572056] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572053] processed_frames=552
+[INFO][main.frame.processed][5572069] processed_frames=553
+[INFO][main.frame.processed][5572080] processed_frames=554
+[INFO][startup.low_voltage.raw][5572096] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2366 threshold=400
+[INFO][main.frame.processed][5572090] processed_frames=555
+[INFO][main.frame.processed][5572101] processed_frames=556
+[INFO][main.frame.processed][5572114] processed_frames=557
+[INFO][main.frame.processed][5572125] processed_frames=558
+[INFO][main.frame.processed][5572142] processed_frames=559
+[INFO][control.snapshot][5572163] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572157] processed_frames=560
+[INFO][main.frame.processed][5572174] processed_frames=561
+[INFO][main.frame.processed][5572190] processed_frames=562
+[INFO][main.frame.processed][5572201] processed_frames=563
+[INFO][main.frame.processed][5572211] processed_frames=564
+[INFO][main.frame.processed][5572221] processed_frames=565
+[INFO][assistant.connecting][5572249] assistant TCP connecting to 10.100.170.115:8888
+[INFO][main.frame.processed][5572233] processed_frames=566
+[WARN][assistant.backoff][5572263] assistant TCP connect failed: Connection refused
+[INFO][main.frame.processed][5572250] processed_frames=567
+[INFO][control.snapshot][5572264] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572265] processed_frames=568
+[INFO][main.frame.processed][5572282] processed_frames=569
+[INFO][main.frame.processed][5572298] processed_frames=570
+[INFO][main.frame.processed][5572312] processed_frames=571
+[INFO][main.frame.processed][5572320] processed_frames=572
+[INFO][main.frame.processed][5572331] processed_frames=573
+[INFO][main.frame.processed][5572343] processed_frames=574
+[INFO][control.snapshot][5572364] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572355] processed_frames=575
+[INFO][main.frame.processed][5572370] processed_frames=576
+[INFO][main.frame.processed][5572384] processed_frames=577
+[INFO][encoder.delta.summary][5572413] logical encoder sample left=0 right=0 mean=0 diff=0
+[INFO][main.frame.processed][5572400] processed_frames=578
+[INFO][imu.sample.summary][5572413] imu normalized sample acc_z=-4.876573mps2 gyro_z=-0.002760radps valid_streak=1311
+[INFO][main.frame.processed][5572417] processed_frames=579
+[INFO][main.frame.processed][5572431] processed_frames=580
+[INFO][main.frame.processed][5572440] processed_frames=581
+[INFO][main.frame.processed][5572451] processed_frames=582
+[INFO][control.snapshot][5572469] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572461] processed_frames=583
+[INFO][main.frame.processed][5572475] processed_frames=584
+[INFO][main.frame.processed][5572491] processed_frames=585
+[INFO][main.frame.processed][5572548] processed_frames=586
+[INFO][control.snapshot][5572586] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572576] processed_frames=587
+[INFO][main.frame.processed][5572602] processed_frames=588
+[INFO][main.frame.processed][5572653] processed_frames=589
+[INFO][main.frame.processed][5572668] processed_frames=590
+[INFO][control.snapshot][5572686] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572678] processed_frames=591
+[INFO][main.frame.processed][5572689] processed_frames=592
+[INFO][main.frame.processed][5572698] processed_frames=593
+[INFO][control.apply.hold_disarmed][5572717] gate is clear but runtime is intentionally held disarmed in phase DISARMED
+[INFO][main.frame.processed][5572718] processed_frames=594
+[INFO][main.frame.processed][5572733] processed_frames=595
+[INFO][main.frame.processed][5572750] processed_frames=596
+[INFO][main.frame.processed][5572765] processed_frames=597
+[INFO][control.snapshot][5572789] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572780] processed_frames=598
+[INFO][main.frame.processed][5572796] processed_frames=599
+[INFO][main.frame.processed][5572810] processed_frames=600
+[INFO][main.frame.processed][5572824] processed_frames=601
+[INFO][main.frame.processed][5572838] processed_frames=602
+[INFO][main.frame.processed][5572856] processed_frames=603
+[INFO][main.frame.processed][5572872] processed_frames=604
+[INFO][main.frame.processed][5572883] processed_frames=605
+[INFO][control.snapshot][5572893] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572899] processed_frames=606
+[INFO][main.frame.processed][5572916] processed_frames=607
+[INFO][main.frame.processed][5572927] processed_frames=608
+[INFO][main.frame.processed][5572937] processed_frames=609
+[INFO][main.frame.processed][5572948] processed_frames=610
+[INFO][main.frame.processed][5572958] processed_frames=611
+[INFO][main.frame.processed][5572970] processed_frames=612
+[INFO][main.frame.processed][5572980] processed_frames=613
+[INFO][control.snapshot][5572993] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5572991] processed_frames=614
+[INFO][main.frame.processed][5573003] processed_frames=615
+[INFO][main.frame.processed][5573014] processed_frames=616
+[INFO][main.frame.processed][5573023] processed_frames=617
+[INFO][main.frame.processed][5573034] processed_frames=618
+[INFO][main.frame.processed][5573043] processed_frames=619
+[INFO][main.frame.processed][5573054] processed_frames=620
+[INFO][main.frame.processed][5573065] processed_frames=621
+[INFO][main.frame.processed][5573075] processed_frames=622
+[INFO][control.snapshot][5573094] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5573086] processed_frames=623
+[INFO][startup.low_voltage.raw][5573096] low-voltage raw check path=/sys/bus/iio/devices/iio:device0/in_voltage7_raw raw=2381 threshold=400
+[INFO][main.frame.processed][5573096] processed_frames=624
+[INFO][main.frame.processed][5573109] processed_frames=625
+[INFO][main.frame.processed][5573118] processed_frames=626
+[INFO][main.frame.processed][5573129] processed_frames=627
+[INFO][main.frame.processed][5573138] processed_frames=628
+[INFO][main.frame.processed][5573149] processed_frames=629
+[INFO][main.frame.processed][5573158] processed_frames=630
+[INFO][main.frame.processed][5573169] processed_frames=631
+[INFO][main.frame.processed][5573182] processed_frames=632
+[INFO][control.snapshot][5573197] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5573193] processed_frames=633
+[INFO][main.frame.processed][5573203] processed_frames=634
+[INFO][main.frame.processed][5573214] processed_frames=635
+[INFO][main.frame.processed][5573223] processed_frames=636
+[INFO][main.frame.processed][5573235] processed_frames=637
+[INFO][main.frame.processed][5573245] processed_frames=638
+[INFO][assistant.connecting][5573266] assistant TCP connecting to 10.100.170.115:8888
+[INFO][main.frame.processed][5573256] processed_frames=639
+[INFO][main.frame.processed][5573269] processed_frames=640
+[INFO][main.frame.processed][5573278] processed_frames=641
+[INFO][main.frame.processed][5573289] processed_frames=642
+[INFO][control.snapshot][5573298] phase=DISARMED veto=false reason=none tuning_mode=false turn_suppressed=false override_enabled=false override_value=null effective_speed_target=0 left_target=0 right_target=0 left_measured=0 right_measured=0 raw_turn=0 applied_turn=0 left_pwm=0 right_pwm=0 emergency_stop=false
+[INFO][main.frame.processed][5573299] processed_frames=643
+[INFO][main.frame.processed][5573309] processed_frames=644
+[WARN][assistant.backoff][5573334] assistant TCP connect failed: Connection refused
+[INFO][main.frame.processed][5573324] processed_frames=645
+[INFO][main.frame.processed][5573340] processed_frames=646

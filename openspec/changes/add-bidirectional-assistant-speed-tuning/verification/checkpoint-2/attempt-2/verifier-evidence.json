@@ -1,0 +1,29 @@
+{
+  "change": "add-bidirectional-assistant-speed-tuning",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verifier-checkpoint-2-attempt-2",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "scope": "Source-first checkpoint-2 recovery review of the declared OpenSpec docs, runtime/platform source, user tooling, preserved stable artifacts, and the new real board/runtime evidence for disconnect clear, FAIL_SAFE_LATCHED command rejection, fail-safe dominance, and applied-turn suppression behavior.",
+    "review_surface": "source_first",
+    "risk_tier": "STANDARD",
+    "notes": [
+      "This rerun used new real board/runtime artifacts and kept simulator-generated artifacts out of the authoritative runtime proof bundle for checkpoint-2.",
+      "Board motor remained physically off during the new board tests, so the review treated the logs as runtime-path safety evidence rather than traction or tuning-quality evidence."
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Reviewed the declared runtime/platform/user-tooling implementation surface plus preserved and new real board/runtime artifacts. Source confirms remote lifecycle commands route only through motion_intent, turn suppression zeros only applied turn while preserving raw turn telemetry, and ClearRuntimeTuningSnapshot now clears has_last_seq/last_seq. Real board logs cover disconnect snapshot clear, FAIL_SAFE_LATCHED start/stop rejection, fail-safe dominance while tuning and override remain enabled, shaped remote stop, override TTL expiry, tuning-mode-off runtime behavior, and raw-versus-applied turn separation."
+  },
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

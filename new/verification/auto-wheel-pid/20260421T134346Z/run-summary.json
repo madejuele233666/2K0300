@@ -1,0 +1,7 @@
+{
+  "status": "failed",
+  "stage": "validation",
+  "reasons": [
+    "board markers missing"
+  ]
+}

@@ -26,6 +26,11 @@ sudo apt upgrade -y
 
 已经跑通并收敛后的记录见：[ENV_SETUP_WSL_BOARD.md](/home/madejuele/projects/2K0300/docx/ENV_SETUP_WSL_BOARD.md)
 
+标准连板链路已经统一收敛到 skill：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
+
+本文件保留 WSL 环境、工具链、OpenCV、内核和设备树等扩展说明，不再重复维护完整的 `usbipd -> WSL -> 串口 -> 读 IP -> SSH` 操作细节。
+
 ---
 
 # 2. WSL 中安装后续会用到的工具
@@ -50,37 +55,16 @@ sudo apt install -y \
 
 ---
 
-# 3. 在 WSL 中确认串口并连接板卡
+# 3. 标准连板入口
 
-先看串口设备：
+标准接入链路不再在本文件重复展开，统一使用：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
 
-```bash
-ls /dev/ttyUSB* /dev/ttyACM*
-```
-
-可能会看到：
-
-```bash
-/dev/ttyUSB0
-/dev/ttyACM0
-```
-
-本次实际调试使用的是：
-
-```bash
-/dev/ttyACM0
-```
-
-然后打开串口终端：
-
-```bash
-sudo picocom -b 115200 /dev/ttyACM0
-```
-
-退出 `picocom`：
-按 `Ctrl + A`，再按 `Ctrl + X`
-
-之所以先准备串口，是因为原资料后面板卡联网、看 IP、`reboot` 出问题时看日志，都依赖串口侧观察；资料里的启动配置截图也能看出串口控制台是 `ttyS0,115200`。本次也已经确认，可以通过这个串口直接登录 `LoongOS` 并调试 Wi-Fi 自动连接。
+本文件后续出现的 `BOARD_IP`，都默认来自这条链路：
+- Windows 侧 `usbipd`
+- WSL 串口节点 `/dev/ttyACM*` 或 `/dev/ttyUSB*`
+- 板卡串口执行 `ifconfig wlan0`
+- WSL 再切到 `ssh`
 
 ---
 
@@ -131,22 +115,23 @@ sudo tar -xvf loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6.tar.
 
 ---
 
-# 6. 先让板卡联网
+# 6. 板卡联网说明
+
+板卡接入本身先走 skill；如果 skill 进入串口后发现 `wlan0` 还没拿到地址，再参考本节处理联网。
 
 原资料给了两种方式：手动连接 Wi-Fi，以及在 `/etc/rc.local` 里设置开机自动连接。命令分别是 `wpa_supplicant` 和 `udhcpc`，而且自动连接那两条命令后面必须带 `&`，否则可能卡开机。 
 
 ## 6.1 手动连 Wi-Fi
 
-在你刚才打开的串口终端里，进入板卡 shell 后执行：
+在板卡串口 shell 中执行：
 
 ```bash
 wpa_supplicant -B -i wlan0 -c <(wpa_passphrase "你的WiFi名" "你的WiFi密码")
 udhcpc -i wlan0
-ifconfig
+ifconfig wlan0
 ```
 
-看 `wlan0` 的 IP，记下来。
-后面我统一记作：
+看 `wlan0` 的 IP，记下来。后面我统一记作：
 
 ```bash
 BOARD_IP=192.168.x.x
@@ -158,13 +143,7 @@ BOARD_IP=192.168.x.x
 
 原教程是在 `/etc/rc.local` 里加下面几行，并明确提醒要带 `&`。 
 
-在板卡串口里：
-
-```bash
-vi /etc/rc.local
-```
-
-把原来启动热点那几行相关内容按教程删掉后，在 `do_start()` 里加入：
+如果要沿用原资料的 `/etc/rc.local` 做法，就在其中加入：
 
 ```bash
 wpa_supplicant -B -i wlan0 -c <(wpa_passphrase "你的WiFi名" "你的WiFi密码") &
@@ -206,46 +185,20 @@ network={
 
 # 7. 用 WSL 的 ssh/scp 和板卡互传文件
 
-原教程后面所有“用 MobaXterm 拖文件”的地方，本质都能用 `scp -O` 替代；资料里本来就给了 `scp -O` 的写法。 
+SSH 登录这一步已经由 skill 覆盖；本节只保留连上之后的约束和最小验证。
 
-先在 WSL 测试 SSH：
+原教程后面所有“用 MobaXterm 拖文件”的地方，本质都能用 `scp -O` 替代；资料里本来就给了 `scp -O` 的写法。
 
-```bash
-ssh root@192.168.x.x
-```
+注意：
+- 这块板子上的 `dropbear` 没有 `sftp-server`
+- 所以 `scp` 必须使用 `-O`
 
-第一次会提示确认指纹，输入：
-
-```bash
-yes
-```
-
-退出板卡：
+最小验证：
 
 ```bash
-exit
-```
-
----
-
-## 7.1 测试传一个文件
-
-原教程先传了一个 `SEEKFREE_APP` 文件做测试。
-
-在 WSL 中：
-
-```bash
-cd ~
-echo 125 > SEEKFREE_APP
-scp -O SEEKFREE_APP root@192.168.x.x:/home/root/
-```
-
-然后登录板卡检查：
-
-```bash
-ssh root@192.168.x.x
-ls -l /home/root/
-cat /home/root/SEEKFREE_APP
+ssh root@${BOARD_IP}
+echo 125 > ~/SEEKFREE_APP
+scp -O ~/SEEKFREE_APP root@${BOARD_IP}:/home/root/
 ```
 
 ---
@@ -258,13 +211,12 @@ cat /home/root/SEEKFREE_APP
 
 ```bash
 cd /opt/ls_2k0300_env
-scp -Or ./opencv_4_10_build root@192.168.x.x:/home/root/
+scp -Or ./opencv_4_10_build root@${BOARD_IP}:/home/root/
 ```
 
-传完后登录板卡，按原教程添加动态库索引：
+传完后，原教程建议在板卡上配置动态库索引：
 
 ```bash
-ssh root@192.168.x.x
 cd /etc
 mkdir -p ld.so.conf.d
 cd ld.so.conf.d
@@ -281,6 +233,21 @@ vi opencv.conf
 
 ```bash
 ldconfig
+```
+
+但本项目实际环境后来验证发现：
+- 这套板卡系统没有 `ldconfig`
+
+所以更稳妥的实际做法是改成：
+
+```bash
+echo 'export LD_LIBRARY_PATH=/home/root/opencv_4_10_build/lib:${LD_LIBRARY_PATH}' > /etc/profile.d/opencv.sh
+```
+
+之后重新登录，再验证：
+
+```bash
+echo $LD_LIBRARY_PATH
 ```
 
 ---
@@ -475,28 +442,19 @@ seekfree_smart_car_pai_99.dts
 
 # 15. 给你一份“从 update 之后开始”的最简执行顺序
 
-直接照着跑就行：
+直接照着跑就行。标准接入链路先使用 skill：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
 
-## WSL 侧
+skill 跑完后，你应该已经拿到 `BOARD_IP` 并确认 `ssh` 可用。下面只保留连板之后的项目步骤。
+
+## WSL 侧：安装依赖
 
 ```bash
 sudo apt install -y \
     openssh-client openssh-server \
     net-tools git cmake bison flex libssl-dev libncurses5-dev \
     picocom
-
-sudo picocom -b 115200 /dev/ttyACM0
 ```
-
-## 板卡串口侧：连 Wi-Fi
-
-```bash
-wpa_supplicant -B -i wlan0 -c <(wpa_passphrase "你的WiFi名" "你的WiFi密码")
-udhcpc -i wlan0
-ifconfig
-```
-
-记下板卡 IP，比如 `192.168.x.x`
 
 ## WSL 侧：拉源码
 
@@ -523,36 +481,21 @@ sudo tar -xvf loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6.tar.
 
 ```bash
 echo 125 > ~/SEEKFREE_APP
-scp -O ~/SEEKFREE_APP root@192.168.x.x:/home/root/
-ssh root@192.168.x.x
+scp -O ~/SEEKFREE_APP root@${BOARD_IP}:/home/root/
+ssh root@${BOARD_IP}
 ```
 
 ## WSL 侧：传 OpenCV 到板卡
 
 ```bash
 cd /opt/ls_2k0300_env
-scp -Or ./opencv_4_10_build root@192.168.x.x:/home/root/
+scp -Or ./opencv_4_10_build root@${BOARD_IP}:/home/root/
 ```
 
-## 板卡侧：添加 OpenCV 索引
+## 板卡侧：设置 OpenCV 运行库环境变量
 
 ```bash
-cd /etc
-mkdir -p ld.so.conf.d
-cd ld.so.conf.d
-vi opencv.conf
-```
-
-写入：
-
-```bash
-/home/root/opencv_4_10_build/lib
-```
-
-然后：
-
-```bash
-ldconfig
+echo 'export LD_LIBRARY_PATH=/home/root/opencv_4_10_build/lib:${LD_LIBRARY_PATH}' > /etc/profile.d/opencv.sh
 ```
 
 ## WSL 侧：编译应用
@@ -574,7 +517,7 @@ make -j$(nproc)
 ## WSL 侧：更新内核
 
 ```bash
-scp -O ~/LS2K0300_Library/ls2k0300_linux_4.19/vmlinuz root@192.168.x.x:/boot
+scp -O ~/LS2K0300_Library/ls2k0300_linux_4.19/vmlinuz root@${BOARD_IP}:/boot
 ```
 
 ## 板卡侧：同步并重启

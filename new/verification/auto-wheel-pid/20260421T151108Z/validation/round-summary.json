@@ -1,0 +1,38 @@
+{
+  "name": "validation",
+  "candidate_label": "protocol-validation",
+  "wheel_scores": {
+    "left": {
+      "wheel": "left",
+      "sample_count": 0,
+      "mean_abs_error": 0.0,
+      "p95_abs_error": 0.0,
+      "overshoot_peak": 0.0,
+      "settle_delay_s": 0.0,
+      "saturation_ratio": 0.0,
+      "weighted_score": 0.0
+    },
+    "right": {
+      "wheel": "right",
+      "sample_count": 0,
+      "mean_abs_error": 0.0,
+      "p95_abs_error": 0.0,
+      "overshoot_peak": 0.0,
+      "settle_delay_s": 0.0,
+      "saturation_ratio": 0.0,
+      "weighted_score": 0.0
+    }
+  },
+  "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260421T151108Z/validation/telemetry.csv",
+  "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260421T151108Z/validation/host.log",
+  "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260421T151108Z/validation/board.log",
+  "params_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260421T151108Z/validation/params.json",
+  "tuning_exit_code": 0,
+  "receiver_error": null,
+  "ack_complete": true,
+  "snapshot_cleared_seen": true,
+  "board_markers_ok": true,
+  "unexpected_failsafe": false,
+  "accepted": true,
+  "accepted_reason": "validated"
+}

@@ -3,16 +3,16 @@
   "change": "add-bidirectional-assistant-speed-tuning",
   "agents": [
     {
-      "agent_id": "codex-verifier-checkpoint-2-reroute",
+      "agent_id": "codex-verifier-checkpoint-2-attempt-2",
       "status": "active",
       "resumable": true,
-      "last_verdict": "block",
-      "coverage_status": "partial",
-      "exhaustive": false,
-      "scope": "Source-first checkpoint-2 recovery review of the declared OpenSpec docs, runtime/platform source, user tooling, and preserved verification logs for runtime tuning-state isolation, lifecycle-intent routing, and applied-turn suppression.",
-      "findings_path": "attempt-1/findings.json",
-      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
-      "updated_at": "2026-04-21T03:07:24Z"
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Source-first checkpoint-2 recovery review of the declared OpenSpec docs, runtime/platform source, user tooling, preserved stable artifacts, and the new real board/runtime evidence for disconnect clear, FAIL_SAFE_LATCHED command rejection, fail-safe dominance, and applied-turn suppression behavior.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-21T08:18:00Z"
     }
   ]
 }

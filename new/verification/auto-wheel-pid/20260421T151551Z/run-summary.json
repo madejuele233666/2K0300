@@ -1,0 +1,11 @@
+{
+  "status": "failed",
+  "stage": "baseline",
+  "reasons": [
+    "tuning exit=1",
+    "ack chain incomplete",
+    "snapshot_cleared missing",
+    "board markers missing",
+    "no RUNNING telemetry rows found in /home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260421T151551Z/baseline/attempt-04/telemetry.csv"
+  ]
+}

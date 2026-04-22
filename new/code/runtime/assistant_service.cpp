@@ -154,9 +154,12 @@ std::string DescribeCommand(const platform::AssistantCommand& command) {
 void AssistantService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.assistant_enabled;
+    periodic_publish_armed_ = false;
     params_ = params;
     waveform_interval_ms_ = std::max(0, params.assistant_waveform_publish_interval_ms);
-    telemetry_interval_ms_ = waveform_interval_ms_ > 0 ? waveform_interval_ms_ : 100;
+    // The TCP assistant path becomes unstable under sustained small-frame bursts.
+    // Keep telemetry slower than the control loop when waveform streaming is off.
+    telemetry_interval_ms_ = waveform_interval_ms_ > 0 ? waveform_interval_ms_ : 200;
     image_interval_ms_ = std::max(0, params.assistant_image_publish_interval_ms);
     last_wave_publish_ms_ = 0;
     last_telemetry_publish_ms_ = 0;
@@ -182,13 +185,21 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
 
     const uint64_t now_ms = port::NowMs();
     const platform::AssistantPollResult poll_result = link_.Poll(diagnostics);
+    if (poll_result.became_ready) {
+        // Delay periodic telemetry on a fresh connection until the host sends
+        // a command. This shrinks the unstable connect-then-command window.
+        periodic_publish_armed_ = false;
+    }
     if (poll_result.connection_lost) {
+        periodic_publish_armed_ = false;
         pending_feedback_.clear();
         RuntimeTuningEvent disconnect_event{};
         {
             std::lock_guard<std::mutex> lock(state.shared_mutex);
             disconnect_event =
                 ClearRuntimeTuningSnapshot(state.tuning_state, "disconnect", false);
+            state.motion_intent.stop_requested = true;
+            state.motion_intent.start_requested = false;
         }
         if (disconnect_event.type != RuntimeTuningEventType::kNone) {
             diagnostics.Emit({port::DiagnosticLevel::kWarning,
@@ -225,7 +236,11 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         return;
     }
 
-    if (snapshot.valid && snapshot.cycle_count != last_telemetry_cycle_ &&
+    const bool telemetry_phase_allowed =
+        snapshot.motion_phase == MotionPhase::kRunning ||
+        snapshot.motion_phase == MotionPhase::kStopping;
+    if (periodic_publish_armed_ && telemetry_phase_allowed && snapshot.valid &&
+        snapshot.cycle_count != last_telemetry_cycle_ &&
         (last_telemetry_publish_ms_ == 0 ||
          now_ms - last_telemetry_publish_ms_ >= static_cast<uint64_t>(telemetry_interval_ms_))) {
         if (link_.PublishJsonLine(platform::EncodeAssistantTelemetry(BuildTelemetryView(snapshot)), diagnostics)) {
@@ -234,7 +249,8 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         }
     }
 
-    if (waveform_interval_ms_ > 0 && snapshot.valid && snapshot.cycle_count != last_wave_cycle_ &&
+    if (periodic_publish_armed_ && waveform_interval_ms_ > 0 && snapshot.valid &&
+        snapshot.cycle_count != last_wave_cycle_ &&
         (last_wave_publish_ms_ == 0 || now_ms - last_wave_publish_ms_ >= static_cast<uint64_t>(waveform_interval_ms_))) {
         if (link_.PublishWaveform(BuildWaveformFrame(snapshot), diagnostics)) {
             last_wave_publish_ms_ = now_ms;
@@ -242,7 +258,8 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         }
     }
 
-    if (image_interval_ms_ > 0 && capture.has_frame && capture.frame_id != last_image_frame_id_ &&
+    if (periodic_publish_armed_ && image_interval_ms_ > 0 && capture.has_frame &&
+        capture.frame_id != last_image_frame_id_ &&
         (last_image_publish_ms_ == 0 || now_ms - last_image_publish_ms_ >= static_cast<uint64_t>(image_interval_ms_))) {
         if (link_.PublishImage(capture, diagnostics)) {
             last_image_publish_ms_ = now_ms;
@@ -352,6 +369,7 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                                   command.target_speed_value,
                                                   now_ms + static_cast<uint64_t>(command.ttl_ms),
                                                   command.seq);
+                    periodic_publish_armed_ = true;
                 }
                 break;
             case platform::AssistantCommandType::kStart:
@@ -392,16 +410,27 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                           now_ms});
     }
 
+    const bool enqueue_state_event = accepted && tuning_event.type != RuntimeTuningEventType::kNone;
     EnqueueFeedback(platform::EncodeAssistantAck(command.seq, accepted, reject_reason));
+    if (enqueue_state_event) {
+        MotionSupervisorState motion_state{};
+        RuntimeTuningSnapshot tuning_snapshot{};
+        {
+            std::lock_guard<std::mutex> lock(state.shared_mutex);
+            motion_state = state.motion_state;
+            tuning_snapshot = SnapshotRuntimeTuningState(state.tuning_state);
+        }
+        EnqueueFeedback(platform::EncodeAssistantState(
+            ToEventName(tuning_event.type),
+            tuning_event.reason,
+            BuildStatusView(motion_state, tuning_snapshot, params_, now_ms)));
+    }
     FlushFeedback(diagnostics);
     diagnostics.Emit({accepted ? port::DiagnosticLevel::kInfo : port::DiagnosticLevel::kWarning,
                       accepted ? "assistant.command.accepted" : "assistant.command.rejected",
                       DescribeCommand(command) +
                           (accepted ? std::string() : " reason=" + reject_reason),
                       now_ms});
-    if (accepted && tuning_event.type != RuntimeTuningEventType::kNone) {
-        PublishStateEvent(state, ToEventName(tuning_event.type), tuning_event.reason, diagnostics, now_ms);
-    }
 }
 
 }  // namespace ls2k::runtime

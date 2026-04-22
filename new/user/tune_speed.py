@@ -170,9 +170,15 @@ class AssistantSession:
     JSON_FRAME_PREFIX = b'{"type":"'
     MAX_JSON_FRAME_BYTES = 4096
 
-    def __init__(self, connection: socket.socket, csv_path: Path, plotter: Optional[LivePlotter]) -> None:
+    def __init__(self,
+                 connection: socket.socket,
+                 csv_path: Path,
+                 plotter: Optional[LivePlotter],
+                 *,
+                 capture_telemetry: bool = True) -> None:
         self._connection = connection
         self._plotter = plotter
+        self._capture_telemetry = capture_telemetry
         self._csv = CsvRecorder(csv_path)
         self._start_monotonic_ms = now_monotonic_ms()
         self._next_seq = 1
@@ -196,7 +202,7 @@ class AssistantSession:
         if self._plotter is not None:
             self._plotter.close()
 
-    def send_command(self, cmd: str, timeout_s: float, **payload: Any) -> AckResult:
+    def send_command_async(self, cmd: str, **payload: Any) -> int:
         if self._receiver_error is not None:
             raise RuntimeError(self._receiver_error)
         seq = self._next_seq
@@ -208,13 +214,19 @@ class AssistantSession:
         encoded = json.dumps(message, separators=(",", ":")) + "\n"
         self._connection.sendall(encoded.encode("utf-8"))
         log(f"[send] seq={seq} cmd={cmd} payload={json.dumps(payload, separators=(',', ':'))}")
+        return seq
 
+    def wait_for_ack(self, seq: int, timeout_s: float) -> AckResult:
         deadline = time.monotonic() + timeout_s
         if not self._pump_until(deadline, lambda: seq in self._pending_acks):
             if self._receiver_error is not None:
                 raise RuntimeError(self._receiver_error)
-            raise TimeoutError(f"timed out waiting for ack seq={seq} cmd={cmd}")
+            raise TimeoutError(f"timed out waiting for ack seq={seq} cmd={self._sent_commands.get(seq, '')}")
         return self._pending_acks.pop(seq)
+
+    def send_command(self, cmd: str, timeout_s: float, **payload: Any) -> AckResult:
+        seq = self.send_command_async(cmd, **payload)
+        return self.wait_for_ack(seq, timeout_s)
 
     def wait_for_state_event(self, event: str, timeout_s: float) -> bool:
         deadline = time.monotonic() + timeout_s
@@ -242,7 +254,7 @@ class AssistantSession:
             if self._receiver_error is not None:
                 return False
 
-            timeout_s = min(0.2, max(0.0, deadline - time.monotonic()))
+            timeout_s = min(0.005, max(0.0, deadline - time.monotonic()))
             try:
                 readable, _, _ = select.select([self._connection], [], [], timeout_s)
             except OSError as error:
@@ -331,7 +343,8 @@ class AssistantSession:
             "raw_turn_output": frame.get("raw_turn_output", ""),
             "applied_turn_output": frame.get("applied_turn_output", ""),
         }
-        self._csv.write(row)
+        if frame_type != "telemetry" or self._capture_telemetry:
+            self._csv.write(row)
         if frame_type != "telemetry":
             self._csv.flush()
 
@@ -357,6 +370,8 @@ class AssistantSession:
             return
 
         if frame_type == "telemetry":
+            if not self._capture_telemetry:
+                return
             self._telemetry_frames += 1
             if self._plotter is not None:
                 self._plotter.update(elapsed_ms, frame)
@@ -398,9 +413,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ttl-ms", type=int, default=2500, help="override TTL per target-speed command")
     parser.add_argument("--step-dwell-ms", type=int, default=1200, help="sleep after each accepted target-speed step")
     parser.add_argument("--ack-timeout-s", type=float, default=5.0, help="ack/state wait timeout")
-    parser.add_argument("--startup-delay-ms", type=int, default=600, help="delay after connect before first command")
-    parser.add_argument("--command-gap-ms", type=int, default=500, help="gap between consecutive commands")
+    parser.add_argument("--startup-delay-ms", type=int, default=0, help="delay after connect before first command")
+    parser.add_argument("--command-gap-ms", type=int, default=0, help="gap between consecutive commands")
     parser.add_argument("--stop-settle-ms", type=int, default=600, help="delay after stop before disable")
+    parser.add_argument(
+        "--post-start-delay-ms",
+        type=int,
+        default=0,
+        help="extra dwell after accepted start before the first target-speed command",
+    )
     parser.add_argument(
         "--turn-suppressed",
         action="store_true",
@@ -416,6 +437,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
         help="send one rejected invalid target-speed command after the valid sequence",
+    )
+    parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="exercise rejected/accepted tuning commands without issuing start/stop or motion-driving targets",
     )
     parser.add_argument("--no-plot", action="store_true", help="disable live plotting")
     return parser.parse_args()
@@ -458,73 +484,124 @@ def main() -> int:
         connection, address = server.accept()
 
     log(f"[listen] connected by {address[0]}:{address[1]}")
-    session = AssistantSession(connection, csv_path, plotter)
+    session = AssistantSession(
+        connection,
+        csv_path,
+        plotter,
+        capture_telemetry=not args.validation_only,
+    )
     session.start()
     session.pump_for(max(0, args.startup_delay_ms) / 1000.0)
 
     try:
-        if args.disabled_mode_checks:
-            expect_ack(
-                session,
-                "set_target_speed",
-                timeout_s=args.ack_timeout_s,
-                expected_outcome="rejected",
-                value=sequence[0],
-                ttl_ms=args.ttl_ms,
-            )
-            command_gap(session, args.command_gap_ms)
-            expect_ack(
-                session,
-                "set_turn_suppressed",
-                timeout_s=args.ack_timeout_s,
-                expected_outcome="rejected",
-                value=True,
-            )
-            command_gap(session, args.command_gap_ms)
-
-        expect_ack(session, "enable_tuning_mode", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
-        command_gap(session, args.command_gap_ms)
-        if args.turn_suppressed:
-            expect_ack(
-                session,
-                "set_turn_suppressed",
-                timeout_s=args.ack_timeout_s,
-                expected_outcome="accepted",
-                value=True,
-            )
-            command_gap(session, args.command_gap_ms)
-        expect_ack(session, "start", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
-        command_gap(session, args.command_gap_ms)
-
-        for run_index in range(args.runs):
-            log(f"[run] starting tuning run {run_index + 1}/{args.runs}")
-            for speed in sequence:
+        if args.validation_only:
+            if args.disabled_mode_checks:
                 expect_ack(
                     session,
                     "set_target_speed",
                     timeout_s=args.ack_timeout_s,
-                    expected_outcome="accepted",
-                    value=speed,
+                    expected_outcome="rejected",
+                    value=sequence[0],
                     ttl_ms=args.ttl_ms,
                 )
-                session.pump_for(max(0, args.step_dwell_ms) / 1000.0)
-                command_gap(session, args.command_gap_ms)
+                session.pump_for(0.02)
+                expect_ack(
+                    session,
+                    "set_turn_suppressed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="rejected",
+                    value=True,
+                )
+                session.pump_for(0.05)
 
-        if args.invalid_target_speed is not None:
             expect_ack(
                 session,
-                "set_target_speed",
+                "enable_tuning_mode",
                 timeout_s=args.ack_timeout_s,
-                expected_outcome="rejected",
-                value=args.invalid_target_speed,
-                ttl_ms=args.ttl_ms,
+                expected_outcome="accepted",
             )
-            command_gap(session, args.command_gap_ms)
+            session.pump_for(0.10)
+            if args.invalid_target_speed is not None:
+                expect_ack(
+                    session,
+                    "set_target_speed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="rejected",
+                    value=args.invalid_target_speed,
+                    ttl_ms=args.ttl_ms,
+                )
+                session.pump_for(0.15)
+            expect_ack(
+                session,
+                "disable_tuning_mode",
+                timeout_s=args.ack_timeout_s,
+                expected_outcome="accepted",
+            )
+            session.pump_for(0.15)
+        else:
+            if args.disabled_mode_checks:
+                expect_ack(
+                    session,
+                    "set_target_speed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="rejected",
+                    value=sequence[0],
+                    ttl_ms=args.ttl_ms,
+                )
+                command_gap(session, args.command_gap_ms)
+                expect_ack(
+                    session,
+                    "set_turn_suppressed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="rejected",
+                    value=True,
+                )
+                command_gap(session, args.command_gap_ms)
 
-        expect_ack(session, "stop", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
-        session.pump_for(max(0, args.stop_settle_ms) / 1000.0)
-        command_gap(session, args.command_gap_ms)
-        expect_ack(session, "disable_tuning_mode", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
+            expect_ack(session, "enable_tuning_mode", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
+            command_gap(session, args.command_gap_ms)
+            if args.turn_suppressed:
+                expect_ack(
+                    session,
+                    "set_turn_suppressed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="accepted",
+                    value=True,
+                )
+                command_gap(session, args.command_gap_ms)
+            expect_ack(session, "start", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
+            command_gap(session, args.command_gap_ms)
+            session.pump_for(max(0, args.post_start_delay_ms) / 1000.0)
+
+            for run_index in range(args.runs):
+                log(f"[run] starting tuning run {run_index + 1}/{args.runs}")
+                for speed in sequence:
+                    expect_ack(
+                        session,
+                        "set_target_speed",
+                        timeout_s=args.ack_timeout_s,
+                        expected_outcome="accepted",
+                        value=speed,
+                        ttl_ms=args.ttl_ms,
+                    )
+                    session.pump_for(max(0, args.step_dwell_ms) / 1000.0)
+                    command_gap(session, args.command_gap_ms)
+
+            if args.invalid_target_speed is not None:
+                expect_ack(
+                    session,
+                    "set_target_speed",
+                    timeout_s=args.ack_timeout_s,
+                    expected_outcome="rejected",
+                    value=args.invalid_target_speed,
+                    ttl_ms=args.ttl_ms,
+                )
+                command_gap(session, args.command_gap_ms)
+
+            expect_ack(session, "stop", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
+            session.pump_for(max(0, args.stop_settle_ms) / 1000.0)
+            command_gap(session, args.command_gap_ms)
+            expect_ack(session, "disable_tuning_mode", timeout_s=args.ack_timeout_s, expected_outcome="accepted")
         if not session.wait_for_state_event("snapshot_cleared", timeout_s=args.ack_timeout_s):
             log("[warn] snapshot_cleared state event was not observed before timeout")
     finally:

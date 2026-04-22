@@ -9,7 +9,12 @@
 - 通过串口给开发板配网
 - 通过 `ssh` / `scp -O` 部署到板卡
 
-和原始 [guide.md](/home/madejuele/projects/2K0300/docx/guide.md) 相比，这份文档只保留已经验证过的步骤，并补上实际环境差异。
+这份文档现在只保留已经验证过的环境事实、路径、差异和后续开发注意事项。
+
+标准接入链路已经统一收敛到 skill：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
+
+如果你的目标是“先把板子接上”，优先执行 skill；本文件不再重复维护完整的 `usbipd -> WSL -> 串口 -> 读 IP -> SSH` 操作手册。
 
 ## 完成状态总览
 
@@ -105,32 +110,16 @@ dmesg | grep -i ch341
 - 串口设备可能显示为 `/dev/ttyUSB0` 或 `/dev/ttyACM0`
 - 本次实际调试使用的是 `/dev/ttyACM0`
 
-## 4. 串口连接开发板
+## 4. 标准连板流程入口
 
-查看串口：
+标准连板流程已经迁移到 skill：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
 
-```bash
-ls /dev/ttyUSB* /dev/ttyACM*
-```
-
-连接串口：
-
-```bash
-sudo picocom -b 115200 /dev/ttyACM0
-```
-
-说明：
-- 这块板卡当前在 WSL 中实际枚举为 `/dev/ttyACM0`
-- 如果后续重新插拔后设备名变化，再重新执行一次 `ls /dev/ttyUSB* /dev/ttyACM*`
-- 已确认可以通过这个串口进入 `LoongOS login`，并直接做 Wi-Fi 配置与调试
-
-退出：
-- `Ctrl + A`
-- `Ctrl + X`
-
-注意：
+这份环境记录只保留与当前项目相关的已知事实：
+- 板卡当前在 WSL 中曾实际枚举为 `/dev/ttyACM0`
+- `LoongOS login` 可从该串口进入
 - 板卡重启时，WSL 里的 USB 串口映射有概率断开
-- 如果串口设备消失，需要重新把设备附加回 WSL，再重新检查 `/dev/ttyUSB*` 或 `/dev/ttyACM*`
+- 如果串口设备消失，需要重新执行 `usbipd` 附加，再重新检查 `/dev/ttyUSB*` 或 `/dev/ttyACM*`
 
 ## 5. 交叉编译器和 OpenCV
 
@@ -183,7 +172,7 @@ Wi-Fi 配置文件：
 板卡当前曾成功获取到的地址：
 - `10.236.192.226/24`
 
-如果后续 IP 变化，请重新在串口里执行：
+如果后续 IP 变化，请按 skill 重新进入串口后执行：
 
 ```bash
 ifconfig wlan0
@@ -211,30 +200,23 @@ network={
 - 只有主 Wi-Fi 不可用时，才会考虑连接 `mch666`
 - 如果手动连过别的 Wi-Fi，执行 `systemctl restart wlan0-connect.service` 可切回自动优先级逻辑
 
-## 7. SSH 与 SCP
+## 7. SSH 与 SCP 约束
 
-本次已验证：
-
-```bash
-ssh root@10.236.192.226
-```
-
-可以直接登录。
-
-注意：
+SSH 登录动作本身由 skill 负责，这里只保留项目侧约束：
 - 这块板子上的 `dropbear` 没有 `sftp-server`
 - 所以 `scp` 必须使用旧协议选项 `-O`
+- 板卡 IP 不是固定真值，连板前应先按 skill 从串口读取当前 `wlan0` 地址
 
 正确示例：
 
 ```bash
-scp -O local_file root@10.236.192.226:/home/root/
+scp -O local_file root@<BOARD_IP>:/home/root/
 ```
 
 错误示例：
 
 ```bash
-scp local_file root@10.236.192.226:/home/root/
+scp local_file root@<BOARD_IP>:/home/root/
 ```
 
 如果不用 `-O`，会遇到类似错误：
@@ -327,36 +309,17 @@ BOARD_IP=10.236.192.226 ./build.sh
 
 ## 11. 本次实际验证过的关键命令
 
-验证 WSL 内核和串口：
+标准连板命令见 skill：
+- [board-access](/home/madejuele/projects/2K0300/.codex/skills/board-access/SKILL.md)
+
+这里仅保留仍然与项目环境状态强相关的命令。
+
+验证 WSL 内核和串口支持：
 
 ```bash
 uname -r
 ls /dev/ttyUSB* /dev/ttyACM*
 dmesg | grep -i ch341
-```
-
-串口登录：
-
-```bash
-sudo picocom -b 115200 /dev/ttyACM0
-```
-
-查看板卡 IP：
-
-```bash
-ifconfig wlan0
-```
-
-SSH 登录：
-
-```bash
-ssh root@10.236.192.226
-```
-
-SCP 上传：
-
-```bash
-scp -O ./your_file root@10.236.192.226:/home/root/
 ```
 
 编译并上传用户程序：
@@ -372,7 +335,7 @@ BOARD_IP=10.236.192.226 ./build.sh
 2. 板卡 `scp` 必须加 `-O`，因为没有 `sftp-server`。
 3. 板卡没有 `ldconfig`，OpenCV 依赖通过 `LD_LIBRARY_PATH` 处理。
 4. `dropbear` 是 `socket activation` 方式运行，`dropbear.service` 显示 `inactive` 不代表 SSH 不可用，应检查 `dropbear.socket`。
-5. 板卡 IP 可能变化，如果变了，先串口查看 `wlan0` 地址，再更新 `BOARD_IP`。
+5. 板卡 IP 可能变化；如果变了，先按 skill 重新走串口读取 `wlan0` 地址，再更新 `BOARD_IP`。
 
 ## 13. 结论
 

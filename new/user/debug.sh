@@ -322,11 +322,9 @@ EOF
     fi
 
     log_info "uploading runtime assets to ${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}"
-    scp -O \
-        "${artifact_path}" \
-        "${PARAMS_PATH}" \
-        "${PROFILE_PATH}" \
-        "${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}/"
+    scp -O "${artifact_path}" "${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}/"
+    scp -O "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
+    scp -O "${PROFILE_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PROFILE_NORMAL}"
     log_info "upload complete"
 }
 

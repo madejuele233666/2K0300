@@ -41,6 +41,9 @@ void NoteRuntimeTuningSeq(RuntimeTuningState& state, std::uint64_t seq) {
 void EnableRuntimeTuningMode(RuntimeTuningState& state, std::uint64_t seq) {
     NoteRuntimeTuningSeq(state, seq);
     state.tuning_mode_enabled = true;
+    // Dynamic tuning relies on turn suppression immediately after enable to avoid
+    // a second fragile round-trip before the first motion command.
+    state.turn_suppressed = true;
 }
 
 RuntimeTuningEvent DisableRuntimeTuningMode(RuntimeTuningState& state, std::uint64_t seq) {

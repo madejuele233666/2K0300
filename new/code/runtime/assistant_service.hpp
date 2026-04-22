@@ -38,6 +38,7 @@ private:
 
     bool configured_ = false;
     bool enabled_ = false;
+    bool periodic_publish_armed_ = false;
     uint64_t last_wave_publish_ms_ = 0;
     uint64_t last_telemetry_publish_ms_ = 0;
     uint64_t last_image_publish_ms_ = 0;
