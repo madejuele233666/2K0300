@@ -19,18 +19,18 @@
   "P_Mode": 3,
   "exp_light": 65,
   "LEFT_WHEEL_PID": {
-    "P": 140.0,
+    "P": 90.0,
     "I": 0.0,
     "D": 0.0,
     "INTEGRAL_LIMIT": 2200.0,
-    "MEASUREMENT_FILTER_ALPHA": 0.5
+    "MEASUREMENT_FILTER_ALPHA": 0.4
   },
   "RIGHT_WHEEL_PID": {
-    "P": 80.0,
+    "P": 70.3125,
     "I": 0.0,
     "D": 0.0,
     "INTEGRAL_LIMIT": 2200.0,
-    "MEASUREMENT_FILTER_ALPHA": 0.5
+    "MEASUREMENT_FILTER_ALPHA": 0.4
   },
   "emergency_threshold": 40,
   "control_period_ms": 5,
@@ -38,7 +38,7 @@
   "pwm_limit": 3000,
   "pwm_floor": 0,
   "prohibit_reverse_pwm": 0,
-  "prohibit_reverse_pwm_step_limit": 900,
+  "prohibit_reverse_pwm_step_limit": 280,
   "motion_unveto_confirm_cycles": 3,
   "motion_spinup_ms": 600,
   "motion_turn_limit_spinup": 0.35,

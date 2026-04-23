@@ -1,0 +1,191 @@
+{
+  "generated_at": "2026-04-23T04:34:19Z",
+  "board_ip": "10.100.170.226",
+  "listener_ip": "10.100.170.115",
+  "base_params": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-finescan-20260423-left139-right85-alpha04.json",
+  "profile": "/home/madejuele/projects/2K0300/new/config/hardware_profile.json",
+  "sequence": [
+    75,
+    105,
+    135
+  ],
+  "runs": 2,
+  "terminal_steady_error_band": 20.0,
+  "terminal_pwm_jump_band": 800.0,
+  "right_fixed": {
+    "P": 85.0,
+    "I": 0.0,
+    "D": 0.0,
+    "MEASUREMENT_FILTER_ALPHA": 0.4
+  },
+  "left_candidates": {
+    "136": {
+      "candidate_left_p": 136,
+      "attempts": [
+        {
+          "repeat_index": 1,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 8.976190476190476,
+          "left_tail_pwm_jump_abs": 700.3809523809524,
+          "left_attainment_ratio": 0.9201058201058201,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-01/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-01/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-01/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-01/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 2,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 9.634920634920634,
+          "left_tail_pwm_jump_abs": 578.1666666666666,
+          "left_attainment_ratio": 0.928042328042328,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-02/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-02/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-02/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-02/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 3,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 10.920634920634921,
+          "left_tail_pwm_jump_abs": 615.4761904761905,
+          "left_attainment_ratio": 0.9248677248677248,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-03/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-03/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-03/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p136/repeat-03/attempt-01/board.log"
+        }
+      ],
+      "aggregate": {
+        "repeat_count": 3,
+        "transport_ok_count": 3,
+        "terminal_pass_count": 0,
+        "all_terminal_pass": false,
+        "any_terminal_pass": false,
+        "best_score": Infinity,
+        "median_score": Infinity
+      }
+    },
+    "138": {
+      "candidate_left_p": 138,
+      "attempts": [
+        {
+          "repeat_index": 1,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 10.23015873015873,
+          "left_tail_pwm_jump_abs": 708.0,
+          "left_attainment_ratio": 0.9063492063492063,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-01/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-01/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-01/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-01/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 2,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 12.365079365079366,
+          "left_tail_pwm_jump_abs": 928.0,
+          "left_attainment_ratio": 0.9428571428571428,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-02/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-02/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-02/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-02/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 3,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 13.619047619047619,
+          "left_tail_pwm_jump_abs": 753.2380952380952,
+          "left_attainment_ratio": 0.8793650793650793,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-03/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-03/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-03/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p138/repeat-03/attempt-01/board.log"
+        }
+      ],
+      "aggregate": {
+        "repeat_count": 3,
+        "transport_ok_count": 3,
+        "terminal_pass_count": 0,
+        "all_terminal_pass": false,
+        "any_terminal_pass": false,
+        "best_score": Infinity,
+        "median_score": Infinity
+      }
+    },
+    "139": {
+      "candidate_left_p": 139,
+      "attempts": [
+        {
+          "repeat_index": 1,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 10.055555555555555,
+          "left_tail_pwm_jump_abs": 484.3333333333333,
+          "left_attainment_ratio": 0.9243386243386243,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-01/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-01/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-01/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-01/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 2,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 8.912698412698413,
+          "left_tail_pwm_jump_abs": 1152.8095238095239,
+          "left_attainment_ratio": 0.916931216931217,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-02/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-02/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-02/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-02/attempt-01/board.log"
+        },
+        {
+          "repeat_index": 3,
+          "accepted_transport": true,
+          "transport_failures": [],
+          "left_weighted_score": Infinity,
+          "left_terminal_requirements_ok": false,
+          "left_tail_mean_abs_error": 10.571428571428571,
+          "left_tail_pwm_jump_abs": 673.5952380952381,
+          "left_attainment_ratio": 0.9333333333333333,
+          "round_summary_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-03/round-summary.json",
+          "csv_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-03/attempt-01/telemetry.csv",
+          "host_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-03/attempt-01/host.log",
+          "board_log_path": "/home/madejuele/projects/2K0300/new/verification/manual-probes/20260423T043419Z-left-p-repeat-validate/left-p139/repeat-03/attempt-01/board.log"
+        }
+      ],
+      "aggregate": {
+        "repeat_count": 3,
+        "transport_ok_count": 3,
+        "terminal_pass_count": 0,
+        "all_terminal_pass": false,
+        "any_terminal_pass": false,
+        "best_score": Infinity,
+        "median_score": Infinity
+      }
+    }
+  }
+}

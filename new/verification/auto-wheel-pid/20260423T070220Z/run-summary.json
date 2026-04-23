@@ -1,0 +1,140 @@
+{
+  "status": "completed",
+  "generated_at": "2026-04-23T07:04:36Z",
+  "listener_ip": "10.100.170.115",
+  "params_in": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-left-sweep-anchor-left96-right100-20260423T065805Z.json",
+  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-left-sweep-working-20260423T065805Z.json",
+  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-left-sweep-best-20260423T065805Z.json",
+  "promoted": false,
+  "seed_best_from_input": true,
+  "candidate_profile": "standard",
+  "round_deploy_mode": "reuse-build",
+  "search_strategy": "paired-independent-wheel-screening-with-local-bo",
+  "term_groups": [
+    "p"
+  ],
+  "fixed_search_step": 1.0,
+  "sweep_values": {
+    "p": {
+      "all": [],
+      "left": [
+        94.0,
+        95.0,
+        96.0,
+        97.0,
+        98.0
+      ],
+      "right": [
+        100.0
+      ]
+    },
+    "i": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "d": {
+      "all": [],
+      "left": [],
+      "right": []
+    }
+  },
+  "terminal_steady_error_band": 1000.0,
+  "terminal_pwm_jump_band": 800.0,
+  "screen_sequence": "75,105,135",
+  "screen_runs": 1,
+  "best_scores": {
+    "left": Infinity,
+    "right": Infinity
+  },
+  "rounds": [
+    {
+      "name": "validation",
+      "candidate_label": "protocol-validation",
+      "accepted": true,
+      "accepted_reason": "validated",
+      "left_score": 0.0,
+      "right_score": 0.0,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/validation/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/validation/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/validation/attempt-01/board.log"
+    },
+    {
+      "name": "baseline",
+      "candidate_label": "current-working-params",
+      "accepted": true,
+      "accepted_reason": "baseline",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline/attempt-01/board.log"
+    },
+    {
+      "name": "baseline-screen",
+      "candidate_label": "current-working-params-screen",
+      "accepted": true,
+      "accepted_reason": "baseline-screen",
+      "left_score": 1.0627150756848036,
+      "right_score": 1.2112967867797226,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/baseline-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-001-p-screen",
+      "candidate_label": "left-p=94.000000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 1.062715 to 0.933431; pending confirmation",
+      "left_score": 0.9334305472997034,
+      "right_score": 1.6496169128717812,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-001-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-001-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-001-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-002-p-screen",
+      "candidate_label": "left-p=95.000000",
+      "accepted": false,
+      "accepted_reason": "screen left score 1.684468 did not beat 1.062715 by 5%",
+      "left_score": 1.68446847902337,
+      "right_score": 2.168421088898873,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-002-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-002-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-002-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-003-p-screen",
+      "candidate_label": "left-p=97.000000",
+      "accepted": false,
+      "accepted_reason": "screen left score 1.766613 did not beat 1.062715 by 5%",
+      "left_score": 1.7666134840374312,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-003-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-003-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-003-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-004-p-screen",
+      "candidate_label": "left-p=98.000000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": 1.5855152318442771,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-004-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-004-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-004-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-005-p-confirm",
+      "candidate_label": "left-p=94.000000",
+      "accepted": false,
+      "accepted_reason": "confirm left terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-005-p-confirm/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-005-p-confirm/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T070220Z/round-005-p-confirm/attempt-01/board.log"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "status": "completed",
+  "generated_at": "2026-04-23T06:32:49Z",
+  "listener_ip": "10.100.170.115",
+  "params_in": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-working-20260423T061808Z.json",
+  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-p-refine-working-20260423T062458Z.json",
+  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-p-refine-best-20260423T062458Z.json",
+  "promoted": false,
+  "seed_best_from_input": true,
+  "candidate_profile": "standard",
+  "round_deploy_mode": "reuse-build",
+  "search_strategy": "paired-independent-wheel-screening-with-local-bo",
+  "term_groups": [
+    "p"
+  ],
+  "fixed_search_step": 1.0,
+  "sweep_values": {
+    "p": {
+      "all": [],
+      "left": [
+        95.0,
+        100.0,
+        105.0,
+        110.0,
+        115.0
+      ],
+      "right": [
+        90.0,
+        95.0,
+        100.0,
+        105.0
+      ]
+    },
+    "i": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "d": {
+      "all": [],
+      "left": [],
+      "right": []
+    }
+  },
+  "terminal_steady_error_band": 1000.0,
+  "terminal_pwm_jump_band": 800.0,
+  "screen_sequence": "75,105,135",
+  "screen_runs": 1,
+  "best_scores": {
+    "left": Infinity,
+    "right": Infinity
+  },
+  "rounds": [
+    {
+      "name": "validation",
+      "candidate_label": "protocol-validation",
+      "accepted": true,
+      "accepted_reason": "validated",
+      "left_score": 0.0,
+      "right_score": 0.0,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/validation/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/validation/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/validation/attempt-01/board.log"
+    },
+    {
+      "name": "baseline",
+      "candidate_label": "current-working-params",
+      "accepted": true,
+      "accepted_reason": "baseline",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline/attempt-01/board.log"
+    },
+    {
+      "name": "baseline-screen",
+      "candidate_label": "current-working-params-screen",
+      "accepted": true,
+      "accepted_reason": "baseline-screen",
+      "left_score": 2.25464261133631,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/baseline-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-001-p-screen",
+      "candidate_label": "left-p=95.000000; right-p=90.000000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: terminal gate failed; screen right terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-001-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-001-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-001-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-002-p-screen",
+      "candidate_label": "left-p=100.000000; right-p=95.000000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: terminal gate failed; screen right terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-002-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-002-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-002-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-003-p-screen",
+      "candidate_label": "left-p=105.000000; right-p=100.000000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 2.254643 to 1.763883; pending confirmation; screen right score improved from inf to 2.040003; pending confirmation",
+      "left_score": 1.7638827335270795,
+      "right_score": 2.0400030279345454,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-003-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-003-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-003-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-004-p-screen",
+      "candidate_label": "left-p=110.000000; right-p=105.000000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 2.254643 to 1.449598; pending confirmation; screen right terminal gate failed: tail PWM jump 906.095 > 800.000",
+      "left_score": 1.449597760266725,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-004-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-004-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-004-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-005-p-screen",
+      "candidate_label": "left-p=115.000000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-005-p-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-005-p-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-005-p-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-006-p-confirm",
+      "candidate_label": "left-p=110.000000; right-p=100.000000",
+      "accepted": false,
+      "accepted_reason": "confirm left terminal gate failed: terminal gate failed; confirm right terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-006-p-confirm/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-006-p-confirm/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T063018Z/round-006-p-confirm/attempt-01/board.log"
+    }
+  ]
+}
