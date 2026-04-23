@@ -26,7 +26,7 @@
     "MEASUREMENT_FILTER_ALPHA": 0.5
   },
   "RIGHT_WHEEL_PID": {
-    "P": 80.0,
+    "P": 90.0,
     "I": 0.0,
     "D": 0.0,
     "INTEGRAL_LIMIT": 2200.0,
