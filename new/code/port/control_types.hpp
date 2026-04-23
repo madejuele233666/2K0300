@@ -104,7 +104,11 @@ struct RuntimeParameters {
     double road_k = 1.15;
     double road_b = 55.0;
     double see_max = 35.0;
+    double pid_turn_camera_p = 14.75;
+    double pid_turn_camera_p_scale = 1.0;
     double pid_turn_camera_d = 5.0;
+    double pid_turn_gyro_camera_p = 20.0;
+    double pid_turn_gyro_camera_i = 0.0;
     double pid_turn_gyro_camera_d = 9.0;
     double Straight_permit = 0.0;
     double island_point = 25.0;
@@ -136,6 +140,7 @@ struct RuntimeParameters {
     int assistant_waveform_publish_interval_ms = 40;
     int assistant_image_publish_interval_ms = 80;
     AssistantTcpParameters assistant_tcp{};
+    bool pid_turn_camera_use_fuzzy = false;
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

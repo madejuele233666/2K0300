@@ -146,6 +146,28 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
+void ReadOptionalNestedBool(const cv::FileNode& root,
+                            const char* parent,
+                            const char* child,
+                            bool& value,
+                            bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadBoolValue(node, value)) {
+        malformed = true;
+    }
+}
+
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -334,6 +356,31 @@ public:
                         "assistant_image_publish_interval_ms",
                         parsed.assistant_image_publish_interval_ms,
                         optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "PID_TURN_CAMERA",
+                                 "P",
+                                 parsed.pid_turn_camera_p,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "PID_TURN_CAMERA",
+                                 "P_SCALE",
+                                 parsed.pid_turn_camera_p_scale,
+                                 optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "PID_TURN_CAMERA",
+                               "USE_FUZZY",
+                               parsed.pid_turn_camera_use_fuzzy,
+                               optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "PID_TURN_GYRO_CAMERA",
+                                 "P",
+                                 parsed.pid_turn_gyro_camera_p,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "PID_TURN_GYRO_CAMERA",
+                                 "I",
+                                 parsed.pid_turn_gyro_camera_i,
+                                 optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",

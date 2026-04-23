@@ -17,10 +17,13 @@ public:
 private:
     FuzzyPidUcas fuzzy_{};
 
+    float cam_p_ = 14.75F;
+    float cam_p_scale_ = 1.0F;
     float cam_d_ = 5.0F;
     float gyro_p_ = 20.0F;
     float gyro_i_ = 0.0F;
     float gyro_d_ = 9.0F;
+    bool cam_use_fuzzy_ = false;
 
     float camera_error_last_ = 0.0F;
     float gyro_error_last_ = 0.0F;

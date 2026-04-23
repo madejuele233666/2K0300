@@ -6,8 +6,13 @@
 namespace ls2k::legacy {
 
 void LegacyPidControl::Configure(const port::RuntimeParameters& params) {
+    cam_p_ = static_cast<float>(params.pid_turn_camera_p);
+    cam_p_scale_ = static_cast<float>(params.pid_turn_camera_p_scale);
     cam_d_ = static_cast<float>(params.pid_turn_camera_d);
+    gyro_p_ = static_cast<float>(params.pid_turn_gyro_camera_p);
+    gyro_i_ = static_cast<float>(params.pid_turn_gyro_camera_i);
     gyro_d_ = static_cast<float>(params.pid_turn_gyro_camera_d);
+    cam_use_fuzzy_ = params.pid_turn_camera_use_fuzzy;
     fuzzy_.InitMH(params.P_Mode);
 }
 
@@ -19,8 +24,12 @@ void LegacyPidControl::Reset() {
 
 float LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last) {
     const float err = perception.lateral_error;
-    const float fuzzy_p = fuzzy_.DuoJiGetP(perception.highest_line, static_cast<int>(std::round(err)));
-    const float p_data = fuzzy_p * err;
+    const float proportional_gain = cam_use_fuzzy_
+                                        ? cam_p_scale_ * fuzzy_.DuoJiGetP(
+                                                             perception.highest_line,
+                                                             static_cast<int>(std::round(err)))
+                                        : cam_p_;
+    const float p_data = proportional_gain * err;
     const float d_data = cam_d_ * (err - camera_error_last_);
     camera_error_last_ = err;
     const float candidate = p_data + d_data;

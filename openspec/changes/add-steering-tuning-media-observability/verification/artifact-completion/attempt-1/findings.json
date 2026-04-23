@@ -1,0 +1,26 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "STM-ART-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The accepted steering-media protocol is not specified precisely enough for deterministic host and board interoperability. The docs freeze the binary envelope and frame families, but they do not freeze the JSON header object shape for `config_snapshot` and `image_frame`.",
+      "evidence": "`design.md:244-250` says the chosen protocol keeps host-side reading logic explicit and deterministic, but `design.md:262-274` names only `type` and `publish_time_ms` while describing the rest as a read-only whitelist and steering fields listed elsewhere. `specs/steering-tuning-media-observability/spec.md:40-55` repeats that pattern: it requires a whitelist containing parameter names plus 'the steering media publish interval' and requires `image_frame` to include the accepted steering snapshot fields, but it never defines whether those values are top-level header keys or nested under stable objects, and it never gives a concrete key name for the media publish interval. That conflicts with the same spec's deterministic-interoperability goal in `specs/steering-tuning-media-observability/spec.md:57-60` because two implementations could both satisfy the prose while emitting different header layouts.",
+      "recommendation": "Add a normative header schema for both frame families before implementation starts. The docs should freeze the JSON object layout, including whether the parameter whitelist and steering snapshot live in named nested objects or as flattened top-level keys, and it should assign a concrete accepted field name to the steering media publish interval.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "STM-ART-002",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "problem": "The artifact set requires coordinated control/media host-port wiring, but the specs and task list do not define an accepted board-side configuration surface for that wiring. As written, implementation can satisfy the tasks while still leaving the media endpoint to hardcoded values or ad hoc manual setup.",
+      "evidence": "`proposal.md:24-30` says this change touches the config host/port surface. `design.md:128-130` makes `debug.sh assistant local` and `debug.sh tuning` jointly responsible for configuring control and media ports, and `design.md:590` says that wiring must not be left to guesswork. The normative specs require the board to open a dedicated media session to the same configured host using its own port (`specs/assistant-telemetry-sidecar/spec.md:21-27`, `specs/steering-tuning-media-observability/spec.md:26-32`), but the executable task list never assigns the corresponding board-facing configuration work. `tasks.md:37-45` covers the bridge, protocol, and runtime publish path, while `tasks.md:51-55` only covers the host recorder side of `debug.sh tuning`; no task or requirement defines how the accepted control-side setup surface exposes and persists the steering media host/port alongside the existing assistant endpoint.",
+      "recommendation": "Add a normative requirement and matching task for the accepted board-side configuration path that enables and configures the steering media endpoint. That should cover the project-owned parameter/CLI surface, how it stays aligned with the existing assistant control host, and which runbook entry updates that surface during tuning setup.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}
