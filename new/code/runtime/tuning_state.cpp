@@ -33,6 +33,18 @@ bool RuntimeTuningOverrideActiveAt(const RuntimeTuningSnapshot& snapshot, std::u
            snapshot.target_speed_override_expire_at_ms > now_ms;
 }
 
+double ResolveRuntimeSpeedTarget(const RuntimeTuningSnapshot& snapshot,
+                                 double default_speed_target,
+                                 std::uint64_t now_ms) {
+    if (RuntimeTuningOverrideActiveAt(snapshot, now_ms)) {
+        return snapshot.target_speed_override_value;
+    }
+    // Remote tuning owns the drive target explicitly. When the override is not
+    // active, keep the lifecycle armed but hold the wheel target at zero so the
+    // host can separate ACK transport from the first motion-driving command.
+    return snapshot.tuning_mode_enabled ? 0.0 : default_speed_target;
+}
+
 void NoteRuntimeTuningSeq(RuntimeTuningState& state, std::uint64_t seq) {
     state.has_last_seq = true;
     state.last_seq = seq;

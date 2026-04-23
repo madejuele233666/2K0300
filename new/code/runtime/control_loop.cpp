@@ -41,9 +41,7 @@ MotionSupervisorInputs BuildMotionSupervisorInputs(bool startup_complete,
     inputs.startup_complete = startup_complete;
     inputs.gate_clear = !gate.veto_active;
     inputs.now_ms = now_ms;
-    inputs.running_speed_target =
-        RuntimeTuningOverrideActiveAt(tuning_snapshot, now_ms) ? tuning_snapshot.target_speed_override_value
-                                                               : params.Speed_base;
+    inputs.running_speed_target = ResolveRuntimeSpeedTarget(tuning_snapshot, params.Speed_base, now_ms);
     inputs.encoder_mean_abs = (std::abs(encoder.left) + std::abs(encoder.right)) / 2;
     inputs.motion_unveto_confirm_cycles = params.motion_unveto_confirm_cycles;
     inputs.motion_spinup_ms = params.motion_spinup_ms;
@@ -182,12 +180,31 @@ port::ActuatorCommand ApplyPwmFloor(port::ActuatorCommand command, int pwm_limit
     return command;
 }
 
-port::ActuatorCommand ApplyProhibitReverse(port::ActuatorCommand command, bool prohibit_reverse_pwm) {
+int ApplySingleProhibitReverse(int previous_pwm, int requested_pwm, double target_speed, int pwm_step_limit) {
+    if (requested_pwm >= 0) {
+        return requested_pwm;
+    }
+    if (target_speed <= 0.0) {
+        return 0;
+    }
+    if (pwm_step_limit <= 0) {
+        return 0;
+    }
+    return std::max(0, previous_pwm - pwm_step_limit);
+}
+
+port::ActuatorCommand ApplyProhibitReverse(const port::ActuatorCommand& previous_command,
+                                           port::ActuatorCommand command,
+                                           const legacy::WheelSpeedTargets& wheel_targets,
+                                           bool prohibit_reverse_pwm,
+                                           int pwm_step_limit) {
     if (command.emergency_stop || !prohibit_reverse_pwm) {
         return command;
     }
-    command.left_pwm = std::max(0, command.left_pwm);
-    command.right_pwm = std::max(0, command.right_pwm);
+    command.left_pwm =
+        ApplySingleProhibitReverse(previous_command.left_pwm, command.left_pwm, wheel_targets.left, pwm_step_limit);
+    command.right_pwm =
+        ApplySingleProhibitReverse(previous_command.right_pwm, command.right_pwm, wheel_targets.right, pwm_step_limit);
     return command;
 }
 
@@ -622,10 +639,15 @@ void ControlLoop::Tick() {
         const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
         if (motion.state.phase == MotionPhase::kSpinup || motion.state.phase == MotionPhase::kStopping) {
-            command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
-        }
-        command = ApplyPwmFloor(command, params_.pwm_limit, params_.pwm_floor);
-        command = ApplyProhibitReverse(command, params_.prohibit_reverse_pwm);
+        command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
+    }
+    command = ApplyPwmFloor(command, params_.pwm_limit, params_.pwm_floor);
+    command = ApplyProhibitReverse(
+            previous_command,
+            command,
+            wheel_targets,
+            params_.prohibit_reverse_pwm,
+            params_.prohibit_reverse_pwm_step_limit);
     }
     const bool diagnostics_only_motor =
         profile_.motor.mode == port::SubsystemMode::kAdaptationHook ||

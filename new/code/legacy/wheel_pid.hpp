@@ -16,8 +16,11 @@ private:
     double i_ = 10.0;
     double d_ = 20.0;
     double integral_limit_ = 2200.0;
+    double measurement_filter_alpha_ = 0.3;
     double last_error_ = 0.0;
     double integral_ = 0.0;
+    double filtered_measured_speed_ = 0.0;
+    bool filtered_measured_ready_ = false;
 };
 
 }  // namespace ls2k::legacy

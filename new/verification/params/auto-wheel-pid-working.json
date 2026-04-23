@@ -1,5 +1,5 @@
 {
-  "Speed_base": 77.0,
+  "Speed_base": 120.0,
   "JWJC": 1.0,
   "circle_k": 1.1,
   "circle_b": 35.0,
@@ -19,15 +19,15 @@
   "P_Mode": 3,
   "exp_light": 65,
   "LEFT_WHEEL_PID": {
-    "P": 32.0,
+    "P": 136.0,
     "I": 0.0,
-    "D": 0.0,
+    "D": 1.75,
     "INTEGRAL_LIMIT": 0.0
   },
   "RIGHT_WHEEL_PID": {
-    "P": 25.0,
+    "P": 80.0,
     "I": 0.0,
-    "D": 0.0,
+    "D": 1.75,
     "INTEGRAL_LIMIT": 0.0
   },
   "emergency_threshold": 40,

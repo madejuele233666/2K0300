@@ -40,6 +40,9 @@ struct RuntimeTuningEvent {
 RuntimeTuningSnapshot SnapshotRuntimeTuningState(const RuntimeTuningState& state);
 bool RuntimeTuningSnapshotActive(const RuntimeTuningSnapshot& snapshot);
 bool RuntimeTuningOverrideActiveAt(const RuntimeTuningSnapshot& snapshot, std::uint64_t now_ms);
+double ResolveRuntimeSpeedTarget(const RuntimeTuningSnapshot& snapshot,
+                                 double default_speed_target,
+                                 std::uint64_t now_ms);
 void NoteRuntimeTuningSeq(RuntimeTuningState& state, std::uint64_t seq);
 void EnableRuntimeTuningMode(RuntimeTuningState& state, std::uint64_t seq);
 RuntimeTuningEvent DisableRuntimeTuningMode(RuntimeTuningState& state, std::uint64_t seq);

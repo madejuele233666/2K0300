@@ -124,6 +124,28 @@ void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bo
     }
 }
 
+void ReadOptionalNestedNumber(const cv::FileNode& root,
+                              const char* parent,
+                              const char* child,
+                              double& value,
+                              bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadNumberNode(node, value)) {
+        malformed = true;
+    }
+}
+
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -276,6 +298,10 @@ public:
         ReadOptionalInt(root, "pwm_floor", parsed.pwm_floor, optional_malformed);
         ReadOptionalBool(root, "prohibit_reverse_pwm", parsed.prohibit_reverse_pwm, optional_malformed);
         ReadOptionalInt(root,
+                        "prohibit_reverse_pwm_step_limit",
+                        parsed.prohibit_reverse_pwm_step_limit,
+                        optional_malformed);
+        ReadOptionalInt(root,
                         "motion_unveto_confirm_cycles",
                         parsed.motion_unveto_confirm_cycles,
                         optional_malformed);
@@ -308,6 +334,16 @@ public:
                         "assistant_image_publish_interval_ms",
                         parsed.assistant_image_publish_interval_ms,
                         optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "LEFT_WHEEL_PID",
+                                 "MEASUREMENT_FILTER_ALPHA",
+                                 parsed.left_wheel_pid.measurement_filter_alpha,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "RIGHT_WHEEL_PID",
+                                 "MEASUREMENT_FILTER_ALPHA",
+                                 parsed.right_wheel_pid.measurement_filter_alpha,
+                                 optional_malformed);
         all_ok = all_ok && !optional_malformed;
 
         if (!all_ok) {

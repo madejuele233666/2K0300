@@ -20,8 +20,33 @@ public:
     void Tick(RuntimeState& state, port::DiagnosticSink& diagnostics);
 
 private:
+    enum class PublishPolicy {
+        kControlOnly,
+        kControlAndMedia,
+    };
+    enum class DeferredMotionIntentType {
+        kNone,
+        kStart,
+        kStop,
+    };
+    struct DeferredMotionIntent {
+        DeferredMotionIntentType type = DeferredMotionIntentType::kNone;
+        std::uint64_t seq = 0;
+        std::uint64_t ready_at_ms = 0;
+    };
+
     void EnqueueFeedback(std::string line);
     void FlushFeedback(port::DiagnosticSink& diagnostics);
+    PublishPolicy DeterminePublishPolicy(const ControlDebugSnapshot& snapshot,
+                                        bool session_boundary_reset) const;
+    void UpdatePublishPolicy(PublishPolicy next_policy,
+                             port::DiagnosticSink& diagnostics,
+                             uint64_t now_ms);
+    void ResetDeferredMotionIntent();
+    void DeferMotionIntent(DeferredMotionIntentType type, std::uint64_t seq, uint64_t now_ms);
+    void ApplyDeferredMotionIntentIfReady(RuntimeState& state,
+                                          port::DiagnosticSink& diagnostics,
+                                          uint64_t now_ms);
     void PublishStateEvent(RuntimeState& state,
                            const std::string& event,
                            const std::string& reason,
@@ -51,6 +76,9 @@ private:
     port::RuntimeParameters params_{};
     std::deque<std::string> pending_feedback_{};
     platform::AssistantLink link_{};
+    PublishPolicy publish_policy_ = PublishPolicy::kControlAndMedia;
+    bool control_priority_connection_ = false;
+    DeferredMotionIntent deferred_motion_intent_{};
 };
 
 }  // namespace ls2k::runtime

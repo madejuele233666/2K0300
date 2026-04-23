@@ -88,6 +88,7 @@ struct WheelPidParameters {
     double i = 10.0;
     double d = 20.0;
     double integral_limit = 2200.0;
+    double measurement_filter_alpha = 0.3;
 };
 
 struct AssistantTcpParameters {
@@ -119,6 +120,7 @@ struct RuntimeParameters {
     int pwm_limit = 9000;
     int pwm_floor = 0;
     bool prohibit_reverse_pwm = false;
+    int prohibit_reverse_pwm_step_limit = 280;
     int motion_unveto_confirm_cycles = 3;
     int motion_spinup_ms = 600;
     double motion_turn_limit_spinup = 0.35;

@@ -17,8 +17,16 @@ struct MotorChannel {
     const char* gpio_path;
 };
 
+struct MotorApplyState {
+    bool initialized = false;
+    int last_direction_sign = 1;
+    bool last_pwm_zero = true;
+};
+
 constexpr MotorChannel kLogicalLeftMotor = {kRightMotorPwmPath, kRightMotorGpioPath};
 constexpr MotorChannel kLogicalRightMotor = {kLeftMotorPwmPath, kLeftMotorGpioPath};
+MotorApplyState g_left_motor_state{};
+MotorApplyState g_right_motor_state{};
 
 int NormalizeLogicalDutyToVendorDirection(int logical_duty) {
     return -logical_duty;
@@ -47,30 +55,33 @@ bool WriteBinary(const char* path, const T& value) {
     return accepted && close_rc == 0;
 }
 
-BridgeStatus ApplyOne(const char* pwm_path, const char* gpio_path, int signed_duty) {
+BridgeStatus ApplyOne(const MotorChannel& channel, MotorApplyState& state, int signed_duty) {
     BridgeStatus status{};
-    const int vendor_signed_duty =
-        NormalizeLogicalDutyToVendorDirection(signed_duty);
+    const int vendor_signed_duty = NormalizeLogicalDutyToVendorDirection(signed_duty);
     const int clamped = std::clamp(vendor_signed_duty, -9000, 9000);
-    const uint8_t gpio_level = static_cast<uint8_t>((clamped >= 0 ? 1 : 0) + 0x30);
+    const int direction_sign = clamped < 0 ? -1 : 1;
+    const uint8_t gpio_level = static_cast<uint8_t>((direction_sign > 0 ? 1 : 0) + 0x30);
     const uint16_t pwm_duty = static_cast<uint16_t>(std::abs(clamped));
     const uint16_t zero = 0;
+    const bool direction_changed = !state.initialized || direction_sign != state.last_direction_sign;
+    const bool need_preclear = direction_changed && !state.last_pwm_zero;
 
-    // Clear duty before any direction update so sign flips cannot momentarily
-    // energize the previous non-zero PWM under the new GPIO direction.
-    if (!WriteBinary(pwm_path, zero)) {
-        status.detail = std::string("motor PWM write failed: ") + pwm_path;
+    if (need_preclear && !WriteBinary(channel.pwm_path, zero)) {
+        status.detail = std::string("motor PWM write failed: ") + channel.pwm_path;
         return status;
     }
-    if (!WriteBinary(gpio_path, gpio_level)) {
-        status.detail = std::string("motor GPIO write failed: ") + gpio_path;
+    if (direction_changed && !WriteBinary(channel.gpio_path, gpio_level)) {
+        status.detail = std::string("motor GPIO write failed: ") + channel.gpio_path;
         return status;
     }
-    if (!WriteBinary(pwm_path, pwm_duty)) {
-        status.detail = std::string("motor PWM write failed: ") + pwm_path;
+    if (!WriteBinary(channel.pwm_path, pwm_duty)) {
+        status.detail = std::string("motor PWM write failed: ") + channel.pwm_path;
         return status;
     }
 
+    state.initialized = true;
+    state.last_direction_sign = direction_sign;
+    state.last_pwm_zero = pwm_duty == 0;
     status.ok = true;
     status.detail = "motor command applied";
     return status;
@@ -96,11 +107,13 @@ BridgeStatus InitializeMotor() {
             return probe;
         }
     }
+    g_left_motor_state = {};
+    g_right_motor_state = {};
     return {true, "motor PWM/GPIO resources probed successfully"};
 }
 
 BridgeStatus ApplyMotorCommand(int left_pwm, int right_pwm) {
-    const BridgeStatus left = ApplyOne(kLogicalLeftMotor.pwm_path, kLogicalLeftMotor.gpio_path, left_pwm);
+    const BridgeStatus left = ApplyOne(kLogicalLeftMotor, g_left_motor_state, left_pwm);
     if (!left.ok) {
         // Best-effort rollback keeps hardware fail-safe if one side write path failed mid-apply.
         const BridgeStatus rollback = DisableMotorOutput();
@@ -109,8 +122,7 @@ BridgeStatus ApplyMotorCommand(int left_pwm, int right_pwm) {
         }
         return left;
     }
-    const BridgeStatus right =
-        ApplyOne(kLogicalRightMotor.pwm_path, kLogicalRightMotor.gpio_path, right_pwm);
+    const BridgeStatus right = ApplyOne(kLogicalRightMotor, g_right_motor_state, right_pwm);
     if (!right.ok) {
         const BridgeStatus rollback = DisableMotorOutput();
         if (!rollback.ok) {
@@ -129,6 +141,10 @@ BridgeStatus DisableMotorOutput() {
     if (!WriteBinary(kRightMotorPwmPath, zero)) {
         return {false, std::string("motor PWM write failed: ") + kRightMotorPwmPath};
     }
+    g_left_motor_state.initialized = true;
+    g_right_motor_state.initialized = true;
+    g_left_motor_state.last_pwm_zero = true;
+    g_right_motor_state.last_pwm_zero = true;
     return {true, "motor outputs disabled"};
 }
 

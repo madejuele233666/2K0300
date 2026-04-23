@@ -1,0 +1,9 @@
+{
+  "status": "failed",
+  "stage": "validation",
+  "reasons": [
+    "tuning exit=1",
+    "ack chain incomplete",
+    "snapshot_cleared missing"
+  ]
+}

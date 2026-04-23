@@ -1,0 +1,183 @@
+{
+  "status": "completed",
+  "generated_at": "2026-04-23T01:36:11Z",
+  "listener_ip": "10.100.170.115",
+  "params_in": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-seed-d-sweep-20260423T012051Z.json",
+  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-working-20260423T013235Z.json",
+  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-best-20260423T013235Z.json",
+  "promoted": false,
+  "seed_best_from_input": true,
+  "candidate_profile": "standard",
+  "round_deploy_mode": "reuse-build",
+  "search_strategy": "paired-independent-wheel-screening-with-local-bo",
+  "term_groups": [
+    "d"
+  ],
+  "fixed_search_step": 0.0,
+  "sweep_values": {
+    "p": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "i": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "d": {
+      "all": [],
+      "left": [
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875,
+        2.0
+      ],
+      "right": [
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875,
+        2.0
+      ]
+    }
+  },
+  "terminal_steady_error_band": 20.0,
+  "terminal_pwm_jump_band": 800.0,
+  "screen_sequence": "75,105,135",
+  "screen_runs": 1,
+  "best_scores": {
+    "left": Infinity,
+    "right": Infinity
+  },
+  "rounds": [
+    {
+      "name": "validation",
+      "candidate_label": "protocol-validation",
+      "accepted": true,
+      "accepted_reason": "validated",
+      "left_score": 0.0,
+      "right_score": 0.0,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/validation/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/validation/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/validation/attempt-01/board.log"
+    },
+    {
+      "name": "baseline",
+      "candidate_label": "current-working-params",
+      "accepted": true,
+      "accepted_reason": "baseline",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline/attempt-01/board.log"
+    },
+    {
+      "name": "baseline-screen",
+      "candidate_label": "current-working-params-screen",
+      "accepted": true,
+      "accepted_reason": "baseline-screen",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/baseline-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-001-d-screen",
+      "candidate_label": "left-d=1.125000; right-d=1.125000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 1278.381 > 800.000; screen right terminal gate failed: tail PWM jump 800.571 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-001-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-001-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-001-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-002-d-screen",
+      "candidate_label": "left-d=1.250000; right-d=1.250000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 2317.524 > 800.000; screen right terminal gate failed: tail PWM jump 869.667 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-002-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-002-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-002-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-003-d-screen",
+      "candidate_label": "left-d=1.375000; right-d=1.375000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 2176.238 > 800.000; screen right terminal gate failed: tail PWM jump 833.238 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-003-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-003-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-003-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-004-d-screen",
+      "candidate_label": "left-d=1.500000; right-d=1.500000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 2494.238 > 800.000; screen right terminal gate failed: tail PWM jump 943.190 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-004-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-004-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-004-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-005-d-screen",
+      "candidate_label": "left-d=1.625000; right-d=1.625000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail error 20.111 > 20.000; tail PWM jump 2285.714 > 800.000; screen right terminal gate failed: tail PWM jump 881.524 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-005-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-005-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-005-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-006-d-screen",
+      "candidate_label": "left-d=1.750000; right-d=1.750000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 1186.905 > 800.000; screen right terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-006-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-006-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-006-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-007-d-screen",
+      "candidate_label": "left-d=1.875000; right-d=1.875000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 1764.857 > 800.000; screen right terminal gate failed: tail error 20.476 > 20.000; tail PWM jump 802.381 > 800.000",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-007-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-007-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-007-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-008-d-screen",
+      "candidate_label": "left-d=2.000000; right-d=2.000000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 2122.381 > 800.000; screen right terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-008-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-008-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T013250Z/round-008-d-screen/attempt-01/board.log"
+    }
+  ]
+}

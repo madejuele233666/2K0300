@@ -6,6 +6,8 @@
 namespace ls2k::runtime {
 namespace {
 
+constexpr uint64_t kLifecycleCommandAckGuardMs = 75;
+
 platform::AssistantWaveformFrame BuildWaveformFrame(const ControlDebugSnapshot& snapshot) {
     platform::AssistantWaveformFrame frame{};
     frame.channel_count = 8;
@@ -43,9 +45,7 @@ double ComputeEffectiveSpeedTargetForState(const MotionSupervisorState& motion_s
                                            const RuntimeTuningSnapshot& tuning_snapshot,
                                            const port::RuntimeParameters& params,
                                            uint64_t now_ms) {
-    const double running_speed_target =
-        RuntimeTuningOverrideActiveAt(tuning_snapshot, now_ms) ? tuning_snapshot.target_speed_override_value
-                                                               : params.Speed_base;
+    const double running_speed_target = ResolveRuntimeSpeedTarget(tuning_snapshot, params.Speed_base, now_ms);
     switch (motion_state.phase) {
         case MotionPhase::kDisarmed:
         case MotionPhase::kStartRequested:
@@ -155,6 +155,9 @@ void AssistantService::Start(const port::RuntimeParameters& params, port::Diagno
     configured_ = true;
     enabled_ = params.assistant_enabled;
     periodic_publish_armed_ = false;
+    publish_policy_ = PublishPolicy::kControlAndMedia;
+    control_priority_connection_ = false;
+    ResetDeferredMotionIntent();
     params_ = params;
     waveform_interval_ms_ = std::max(0, params.assistant_waveform_publish_interval_ms);
     // The TCP assistant path becomes unstable under sustained small-frame bursts.
@@ -178,6 +181,97 @@ void AssistantService::Start(const port::RuntimeParameters& params, port::Diagno
     (void)link_.Initialize(params, diagnostics);
 }
 
+AssistantService::PublishPolicy AssistantService::DeterminePublishPolicy(
+    const ControlDebugSnapshot& snapshot,
+    bool session_boundary_reset) const {
+    // Runtime control and optional media share one TCP stream. Once a client
+    // starts issuing commands on a connection, keep that whole session on a
+    // control-only lane until disconnect so trailing stop/disable/close steps
+    // cannot be disrupted by a late media burst reclaiming the socket.
+    if (control_priority_connection_) {
+        return PublishPolicy::kControlOnly;
+    }
+    // A fresh or torn-down session should not inherit a stale debug snapshot
+    // from the previous connection. Let the new session start from the default
+    // mixed publish lane until it actually sends a command.
+    if (session_boundary_reset) {
+        return PublishPolicy::kControlAndMedia;
+    }
+    if (snapshot.tuning_mode_enabled) {
+        return PublishPolicy::kControlOnly;
+    }
+    return PublishPolicy::kControlAndMedia;
+}
+
+void AssistantService::UpdatePublishPolicy(PublishPolicy next_policy,
+                                           port::DiagnosticSink& diagnostics,
+                                           uint64_t now_ms) {
+    if (publish_policy_ == next_policy) {
+        return;
+    }
+
+    publish_policy_ = next_policy;
+    diagnostics.Emit({port::DiagnosticLevel::kInfo,
+                      "assistant.publish_policy",
+                      std::string("assistant publish policy switched to ") +
+                          (next_policy == PublishPolicy::kControlOnly ? "control_only"
+                                                                      : "control_and_media"),
+                      now_ms});
+}
+
+void AssistantService::ResetDeferredMotionIntent() {
+    deferred_motion_intent_ = {};
+}
+
+void AssistantService::DeferMotionIntent(DeferredMotionIntentType type,
+                                         std::uint64_t seq,
+                                         uint64_t now_ms) {
+    deferred_motion_intent_.type = type;
+    deferred_motion_intent_.seq = seq;
+    deferred_motion_intent_.ready_at_ms = now_ms + kLifecycleCommandAckGuardMs;
+}
+
+void AssistantService::ApplyDeferredMotionIntentIfReady(RuntimeState& state,
+                                                        port::DiagnosticSink& diagnostics,
+                                                        uint64_t now_ms) {
+    if (deferred_motion_intent_.type == DeferredMotionIntentType::kNone ||
+        now_ms < deferred_motion_intent_.ready_at_ms ||
+        !pending_feedback_.empty() ||
+        !link_.Ready()) {
+        return;
+    }
+
+    const DeferredMotionIntent pending = deferred_motion_intent_;
+    ResetDeferredMotionIntent();
+
+    std::string code;
+    std::string detail;
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        NoteRuntimeTuningSeq(state.tuning_state, pending.seq);
+        switch (pending.type) {
+            case DeferredMotionIntentType::kStart:
+                state.motion_intent.start_requested = true;
+                state.motion_intent.stop_requested = false;
+                code = "assistant.motion.start.requested";
+                detail =
+                    "assistant command committed remote start into motion_intent after the control ACK drained";
+                break;
+            case DeferredMotionIntentType::kStop:
+                state.motion_intent.stop_requested = true;
+                state.motion_intent.start_requested = false;
+                code = "assistant.motion.stop.requested";
+                detail =
+                    "assistant command committed remote stop into motion_intent after the control ACK drained";
+                break;
+            case DeferredMotionIntentType::kNone:
+                return;
+        }
+    }
+
+    diagnostics.Emit({port::DiagnosticLevel::kInfo, code, detail, now_ms});
+}
+
 void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
     if (!configured_ || !enabled_) {
         return;
@@ -185,14 +279,20 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
 
     const uint64_t now_ms = port::NowMs();
     const platform::AssistantPollResult poll_result = link_.Poll(diagnostics);
+    const bool session_boundary_reset = poll_result.became_ready || poll_result.connection_lost;
     if (poll_result.became_ready) {
         // Delay periodic telemetry on a fresh connection until the host sends
         // a command. This shrinks the unstable connect-then-command window.
         periodic_publish_armed_ = false;
+        control_priority_connection_ = false;
+        pending_feedback_.clear();
+        ResetDeferredMotionIntent();
     }
     if (poll_result.connection_lost) {
         periodic_publish_armed_ = false;
+        control_priority_connection_ = false;
         pending_feedback_.clear();
+        ResetDeferredMotionIntent();
         RuntimeTuningEvent disconnect_event{};
         {
             std::lock_guard<std::mutex> lock(state.shared_mutex);
@@ -214,6 +314,8 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         HandleInboundMessages(poll_result.inbound_messages, state, diagnostics, now_ms);
     }
 
+    ApplyDeferredMotionIntentIfReady(state, diagnostics, now_ms);
+
     RuntimeTuningEvent expiry_event{};
     ControlDebugSnapshot snapshot{};
     port::CameraCapture capture{};
@@ -230,6 +332,8 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
                           now_ms});
         PublishStateEvent(state, ToEventName(expiry_event.type), expiry_event.reason, diagnostics, now_ms);
     }
+
+    UpdatePublishPolicy(DeterminePublishPolicy(snapshot, session_boundary_reset), diagnostics, now_ms);
 
     FlushFeedback(diagnostics);
     if (!poll_result.ready) {
@@ -249,7 +353,9 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         }
     }
 
-    if (periodic_publish_armed_ && waveform_interval_ms_ > 0 && snapshot.valid &&
+    const bool media_publish_allowed = publish_policy_ == PublishPolicy::kControlAndMedia;
+
+    if (periodic_publish_armed_ && media_publish_allowed && waveform_interval_ms_ > 0 && snapshot.valid &&
         snapshot.cycle_count != last_wave_cycle_ &&
         (last_wave_publish_ms_ == 0 || now_ms - last_wave_publish_ms_ >= static_cast<uint64_t>(waveform_interval_ms_))) {
         if (link_.PublishWaveform(BuildWaveformFrame(snapshot), diagnostics)) {
@@ -258,7 +364,7 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         }
     }
 
-    if (periodic_publish_armed_ && image_interval_ms_ > 0 && capture.has_frame &&
+    if (periodic_publish_armed_ && media_publish_allowed && image_interval_ms_ > 0 && capture.has_frame &&
         capture.frame_id != last_image_frame_id_ &&
         (last_image_publish_ms_ == 0 || now_ms - last_image_publish_ms_ >= static_cast<uint64_t>(image_interval_ms_))) {
         if (link_.PublishImage(capture, diagnostics)) {
@@ -332,6 +438,7 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                      RuntimeState& state,
                                      port::DiagnosticSink& diagnostics,
                                      uint64_t now_ms) {
+    control_priority_connection_ = true;
     diagnostics.Emit({port::DiagnosticLevel::kInfo,
                       "assistant.command.rx",
                       DescribeCommand(command),
@@ -339,9 +446,6 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
     bool accepted = true;
     std::string reject_reason;
     RuntimeTuningEvent tuning_event{};
-    bool emit_motion_diagnostic = false;
-    std::string motion_diagnostic_code;
-    std::string motion_diagnostic_detail;
 
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
@@ -377,13 +481,7 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                     accepted = false;
                     reject_reason = "motion fault latch remains active";
                 } else {
-                    NoteRuntimeTuningSeq(state.tuning_state, command.seq);
-                    state.motion_intent.start_requested = true;
-                    state.motion_intent.stop_requested = false;
-                    emit_motion_diagnostic = true;
-                    motion_diagnostic_code = "assistant.motion.start.requested";
-                    motion_diagnostic_detail =
-                        "assistant command mapped remote start into motion_intent without writing lifecycle phase directly";
+                    DeferMotionIntent(DeferredMotionIntentType::kStart, command.seq, now_ms);
                 }
                 break;
             case platform::AssistantCommandType::kStop:
@@ -391,27 +489,16 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                     accepted = false;
                     reject_reason = "motion fault latch remains active";
                 } else {
-                    NoteRuntimeTuningSeq(state.tuning_state, command.seq);
-                    state.motion_intent.stop_requested = true;
-                    state.motion_intent.start_requested = false;
-                    emit_motion_diagnostic = true;
-                    motion_diagnostic_code = "assistant.motion.stop.requested";
-                    motion_diagnostic_detail =
-                        "assistant command mapped remote stop into motion_intent without writing actuator output directly";
+                    DeferMotionIntent(DeferredMotionIntentType::kStop, command.seq, now_ms);
                 }
                 break;
         }
     }
 
-    if (emit_motion_diagnostic) {
-        diagnostics.Emit({port::DiagnosticLevel::kInfo,
-                          motion_diagnostic_code,
-                          motion_diagnostic_detail,
-                          now_ms});
-    }
-
     const bool enqueue_state_event = accepted && tuning_event.type != RuntimeTuningEventType::kNone;
     EnqueueFeedback(platform::EncodeAssistantAck(command.seq, accepted, reject_reason));
+    FlushFeedback(diagnostics);
+
     if (enqueue_state_event) {
         MotionSupervisorState motion_state{};
         RuntimeTuningSnapshot tuning_snapshot{};
@@ -425,7 +512,6 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
             tuning_event.reason,
             BuildStatusView(motion_state, tuning_snapshot, params_, now_ms)));
     }
-    FlushFeedback(diagnostics);
     diagnostics.Emit({accepted ? port::DiagnosticLevel::kInfo : port::DiagnosticLevel::kWarning,
                       accepted ? "assistant.command.accepted" : "assistant.command.rejected",
                       DescribeCommand(command) +

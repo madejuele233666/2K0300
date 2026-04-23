@@ -190,7 +190,10 @@ class AssistantSession:
         self._rx_buffer = bytearray()
 
     def start(self) -> None:
-        return None
+        try:
+            self._connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except OSError as error:
+            log(f"[warn] failed to enable TCP_NODELAY: {error}")
 
     def close(self) -> None:
         try:

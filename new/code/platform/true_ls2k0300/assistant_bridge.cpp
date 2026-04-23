@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <utility>
+#include <netinet/tcp.h>
 
 #include "seekfree_assistant.h"
 #include "seekfree_assistant_interface.h"
@@ -22,6 +23,10 @@ namespace {
 
 constexpr uint64_t kReconnectBackoffMs = 1000;
 constexpr std::size_t kMaxReceiveDrainBytesPerPoll = 8192;
+// Give the board TCP stack enough time to retransmit a just-sent small
+// control frame before user space tears the socket down on a spurious
+// receive-side close/error report.
+constexpr uint64_t kPostSendDisconnectGuardMs = 1000;
 
 enum class IoStatus {
     kOk = 0,
@@ -41,6 +46,12 @@ struct AssistantBridgeContext {
     IoStatus last_io_status = IoStatus::kOk;
     std::string last_io_detail;
     std::string received_bytes_pending;
+    std::size_t total_sent_bytes = 0;
+    std::size_t total_received_bytes = 0;
+    std::size_t last_sent_bytes = 0;
+    std::size_t last_received_bytes = 0;
+    uint64_t last_send_at_ms = 0;
+    uint64_t last_recv_at_ms = 0;
 };
 
 AssistantBridgeContext g_bridge{};
@@ -85,9 +96,32 @@ bool EnsureNonBlocking(int socket_fd, std::string& detail) {
     return true;
 }
 
+bool EnableLowLatencySocket(int socket_fd, std::string& detail) {
+    const int enabled = 1;
+    if (setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &enabled, sizeof(enabled)) < 0) {
+        detail = "setsockopt(TCP_NODELAY) failed: " + std::string(std::strerror(errno));
+        return false;
+    }
+    return true;
+}
+
 void ResetIoStatus() {
     g_bridge.last_io_status = IoStatus::kOk;
     g_bridge.last_io_detail.clear();
+}
+
+std::string DescribeRecentIo() {
+    const uint64_t now_ms = MonotonicNowMs();
+    const uint64_t send_age_ms =
+        g_bridge.last_send_at_ms == 0 || now_ms < g_bridge.last_send_at_ms ? 0 : now_ms - g_bridge.last_send_at_ms;
+    const uint64_t recv_age_ms =
+        g_bridge.last_recv_at_ms == 0 || now_ms < g_bridge.last_recv_at_ms ? 0 : now_ms - g_bridge.last_recv_at_ms;
+    return " last_send_bytes=" + std::to_string(g_bridge.last_sent_bytes) +
+           " last_send_age_ms=" + std::to_string(send_age_ms) +
+           " total_sent_bytes=" + std::to_string(g_bridge.total_sent_bytes) +
+           " last_recv_bytes=" + std::to_string(g_bridge.last_received_bytes) +
+           " last_recv_age_ms=" + std::to_string(recv_age_ms) +
+           " total_recv_bytes=" + std::to_string(g_bridge.total_received_bytes);
 }
 
 void RecordIoStatus(IoStatus status, const std::string& detail) {
@@ -102,6 +136,54 @@ void RecordIoStatus(IoStatus status, const std::string& detail) {
 
 void HandleSocketFailure(const std::string& detail) {
     EnterBackoff(detail);
+}
+
+bool ShouldDeferDisconnect(IoStatus status) {
+    if ((status != IoStatus::kClosed && status != IoStatus::kError) || g_bridge.last_send_at_ms == 0) {
+        return false;
+    }
+
+    const uint64_t now_ms = MonotonicNowMs();
+    if (now_ms < g_bridge.last_send_at_ms) {
+        return false;
+    }
+
+    // The board-side TCP stack occasionally reports a false receive-side
+    // close/error a few hundred milliseconds after we successfully queue a
+    // small JSON ACK/control frame. Tearing the socket down inside that window
+    // aborts kernel retransmission and turns a recoverable WLAN blip into a
+    // deterministic assistant command failure.
+    return now_ms - g_bridge.last_send_at_ms <= kPostSendDisconnectGuardMs;
+}
+
+bool SocketHasReadableEvent() {
+    if (g_bridge.socket_fd < 0) {
+        return false;
+    }
+
+    pollfd descriptor{};
+    descriptor.fd = g_bridge.socket_fd;
+#ifdef POLLRDHUP
+    descriptor.events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+#else
+    descriptor.events = POLLIN | POLLERR | POLLHUP;
+#endif
+
+    while (true) {
+        const int poll_rc = poll(&descriptor, 1, 0);
+        if (poll_rc > 0) {
+            return descriptor.revents != 0;
+        }
+        if (poll_rc == 0) {
+            return false;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        RecordIoStatus(IoStatus::kError,
+                       "assistant TCP poll failed: " + std::string(std::strerror(errno)));
+        return true;
+    }
 }
 
 uint32 BridgeSendData(const uint8* buff, uint32 length) {
@@ -124,6 +206,9 @@ uint32 BridgeSendData(const uint8* buff, uint32 length) {
             static_cast<size_t>(remaining),
             send_flags);
         if (sent > 0) {
+            g_bridge.last_sent_bytes = static_cast<std::size_t>(sent);
+            g_bridge.total_sent_bytes += static_cast<std::size_t>(sent);
+            g_bridge.last_send_at_ms = MonotonicNowMs();
             sent_total += static_cast<uint32>(sent);
             continue;
         }
@@ -162,6 +247,9 @@ uint32 BridgeReadData(uint8* buff, uint32 length) {
 #endif
         );
         if (received > 0) {
+            g_bridge.last_received_bytes = static_cast<std::size_t>(received);
+            g_bridge.total_received_bytes += static_cast<std::size_t>(received);
+            g_bridge.last_recv_at_ms = MonotonicNowMs();
             return static_cast<uint32>(received);
         }
         if (received == 0) {
@@ -184,6 +272,9 @@ void DrainReceiveBuffer() {
     uint8_t buffer[256];
     std::size_t drained_bytes = 0;
     while (true) {
+        if (!SocketHasReadableEvent()) {
+            return;
+        }
         const uint32 received = BridgeReadData(buffer, sizeof(buffer));
         if (received == 0 || g_bridge.last_io_status == IoStatus::kClosed || g_bridge.last_io_status == IoStatus::kError) {
             return;
@@ -225,6 +316,12 @@ bool BeginConnectAttempt() {
 
     std::string detail;
     if (!EnsureNonBlocking(socket_fd, detail)) {
+        freeaddrinfo(resolved);
+        close(socket_fd);
+        EnterBackoff(detail);
+        return false;
+    }
+    if (!EnableLowLatencySocket(socket_fd, detail)) {
         freeaddrinfo(resolved);
         close(socket_fd);
         EnterBackoff(detail);
@@ -298,7 +395,7 @@ bool FinalizeTransferResult(std::string& detail) {
         detail.clear();
         return true;
     }
-    detail = g_bridge.last_io_detail;
+    detail = g_bridge.last_io_detail + DescribeRecentIo();
     if (g_bridge.last_io_status == IoStatus::kWouldBlock) {
         return false;
     }
@@ -325,6 +422,12 @@ bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string&
     g_bridge.next_retry_at_ms = 0;
     ResetIoStatus();
     CloseSocket();
+    g_bridge.total_sent_bytes = 0;
+    g_bridge.total_received_bytes = 0;
+    g_bridge.last_sent_bytes = 0;
+    g_bridge.last_received_bytes = 0;
+    g_bridge.last_send_at_ms = 0;
+    g_bridge.last_recv_at_ms = 0;
 
     TransitionTo(AssistantBridgeState::kDisconnected,
                  "assistant TCP configured for " + config.host + ":" + std::to_string(config.port));
@@ -351,7 +454,11 @@ AssistantBridgePollResult PollAssistantBridge() {
         case AssistantBridgeState::kReady:
             DrainReceiveBuffer();
             if (g_bridge.last_io_status == IoStatus::kClosed || g_bridge.last_io_status == IoStatus::kError) {
-                HandleSocketFailure(g_bridge.last_io_detail);
+                if (ShouldDeferDisconnect(g_bridge.last_io_status)) {
+                    ResetIoStatus();
+                    break;
+                }
+                HandleSocketFailure(g_bridge.last_io_detail + DescribeRecentIo());
             }
             break;
     }
