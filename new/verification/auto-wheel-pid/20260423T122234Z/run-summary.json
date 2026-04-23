@@ -1,0 +1,155 @@
+{
+  "status": "completed",
+  "generated_at": "2026-04-23T12:24:59Z",
+  "listener_ip": "10.100.170.115",
+  "params_in": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-p100-dformal-l0_75-r0_20-20260423T1220Z.json",
+  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-iscan-working-20260423T1220Z.json",
+  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-iscan-best-20260423T1220Z.json",
+  "promoted": false,
+  "seed_best_from_input": true,
+  "candidate_profile": "standard",
+  "round_deploy_mode": "reuse-build",
+  "search_strategy": "paired-independent-wheel-screening-with-local-bo",
+  "term_groups": [
+    "i"
+  ],
+  "fixed_search_step": 0.05,
+  "sweep_values": {
+    "p": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "i": {
+      "all": [],
+      "left": [
+        0.05,
+        0.1,
+        0.2,
+        0.4,
+        0.8
+      ],
+      "right": [
+        0.05,
+        0.1,
+        0.2,
+        0.4,
+        0.8
+      ]
+    },
+    "d": {
+      "all": [],
+      "left": [],
+      "right": []
+    }
+  },
+  "terminal_steady_error_band": 1000.0,
+  "terminal_pwm_jump_band": 800.0,
+  "screen_sequence": "75,105,135",
+  "screen_runs": 1,
+  "best_scores": {
+    "left": 0.6807522486685427,
+    "right": Infinity
+  },
+  "rounds": [
+    {
+      "name": "validation",
+      "candidate_label": "protocol-validation",
+      "accepted": true,
+      "accepted_reason": "validated",
+      "left_score": 0.0,
+      "right_score": 0.0,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/validation/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/validation/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/validation/attempt-01/board.log"
+    },
+    {
+      "name": "baseline",
+      "candidate_label": "current-working-params",
+      "accepted": true,
+      "accepted_reason": "baseline",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline/attempt-01/board.log"
+    },
+    {
+      "name": "baseline-screen",
+      "candidate_label": "current-working-params-screen",
+      "accepted": true,
+      "accepted_reason": "baseline-screen",
+      "left_score": 1.9748666964748816,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/baseline-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-001-i-screen",
+      "candidate_label": "left-i=0.050000; right-i=0.050000",
+      "accepted": false,
+      "accepted_reason": "screen left score 1.995285 did not beat 1.974867 by 5%; screen right score improved from inf to 1.995714; pending confirmation",
+      "left_score": 1.9952845477371663,
+      "right_score": 1.9957136402744187,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-001-i-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-001-i-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-001-i-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-002-i-screen",
+      "candidate_label": "left-i=0.100000; right-i=0.100000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 1.974867 to 1.014241; pending confirmation; screen right terminal gate failed: terminal gate failed",
+      "left_score": 1.01424071750372,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-002-i-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-002-i-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-002-i-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-003-i-screen",
+      "candidate_label": "left-i=0.200000; right-i=0.200000",
+      "accepted": false,
+      "accepted_reason": "screen left score 1.910416 did not beat 1.974867 by 5%; screen right terminal gate failed: tail PWM jump 914.333 > 800.000",
+      "left_score": 1.9104155305947252,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-003-i-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-003-i-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-003-i-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-004-i-screen",
+      "candidate_label": "left-i=0.400000; right-i=0.400000",
+      "accepted": false,
+      "accepted_reason": "screen left terminal gate failed: tail PWM jump 894.333 > 800.000; screen right score improved from inf to 1.424364; pending confirmation",
+      "left_score": Infinity,
+      "right_score": 1.4243642945863098,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-004-i-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-004-i-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-004-i-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-005-i-screen",
+      "candidate_label": "left-i=0.800000; right-i=0.800000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 1.974867 to 0.809008; pending confirmation; screen right score improved from inf to 1.214210; pending confirmation",
+      "left_score": 0.8090081450776323,
+      "right_score": 1.2142096707230492,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-005-i-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-005-i-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-005-i-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-006-i-confirm",
+      "candidate_label": "left-i=0.800000; right-i=0.800000",
+      "accepted": true,
+      "accepted_reason": "left score improved from inf to 0.680752; selected best candidate after paired screen+confirm at left-i=0.800000",
+      "left_score": 0.6807522486685427,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-006-i-confirm/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-006-i-confirm/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T122234Z/round-006-i-confirm/attempt-01/board.log"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "status": "completed",
+  "generated_at": "2026-04-23T12:14:37Z",
+  "listener_ip": "10.100.170.115",
+  "params_in": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-baseline100-20260423T063744Z.json",
+  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-both-d-l0_70-r0_15-working-20260423T1225Z.json",
+  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-both-d-l0_70-r0_15-best-20260423T1225Z.json",
+  "promoted": false,
+  "seed_best_from_input": true,
+  "candidate_profile": "standard",
+  "round_deploy_mode": "reuse-build",
+  "search_strategy": "paired-independent-wheel-screening-with-local-bo",
+  "term_groups": [
+    "d"
+  ],
+  "fixed_search_step": 0.05,
+  "sweep_values": {
+    "p": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "i": {
+      "all": [],
+      "left": [],
+      "right": []
+    },
+    "d": {
+      "all": [],
+      "left": [
+        0.7
+      ],
+      "right": [
+        0.15
+      ]
+    }
+  },
+  "terminal_steady_error_band": 1000.0,
+  "terminal_pwm_jump_band": 800.0,
+  "screen_sequence": "75,105,135",
+  "screen_runs": 1,
+  "best_scores": {
+    "left": 1.4375699873722716,
+    "right": Infinity
+  },
+  "rounds": [
+    {
+      "name": "validation",
+      "candidate_label": "protocol-validation",
+      "accepted": true,
+      "accepted_reason": "validated",
+      "left_score": 0.0,
+      "right_score": 0.0,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/validation/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/validation/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/validation/attempt-01/board.log"
+    },
+    {
+      "name": "baseline",
+      "candidate_label": "current-working-params",
+      "accepted": true,
+      "accepted_reason": "baseline",
+      "left_score": 1.4375699873722716,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline/attempt-01/board.log"
+    },
+    {
+      "name": "baseline-screen",
+      "candidate_label": "current-working-params-screen",
+      "accepted": true,
+      "accepted_reason": "baseline-screen",
+      "left_score": 2.3230499827620186,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/baseline-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-001-d-screen",
+      "candidate_label": "left-d=0.700000; right-d=0.150000",
+      "accepted": false,
+      "accepted_reason": "screen left score improved from 2.323050 to 1.575409; pending confirmation; screen right terminal gate failed: terminal gate failed",
+      "left_score": 1.5754085976210133,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-001-d-screen/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-001-d-screen/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-001-d-screen/attempt-01/board.log"
+    },
+    {
+      "name": "round-002-d-confirm",
+      "candidate_label": "left-d=0.700000",
+      "accepted": false,
+      "accepted_reason": "confirm left terminal gate failed: terminal gate failed",
+      "left_score": Infinity,
+      "right_score": Infinity,
+      "csv_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-002-d-confirm/attempt-01/telemetry.csv",
+      "host_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-002-d-confirm/attempt-01/host.log",
+      "board_log_path": "/home/madejuele/projects/2K0300/new/verification/auto-wheel-pid/20260423T121302Z/round-002-d-confirm/attempt-01/board.log"
+    }
+  ]
+}

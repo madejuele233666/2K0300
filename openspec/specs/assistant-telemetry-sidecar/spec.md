@@ -28,21 +28,26 @@ Seekfree Assistant protocol polling, receive parsing, waveform publication, and 
 - **THEN** that work SHALL be performed in the foreground `main` loop or another non-control-timer context
 - **AND** the 5 ms control callback SHALL NOT own protocol parsing or transport I/O
 
-### Requirement: First Release Assistant Surface Is Read-Only
-The first release of the assistant sidecar SHALL expose read-only waveform and image publication only, and SHALL NOT introduce a writable tuning overlay or assistant-driven parameter mutation path.
+### Requirement: First Release Assistant Surface Is Scoped Bidirectional
+The accepted release of the assistant sidecar SHALL move from strictly read-only behavior to a scoped bidirectional surface. The accepted bidirectional surface SHALL remain limited to project-owned tuning and operator-intent commands plus project-owned ACK/state/telemetry feedback, and SHALL NOT become a general writable parameter-mutation backdoor.
 
-#### Scenario: Assistant receive traffic cannot change runtime parameters in the first release
-- **WHEN** assistant receive parsing encounters malformed data, unsupported commands, or any candidate tuning payload
-- **THEN** the sidecar SHALL ignore the payload and emit a diagnosable warning or info marker
-- **AND** it SHALL NOT mutate runtime parameters, lifecycle state, control state, or vendor globals
+#### Scenario: Supported inbound commands use the scoped sidecar surface only
+- **WHEN** assistant receive parsing encounters a supported project-owned tuning or operator-intent command
+- **THEN** the sidecar SHALL route it through the accepted project-owned command contract
+- **AND** it SHALL NOT mutate runtime parameters, lifecycle phase, control state, or vendor globals outside that contract
+
+#### Scenario: Unsupported inbound payloads remain isolated
+- **WHEN** assistant receive parsing encounters malformed data, unsupported commands, or payloads outside the accepted tuning scope
+- **THEN** the sidecar SHALL reject that payload with diagnosable project-owned evidence using the accepted standalone `state` rejection path
+- **AND** startup, control-loop bring-up, and fail-safe behavior SHALL remain unaffected
 
 ### Requirement: Assistant Transport Boundary Reserves Extension While Shipping TCP Only
 The assistant sidecar SHALL depend on a project-owned transport abstraction that can host future transports, but this change SHALL implement only the TCP-backed transport path.
 
-#### Scenario: First release transport implementation remains TCP only
+#### Scenario: First release transport remains TCP only even after bidirectional support is added
 - **WHEN** reviewers inspect the sidecar transport integration for this change
 - **THEN** they SHALL find a project-owned transport boundary or equivalent owning interface in `new/`
-- **AND** the concrete enabled implementation for this change SHALL be TCP only
+- **AND** the accepted inbound and outbound assistant traffic both use the TCP-backed transport path
 - **AND** reviewers SHALL NOT find UDP or serial assistant transports treated as implemented behavior in the acceptance surface
 
 ### Requirement: Assistant Sidecar Can Publish Image Frames
@@ -52,3 +57,37 @@ The optional assistant sidecar SHALL be able to publish E07_04-style image-trans
 - **WHEN** the runtime enables assistant image publication
 - **THEN** waveform and image publication SHALL both remain optional foreground-sidecar behavior
 - **AND** assistant image publication SHALL consume project-owned image/frame handoff data rather than injecting vendor protocol APIs into `runtime` or `legacy`
+
+### Requirement: Assistant Command Handling Stays Outside The Control Timer
+Assistant command receive parsing, ACK generation, and structured state publication SHALL remain outside the periodic control timer callback just like assistant waveform and image handling.
+
+#### Scenario: Bidirectional assistant work remains foreground-sidecar behavior
+- **WHEN** the runtime processes assistant send/receive traffic for tuning commands or ACK/state feedback
+- **THEN** that work SHALL execute in the foreground loop or another non-control-timer context
+- **AND** the control timer SHALL NOT own assistant JSON parsing or transport I/O
+
+### Requirement: Assistant Sidecar Feedback Is Project-Owned
+The accepted bidirectional sidecar SHALL expose project-owned ACK/state semantics suitable for host tooling rather than requiring the host to infer acceptance only from waveform changes.
+
+#### Scenario: Host feedback does not depend on vendor-only waveform semantics
+- **WHEN** the host issues a supported command over the assistant sidecar
+- **THEN** the runtime SHALL publish project-owned feedback stating whether the command was accepted, rejected, or cleared
+- **AND** that feedback SHALL remain available even if the host is not rendering the vendor waveform UI
+
+### Requirement: First Release Bidirectional Sidecar Uses One Fixed JSON-Line Host Contract
+The accepted first-release bidirectional sidecar SHALL freeze one project-owned host interoperability contract for commands, structured ACK/state feedback, and structured telemetry. The accepted host contract SHALL use newline-delimited JSON on the accepted assistant TCP session.
+
+#### Scenario: Host command and feedback framing is not left unresolved
+- **WHEN** reviewers inspect the accepted first-release host tuning workflow and sidecar contract
+- **THEN** they SHALL find one fixed newline-delimited JSON framing model for inbound commands and project-owned outbound ACK/state/structured telemetry
+- **AND** they SHALL NOT find the first-release command or feedback topology left as an implementation-time choice
+
+#### Scenario: Standalone state events use a frozen project-owned payload
+- **WHEN** the sidecar publishes a standalone `state` frame for tuning-mode transitions or tuning-snapshot clear behavior
+- **THEN** that frame SHALL use the accepted project-owned required fields for event name, human-readable `reason` string, and current tuning snapshot state
+- **AND** host interoperability SHALL NOT depend on sidecar-specific ad hoc state payloads
+
+#### Scenario: Optional assistant waveform and image publication remain support evidence only
+- **WHEN** the runtime also enables assistant-compatible waveform or image publication
+- **THEN** that publication SHALL coexist with the accepted newline-delimited JSON host contract as optional support evidence
+- **AND** reviewers SHALL NOT treat waveform or image publication as an alternate command, ACK, or structured telemetry transport for the accepted first release

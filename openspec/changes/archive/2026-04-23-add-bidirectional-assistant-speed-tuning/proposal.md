@@ -30,3 +30,10 @@ The current assistant TCP sidecar in `new/` is intentionally read-only, so engin
 - Affected runtime contract: assistant TCP sidecar, motion-intent ingress, runtime tuning state, structured telemetry, and tuning-only turn suppression.
 - Affected tools/workflows: `new/user/debug.sh`, new host tuning script(s), verification runbooks, and Python host dependencies (`matplotlib` installed when absent).
 - Participating skills: `openspec-propose` for artifact creation and `openspec-artifact-verify` for docs-first gate validation.
+
+## Result References
+
+- Closeout entrypoint for the late-stage wheel PID results:
+  - [new/verification/auto-wheel-pid/20260423-closeout/README.md](../../../../new/verification/auto-wheel-pid/20260423-closeout/README.md)
+- Promoted initial formal parameter summary:
+  - [new/verification/auto-wheel-pid/20260423-formal-params-summary.md](../../../../new/verification/auto-wheel-pid/20260423-formal-params-summary.md)
