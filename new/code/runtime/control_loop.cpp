@@ -639,10 +639,10 @@ void ControlLoop::Tick() {
         const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
         if (motion.state.phase == MotionPhase::kSpinup || motion.state.phase == MotionPhase::kStopping) {
-        command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
-    }
-    command = ApplyPwmFloor(command, params_.pwm_limit, params_.pwm_floor);
-    command = ApplyProhibitReverse(
+            command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
+        }
+        command = ApplyPwmFloor(command, params_.pwm_limit, params_.pwm_floor);
+        command = ApplyProhibitReverse(
             previous_command,
             command,
             wheel_targets,
