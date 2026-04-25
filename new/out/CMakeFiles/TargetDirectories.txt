@@ -1,3 +1,6 @@
 /home/madejuele/projects/2K0300/new/out/CMakeFiles/new.dir
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/steering_media_selftest.dir
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/runtime_params_load_test.dir
+/home/madejuele/projects/2K0300/new/out/CMakeFiles/scene_classifier_selftest.dir
 /home/madejuele/projects/2K0300/new/out/CMakeFiles/edit_cache.dir
 /home/madejuele/projects/2K0300/new/out/CMakeFiles/rebuild_cache.dir

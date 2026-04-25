@@ -25,17 +25,28 @@ struct LaneMetrics {
     int upper_left = 0;
     int upper_right = 0;
     int upper_width_median = 0;
+    int left_dx_lower_mid = 0;
+    int left_dx_mid_upper = 0;
+    int right_dx_lower_mid = 0;
+    int right_dx_mid_upper = 0;
     float lateral_error = 0.0F;
     float bend_severity = 0.0F;
+    float left_curvature = 0.0F;
+    float right_curvature = 0.0F;
     float upper_full_span_ratio = 0.0F;
+    float left_upper_border_touch_ratio = 0.0F;
+    float right_upper_border_touch_ratio = 0.0F;
     float left_open = 0.0F;
     float right_open = 0.0F;
     float left_contract = 0.0F;
     float right_contract = 0.0F;
+    bool left_visible_confident = false;
+    bool right_visible_confident = false;
     bool left_edge_missing_bottom = false;
     bool right_edge_missing_bottom = false;
     bool zebra_candidate = false;
     bool cross_candidate = false;
+    int upper_full_span_consecutive_rows_max = 0;
 };
 
 struct SteeringSceneContext {
@@ -73,6 +84,10 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
                                int threshold,
                                const port::RuntimeParameters& params,
                                int prior_reference_col);
+bool HasCrossUpperFullSpanStructure(const SteeringSceneContext& context);
+bool HasCircleLeftEntryStructure(const SteeringSceneContext& context);
+bool HasCircleRightEntryStructure(const SteeringSceneContext& context);
+bool LooksLikeOrdinaryBend(const SteeringSceneContext& context);
 bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context);
 
 }  // namespace ls2k::legacy

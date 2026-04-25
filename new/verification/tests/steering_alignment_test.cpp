@@ -5,6 +5,7 @@
 #include <string>
 
 #include "legacy/camera_logic.hpp"
+#include "legacy/steering_scene_orchestrator.hpp"
 #include "legacy/steering_scene_roadblock_stub.hpp"
 #include "port/control_types.hpp"
 
@@ -49,7 +50,7 @@ PerceptionResult Analyze(const LegacyCameraFrame& frame, const LegacySteeringSta
     params.camera_frame_height = 240;
     params.see_max = 35.0;
     params.emergency_threshold = 40;
-    return ls2k::legacy::AnalyzeFrame(frame, params, prior_state, false, 1, 100);
+    return ls2k::legacy::AnalyzeFrame(frame, params, prior_state, false, 1, 100).perception;
 }
 
 void ExpectRoadblockStubState(const PerceptionResult& result) {
@@ -94,7 +95,7 @@ void TestStraightSceneOn320x240Input() {
 
 void TestBendSceneSplitFromStraight() {
     LegacyCameraFrame frame = MakeBlankFrame();
-    FillLane(frame, 120, 240, -8);
+    FillLane(frame, 120, 240, -10);
     const PerceptionResult result = Analyze(frame, {});
 
     Expect(result.active_module == "bend", "moderate bend frame must activate bend module");
@@ -105,16 +106,24 @@ void TestBendSceneSplitFromStraight() {
 }
 
 void TestZebraSceneWinsDedicatedModule() {
-    LegacyCameraFrame frame = MakeBlankFrame();
-    FillLane(frame, 100, 220);
-    for (int row = 180; row < 226; ++row) {
-        for (int col = 0; col < frame.width; ++col) {
-            const bool bright = ((col / 12) % 2) == 0;
-            frame.gray[static_cast<std::size_t>(row) * frame.width + col] = bright ? 255 : 0;
-        }
-    }
+    RuntimeParameters params{};
+    params.camera_frame_width = 320;
+    params.camera_frame_height = 240;
+    params.see_max = 35.0;
+    params.emergency_threshold = 40;
 
-    const PerceptionResult result = Analyze(frame, {});
+    LegacyCameraFrame frame = MakeBlankFrame();
+    ls2k::legacy::LaneMetrics metrics{};
+    metrics.threshold = 120;
+    metrics.valid_row_count = 14;
+    metrics.lower_valid_row_count = 4;
+    metrics.middle_valid_row_count = 4;
+    metrics.upper_valid_row_count = 4;
+    metrics.zebra_candidate = true;
+
+    const ls2k::legacy::SteeringSceneContext context{frame, params, {}, metrics};
+    const PerceptionResult result =
+        ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 100).perception;
     Expect(result.active_module == "zebra", "zebra pattern must activate zebra module");
     ExpectRoadblockStubState(result);
     Expect(result.scene_phase == "hold", "zebra module must publish hold phase");

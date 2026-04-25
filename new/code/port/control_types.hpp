@@ -150,8 +150,13 @@ struct SceneWideClassifierParameters {
 
     double special_wide_lower_width_min_ratio = 0.38;
     int special_wide_valid_rows_min = 10;
+    int edge_motion_min_px = 8;
+    int edge_curvature_min_px = 6;
+    int opposite_edge_straight_max_curvature_px = 5;
+    double opposite_edge_border_touch_max_ratio = 0.45;
     int circle_open_min_px = 24;
     int circle_contract_min_px = 14;
+    int cross_upper_full_span_consec_rows_min = 3;
     double cross_upper_full_span_min_ratio = 0.45;
     double to_cross_margin = 0.2;
     double to_circle_margin = 0.2;
@@ -160,8 +165,10 @@ struct SceneWideClassifierParameters {
 
     double cross_weight_full_span = 1.25;
     double cross_weight_both_open = 0.4;
-    double circle_weight_open = 1.0;
-    double circle_weight_contract = 0.75;
+    double circle_curve_weight = 1.2;
+    double circle_opposite_straight_weight = 1.0;
+    double circle_weight_open = 0.25;
+    double circle_weight_contract = 0.2;
 };
 
 struct RuntimeParameters {

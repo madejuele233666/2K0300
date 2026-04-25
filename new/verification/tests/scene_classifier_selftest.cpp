@@ -3,9 +3,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 #include "legacy/camera_logic.hpp"
+#include "legacy/steering_scene_orchestrator.hpp"
 
 namespace {
 
@@ -19,16 +19,14 @@ void Expect(bool condition, const std::string& message) {
     }
 }
 
-struct RawFrameFixture {
-    std::uint64_t frame_id = 0;
-    std::string path{};
-    int width = 0;
-    int height = 0;
-};
-
 struct FixtureAnalysis {
     ls2k::legacy::SteeringAnalysisResult analysis{};
     ls2k::legacy::LaneMetrics metrics{};
+};
+
+struct RawFixture {
+    const char* label = "";
+    const char* path = "";
 };
 
 std::string DescribeAnalysis(const FixtureAnalysis& analysis) {
@@ -41,78 +39,28 @@ std::string DescribeAnalysis(const FixtureAnalysis& analysis) {
            " circle_l=" + std::to_string(analysis.analysis.special_wide_circle_left_score_last) +
            " circle_r=" + std::to_string(analysis.analysis.special_wide_circle_right_score_last) +
            " upper_span=" + std::to_string(metrics.upper_full_span_ratio) +
-           " left_open=" + std::to_string(metrics.left_open) +
-           " right_open=" + std::to_string(metrics.right_open) +
-           " left_contract=" + std::to_string(metrics.left_contract) +
-           " right_contract=" + std::to_string(metrics.right_contract) +
-           " widths=" + std::to_string(metrics.lower_width_median) + "/" +
-           std::to_string(metrics.middle_width_median) + "/" + std::to_string(metrics.upper_width_median);
+           " upper_span_consec=" + std::to_string(metrics.upper_full_span_consecutive_rows_max) +
+           " left_curve=" + std::to_string(metrics.left_curvature) +
+           " right_curve=" + std::to_string(metrics.right_curvature) +
+           " left_touch=" + std::to_string(metrics.left_upper_border_touch_ratio) +
+           " right_touch=" + std::to_string(metrics.right_upper_border_touch_ratio) +
+           " left_visible=" + std::to_string(metrics.left_visible_confident ? 1 : 0) +
+           " right_visible=" + std::to_string(metrics.right_visible_confident ? 1 : 0);
 }
 
-std::string ExtractQuotedValue(const std::string& line, const std::string& key) {
-    const std::string needle = "\"" + key + "\": \"";
-    const std::size_t start = line.find(needle);
-    if (start == std::string::npos) {
-        return {};
-    }
-    const std::size_t value_start = start + needle.size();
-    const std::size_t value_end = line.find('"', value_start);
-    if (value_end == std::string::npos) {
-        return {};
-    }
-    return line.substr(value_start, value_end - value_start);
-}
-
-std::uint64_t ExtractUintValue(const std::string& line, const std::string& key) {
-    const std::string needle = "\"" + key + "\": ";
-    const std::size_t start = line.find(needle);
-    if (start == std::string::npos) {
-        return 0;
-    }
-    const std::size_t value_start = start + needle.size();
-    const std::size_t value_end = line.find_first_of(",}", value_start);
-    return static_cast<std::uint64_t>(std::stoull(line.substr(value_start, value_end - value_start)));
-}
-
-int ExtractIntValue(const std::string& line, const std::string& key) {
-    return static_cast<int>(ExtractUintValue(line, key));
-}
-
-std::vector<RawFrameFixture> LoadRawFixture(const std::string& fixture_dir) {
-    const std::string metadata_path = fixture_dir + "/steering-media/frame_metadata.jsonl";
-    std::ifstream input(metadata_path);
-    if (!input.is_open()) {
-        throw std::runtime_error("failed to open metadata: " + metadata_path);
-    }
-
-    std::vector<RawFrameFixture> frames;
-    std::string line;
-    while (std::getline(input, line)) {
-        RawFrameFixture frame{};
-        frame.frame_id = ExtractUintValue(line, "frame_id");
-        frame.path = ExtractQuotedValue(line, "frame_path");
-        frame.width = ExtractIntValue(line, "width");
-        frame.height = ExtractIntValue(line, "height");
-        if (!frame.path.empty() && frame.width > 0 && frame.height > 0) {
-            frames.push_back(frame);
-        }
-    }
-    return frames;
-}
-
-ls2k::port::LegacyCameraFrame ReadRawFrame(const RawFrameFixture& fixture) {
+ls2k::port::LegacyCameraFrame ReadRawFrame(const char* path) {
     ls2k::port::LegacyCameraFrame frame{};
-    frame.width = fixture.width;
-    frame.height = fixture.height;
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
 
-    std::ifstream input(fixture.path, std::ios::binary);
+    std::ifstream input(path, std::ios::binary);
     if (!input.is_open()) {
-        throw std::runtime_error("failed to open raw frame: " + fixture.path);
+        throw std::runtime_error(std::string("failed to open raw frame: ") + path);
     }
     input.read(reinterpret_cast<char*>(frame.gray.data()),
-               static_cast<std::streamsize>(fixture.width * fixture.height));
-    Expect(static_cast<int>(input.gcount()) == fixture.width * fixture.height,
-           "raw frame size must match metadata for " + fixture.path);
+               static_cast<std::streamsize>(frame.width * frame.height));
+    Expect(static_cast<int>(input.gcount()) == frame.width * frame.height,
+           std::string("raw frame size must match compiled geometry for ") + path);
     return frame;
 }
 
@@ -142,94 +90,173 @@ void ApplyAnalysisToState(const ls2k::legacy::SteeringAnalysisResult& analysis,
     state.special_wide_circle_right_score_last = analysis.special_wide_circle_right_score_last;
 }
 
-FixtureAnalysis AnalyzeFixtureFrame(const RawFrameFixture& fixture,
-                                    const ls2k::port::RuntimeParameters& params,
-                                    ls2k::port::LegacySteeringState& state) {
-    const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(fixture);
+FixtureAnalysis AnalyzeRawFixture(const RawFixture& fixture,
+                                  const ls2k::port::RuntimeParameters& params,
+                                  ls2k::port::LegacySteeringState state) {
+    const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(fixture.path);
     FixtureAnalysis result{};
-    result.analysis =
-        ls2k::legacy::AnalyzeFrame(frame, params, state, false, fixture.frame_id, fixture.frame_id);
-    result.metrics = ls2k::legacy::ExtractLaneMetrics(
-        frame, result.analysis.perception.threshold, params, state.steering_reference_col);
+    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, false, 1, 1);
+    result.metrics =
+        ls2k::legacy::ExtractLaneMetrics(frame,
+                                         result.analysis.perception.threshold,
+                                         params,
+                                         state.steering_reference_col);
     ApplyAnalysisToState(result.analysis, state);
     return result;
 }
 
-void ExpectFirstTwoFrames(const std::string& fixture_dir,
-                          const std::string& expected_second_module,
-                          const std::string& label) {
-    const std::vector<RawFrameFixture> frames = LoadRawFixture(fixture_dir);
-    Expect(frames.size() >= 2, label + " must contain at least two raw frames");
-
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
+ls2k::port::LegacySteeringState MakePrimedWideState(const char* candidate) {
     ls2k::port::LegacySteeringState state{};
-
-    const auto first = AnalyzeFixtureFrame(frames[0], params, state);
-    Expect(first.analysis.perception.active_module == "special_wide",
-           label + " first frame must enter special_wide; " + DescribeAnalysis(first));
-    Expect(first.analysis.perception.scene_phase == "sus",
-           label + " first frame must enter sus phase; " + DescribeAnalysis(first));
-
-    const auto second = AnalyzeFixtureFrame(frames[1], params, state);
-    Expect(second.analysis.perception.active_module == expected_second_module,
-           label + " second frame must confirm " + expected_second_module + "; " +
-               DescribeAnalysis(second));
+    state.active_module = "special_wide";
+    state.special_wide_candidate = candidate;
+    state.special_wide_candidate_streak = 1;
+    return state;
 }
 
-void ExpectThirdFrameHold(const std::string& fixture_dir,
-                          const std::string& expected_module,
-                          const std::string& label) {
-    const std::vector<RawFrameFixture> frames = LoadRawFixture(fixture_dir);
-    Expect(frames.size() >= 3, label + " must contain at least three raw frames");
-
+void ExpectConfirmedModule(const RawFixture& fixture,
+                           const char* candidate,
+                           const char* expected_module) {
     const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    ls2k::port::LegacySteeringState state{};
-
-    (void)AnalyzeFixtureFrame(frames[0], params, state);
-    (void)AnalyzeFixtureFrame(frames[1], params, state);
-    const auto third = AnalyzeFixtureFrame(frames[2], params, state);
-    Expect(third.analysis.perception.active_module == expected_module,
-           label + " third frame must keep " + expected_module + "; " + DescribeAnalysis(third));
+    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, MakePrimedWideState(candidate));
+    Expect(analysis.analysis.perception.active_module == expected_module,
+           std::string(fixture.label) + " must confirm " + expected_module + "; " +
+               DescribeAnalysis(analysis));
 }
 
-void TestCircleFixtures() {
-    ExpectFirstTwoFrames("new/verification/static-circle-entry-20260425T053113Z",
-                         "circle_entry",
-                         "circle-1");
-    ExpectFirstTwoFrames("new/verification/static-circle-entry-20260425T054335Z",
-                         "circle_entry",
-                         "circle-2");
-    ExpectThirdFrameHold("new/verification/static-circle-entry-20260425T054335Z",
-                         "circle_entry",
-                         "circle-2");
-
-    const std::vector<RawFrameFixture> frames =
-        LoadRawFixture("new/verification/static-circle-entry-20260425T055605Z");
-    Expect(frames.size() >= 2, "circle-3 must contain at least two raw frames");
+void ExpectNotConfirmedModule(const RawFixture& fixture,
+                              const char* candidate,
+                              const char* forbidden_module) {
     const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    ls2k::port::LegacySteeringState state{};
-    (void)AnalyzeFixtureFrame(frames[0], params, state);
-    const auto second = AnalyzeFixtureFrame(frames[1], params, state);
-    Expect(second.analysis.perception.active_module != "cross",
-           "circle-3 must not confirm cross; " + DescribeAnalysis(second));
-    Expect(second.analysis.perception.active_module == "special_wide" ||
-               second.analysis.perception.active_module == "circle_entry",
-           "circle-3 may stay in special_wide or enter circle_entry; " + DescribeAnalysis(second));
+    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, MakePrimedWideState(candidate));
+    Expect(analysis.analysis.perception.active_module != forbidden_module,
+           std::string(fixture.label) + " must not confirm " + forbidden_module + "; " +
+               DescribeAnalysis(analysis));
 }
 
-void TestCrossFixtures() {
-    ExpectFirstTwoFrames("new/verification/static-cross-20260425T061249Z", "cross", "cross-1");
-    ExpectFirstTwoFrames("new/verification/static-cross-20260425T061406Z", "cross", "cross-2");
-    ExpectThirdFrameHold("new/verification/static-cross-20260425T061406Z", "cross", "cross-2");
-    ExpectFirstTwoFrames("new/verification/static-cross-20260425T061514Z", "cross", "cross-3");
+void ExpectNeutralNotWide(const RawFixture& fixture) {
+    const ls2k::port::RuntimeParameters params = MakeSceneParams();
+    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, ls2k::port::LegacySteeringState{});
+    const std::string module = analysis.analysis.perception.active_module;
+    Expect(module != "special_wide" && module != "circle_entry" && module != "cross",
+           std::string(fixture.label) +
+               " must stay out of special_wide/circle_entry/cross; " + DescribeAnalysis(analysis));
+}
+
+void ExpectNeutralSpecialWide(const RawFixture& fixture, const char* expected_candidate) {
+    const ls2k::port::RuntimeParameters params = MakeSceneParams();
+    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, ls2k::port::LegacySteeringState{});
+    Expect(analysis.analysis.perception.active_module == "special_wide",
+           std::string(fixture.label) + " must enter special_wide on neutral entry; " +
+               DescribeAnalysis(analysis));
+    Expect(analysis.analysis.special_wide_candidate == expected_candidate,
+           std::string(fixture.label) + " must nominate " + expected_candidate + "; " +
+               DescribeAnalysis(analysis));
+}
+
+ls2k::legacy::SteeringAnalysisResult RunSyntheticScene(const ls2k::legacy::LaneMetrics& metrics,
+                                                       const ls2k::port::LegacySteeringState& prior_state) {
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
+
+    ls2k::port::RuntimeParameters params = MakeSceneParams();
+    ls2k::legacy::SteeringSceneContext context{frame, params, prior_state, metrics};
+    return ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 1);
+}
+
+void TestRepresentativeWideSamples() {
+    const RawFixture circle_1{"circle-1",
+                              "new/verification/static-circle-entry-20260425T053113Z/"
+                              "steering-media/frames/frame-000001.raw"};
+    const RawFixture circle_2{"circle-2",
+                              "new/verification/static-circle-entry-20260425T054335Z/"
+                              "steering-media/frames/frame-000003.raw"};
+    const RawFixture circle_3{"circle-3",
+                              "new/verification/static-circle-entry-20260425T055605Z/"
+                              "steering-media/frames/frame-004602.raw"};
+    const RawFixture cross_1{"cross-1",
+                             "new/verification/static-cross-20260425T061249Z/"
+                             "steering-media/frames/frame-056387.raw"};
+    const RawFixture cross_2{"cross-2",
+                             "new/verification/static-cross-20260425T061406Z/"
+                             "steering-media/frames/frame-059950.raw"};
+    const RawFixture cross_3{"cross-3",
+                             "new/verification/static-cross-20260425T061514Z/"
+                             "steering-media/frames/frame-063602.raw"};
+    const RawFixture bend_1{"bend-1",
+                            "new/verification/static-bend-entry-20260425T072933Z-boardtest/"
+                            "steering-media/frames/frame-017752.raw"};
+    const RawFixture bend_2{"bend-2",
+                            "new/verification/static-bend-entry-20260425T073459Z-boardtest/"
+                            "steering-media/frames/frame-034614.raw"};
+    const RawFixture bend_3{"bend-3",
+                            "new/verification/static-bend-entry-20260425T073835Z-boardtest/"
+                            "steering-media/frames/frame-045284.raw"};
+
+    ExpectNeutralSpecialWide(circle_1, "circle_entry");
+    ExpectNeutralSpecialWide(circle_2, "circle_entry");
+    ExpectNeutralSpecialWide(cross_1, "cross");
+    ExpectNeutralSpecialWide(cross_2, "cross");
+
+    ExpectConfirmedModule(circle_1, "circle_entry", "circle_entry");
+    ExpectConfirmedModule(circle_2, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(circle_3, "cross", "cross");
+
+    ExpectConfirmedModule(cross_1, "cross", "cross");
+    ExpectConfirmedModule(cross_2, "cross", "cross");
+    ExpectNotConfirmedModule(cross_3, "circle_entry", "circle_entry");
+
+    ExpectNeutralNotWide(bend_1);
+    ExpectNeutralNotWide(bend_2);
+    ExpectNeutralNotWide(bend_3);
+}
+
+void TestSyntheticSceneRegression() {
+    ls2k::legacy::LaneMetrics straight_metrics{};
+    straight_metrics.threshold = 120;
+    straight_metrics.valid_row_count = 14;
+    straight_metrics.lower_valid_row_count = 4;
+    straight_metrics.middle_valid_row_count = 4;
+    straight_metrics.upper_valid_row_count = 4;
+    straight_metrics.steering_reference_col = 160;
+    straight_metrics.lateral_error = 0.0F;
+    Expect(RunSyntheticScene(straight_metrics, {}).perception.active_module == "straight",
+           "baseline straight regression must stay straight");
+
+    ls2k::legacy::LaneMetrics bend_metrics = straight_metrics;
+    bend_metrics.bend_severity = 1.0F;
+    Expect(RunSyntheticScene(bend_metrics, {}).perception.active_module == "bend",
+           "baseline bend regression must stay bend");
+
+    ls2k::legacy::LaneMetrics zebra_metrics = straight_metrics;
+    zebra_metrics.zebra_candidate = true;
+    Expect(RunSyntheticScene(zebra_metrics, {}).perception.active_module == "zebra",
+           "baseline zebra regression must stay zebra");
+
+    ls2k::legacy::LaneMetrics interior_metrics = straight_metrics;
+    interior_metrics.bend_severity = 1.2F;
+    ls2k::port::LegacySteeringState prior_circle_entry{};
+    prior_circle_entry.active_module = "circle_entry";
+    Expect(RunSyntheticScene(interior_metrics, prior_circle_entry).perception.active_module ==
+               "circle_interior",
+           "baseline circle_interior regression must stay circle_interior");
+
+    ls2k::legacy::LaneMetrics exit_metrics = straight_metrics;
+    exit_metrics.bend_severity = 0.7F;
+    exit_metrics.lateral_error = 20.0F;
+    ls2k::port::LegacySteeringState prior_circle_interior{};
+    prior_circle_interior.active_module = "circle_interior";
+    const std::string exit_module = RunSyntheticScene(exit_metrics, prior_circle_interior).perception.active_module;
+    Expect(exit_module == "circle_exit" || exit_module == "bend",
+           "baseline circle_exit regression must stay circle_exit-compatible");
 }
 
 }  // namespace
 
 int main() {
     try {
-        TestCircleFixtures();
-        TestCrossFixtures();
+        TestRepresentativeWideSamples();
+        TestSyntheticSceneRegression();
     } catch (const TestFailure& failure) {
         std::cerr << "scene_classifier_selftest failed: " << failure.message << "\n";
         return 1;

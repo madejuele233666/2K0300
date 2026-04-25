@@ -20,6 +20,7 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   "${REPO_ROOT}/new/code/legacy/steering_scene_circle_exit.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_zebra.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_cross.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_scene_special_wide.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_roadblock_stub.cpp" \
   -o "${OUT_BIN}"
 

@@ -18,7 +18,7 @@ float NormalizePositive(float value, float threshold) {
 
 float ComputeCrossSceneScore(const SteeringSceneContext& context) {
     const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
-    if (context.metrics.upper_full_span_ratio <= 0.0F) {
+    if (!HasCrossUpperFullSpanStructure(context) || context.metrics.upper_full_span_ratio <= 0.0F) {
         return 0.0F;
     }
     const float full_span_score =
@@ -47,7 +47,7 @@ SteeringSceneOutput BuildCrossSceneOutput(const SteeringSceneContext& context) {
 SteeringSceneOutput EvaluateCrossScene(const SteeringSceneContext& context) {
     SteeringSceneOutput output{};
     if (context.prior_state.active_module != "cross" || context.metrics.zebra_candidate ||
-        !MeetsSpecialWidePrecondition(context)) {
+        !HasCrossUpperFullSpanStructure(context)) {
         return output;
     }
 

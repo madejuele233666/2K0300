@@ -129,6 +129,45 @@ new/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/build
 .PHONY : new/fast
 
+#=============================================================================
+# Target rules for targets named steering_media_selftest
+
+# Build rule for target.
+steering_media_selftest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 steering_media_selftest
+.PHONY : steering_media_selftest
+
+# fast build rule for target.
+steering_media_selftest/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/build
+.PHONY : steering_media_selftest/fast
+
+#=============================================================================
+# Target rules for targets named runtime_params_load_test
+
+# Build rule for target.
+runtime_params_load_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime_params_load_test
+.PHONY : runtime_params_load_test
+
+# fast build rule for target.
+runtime_params_load_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/build
+.PHONY : runtime_params_load_test/fast
+
+#=============================================================================
+# Target rules for targets named scene_classifier_selftest
+
+# Build rule for target.
+scene_classifier_selftest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 scene_classifier_selftest
+.PHONY : scene_classifier_selftest
+
+# fast build rule for target.
+scene_classifier_selftest/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/build
+.PHONY : scene_classifier_selftest/fast
+
 home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.o: home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.o
 
@@ -159,6 +198,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.o: home/madejuele/pr
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.i: home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
@@ -167,6 +207,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.i: home/madejuele/pr
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.s: home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
@@ -175,6 +216,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.s: home/madejuele/pr
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.o: home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o
@@ -255,6 +297,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o: home/madej
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
@@ -263,6 +306,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i: home/madej
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
@@ -271,6 +315,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s: home/madej
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
@@ -279,6 +324,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.o: ho
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
@@ -287,6 +333,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.i: ho
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
@@ -295,6 +342,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.s: ho
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
@@ -303,6 +351,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.o: hom
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
@@ -311,6 +360,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.i: hom
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
@@ -319,6 +369,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.s: hom
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
@@ -327,6 +378,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.o:
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
@@ -335,6 +387,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.i:
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
@@ -343,6 +396,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.s:
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
@@ -351,6 +405,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.o: home/mad
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
@@ -359,6 +414,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.i: home/mad
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
@@ -367,6 +423,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.s: home/mad
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
@@ -375,6 +432,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.o: home/made
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
@@ -383,6 +441,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.i: home/made
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
@@ -391,6 +450,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.s: home/made
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
@@ -399,6 +459,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.o: ho
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
@@ -407,6 +468,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.i: ho
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
@@ -415,6 +477,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.s: ho
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
@@ -423,6 +486,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o: 
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
@@ -431,6 +495,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i: 
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
@@ -439,6 +504,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s: 
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
@@ -447,6 +513,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o: ho
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
@@ -455,6 +522,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i: ho
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
@@ -463,6 +531,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s: ho
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
@@ -471,6 +540,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o: home/m
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
@@ -479,6 +549,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i: home/m
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
@@ -487,6 +558,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s: home/m
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
@@ -495,6 +567,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.o: home/made
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
@@ -503,6 +576,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.i: home/made
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
@@ -511,6 +585,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.s: home/made
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
@@ -759,6 +834,7 @@ home/madejuele/projects/2K0300/new/code/platform/param_store.o: home/madejuele/p
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.o
 
 home/madejuele/projects/2K0300/new/code/platform/param_store.i: home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.i
@@ -767,6 +843,7 @@ home/madejuele/projects/2K0300/new/code/platform/param_store.i: home/madejuele/p
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.i
 
 home/madejuele/projects/2K0300/new/code/platform/param_store.s: home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.s
@@ -775,6 +852,7 @@ home/madejuele/projects/2K0300/new/code/platform/param_store.s: home/madejuele/p
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/param_store.cpp.s
 
 home/madejuele/projects/2K0300/new/code/platform/power_adapter.o: home/madejuele/projects/2K0300/new/code/platform/power_adapter.cpp.o
@@ -807,6 +885,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_link.o: home/mad
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o
 
 home/madejuele/projects/2K0300/new/code/platform/steering_media_link.i: home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i
@@ -815,6 +894,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_link.i: home/mad
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i
 
 home/madejuele/projects/2K0300/new/code/platform/steering_media_link.s: home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s
@@ -823,6 +903,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_link.s: home/mad
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s
 
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.o: home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o
@@ -831,6 +912,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.o: home
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o
 
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.i: home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i
@@ -839,6 +921,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.i: home
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i
 
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.s: home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s
@@ -847,6 +930,7 @@ home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.s: home
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s
 
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.o: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o
@@ -999,6 +1083,7 @@ home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_br
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o
 
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.i: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i
@@ -1007,6 +1092,7 @@ home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_br
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i
 
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.s: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s
@@ -1015,6 +1101,7 @@ home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_br
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s
 
 home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.o: home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o
@@ -1071,6 +1158,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.o: home/m
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
 
 home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.i: home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
@@ -1079,6 +1167,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.i: home/m
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i
 
 home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.s: home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
@@ -1087,6 +1176,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.s: home/m
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.s
 
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.o: home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o
@@ -1095,6 +1185,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_decision.o: home/madejue
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o
 
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.i: home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i
@@ -1103,6 +1194,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_decision.i: home/madejue
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i
 
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.s: home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.s
@@ -1111,6 +1203,7 @@ home/madejuele/projects/2K0300/new/code/runtime/control_decision.s: home/madejue
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.s
 
 home/madejuele/projects/2K0300/new/code/runtime/control_loop.o: home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o
@@ -1143,6 +1236,7 @@ home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.o: home/madeju
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
 
 home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.i: home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
@@ -1151,6 +1245,7 @@ home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.i: home/madeju
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i
 
 home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.s: home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
@@ -1159,6 +1254,7 @@ home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.s: home/madeju
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.s
 
 home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.o: home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o
@@ -1239,6 +1335,7 @@ home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.o: home/m
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o
 
 home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.i: home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i
@@ -1247,6 +1344,7 @@ home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.i: home/m
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i
 
 home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.s: home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s
@@ -1255,6 +1353,7 @@ home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.s: home/m
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s
 
 home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o: home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o
@@ -1280,6 +1379,54 @@ home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s: home/madejuele/p
 home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
+
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o: home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.o
+
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.i: home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.i
+
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.s: home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime_params_load_test.dir/build.make CMakeFiles/runtime_params_load_test.dir/home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.s
+
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.o: home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o
+
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.i: home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.i
+
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.s: home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s
 
 home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o: home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o
 .PHONY : home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o
@@ -1761,6 +1908,30 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+steering_media_selftest.o: steering_media_selftest.cpp.o
+.PHONY : steering_media_selftest.o
+
+# target to build an object file
+steering_media_selftest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/steering_media_selftest.cpp.o
+.PHONY : steering_media_selftest.cpp.o
+
+steering_media_selftest.i: steering_media_selftest.cpp.i
+.PHONY : steering_media_selftest.i
+
+# target to preprocess a source file
+steering_media_selftest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/steering_media_selftest.cpp.i
+.PHONY : steering_media_selftest.cpp.i
+
+steering_media_selftest.s: steering_media_selftest.cpp.s
+.PHONY : steering_media_selftest.s
+
+# target to generate assembly for a file
+steering_media_selftest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/steering_media_selftest.dir/build.make CMakeFiles/steering_media_selftest.dir/steering_media_selftest.cpp.s
+.PHONY : steering_media_selftest.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -1770,6 +1941,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... new"
+	@echo "... runtime_params_load_test"
+	@echo "... scene_classifier_selftest"
+	@echo "... steering_media_selftest"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.s"
@@ -1914,6 +2088,12 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.i"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.s"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.o"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.i"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.s"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.o"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.i"
 	@echo "... home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.s"
@@ -1974,6 +2154,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... steering_media_selftest.o"
+	@echo "... steering_media_selftest.i"
+	@echo "... steering_media_selftest.s"
 .PHONY : help
 
 

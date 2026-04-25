@@ -530,6 +530,26 @@ public:
                               optional_malformed);
         ReadOptionalNestedInt(root,
                               "SCENE_WIDE_CLASSIFIER",
+                              "EDGE_MOTION_MIN_PX",
+                              parsed.scene_wide_classifier.edge_motion_min_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "EDGE_CURVATURE_MIN_PX",
+                              parsed.scene_wide_classifier.edge_curvature_min_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX",
+                              parsed.scene_wide_classifier.opposite_edge_straight_max_curvature_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO",
+                                 parsed.scene_wide_classifier.opposite_edge_border_touch_max_ratio,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
                               "CIRCLE_OPEN_MIN_PX",
                               parsed.scene_wide_classifier.circle_open_min_px,
                               optional_malformed);
@@ -537,6 +557,11 @@ public:
                               "SCENE_WIDE_CLASSIFIER",
                               "CIRCLE_CONTRACT_MIN_PX",
                               parsed.scene_wide_classifier.circle_contract_min_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN",
+                              parsed.scene_wide_classifier.cross_upper_full_span_consec_rows_min,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "SCENE_WIDE_CLASSIFIER",
@@ -572,6 +597,16 @@ public:
                                  "SCENE_WIDE_CLASSIFIER",
                                  "CROSS_WEIGHT_BOTH_OPEN",
                                  parsed.scene_wide_classifier.cross_weight_both_open,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CIRCLE_CURVE_WEIGHT",
+                                 parsed.scene_wide_classifier.circle_curve_weight,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT",
+                                 parsed.scene_wide_classifier.circle_opposite_straight_weight,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "SCENE_WIDE_CLASSIFIER",

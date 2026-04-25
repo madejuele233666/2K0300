@@ -137,8 +137,13 @@ std::string ValidRuntimeParamsJson() {
     "UPPER_FULL_SPAN_WIDTH_RATIO": 0.95,
     "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO": 0.38,
     "SPECIAL_WIDE_VALID_ROWS_MIN": 10,
+    "EDGE_MOTION_MIN_PX": 8,
+    "EDGE_CURVATURE_MIN_PX": 6,
+    "OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX": 5,
+    "OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO": 0.45,
     "CIRCLE_OPEN_MIN_PX": 24,
     "CIRCLE_CONTRACT_MIN_PX": 14,
+    "CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN": 3,
     "CROSS_UPPER_FULL_SPAN_MIN_RATIO": 0.45,
     "TO_CROSS_MARGIN": 0.2,
     "TO_CIRCLE_MARGIN": 0.2,
@@ -146,8 +151,10 @@ std::string ValidRuntimeParamsJson() {
     "EXIT_CONFIRM_CYCLES": 2,
     "CROSS_WEIGHT_FULL_SPAN": 1.25,
     "CROSS_WEIGHT_BOTH_OPEN": 0.4,
-    "CIRCLE_WEIGHT_OPEN": 1.0,
-    "CIRCLE_WEIGHT_CONTRACT": 0.75
+    "CIRCLE_CURVE_WEIGHT": 1.2,
+    "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT": 1.0,
+    "CIRCLE_WEIGHT_OPEN": 0.25,
+    "CIRCLE_WEIGHT_CONTRACT": 0.2
   },
   "assistant_tcp": {
     "host": "10.100.170.115",
@@ -180,6 +187,10 @@ void TestLoadSucceedsWithoutRemovedLegacyFields() {
            "SCENE_WIDE_CLASSIFIER block must load independently");
     Expect(params.scene_wide_classifier.cross_weight_full_span == 1.25,
            "SCENE_WIDE_CLASSIFIER weights must load without touching legacy fields");
+    Expect(params.scene_wide_classifier.edge_motion_min_px == 8,
+           "SCENE_WIDE_CLASSIFIER geometry thresholds must load correctly");
+    Expect(params.scene_wide_classifier.circle_curve_weight == 1.2,
+           "SCENE_WIDE_CLASSIFIER circle weights must load correctly");
     Expect(HasDiagnosticCode(diagnostics, "params.loaded"),
            "successful parse must emit params.loaded");
 }

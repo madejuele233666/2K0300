@@ -27,13 +27,28 @@ struct BandAccumulator {
     std::vector<int> rights{};
     std::vector<int> widths{};
     int full_span_rows = 0;
+    int full_span_consecutive_rows = 0;
+    int full_span_consecutive_rows_max = 0;
+    int left_border_touch_rows = 0;
+    int right_border_touch_rows = 0;
 
-    void Add(const RowRun& run, bool full_span) {
+    void Add(const RowRun& run, bool full_span, int frame_width, int edge_margin_px) {
         lefts.push_back(run.left);
         rights.push_back(run.right);
         widths.push_back(run.width);
         if (full_span) {
             ++full_span_rows;
+            ++full_span_consecutive_rows;
+            full_span_consecutive_rows_max =
+                std::max(full_span_consecutive_rows_max, full_span_consecutive_rows);
+        } else {
+            full_span_consecutive_rows = 0;
+        }
+        if (run.left <= edge_margin_px) {
+            ++left_border_touch_rows;
+        }
+        if (run.right >= frame_width - 1 - edge_margin_px) {
+            ++right_border_touch_rows;
         }
     }
 };
@@ -218,6 +233,57 @@ float SafeRatio(int numerator, int denominator) {
     return static_cast<float>(numerator) / static_cast<float>(denominator);
 }
 
+float AbsFloat(float value) {
+    return std::abs(value);
+}
+
+int SignWithThreshold(int value, int threshold) {
+    if (value >= threshold) {
+        return 1;
+    }
+    if (value <= -threshold) {
+        return -1;
+    }
+    return 0;
+}
+
+bool HasDirectionTurn(int lower_mid_dx, int mid_upper_dx, int motion_threshold) {
+    const int lower_sign = SignWithThreshold(lower_mid_dx, motion_threshold);
+    const int upper_sign = SignWithThreshold(mid_upper_dx, motion_threshold);
+    return lower_sign != 0 && upper_sign != 0 && lower_sign != upper_sign;
+}
+
+int DominantMotionSign(int lower_mid_dx, int mid_upper_dx, int motion_threshold) {
+    const int total_dx = lower_mid_dx + mid_upper_dx;
+    const int total_sign = SignWithThreshold(total_dx, motion_threshold);
+    if (total_sign != 0) {
+        return total_sign;
+    }
+    const int lower_sign = SignWithThreshold(lower_mid_dx, motion_threshold);
+    const int upper_sign = SignWithThreshold(mid_upper_dx, motion_threshold);
+    if (lower_sign != 0 && lower_sign == upper_sign) {
+        return lower_sign;
+    }
+    return 0;
+}
+
+bool EdgeHasStrongCurveSignal(int lower_mid_dx,
+                              int mid_upper_dx,
+                              float curvature,
+                              const port::SceneWideClassifierParameters& wide) {
+    return AbsFloat(curvature) >= static_cast<float>(wide.edge_curvature_min_px) ||
+           HasDirectionTurn(lower_mid_dx, mid_upper_dx, wide.edge_motion_min_px);
+}
+
+bool EdgeLooksStraight(bool visible_confident,
+                       float border_touch_ratio,
+                       float curvature,
+                       const port::SceneWideClassifierParameters& wide) {
+    return visible_confident &&
+           border_touch_ratio <= static_cast<float>(wide.opposite_edge_border_touch_max_ratio) &&
+           AbsFloat(curvature) <= static_cast<float>(wide.opposite_edge_straight_max_curvature_px);
+}
+
 void FinalizeBandMetrics(BandAccumulator& band, int& left, int& right, int& width, int& valid_rows) {
     valid_rows = static_cast<int>(band.widths.size());
     left = Median(band.lefts);
@@ -316,11 +382,11 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
         const bool full_span =
             static_cast<float>(primary.width) / static_cast<float>(frame.width) >= full_span_ratio_threshold;
         if (RowInBand(row, lower_start, lower_end)) {
-            lower_band.Add(primary, full_span);
+            lower_band.Add(primary, full_span, frame.width, edge_margin_px);
         } else if (RowInBand(row, middle_start, middle_end)) {
-            middle_band.Add(primary, full_span);
+            middle_band.Add(primary, full_span, frame.width, edge_margin_px);
         } else if (RowInBand(row, upper_start, upper_end)) {
-            upper_band.Add(primary, full_span);
+            upper_band.Add(primary, full_span, frame.width, edge_margin_px);
         }
 
         previous_primary = primary;
@@ -353,10 +419,29 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
                         metrics.upper_valid_row_count);
 
     metrics.upper_full_span_ratio = SafeRatio(upper_band.full_span_rows, metrics.upper_valid_row_count);
+    metrics.upper_full_span_consecutive_rows_max = upper_band.full_span_consecutive_rows_max;
+    metrics.left_upper_border_touch_ratio =
+        SafeRatio(upper_band.left_border_touch_rows, metrics.upper_valid_row_count);
+    metrics.right_upper_border_touch_ratio =
+        SafeRatio(upper_band.right_border_touch_rows, metrics.upper_valid_row_count);
     metrics.left_open = static_cast<float>(metrics.lower_left - metrics.upper_left);
     metrics.right_open = static_cast<float>(metrics.upper_right - metrics.lower_right);
     metrics.left_contract = static_cast<float>(metrics.upper_left - metrics.lower_left);
     metrics.right_contract = static_cast<float>(metrics.lower_right - metrics.upper_right);
+    metrics.left_dx_lower_mid = metrics.middle_left - metrics.lower_left;
+    metrics.left_dx_mid_upper = metrics.upper_left - metrics.middle_left;
+    metrics.right_dx_lower_mid = metrics.middle_right - metrics.lower_right;
+    metrics.right_dx_mid_upper = metrics.upper_right - metrics.middle_right;
+    metrics.left_curvature =
+        static_cast<float>(metrics.left_dx_mid_upper - metrics.left_dx_lower_mid);
+    metrics.right_curvature =
+        static_cast<float>(metrics.right_dx_mid_upper - metrics.right_dx_lower_mid);
+    metrics.left_visible_confident =
+        !metrics.left_edge_missing_bottom && metrics.middle_valid_row_count > 0 &&
+        metrics.upper_valid_row_count >= 2;
+    metrics.right_visible_confident =
+        !metrics.right_edge_missing_bottom && metrics.middle_valid_row_count > 0 &&
+        metrics.upper_valid_row_count >= 2;
 
     const float normalized_error =
         std::abs(metrics.lateral_error) / static_cast<float>(std::max(1, frame.width / 4));
@@ -373,8 +458,83 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
 
     metrics.zebra_candidate =
         metrics.transitions_bottom >= 8 && metrics.lane_width_bottom >= frame.width / 3;
-    metrics.cross_candidate = MeetsSpecialWidePrecondition(SteeringSceneContext{frame, params, port::LegacySteeringState{}, metrics});
+    metrics.cross_candidate =
+        HasCrossUpperFullSpanStructure(SteeringSceneContext{frame, params, port::LegacySteeringState{}, metrics});
     return metrics;
+}
+
+bool HasCrossUpperFullSpanStructure(const SteeringSceneContext& context) {
+    const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
+    return context.metrics.upper_full_span_consecutive_rows_max >=
+           wide.cross_upper_full_span_consec_rows_min;
+}
+
+bool HasCircleLeftEntryStructure(const SteeringSceneContext& context) {
+    const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
+    return EdgeHasStrongCurveSignal(context.metrics.left_dx_lower_mid,
+                                    context.metrics.left_dx_mid_upper,
+                                    context.metrics.left_curvature,
+                                    wide) &&
+           EdgeLooksStraight(context.metrics.right_visible_confident,
+                             context.metrics.right_upper_border_touch_ratio,
+                             context.metrics.right_curvature,
+                             wide);
+}
+
+bool HasCircleRightEntryStructure(const SteeringSceneContext& context) {
+    const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
+    return EdgeHasStrongCurveSignal(context.metrics.right_dx_lower_mid,
+                                    context.metrics.right_dx_mid_upper,
+                                    context.metrics.right_curvature,
+                                    wide) &&
+           EdgeLooksStraight(context.metrics.left_visible_confident,
+                             context.metrics.left_upper_border_touch_ratio,
+                             context.metrics.left_curvature,
+                             wide);
+}
+
+bool LooksLikeOrdinaryBend(const SteeringSceneContext& context) {
+    if (HasCrossUpperFullSpanStructure(context)) {
+        return false;
+    }
+
+    const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
+    const bool left_curve = EdgeHasStrongCurveSignal(context.metrics.left_dx_lower_mid,
+                                                     context.metrics.left_dx_mid_upper,
+                                                     context.metrics.left_curvature,
+                                                     wide);
+    const bool right_curve = EdgeHasStrongCurveSignal(context.metrics.right_dx_lower_mid,
+                                                      context.metrics.right_dx_mid_upper,
+                                                      context.metrics.right_curvature,
+                                                      wide);
+    const bool left_straight = EdgeLooksStraight(context.metrics.left_visible_confident,
+                                                 context.metrics.left_upper_border_touch_ratio,
+                                                 context.metrics.left_curvature,
+                                                 wide);
+    const bool right_straight = EdgeLooksStraight(context.metrics.right_visible_confident,
+                                                  context.metrics.right_upper_border_touch_ratio,
+                                                  context.metrics.right_curvature,
+                                                  wide);
+    if (left_curve && right_curve) {
+        return true;
+    }
+    if (left_curve && !right_straight) {
+        return true;
+    }
+    if (right_curve && !left_straight) {
+        return true;
+    }
+
+    const int left_motion_sign =
+        DominantMotionSign(context.metrics.left_dx_lower_mid,
+                           context.metrics.left_dx_mid_upper,
+                           wide.edge_motion_min_px);
+    const int right_motion_sign =
+        DominantMotionSign(context.metrics.right_dx_lower_mid,
+                           context.metrics.right_dx_mid_upper,
+                           wide.edge_motion_min_px);
+    return left_motion_sign != 0 && left_motion_sign == right_motion_sign &&
+           !HasCircleLeftEntryStructure(context) && !HasCircleRightEntryStructure(context);
 }
 
 bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context) {
@@ -391,7 +551,20 @@ bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context) {
     const float lower_width_ratio =
         static_cast<float>(context.metrics.lower_width_median) /
         static_cast<float>(std::max(1, context.frame.width));
-    return lower_width_ratio >= static_cast<float>(wide.special_wide_lower_width_min_ratio);
+    if (lower_width_ratio < static_cast<float>(wide.special_wide_lower_width_min_ratio)) {
+        return false;
+    }
+
+    const bool cross_precondition = HasCrossUpperFullSpanStructure(context);
+    const bool circle_precondition =
+        HasCircleLeftEntryStructure(context) || HasCircleRightEntryStructure(context);
+    if (!cross_precondition && !circle_precondition) {
+        return false;
+    }
+    if (LooksLikeOrdinaryBend(context)) {
+        return false;
+    }
+    return true;
 }
 
 }  // namespace ls2k::legacy
