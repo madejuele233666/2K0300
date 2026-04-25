@@ -225,7 +225,7 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
 //Build verification helper binaries
-LS2K_BUILD_VERIFICATION_HELPERS:BOOL=ON
+LS2K_BUILD_VERIFICATION_HELPERS:BOOL=OFF
 
 //The directory containing a CMake configuration file for OpenCV.
 OpenCV_DIR:PATH=/opt/ls_2k0300_env/opencv_4_10_build/lib/cmake/opencv4
