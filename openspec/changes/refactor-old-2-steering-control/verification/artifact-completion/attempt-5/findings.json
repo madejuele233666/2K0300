@@ -1,0 +1,16 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DOCS-F1",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The repaired docs still leave the roadblock-related reset/debug contract internally inconsistent: the post-reset baseline defines a diagnostic \"roadblock source=`not_implemented`\", while the retained/removed/added field contract exposes `roadblock_interface_state` with the reset-ready value family `supported_not_implemented`. The docs do not say whether these are the same field, two different public fields, or which value the post-reset snapshot must actually publish.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:207-211 defines post-reset diagnostic source fields including `roadblock source=not_implemented`. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:393-399 defines the `ControlDebugSnapshot::steering` / `control.steering_snapshot` public field contract, which includes `roadblock_interface_state` with `supported_not_implemented` and does not define a `roadblock source` field. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md:49-51 requires a one-to-one retained/removed/added field contract plus a concrete post-reset clean baseline.",
+      "recommendation": "Reconcile the reset baseline and field table so the roadblock diagnostic contract uses one explicit public field name and one explicit reset value set. Either document a separate `roadblock_source` field in the retained/removed/added contract, or rewrite the baseline to use the existing `roadblock_interface_state` contract and its documented reset value consistently.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

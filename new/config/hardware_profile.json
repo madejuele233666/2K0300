@@ -1,7 +1,7 @@
 {
   "camera": {
     "mode": "direct-match",
-    "hook": "phase1-160x120-to-160x128-no-exp-light-control"
+    "hook": "parameterized-direct-gray-no-exp-light-control"
   },
   "imu": {
     "mode": "direct-match",

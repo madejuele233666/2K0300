@@ -13,6 +13,8 @@ Additional verifier-output fixtures may contain:
 
 - a normalized combined JSON envelope with top-level `findings` plus nested
   `verifier_evidence` under `fixtures/verifier-output/`
+- current-state-only orchestrator input examples under
+  `fixtures/orchestrator-inputs/`
 
 The fixtures are intended for:
 
@@ -20,3 +22,6 @@ The fixtures are intended for:
 - orchestrator reasoning examples
 - normalized output envelope validation
 - documentation references
+
+Review-run fixtures keep `agent-table.json` current-state-only even when the
+directory still preserves older `attempt-*` history.

@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-04-24T02:29:48Z",
+  "control_csv": "/home/madejuele/projects/2K0300/new/verification/steering-media-disconnect-20260424T022839Z/control.csv",
+  "control_telemetry_frames": 107,
+  "control_state_events": {
+    "snapshot_cleared": 1
+  },
+  "steering_media_summary": "/home/madejuele/projects/2K0300/new/verification/steering-media-disconnect-20260424T022839Z/control-steering-media/summary.json",
+  "steering_media_frames": 11,
+  "steering_media_connected": true
+}

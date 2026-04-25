@@ -42,6 +42,31 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     return fallback;
 }
 
+void RememberCameraCapture(RuntimeState& state, const port::CameraCapture& capture) {
+    state.latest_camera_capture = capture;
+    state.recent_camera_captures.Push(capture);
+}
+
+void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analysis, RuntimeState& state) {
+    const port::PerceptionResult& perception = analysis.perception;
+    state.steering_state.highest_line = perception.highest_line;
+    state.steering_state.farthest_line = perception.farthest_line;
+    state.steering_state.steering_reference_col = perception.steering_reference_col;
+    state.steering_state.active_module = perception.active_module;
+    state.steering_state.scene_phase = perception.scene_phase;
+    state.steering_state.scene_override_source = perception.scene_override_source;
+    state.steering_state.roadblock_interface_state = perception.roadblock_interface_state;
+    state.steering_state.last_special_scene_correction = perception.last_special_scene_correction;
+    state.steering_state.roadblock_active = perception.roadblock_active;
+    state.steering_state.special_wide_candidate = analysis.special_wide_candidate;
+    state.steering_state.special_wide_candidate_streak = analysis.special_wide_candidate_streak;
+    state.steering_state.special_wide_cross_score_last = analysis.special_wide_cross_score_last;
+    state.steering_state.special_wide_circle_left_score_last =
+        analysis.special_wide_circle_left_score_last;
+    state.steering_state.special_wide_circle_right_score_last =
+        analysis.special_wide_circle_right_score_last;
+}
+
 }  // namespace
 
 PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
@@ -93,7 +118,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
         fallback.publish_time_ms = port::NowMs();
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        state_.latest_camera_capture = capture;
+        RememberCameraCapture(state_, capture);
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
@@ -128,23 +153,31 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         }
 
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        state_.latest_camera_capture = capture;
+        RememberCameraCapture(state_, capture);
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
     }
 
-    port::PerceptionResult perception =
+    port::LegacySteeringState prior_state{};
+    {
+        std::lock_guard<std::mutex> lock(state_.shared_mutex);
+        prior_state = state_.steering_state;
+    }
+    const legacy::SteeringAnalysisResult analysis =
         legacy::AnalyzeFrame(capture.frame,
                              params,
+                             prior_state,
                              state_.low_voltage_emergency.load(),
                              capture.frame_id,
                              capture.capture_time_ms);
+    port::PerceptionResult perception = analysis.perception;
     perception.publish_time_ms = port::NowMs();
 
     std::lock_guard<std::mutex> lock(state_.shared_mutex);
-    state_.latest_camera_capture = capture;
+    RememberCameraCapture(state_, capture);
     state_.perception = perception;
+    ApplyPerceptionToSteeringState(analysis, state_);
     ++state_.perception_publish_count;
 }
 

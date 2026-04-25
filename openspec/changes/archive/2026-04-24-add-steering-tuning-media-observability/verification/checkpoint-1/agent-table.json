@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-steering-tuning-media-observability",
+  "agents": [
+    {
+      "agent_id": "019dbd59-e013-7511-b36d-a4e5987c93d9",
+      "status": "closed",
+      "resumable": false,
+      "last_verdict": "block",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of checkpoint 1 for add-steering-tuning-media-observability, limited to the steering snapshot field surface and the project-owned non-assistant export contract for tasks 1.1-1.4.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:03:49Z"
+    },
+    {
+      "agent_id": "019dbd72-a539-7162-9522-d97a2920dd01",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of the steering snapshot surface and non-assistant export contract for tasks 1.1-1.4 of add-steering-tuning-media-observability.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:42:32Z"
+    }
+  ]
+}

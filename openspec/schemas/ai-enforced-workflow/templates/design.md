@@ -26,7 +26,7 @@ and shared verification-cycle contracts:
 
 Stage A flow:
 
-- checkpoints use the same `active/non_active/closed` verification cycle
+- checkpoints use the same `active/non_active` verification cycle
 - docs-first checkpoints use changed `proposal/specs/design/tasks` as the
   primary surface
 - source-first checkpoints use changed code, tests, and directly impacted code
@@ -35,8 +35,7 @@ Stage A flow:
 - repository-level `.index/` material is optional background only
 - verification continues a usable `active` agent first
 - callers prefer `send_input` while that same `active` agent is still open
-- callers use `resume` only when that same `active` agent was closed and must
-  be restored
+- callers use `continuation_probe` to distinguish resume from recovery spawn
 - if no usable `active` agent exists, the orchestrator spawns one
 - only `block -> pass` marks an agent `non_active`
 - termination depends only on a valid `active` pass
@@ -49,7 +48,8 @@ Loop rule:
 
 - an `active` agent that reports `block` stays authoritative until that same
   agent returns `pass`
-- `close` or `exit` never implies `non_active`
+- `agent-table.json` stays current-state-only; recovery lives in
+  `continuation_probe`
 - valid `pass` requires
   `review_coverage.coverage_status=complete` and
   `review_coverage.exhaustive=true`
@@ -115,8 +115,8 @@ Review completion contract:
 - Default loop behavior:
   - resume `active` first
   - prefer `send_input` while that same `active` agent is still open
-  - use `resume` only when that same `active` agent was closed and must be
-    restored
+  - use `continuation_probe` to distinguish resume from dedicated recovery
+    spawn
   - spawn when no usable `active` agent exists
   - repair follows `block`
   - only `block -> pass` marks `non_active`

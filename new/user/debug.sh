@@ -28,6 +28,7 @@ MAKE_JOBS="${MAKE_JOBS:-$(nproc)}"
 RESERVE_FILE="本文件夹作用.txt"
 TAIL_LINES="${TAIL_LINES:-80}"
 ASSISTANT_PORT="${ASSISTANT_PORT:-8888}"
+STEERING_MEDIA_PORT="${STEERING_MEDIA_PORT:-8890}"
 VERIFY_LOG="${VERIFY_LOG_PATH:-${REPO_ROOT}/new/verification/runtime-smoke.log}"
 SMOKE_REMOTE_LOG="${LS2K_REMOTE_SMOKE_LOG:-${BOARD_PATH}/new_runtime_smoke.log}"
 SMOKE_REMOTE_PARAMS="${LS2K_REMOTE_SMOKE_PARAMS_PATH:-${BOARD_PATH}/default_params.smoke.json}"
@@ -42,6 +43,16 @@ SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N="${SMOKE_FAULT_INJECT_DROP_FRAME_EVERY_N:-
 SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N="${SMOKE_FAULT_INJECT_IMU_INVALID_EVERY_N:-${LS2K_FAULT_INJECT_IMU_INVALID_EVERY_N:-0}}"
 SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N="${SMOKE_FAULT_INJECT_ENCODER_INVALID_EVERY_N:-${LS2K_FAULT_INJECT_ENCODER_INVALID_EVERY_N:-0}}"
 SMOKE_FORCE_LOW_VOLTAGE="${SMOKE_FORCE_LOW_VOLTAGE:-${LS2K_FORCE_LOW_VOLTAGE:-}}"
+SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT:-5}"
+SSH_SERVER_ALIVE_INTERVAL="${SSH_SERVER_ALIVE_INTERVAL:-5}"
+SSH_SERVER_ALIVE_COUNT_MAX="${SSH_SERVER_ALIVE_COUNT_MAX:-2}"
+
+SSH_COMMON_OPTS=(
+    -o "ConnectTimeout=${SSH_CONNECT_TIMEOUT}"
+    -o "ServerAliveInterval=${SSH_SERVER_ALIVE_INTERVAL}"
+    -o "ServerAliveCountMax=${SSH_SERVER_ALIVE_COUNT_MAX}"
+    -o "StrictHostKeyChecking=accept-new"
+)
 
 log_info() {
     echo "[INFO] $1"
@@ -64,8 +75,8 @@ usage() {
 Usage:
   ./debug.sh build
   ./debug.sh assistant status
-  ./debug.sh assistant on [host] [port]
-  ./debug.sh assistant local [port]
+  ./debug.sh assistant on [host] [control_port] [media_port]
+  ./debug.sh assistant local [control_port] [media_port]
   ./debug.sh assistant off
   ./debug.sh bench calibrate [calibrate_pwm.py args...]
   ./debug.sh remote start [normal|smoke]
@@ -74,6 +85,7 @@ Usage:
   ./debug.sh remote status
   ./debug.sh remote logs
   ./debug.sh tuning [tune_speed.py args...]
+  ./debug.sh steering [tune_steering.py args...]
   ./debug.sh smoke run
   ./debug.sh smoke local
   ./debug.sh smoke help
@@ -84,6 +96,7 @@ Command groups:
   bench      run open-loop PWM/encoder bench workflows
   remote     start/stop/check the runtime process on the board
   tuning     run the Python host-side speed tuning workflow
+  steering   run the passive host-side steering debug capture workflow
   smoke      execute the runtime smoke harness and collect a verification log
 
 Common env overrides:
@@ -96,7 +109,11 @@ EOF
 }
 
 run_ssh() {
-    ssh "${BOARD_USER}@${BOARD_IP}" "$@"
+    ssh "${SSH_COMMON_OPTS[@]}" "${BOARD_USER}@${BOARD_IP}" "$@"
+}
+
+run_scp() {
+    scp -O "${SSH_COMMON_OPTS[@]}" "$@"
 }
 
 require_local_file() {
@@ -146,8 +163,60 @@ import json
 import sys
 
 path, field_name = sys.argv[1:3]
+
+def strip_json_comments(text: str) -> str:
+    output = []
+    in_string = False
+    escaped = False
+    in_line_comment = False
+    in_block_comment = False
+    i = 0
+    while i < len(text):
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if in_line_comment:
+            if c == "\n":
+                in_line_comment = False
+                output.append(c)
+            i += 1
+            continue
+        if in_block_comment:
+            if c == "\n":
+                output.append(c)
+            elif c == "*" and nxt == "/":
+                in_block_comment = False
+                i += 1
+            i += 1
+            continue
+        if in_string:
+            output.append(c)
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            output.append(c)
+            i += 1
+            continue
+        if c == "/" and nxt == "/":
+            in_line_comment = True
+            i += 2
+            continue
+        if c == "/" and nxt == "*":
+            in_block_comment = True
+            i += 2
+            continue
+        output.append(c)
+        i += 1
+    return "".join(output)
+
 with open(path, "r", encoding="utf-8") as f:
-    data = json.load(f)
+    data = json.loads(strip_json_comments(f.read()))
 
 assistant_tcp = data.get("assistant_tcp", {})
 if field_name == "host":
@@ -156,6 +225,12 @@ elif field_name == "port":
     print(int(assistant_tcp.get("port", 8888)))
 elif field_name == "enabled":
     print(1 if data.get("assistant_enabled") else 0)
+elif field_name == "media_enabled":
+    print(1 if data.get("steering_media_enabled") else 0)
+elif field_name == "media_port":
+    print(int(data.get("steering_media_port", 8890)))
+elif field_name == "media_interval":
+    print(int(data.get("steering_media_publish_interval_ms", 80)))
 else:
     raise SystemExit(f"unknown field: {field_name}")
 PY
@@ -166,8 +241,59 @@ assistant_print_status() {
 import json
 import sys
 
+def strip_json_comments(text: str) -> str:
+    output = []
+    in_string = False
+    escaped = False
+    in_line_comment = False
+    in_block_comment = False
+    i = 0
+    while i < len(text):
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if in_line_comment:
+            if c == "\n":
+                in_line_comment = False
+                output.append(c)
+            i += 1
+            continue
+        if in_block_comment:
+            if c == "\n":
+                output.append(c)
+            elif c == "*" and nxt == "/":
+                in_block_comment = False
+                i += 1
+            i += 1
+            continue
+        if in_string:
+            output.append(c)
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            output.append(c)
+            i += 1
+            continue
+        if c == "/" and nxt == "/":
+            in_line_comment = True
+            i += 2
+            continue
+        if c == "/" and nxt == "*":
+            in_block_comment = True
+            i += 2
+            continue
+        output.append(c)
+        i += 1
+    return "".join(output)
+
 with open(sys.argv[1], "r", encoding="utf-8") as f:
-    data = json.load(f)
+    data = json.loads(strip_json_comments(f.read()))
 
 assistant_tcp = data.get("assistant_tcp", {})
 summary = {
@@ -177,6 +303,9 @@ summary = {
     "assistant_port": int(assistant_tcp.get("port", 8888)),
     "waveform_interval_ms": data.get("assistant_waveform_publish_interval_ms"),
     "image_interval_ms": data.get("assistant_image_publish_interval_ms"),
+    "steering_media_enabled": 1 if data.get("steering_media_enabled") else 0,
+    "steering_media_port": int(data.get("steering_media_port", 8890)),
+    "steering_media_publish_interval_ms": data.get("steering_media_publish_interval_ms"),
 }
 for key, value in summary.items():
     print(f"{key}={value}")
@@ -187,20 +316,77 @@ assistant_update_params() {
     local enabled="$1"
     local host="$2"
     local port="$3"
+    local media_enabled="$4"
+    local media_port="$5"
 
-    python3 - "${PARAMS_PATH}" "${enabled}" "${host}" "${port}" <<'PY'
+    python3 - "${PARAMS_PATH}" "${enabled}" "${host}" "${port}" "${media_enabled}" "${media_port}" <<'PY'
 import json
 import sys
 
-path, enabled_raw, host, port_raw = sys.argv[1:5]
+path, enabled_raw, host, port_raw, media_enabled_raw, media_port_raw = sys.argv[1:7]
 enabled = enabled_raw == "1"
 port = int(port_raw)
+media_enabled = media_enabled_raw == "1"
+media_port = int(media_port_raw)
+
+def strip_json_comments(text: str) -> str:
+    output = []
+    in_string = False
+    escaped = False
+    in_line_comment = False
+    in_block_comment = False
+    i = 0
+    while i < len(text):
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if in_line_comment:
+            if c == "\n":
+                in_line_comment = False
+                output.append(c)
+            i += 1
+            continue
+        if in_block_comment:
+            if c == "\n":
+                output.append(c)
+            elif c == "*" and nxt == "/":
+                in_block_comment = False
+                i += 1
+            i += 1
+            continue
+        if in_string:
+            output.append(c)
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            output.append(c)
+            i += 1
+            continue
+        if c == "/" and nxt == "/":
+            in_line_comment = True
+            i += 2
+            continue
+        if c == "/" and nxt == "*":
+            in_block_comment = True
+            i += 2
+            continue
+        output.append(c)
+        i += 1
+    return "".join(output)
 
 with open(path, "r", encoding="utf-8") as f:
-    data = json.load(f)
+    data = json.loads(strip_json_comments(f.read()))
 
 assistant_tcp = data.setdefault("assistant_tcp", {})
 data["assistant_enabled"] = 1 if enabled else 0
+data["steering_media_enabled"] = 1 if media_enabled else 0
+data["steering_media_port"] = media_port
 if host:
     assistant_tcp["host"] = host
 assistant_tcp["port"] = port
@@ -216,6 +402,9 @@ summary = {
     "assistant_port": assistant_tcp.get("port", 0),
     "waveform_interval_ms": data.get("assistant_waveform_publish_interval_ms"),
     "image_interval_ms": data.get("assistant_image_publish_interval_ms"),
+    "steering_media_enabled": data.get("steering_media_enabled", 0),
+    "steering_media_port": data.get("steering_media_port", 8890),
+    "steering_media_publish_interval_ms": data.get("steering_media_publish_interval_ms"),
 }
 for key, value in summary.items():
     print(f"{key}={value}")
@@ -226,8 +415,8 @@ assistant_usage() {
     cat <<'EOF'
 Usage:
   ./debug.sh assistant status
-  ./debug.sh assistant on [host] [port]
-  ./debug.sh assistant local [port]
+  ./debug.sh assistant on [host] [control_port] [media_port]
+  ./debug.sh assistant local [control_port] [media_port]
   ./debug.sh assistant off
 EOF
 }
@@ -243,6 +432,8 @@ assistant_command() {
         on)
             local host="${2:-${ASSISTANT_HOST:-}}"
             local port="${3:-${ASSISTANT_PORT}}"
+            local media_enabled="${STEERING_MEDIA_ENABLED:-1}"
+            local media_port="${4:-${STEERING_MEDIA_PORT}}"
             if [[ -z "${host}" ]]; then
                 host="$(detect_local_ip || true)"
             fi
@@ -253,20 +444,22 @@ assistant_command() {
                 log_error "unable to resolve assistant host; pass it explicitly"
                 exit 1
             fi
-            assistant_update_params "1" "${host}" "${port}"
+            assistant_update_params "1" "${host}" "${port}" "${media_enabled}" "${media_port}"
             ;;
         local)
             local port="${2:-${ASSISTANT_PORT}}"
+            local media_enabled="${STEERING_MEDIA_ENABLED:-1}"
+            local media_port="${3:-${STEERING_MEDIA_PORT}}"
             local host
             host="$(detect_local_ip || true)"
             if [[ -z "${host}" ]]; then
                 log_error "unable to detect local IPv4 for BOARD_IP=${BOARD_IP}"
                 exit 1
             fi
-            assistant_update_params "1" "${host}" "${port}"
+            assistant_update_params "1" "${host}" "${port}" "${media_enabled}" "${media_port}"
             ;;
         off)
-            assistant_update_params "0" "$(assistant_read_field host)" "$(assistant_read_field port)"
+            assistant_update_params "0" "$(assistant_read_field host)" "$(assistant_read_field port)" "0" "$(assistant_read_field media_port)"
             ;;
         -h|--help|help)
             assistant_usage
@@ -322,9 +515,9 @@ EOF
     fi
 
     log_info "uploading runtime assets to ${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}"
-    scp -O "${artifact_path}" "${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}/"
-    scp -O "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
-    scp -O "${PROFILE_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PROFILE_NORMAL}"
+    run_scp "${artifact_path}" "${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}/"
+    run_scp "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
+    run_scp "${PROFILE_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PROFILE_NORMAL}"
     log_info "upload complete"
 }
 
@@ -523,9 +716,111 @@ remote_command() {
 tuning_command() {
     local script_path="${WORK_DIR}/tune_speed.py"
     local python_bin
+    local -a args=("$@")
     require_local_file "${script_path}" "tuning workflow"
     python_bin="$(resolve_python)"
-    "${python_bin}" "${script_path}" "$@"
+
+    local has_media_port=0
+    local token
+    for token in "${args[@]}"; do
+        if [[ "${token}" == "--media-listen-port" || "${token}" == --media-listen-port=* ]]; then
+            has_media_port=1
+            break
+        fi
+    done
+
+    if [[ "${has_media_port}" -eq 0 && "$(assistant_read_field media_enabled)" == "1" ]]; then
+        args+=(--media-listen-port "$(assistant_read_field media_port)")
+    fi
+
+    "${python_bin}" "${script_path}" "${args[@]}"
+}
+
+steering_command() {
+    local script_path="${WORK_DIR}/tune_steering.py"
+    local python_bin
+    local -a args=("$@")
+    require_local_file "${script_path}" "steering workflow"
+    python_bin="$(resolve_python)"
+
+    local has_listen_host=0
+    local has_listen_port=0
+    local has_media_port=0
+    local has_board_ip=0
+    local has_board_user=0
+    local has_remote_log=0
+    local has_ssh_connect_timeout=0
+    local has_ssh_server_alive_interval=0
+    local has_ssh_server_alive_count_max=0
+    local token
+    for token in "${args[@]}"; do
+        if [[ "${token}" == "--listen-host" || "${token}" == --listen-host=* ]]; then
+            has_listen_host=1
+        elif [[ "${token}" == "--listen-port" || "${token}" == --listen-port=* ]]; then
+            has_listen_port=1
+        elif [[ "${token}" == "--media-listen-port" || "${token}" == --media-listen-port=* ]]; then
+            has_media_port=1
+        elif [[ "${token}" == "--board-ip" || "${token}" == --board-ip=* ]]; then
+            has_board_ip=1
+        elif [[ "${token}" == "--board-user" || "${token}" == --board-user=* ]]; then
+            has_board_user=1
+        elif [[ "${token}" == "--remote-log" || "${token}" == --remote-log=* ]]; then
+            has_remote_log=1
+        elif [[ "${token}" == "--ssh-connect-timeout" || "${token}" == --ssh-connect-timeout=* ]]; then
+            has_ssh_connect_timeout=1
+        elif [[ "${token}" == "--ssh-server-alive-interval" || "${token}" == --ssh-server-alive-interval=* ]]; then
+            has_ssh_server_alive_interval=1
+        elif [[ "${token}" == "--ssh-server-alive-count-max" || "${token}" == --ssh-server-alive-count-max=* ]]; then
+            has_ssh_server_alive_count_max=1
+        fi
+    done
+
+    if [[ "${has_listen_host}" -eq 0 ]]; then
+        local host
+        host="$(assistant_read_field host)"
+        if [[ -z "${host}" ]]; then
+            host="$(detect_local_ip || true)"
+        fi
+        if [[ -z "${host}" ]]; then
+            log_error "unable to resolve assistant host; pass --listen-host explicitly"
+            exit 1
+        fi
+        args+=(--listen-host "${host}")
+    fi
+
+    if [[ "${has_listen_port}" -eq 0 ]]; then
+        args+=(--listen-port "$(assistant_read_field port)")
+    fi
+
+    if [[ "${has_media_port}" -eq 0 && "$(assistant_read_field media_enabled)" == "1" ]]; then
+        args+=(--media-listen-port "$(assistant_read_field media_port)")
+    fi
+
+    if [[ "${has_board_ip}" -eq 0 ]]; then
+        args+=(--board-ip "${BOARD_IP}")
+    fi
+
+    if [[ "${has_board_user}" -eq 0 ]]; then
+        args+=(--board-user "${BOARD_USER}")
+    fi
+
+    if [[ "${has_remote_log}" -eq 0 ]]; then
+        args+=(--remote-log "${REMOTE_LOG}")
+    fi
+
+    if [[ "${has_ssh_connect_timeout}" -eq 0 ]]; then
+        args+=(--ssh-connect-timeout "${SSH_CONNECT_TIMEOUT}")
+    fi
+
+    if [[ "${has_ssh_server_alive_interval}" -eq 0 ]]; then
+        args+=(--ssh-server-alive-interval "${SSH_SERVER_ALIVE_INTERVAL}")
+    fi
+
+    if [[ "${has_ssh_server_alive_count_max}" -eq 0 ]]; then
+        args+=(--ssh-server-alive-count-max "${SSH_SERVER_ALIVE_COUNT_MAX}")
+    fi
+
+    "${python_bin}" "${script_path}" "${args[@]}"
 }
 
 bench_usage() {
@@ -718,10 +1013,10 @@ smoke_run_remote() {
         return 1
     fi
 
-    if scp -O "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_PARAMS}"; then
-        if scp -O "${tmp_profile}" "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_PROFILE}"; then
+    if run_scp "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_PARAMS}"; then
+        if run_scp "${tmp_profile}" "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_PROFILE}"; then
             runtime_invoked=1
-            if ssh "${BOARD_USER}@${BOARD_IP}" \
+            if run_ssh \
                 "BOARD_BIN='${BOARD_BIN}' REMOTE_LOG='${SMOKE_REMOTE_LOG}' RUNTIME_ENV='${runtime_env}' SMOKE_MAX_FRAMES='${SMOKE_MAX_FRAMES}' bash -s" <<'EOF'
 set -euo pipefail
 chmod +x "${BOARD_BIN}"
@@ -770,7 +1065,7 @@ EOF
                 remote_status=$?
             fi
 
-            if scp -O "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_LOG}" "${tmp_log}"; then
+            if run_scp "${BOARD_USER}@${BOARD_IP}:${SMOKE_REMOTE_LOG}" "${tmp_log}"; then
                 copy_status=0
             else
                 copy_status=$?
@@ -893,6 +1188,10 @@ main() {
         tuning)
             shift
             tuning_command "$@"
+            ;;
+        steering)
+            shift
+            steering_command "$@"
             ;;
         bench)
             shift

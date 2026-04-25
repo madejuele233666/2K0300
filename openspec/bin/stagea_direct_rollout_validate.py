@@ -22,7 +22,7 @@ from pathlib import Path
 try:
     import jsonschema
 except ModuleNotFoundError as exc:  # pragma: no cover - environment-specific
-    raise SystemExit("jsonschema is required to validate agent-spawn-decision-v1") from exc
+    raise SystemExit("jsonschema is required to validate Stage A contracts") from exc
 
 try:
     import yaml
@@ -103,11 +103,10 @@ SCOPE_PATTERNS = {
         "verification-cycle-agent-table-v1.json",
         "`active`",
         "`non_active`",
-        "`closed`",
         "`send_input`",
         "`agent not found`",
         "`no_usable_active_agent` means only that `agent-table.json`",
-        "`resume` only when that same `active` agent was",
+        "`continuation_probe`",
         "`block` to a valid `pass`",
         "`review_coverage.coverage_status=complete`",
         "`review_coverage.exhaustive=true`",
@@ -116,7 +115,7 @@ SCOPE_PATTERNS = {
         "continue active verifier",
         "prefer send_input while still open",
         "if send_input says agent not found, resume that same active agent",
-        "otherwise resume if that same active agent was closed",
+        "use continuation_probe to distinguish resume from recovery spawn",
         "`spawn_reason_code`",
         "normalized JSON only; malformed output blocks the step",
         "verify-reviewer-inline-v3",
@@ -124,6 +123,7 @@ SCOPE_PATTERNS = {
         "verification-cycle-agent-table-v1.json",
         "mark_non_active",
         "terminate on valid active pass",
+        "current-state-only",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/schema.yaml": [
         "verification-cycle-core-v1.json",
@@ -137,11 +137,11 @@ SCOPE_PATTERNS = {
         "verification-cycle-core-v1.json",
         "verification-cycle-openspec-adapter-v1.json",
         "verification-cycle-agent-table-v1.json",
-        "`active/non_active/closed` verification cycle",
+        "`active/non_active` verification cycle",
         "`verify-reviewer-inline-v3`",
         "verification continues a usable `active` agent first",
         "prefer `send_input` while that same `active` agent is still open",
-        "use `resume` only when that same `active` agent was closed",
+        "use `continuation_probe` to distinguish resume from recovery spawn",
         "only `block -> pass` marks `non_active`",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/tasks.md": [
@@ -151,7 +151,7 @@ SCOPE_PATTERNS = {
         "agent-table.json",
         "prefer `send_input` while the same active agent is still open",
         "`send_input` returning `agent not found` still routes to `resume`, not",
-        "use `resume` only when that same active agent was closed",
+        "current-state-only `agent-table.json`",
         "`no_usable_active_agent` means only that `agent-table.json` literally",
         "only `block -> pass` marks an agent `non_active`",
         "valid active pass",
@@ -214,16 +214,17 @@ SCOPE_PATTERNS = {
         "agent-table.json",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json": [
+        "\"deprecated\": true",
+        "\"legacy_status\"",
         "no_usable_active_agent",
         "active_agent_missing",
         "active_agent_not_resumable",
         "\"status\"",
         "\"active\"",
-        "\"closed\"",
         "\"agent_table_path\"",
     ],
     MODULE_ROOT / "README.md": [
-        "The active model is agent-state-based",
+        "current-state agent baseline",
         "eight rules",
         "prefer `send_input`",
         "agent-table.json",
@@ -235,7 +236,7 @@ SCOPE_PATTERNS = {
         "prefer `send_input`",
         "If `send_input` returns `agent not found`",
         "`no_usable_active_agent` has only that literal",
-        "use `resume` only when that same",
+        "`continuation_probe`",
         "Do not invent archived dual-session phases.",
     ],
     MODULE_ROOT / "REFERENCE-INDEX.md": [
@@ -251,7 +252,7 @@ SCOPE_PATTERNS = {
         "`resume_active`",
         "prefer `send_input`",
         "`latest_result`",
-        "use `resume` only when that same `active` agent was closed",
+        "`continuation_probe` is the only recovery input",
         "`spawn_reason_code`",
         "`active_agent_missing`",
         "`active_agent_not_resumable`",
@@ -426,6 +427,9 @@ def validate_verification_cycle_fixtures() -> list[str]:
 
 def validate_negative_guard_cases() -> list[str]:
     source_fixture = RUN_DIR_FIXTURES[1]
+    core_contract = json.loads(
+        (MODULE_ROOT / "contracts/verification-cycle-core-v1.json").read_text()
+    )
     errors: list[str] = []
 
     def run_mutated_case(case_name: str, mutate: callable, expected_markers: list[str]) -> None:
@@ -463,10 +467,18 @@ def validate_negative_guard_cases() -> list[str]:
         table_path.write_text(json.dumps(payload, indent=2) + "\n")
 
     def mutate_invalid_terminal_pass(temp_run: Path) -> None:
+        evidence_path = temp_run / "attempt-3/verifier-evidence.json"
         table_path = temp_run / "agent-table.json"
-        payload = json.loads(table_path.read_text())
-        payload["agents"][1]["coverage_status"] = "partial"
-        table_path.write_text(json.dumps(payload, indent=2) + "\n")
+        table_payload = json.loads(table_path.read_text())
+        evidence_payload = json.loads(evidence_path.read_text())
+        table_payload["agents"][0]["coverage_status"] = "partial"
+        table_payload["agents"][0]["exhaustive"] = False
+        table_payload["agents"][0]["scope"] = ""
+        evidence_payload["review_coverage"]["coverage_status"] = "partial"
+        evidence_payload["review_coverage"]["exhaustive"] = False
+        evidence_payload["review_scope"]["scope"] = ""
+        table_path.write_text(json.dumps(table_payload, indent=2) + "\n")
+        evidence_path.write_text(json.dumps(evidence_payload, indent=2) + "\n")
 
     def mutate_subject_mismatch(temp_run: Path) -> None:
         findings_path = temp_run / "attempt-1/findings.json"
@@ -549,8 +561,8 @@ def validate_negative_guard_cases() -> list[str]:
     def mutate_agent_row_points_to_blocking_attempt(temp_run: Path) -> None:
         table_path = temp_run / "agent-table.json"
         payload = json.loads(table_path.read_text())
-        payload["agents"][1]["findings_path"] = "attempt-1/findings.json"
-        payload["agents"][1]["verifier_evidence_path"] = "attempt-1/verifier-evidence.json"
+        payload["agents"][0]["findings_path"] = "attempt-1/findings.json"
+        payload["agents"][0]["verifier_evidence_path"] = "attempt-1/verifier-evidence.json"
         table_path.write_text(json.dumps(payload, indent=2) + "\n")
 
     def mutate_terminal_scalar_findings_payload(temp_run: Path) -> None:
@@ -564,8 +576,8 @@ def validate_negative_guard_cases() -> list[str]:
     def mutate_agent_row_points_to_blocking_attempt(temp_run: Path) -> None:
         table_path = temp_run / "agent-table.json"
         payload = json.loads(table_path.read_text())
-        payload["agents"][1]["findings_path"] = "attempt-1/findings.json"
-        payload["agents"][1]["verifier_evidence_path"] = "attempt-1/verifier-evidence.json"
+        payload["agents"][0]["findings_path"] = "attempt-1/findings.json"
+        payload["agents"][0]["verifier_evidence_path"] = "attempt-1/verifier-evidence.json"
         table_path.write_text(json.dumps(payload, indent=2) + "\n")
 
     def mutate_pass_with_blocking_finding(temp_run: Path) -> None:
@@ -600,6 +612,21 @@ def validate_negative_guard_cases() -> list[str]:
         payload["start_at"] = "2026-04-18T10:05:00Z"
         payload["end_at"] = "2026-04-18T10:04:59Z"
         evidence_path.write_text(json.dumps(payload, indent=2) + "\n")
+
+    def mutate_fast_pass_wrong_final_state(temp_run: Path) -> None:
+        findings_path = temp_run / "attempt-3/findings.json"
+        evidence_path = temp_run / "attempt-3/verifier-evidence.json"
+        findings_payload = json.loads(findings_path.read_text())
+        evidence_payload = json.loads(evidence_path.read_text())
+        findings_payload["verdict"] = "pass"
+        findings_payload["findings"] = []
+        for field in core_contract["verifier_evidence_required"]:
+            if field in set(core_contract.get("fast_pass_evidence_required", [])):
+                continue
+            evidence_payload.pop(field, None)
+        evidence_payload["final_state"] = "completed"
+        findings_path.write_text(json.dumps(findings_payload, indent=2) + "\n")
+        evidence_path.write_text(json.dumps(evidence_payload, indent=2) + "\n")
 
     def mutate_exhaustive_pass_with_unreviewed_axes(temp_run: Path) -> None:
         evidence_path = temp_run / "attempt-1/verifier-evidence.json"
@@ -642,7 +669,7 @@ def validate_negative_guard_cases() -> list[str]:
     run_mutated_case(
         "negative-invalid-terminal-pass",
         mutate_invalid_terminal_pass,
-        ["Termination requires the active agent to hold a valid pass"],
+        ["Partial verification must declare scope"],
     )
     run_mutated_case(
         "negative-subject-mismatch",
@@ -712,12 +739,12 @@ def validate_negative_guard_cases() -> list[str]:
     run_mutated_case(
         "negative-terminal-scalar-findings-payload",
         mutate_terminal_scalar_findings_payload,
-        ["terminal findings.json must be a JSON object"],
+        ["active findings.json must be a JSON object"],
     )
     run_mutated_case(
         "negative-terminal-scalar-evidence-payload",
         mutate_terminal_scalar_evidence_payload,
-        ["terminal verifier-evidence.json must be a JSON object"],
+        ["active verifier-evidence.json must be a JSON object"],
     )
     run_mutated_case(
         "negative-agent-row-points-to-blocking-attempt",
@@ -748,6 +775,11 @@ def validate_negative_guard_cases() -> list[str]:
         "negative-reversed-timestamps",
         mutate_reversed_timestamps,
         ["Verifier evidence end_at must be greater than or equal to start_at"],
+    )
+    run_mutated_case(
+        "negative-fast-pass-wrong-final-state",
+        mutate_fast_pass_wrong_final_state,
+        ["fast-pass must use final_state='completed_pass'"],
     )
     return errors
 
@@ -937,6 +969,9 @@ def validate_findings_payloads(
     if not isinstance(findings, list):
         errors.append(f"{findings_label} must contain findings as an array")
         return errors
+    full_evidence_fields = core_contract["verifier_evidence_required"]
+    has_full_evidence = all(field in evidence_payload for field in full_evidence_fields)
+    is_fast_pass = verdict == "pass" and not findings and not has_full_evidence
 
     required_review_goal = core_contract["invocation_common_constants"]["review_goal"]
     if evidence_payload.get("review_goal") != required_review_goal:
@@ -969,7 +1004,12 @@ def validate_findings_payloads(
             f"{evidence_label} final_state must be one of {sorted(allowed_final_states)}"
         )
 
-    for field in core_contract["verifier_evidence_required"]:
+    required_evidence_fields = (
+        core_contract.get("fast_pass_evidence_required", full_evidence_fields)
+        if is_fast_pass
+        else full_evidence_fields
+    )
+    for field in required_evidence_fields:
         if field not in evidence_payload:
             errors.append(f"{evidence_label} missing verifier evidence field: {field}")
             continue
@@ -983,7 +1023,12 @@ def validate_findings_payloads(
 
     parsed_timestamps: dict[str, object] = {}
     for field in core_contract.get("verifier_timestamp_fields", []):
-        parsed = _parse_datetime_value(evidence_payload.get(field))
+        value = evidence_payload.get(field)
+        if value is None:
+            if not is_fast_pass:
+                errors.append(f"{evidence_label} {field} must be a valid date-time string")
+            continue
+        parsed = _parse_datetime_value(value)
         if parsed is None:
             errors.append(f"{evidence_label} {field} must be a valid date-time string")
             continue
@@ -995,10 +1040,12 @@ def validate_findings_payloads(
     coverage = (evidence_payload.get("review_coverage") or {}).get("coverage_status")
     exhaustive = (evidence_payload.get("review_coverage") or {}).get("exhaustive")
     scope = (evidence_payload.get("review_scope") or {}).get("scope", "")
-    if coverage == "partial" and not str(scope).strip():
-        errors.append(f"{evidence_label} invalid: partial coverage must declare scope")
     if verdict == "pass" and (coverage != "complete" or exhaustive is not True):
         errors.append(f"{findings_label} invalid: pass requires complete+exhaustive review")
+    if coverage == "partial" and not str(scope).strip():
+        errors.append(f"{evidence_label} invalid: partial coverage must declare scope")
+    if is_fast_pass and evidence_payload.get("final_state") != "completed_pass":
+        errors.append(f"{evidence_label} invalid: fast-pass must use final_state='completed_pass'")
 
     allowed_axes = set(core_contract["review_axes_allowed"])
     reviewed_axes = evidence_payload.get("reviewed_axes")
@@ -1420,6 +1467,18 @@ def validate_negative_combined_output_cases() -> list[str]:
                         f"Negative combined-output case {name} failed without expected marker {marker!r}"
                     )
 
+    def validate_positive_case(name: str, mutate: callable) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture_path = Path(tmpdir) / "combined-envelope.json"
+            fixture_path.write_text(COMBINED_OUTPUT_FIXTURE.read_text())
+            mutate(fixture_path)
+            case_errors = validate_combined_verifier_output_payload(fixture_path, core_contract)
+            if case_errors:
+                errors.append(
+                    f"Positive combined-output case unexpectedly failed: {name}: "
+                    + "; ".join(case_errors)
+                )
+
     def mutate_missing_verifier_evidence(fixture_path: Path) -> None:
         payload = json.loads(fixture_path.read_text())
         payload.pop("verifier_evidence", None)
@@ -1476,6 +1535,16 @@ def validate_negative_combined_output_cases() -> list[str]:
         payload["verifier_evidence"]["unreviewed_axes"] = ["Completeness", "Correctness", "Coherence"]
         fixture_path.write_text(json.dumps(payload, indent=2) + "\n")
 
+    def mutate_valid_fast_pass(fixture_path: Path) -> None:
+        payload = json.loads(fixture_path.read_text())
+        payload["verdict"] = "pass"
+        payload["findings"] = []
+        evidence = payload["verifier_evidence"]
+        evidence["final_state"] = "completed_pass"
+        for field in ["start_at", "end_at", "review_scope", "reviewed_paths", "skipped_paths"]:
+            evidence.pop(field, None)
+        fixture_path.write_text(json.dumps(payload, indent=2) + "\n")
+
     validate_case(
         "missing-verifier-evidence",
         mutate_missing_verifier_evidence,
@@ -1509,12 +1578,16 @@ def validate_negative_combined_output_cases() -> list[str]:
     validate_case(
         "partial-non-exhaustive-pass",
         mutate_partial_non_exhaustive_pass,
-        ["pass requires complete+exhaustive review"],
+        ["partial coverage must declare scope"],
     )
     validate_case(
         "exhaustive-pass-with-unreviewed-axes",
         mutate_exhaustive_pass_with_unreviewed_axes,
         ["exhaustive pass must keep unreviewed_axes empty"],
+    )
+    validate_positive_case(
+        "valid-fast-pass",
+        mutate_valid_fast_pass,
     )
     return errors
 
@@ -1539,112 +1612,22 @@ def validate_task_template_ids() -> list[str]:
 def validate_spawn_schema_semantics() -> list[str]:
     path = OPENSPEC_ROOT / "schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json"
     schema = json.loads(path.read_text())
-    reasons = set(schema["properties"]["reason_code"]["enum"])
+    errors: list[str] = []
+    if schema.get("deprecated") is not True:
+        errors.append(f"{path} must declare deprecated=true")
+    legacy_status = schema.get("legacy_status")
+    if not isinstance(legacy_status, str) or "archive-only" not in legacy_status:
+        errors.append(f"{path} must describe archive-only legacy usage")
+    reasons = set((schema.get("properties") or {}).get("reason_code", {}).get("enum", []))
     required = {
         "no_usable_active_agent",
         "active_agent_missing",
         "active_agent_not_resumable",
         "tooling_recovery",
     }
-    errors: list[str] = []
     missing = required - reasons
     if missing:
         errors.append(f"Spawn reason_code enum missing required values in {path}: {sorted(missing)}")
-    for branch in schema.get("allOf", []):
-        reason_spec = branch.get("if", {}).get("properties", {}).get("reason_code", {})
-        reason = reason_spec.get("const")
-        if reason in required:
-            decision_const = branch.get("then", {}).get("properties", {}).get("decision", {}).get("const")
-            if decision_const != "allow":
-                errors.append(f"Spawn schema branch for {reason!r} must constrain decision=allow in {path}")
-
-    validator = jsonschema.Draft202012Validator(schema)
-
-    def validate_instance(name: str, payload: dict[str, object], should_pass: bool) -> None:
-        instance_errors = sorted(validator.iter_errors(payload), key=lambda err: list(err.path))
-        if should_pass and instance_errors:
-            errors.append(
-                f"Spawn schema rejected valid {name} payload: "
-                + "; ".join(error.message for error in instance_errors)
-            )
-        if not should_pass and not instance_errors:
-            errors.append(f"Spawn schema unexpectedly accepted invalid {name} payload")
-
-    base = {
-        "contract": "agent-spawn-decision-v1",
-        "change": "verification-cycle-self-test",
-        "phase": "implementation_verify",
-        "requested_agent_type": "verify-reviewer",
-        "decision": "allow",
-        "recorded_at": "2026-04-18T12:34:56Z",
-        "evidence": {
-            "agent_table_path": "openspec/changes/verification-cycle-self-test/verification/agent-table.json"
-        },
-    }
-
-    validate_instance(
-        "bootstrap no_usable_active_agent",
-        {
-            **base,
-            "reason_code": "no_usable_active_agent",
-            "prior_agent": {"agent_id": None, "status": "none", "resumable": False},
-        },
-        should_pass=True,
-    )
-    validate_instance(
-        "post-non-active no_usable_active_agent",
-        {
-            **base,
-            "reason_code": "no_usable_active_agent",
-            "prior_agent": {"agent_id": "verifier-1", "status": "non_active", "resumable": False},
-        },
-        should_pass=True,
-    )
-    validate_instance(
-        "post-closed no_usable_active_agent",
-        {
-            **base,
-            "reason_code": "no_usable_active_agent",
-            "prior_agent": {"agent_id": "verifier-2", "status": "closed", "resumable": False},
-        },
-        should_pass=True,
-    )
-    validate_instance(
-        "active_agent_missing",
-        {
-            **base,
-            "reason_code": "active_agent_missing",
-            "prior_agent": {"agent_id": "verifier-3", "status": "active", "resumable": False},
-        },
-        should_pass=True,
-    )
-    validate_instance(
-        "active_agent_not_resumable",
-        {
-            **base,
-            "reason_code": "active_agent_not_resumable",
-            "prior_agent": {"agent_id": "verifier-4", "status": "active", "resumable": False},
-        },
-        should_pass=True,
-    )
-    validate_instance(
-        "invalid active no_usable_active_agent",
-        {
-            **base,
-            "reason_code": "no_usable_active_agent",
-            "prior_agent": {"agent_id": "verifier-5", "status": "active", "resumable": False},
-        },
-        should_pass=False,
-    )
-    validate_instance(
-        "invalid closed null-agent no_usable_active_agent",
-        {
-            **base,
-            "reason_code": "no_usable_active_agent",
-            "prior_agent": {"agent_id": None, "status": "closed", "resumable": False},
-        },
-        should_pass=False,
-    )
     return errors
 
 
@@ -1664,6 +1647,40 @@ def validate_send_input_resume_contract() -> list[str]:
             "cycle_rules",
             "verifier_evidence_required",
             "agent-table.json",
+        ],
+    )
+    return errors
+
+
+def validate_agent_table_ownership_contract() -> list[str]:
+    errors: list[str] = []
+    tasks_template_path = OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/tasks.md"
+    schema_path = OPENSPEC_ROOT / "schemas/ai-enforced-workflow/schema.yaml"
+
+    errors += require_tokens_between(
+        tasks_template_path,
+        "- [ ] 2.3 [Checkpoint]",
+        "## 3.",
+        [
+            "Write authoritative findings JSON and verifier evidence JSON; the caller/orchestrator reconciles and writes `agent-table.json`.",
+        ],
+    )
+    errors += require_tokens_between(
+        schema_path,
+        "CHECKPOINTS:",
+        "SKILL AWARENESS:",
+        [
+            "Require authoritative findings JSON and verifier",
+            "caller/orchestrator-maintained",
+            "`agent-table.json`",
+        ],
+    )
+    errors += require_tokens_between(
+        schema_path,
+        "- maintain `agent-table.json` as authoritative agent-state record",
+        "- finding semantics: follow `finding_semantics` and",
+        [
+            "caller-maintained `agent-table.json`",
         ],
     )
     return errors
@@ -1966,7 +1983,6 @@ def validate_orchestrator_contracts() -> list[str]:
                     {
                         "agent_id": "verifier-1",
                         "status": "active",
-                        "resumable": True,
                         "last_verdict": "unknown",
                         "coverage_status": "unknown",
                         "exhaustive": False,
@@ -1992,7 +2008,6 @@ def validate_orchestrator_contracts() -> list[str]:
                     {
                         "agent_id": "verifier-1",
                         "status": "active",
-                        "resumable": True,
                         "last_verdict": "unknown",
                         "coverage_status": "unknown",
                         "exhaustive": False,
@@ -2019,12 +2034,16 @@ def validate_orchestrator_contracts() -> list[str]:
                     {
                         "agent_id": "verifier-1",
                         "status": "active",
-                        "resumable": False,
-                        "last_verdict": "block",
+                        "last_verdict": "unknown",
                         "coverage_status": "unknown",
                         "exhaustive": False,
                     }
                 ]
+            },
+            "continuation_probe": {
+                "agent_id": "verifier-1",
+                "send_input_result": "agent_not_found",
+                "resume_result": "not_resumable",
             },
         },
         {
@@ -2041,7 +2060,6 @@ def validate_orchestrator_contracts() -> list[str]:
                     {
                         "agent_id": "verifier-1",
                         "status": "active",
-                        "resumable": True,
                         "last_verdict": "block",
                         "coverage_status": "unknown",
                         "exhaustive": False,
@@ -2069,7 +2087,6 @@ def validate_orchestrator_contracts() -> list[str]:
                     {
                         "agent_id": "verifier-1",
                         "status": "active",
-                        "resumable": True,
                         "last_verdict": "block",
                         "coverage_status": "unknown",
                         "exhaustive": False,
@@ -2086,6 +2103,46 @@ def validate_orchestrator_contracts() -> list[str]:
         },
         {
             "decision": "resume_active",
+        },
+    )
+    run_resolver_case(
+        "active-block-enters-repair",
+        {
+            **base,
+            "agent_table": {
+                "agents": [
+                    {
+                        "agent_id": "verifier-1",
+                        "status": "active",
+                        "last_verdict": "block",
+                        "coverage_status": "complete",
+                        "exhaustive": True,
+                    }
+                ]
+            },
+        },
+        {
+            "decision": "enter_repair",
+        },
+    )
+    run_resolver_case(
+        "active-valid-pass-terminates",
+        {
+            **base,
+            "agent_table": {
+                "agents": [
+                    {
+                        "agent_id": "verifier-1",
+                        "status": "active",
+                        "last_verdict": "pass",
+                        "coverage_status": "complete",
+                        "exhaustive": True,
+                    }
+                ]
+            },
+        },
+        {
+            "decision": "terminate",
         },
     )
 
@@ -2188,7 +2245,7 @@ def validate_core_contract_payload(payload: dict[str, object], path: Path) -> li
 
     expected_spawn_reason_semantics = [
         "`no_usable_active_agent` means agent-table.json contains no active agent.",
-        "`active_agent_missing` and `active_agent_not_resumable` are distinct recovery spawn cases after the required send_input/resume path.",
+        "`active_agent_missing` and `active_agent_not_resumable` are distinct recovery spawn cases derived only from continuation_probe.",
     ]
     if payload.get("spawn_reason_semantics") != expected_spawn_reason_semantics:
         errors.append(f"verification-cycle spawn_reason_semantics drifted in {path}")
@@ -2196,12 +2253,12 @@ def validate_core_contract_payload(payload: dict[str, object], path: Path) -> li
     expected_cycle_rules = [
         "If a usable active agent exists, continue it first.",
         "Prefer send_input while that same active agent is still open.",
-        "Use resume only when that same active agent was closed and must be restored.",
-        "Spawn a new active agent only when agent-table.json contains no active agent or the prior active agent entered a distinct recovery spawn case.",
+        "If send_input reports agent_not_found, require continuation_probe and try resume for that same active agent next.",
+        "Use continuation_probe.resume_result to distinguish resume_active from the recovery spawn cases.",
+        "Spawn a new active agent only when agent-table.json contains no active agent or continuation_probe proves a distinct recovery spawn case.",
         "When an active agent reports block, repair until that same agent reports pass.",
         "Only block->pass may mark an agent non_active.",
-        "Close or exit does not imply non_active.",
-        "Termination may use only a valid pass.",
+        "Termination may use only a valid pass from the current active agent.",
     ]
     if payload.get("cycle_rules") != expected_cycle_rules:
         errors.append(f"verification-cycle core cycle_rules drifted in {path}")
@@ -2463,6 +2520,7 @@ def main() -> int:
     errors += validate_task_template_ids()
     errors += validate_spawn_schema_semantics()
     errors += validate_send_input_resume_contract()
+    errors += validate_agent_table_ownership_contract()
     errors += validate_verify_reviewer_contract()
     errors += validate_verification_cycle_core_contract()
     errors += validate_adapter_contracts()

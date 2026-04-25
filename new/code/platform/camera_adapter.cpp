@@ -5,10 +5,17 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 #include <string>
 
 namespace ls2k::platform {
 namespace {
+
+std::string GeometryText(int width, int height) {
+    std::ostringstream stream;
+    stream << width << "x" << height;
+    return stream.str();
+}
 
 class CameraAdapter final : public port::ICameraAdapter {
 public:
@@ -26,8 +33,22 @@ public:
         }
 
         enabled_ = true;
+        expected_width_ = params.camera_frame_width;
+        expected_height_ = params.camera_frame_height;
         adaptation_hook_ = profile.camera.mode == port::SubsystemMode::kAdaptationHook;
         hook_name_ = profile.camera.hook;
+
+        if (expected_width_ <= 0 || expected_height_ <= 0 ||
+            expected_width_ > port::kCompiledCameraFrameWidth ||
+            expected_height_ > port::kCompiledCameraFrameHeight) {
+            diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
+                              "camera.geometry.invalid",
+                              "configured camera_frame_width/camera_frame_height exceed compiled frame storage",
+                              port::NowMs()});
+            enabled_ = false;
+            ready_ = false;
+            return false;
+        }
 
         if (adaptation_hook_) {
             // Explicit adaptation-hook mode is treated as an intentional extension path.
@@ -69,8 +90,10 @@ public:
         port::CameraCapture out{};
         out.frame_id = ++frame_id_;
         out.capture_time_ms = port::NowMs();
-        out.source_width = port::kPhase1UvcWidth;
-        out.source_height = port::kPhase1UvcHeight;
+        out.source_width = expected_width_;
+        out.source_height = expected_height_;
+        out.frame.width = expected_width_;
+        out.frame.height = expected_height_;
 
         if (!enabled_) {
             out.marker = port::CameraGeometryMarker::kAdapterNotReady;
@@ -89,14 +112,15 @@ public:
         }
 
         const char* force_geometry = std::getenv("LS2K_FORCE_UVC_GEOMETRY");
-        if (force_geometry != nullptr && std::string(force_geometry) != "160x120") {
+        if (force_geometry != nullptr &&
+            std::string(force_geometry) != GeometryText(expected_width_, expected_height_)) {
             out.marker = port::CameraGeometryMarker::kNonPhase1Geometry;
-            out.source_width = 320;
-            out.source_height = 240;
+            out.source_width = expected_width_;
+            out.source_height = expected_height_;
             port::EmitRateLimited(diagnostics,
                                   {port::DiagnosticLevel::kWarning,
                                    "camera.geometry.override",
-                                   "forced non-160x120 geometry marker path",
+                                   "forced non-expected geometry marker path",
                                    out.capture_time_ms},
                                   1000);
             return out;
@@ -116,25 +140,13 @@ public:
 
         out.source_width = frame.width;
         out.source_height = frame.height;
-        if (frame.width != port::kPhase1UvcWidth || frame.height != port::kPhase1UvcHeight) {
+        if (frame.width != expected_width_ || frame.height != expected_height_) {
             out.marker = port::CameraGeometryMarker::kNonPhase1Geometry;
             return out;
         }
 
-        // Phase-1 camera contract:
-        // source rows 0..119 -> destination rows 8..127, rows 0..7 duplicate source row 0.
-        for (int row = 0; row < port::kPhase1UvcHeight; ++row) {
-            uint8_t* dst =
-                &out.frame.gray[static_cast<std::size_t>(row + 8) * port::kLegacyFrameWidth];
-            std::memcpy(
-                dst,
-                frame.gray + static_cast<std::size_t>(row) * port::kPhase1UvcWidth,
-                port::kLegacyFrameWidth);
-        }
-        for (int row = 0; row < 8; ++row) {
-            uint8_t* dst = &out.frame.gray[static_cast<std::size_t>(row) * port::kLegacyFrameWidth];
-            std::memcpy(dst, frame.gray, port::kLegacyFrameWidth);
-        }
+        const std::size_t frame_bytes = out.frame.PixelCount();
+        std::memcpy(out.frame.gray.data(), frame.gray, frame_bytes);
 
         out.has_frame = true;
         out.marker = port::CameraGeometryMarker::kPhase1Adapted;
@@ -158,6 +170,8 @@ private:
     bool adaptation_hook_ = false;
     std::string hook_name_ = "direct-match";
     uint64_t frame_id_ = 0;
+    int expected_width_ = port::kCompiledCameraFrameWidth;
+    int expected_height_ = port::kCompiledCameraFrameHeight;
 };
 
 }  // namespace

@@ -1,0 +1,26 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "docs-first-scope-missing-verify-reviewer-profile",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The docs-first review bundle is missing a file that the change artifacts themselves declare as part of the mandatory docs-first review surface, so this checkpoint cannot be treated as complete and exhaustive.",
+      "evidence": "Tasks require the artifact-completion docs-first input to include `.codex/agents/verify-reviewer.toml` alongside `proposal/specs/design/tasks`, shared verification contracts, and `CALLER-INTEGRATION.md` (tasks.md:48-51). The design also declares `.codex/agents/verify-reviewer.toml` as the verifier agent path for these checkpoints (design.md:353-356). The provided `evidence_paths_or_diff_scope` omits `/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml`.",
+      "recommendation": "Add `/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml` to the docs-first review surface, then rerun the artifact-completion review so coverage can be complete and exhaustive.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "source-first-checkpoint-map-inconsistent-between-design-and-tasks",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The source-first checkpoint plan is internally inconsistent between `design.md` and `tasks.md`, which makes the review sequence and authoritative output paths ambiguous.",
+      "evidence": "The design defines source-first checkpoint-1 as reference-alignment extraction, checkpoint-2 as perception/scene-state, checkpoint-3 as steering control/runtime integration, and checkpoint-4 as final fixture and non-regression proof (design.md:389-396). The tasks instead label perception/scene-state as checkpoint-1 (tasks.md:55-58), steering-control/runtime integration as checkpoint-2 (tasks.md:62-65), then require final review artifacts in checkpoint-3 and checkpoint-4 paths without an explicit checkpoint-3 task definition (tasks.md:69-72).",
+      "recommendation": "Make `tasks.md` and `design.md` use the same checkpoint numbering and surfaces. Either add the missing explicit checkpoint-3 task and keep the design numbering, or renumber the design/tasks consistently so each checkpoint has one clear surface and one authoritative output path.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

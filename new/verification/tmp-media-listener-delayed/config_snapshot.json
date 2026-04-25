@@ -1,0 +1,7 @@
+{
+  "type": "config_snapshot",
+  "media_publish_interval_ms": 80,
+  "param_snapshot": {
+    "pid_turn_camera_d": 0.0
+  }
+}

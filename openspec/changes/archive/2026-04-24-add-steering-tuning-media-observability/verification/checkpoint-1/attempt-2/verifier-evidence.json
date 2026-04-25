@@ -1,0 +1,25 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "967ec299-6e22-43aa-8d1f-6e164636f115",
+  "final_state": "completed_pass",
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "dimensions_reviewed": [
+      "Completeness",
+      "Correctness",
+      "Coherence"
+    ],
+    "notes": "Exhaustive source-first review covered the scoped steering snapshot/export surface, the prior blocking themes, the preserved assistant/media-disabled selftest evidence, and a local rerun of new/verification/tests/run_steering_media_selftest.sh. The runtime-owned steering snapshot now carries the accepted fields to control.steering_snapshot on the project-owned non-assistant surface, including vetoed steering snapshots, and the checkpoint now preserves assistant-disabled proof via the focused selftest source plus passing log artifact."
+  },
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

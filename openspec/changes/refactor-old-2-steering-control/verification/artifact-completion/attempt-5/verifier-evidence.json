@@ -1,0 +1,38 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer-inline",
+  "start_at": "2026-04-25T00:00:00+08:00",
+  "end_at": "2026-04-25T00:30:00+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Exhaustive docs-first review of the declared OpenSpec change docs and required verification references in the provided bundle."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-perception-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-scene-state/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

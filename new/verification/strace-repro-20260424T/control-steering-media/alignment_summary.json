@@ -1,0 +1,35 @@
+{
+  "timestamp_utc": "2026-04-24T05:32:15Z",
+  "control_csv": "/home/madejuele/projects/2K0300/new/verification/strace-repro-20260424T/control.csv",
+  "control_session_start_monotonic_ms": 13018091,
+  "control_row_count": 7,
+  "control_telemetry_frames": 0,
+  "control_state_events": {
+    "input_rejected": 2
+  },
+  "steering_media_summary": "/home/madejuele/projects/2K0300/new/verification/strace-repro-20260424T/control-steering-media/summary.json",
+  "steering_media_frames": 80,
+  "steering_media_connected": true,
+  "media_first_host_receive_monotonic_ms": 13018104,
+  "media_last_host_receive_monotonic_ms": 13024700,
+  "alignment_basis": {
+    "control_rows_host_monotonic_ms": "same host monotonic clock as steering media host_received_monotonic_ms",
+    "control_elapsed_ms_origin": "elapsed_ms = host_monotonic_ms - control_session_start_monotonic_ms"
+  },
+  "alignment_available": true,
+  "frame_alignment_path": "/home/madejuele/projects/2K0300/new/verification/strace-repro-20260424T/control-steering-media/frame_control_alignment.jsonl",
+  "frame_alignment_count": 80,
+  "max_nearest_control_delta_ms": 6532,
+  "mean_nearest_control_delta_ms": 3241.3875,
+  "first_frame_alignment": {
+    "frame_id": 1349,
+    "media_host_received_monotonic_ms": 13018106,
+    "nearest_control_host_monotonic_ms": 13018118,
+    "nearest_control_elapsed_ms": 27,
+    "nearest_control_frame_type": "ack",
+    "nearest_control_event": "",
+    "nearest_control_cmd": "set_target_speed",
+    "nearest_control_outcome": "rejected",
+    "delta_to_nearest_control_ms": -12
+  }
+}

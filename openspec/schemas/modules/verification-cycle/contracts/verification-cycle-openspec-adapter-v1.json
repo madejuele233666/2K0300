@@ -80,7 +80,7 @@
     }
   },
   "notes": [
-    "The shared module governs active/non_active/closed verifier semantics for every OpenSpec checkpoint.",
+    "The shared module governs active/non_active current-state verifier semantics for every OpenSpec checkpoint.",
     "OpenSpec callers remain responsible for change resolution and continuation routing."
   ]
 }

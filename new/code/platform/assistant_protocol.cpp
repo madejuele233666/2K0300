@@ -283,6 +283,12 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     std::ostringstream stream;
     stream << "{\"type\":\"telemetry\",\"motion_phase\":";
     AppendJsonString(stream, telemetry.motion_phase);
+    stream << ",\"active_module\":";
+    AppendJsonString(stream, telemetry.active_module);
+    stream << ",\"scene_phase\":";
+    AppendJsonString(stream, telemetry.scene_phase);
+    stream << ",\"scene_override_source\":";
+    AppendJsonString(stream, telemetry.scene_override_source);
     stream << ",\"tuning_mode_enabled\":";
     AppendJsonBool(stream, telemetry.tuning_mode_enabled);
     stream << ",\"turn_suppressed\":";
@@ -309,6 +315,8 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     stream << ",\"right_pwm_command\":" << telemetry.right_pwm_command;
     stream << ",\"raw_turn_output\":" << telemetry.raw_turn_output;
     stream << ",\"applied_turn_output\":" << telemetry.applied_turn_output;
+    stream << ",\"farthest_line\":" << telemetry.farthest_line;
+    stream << ",\"steering_reference_col\":" << telemetry.steering_reference_col;
     stream << '}';
     return stream.str();
 }

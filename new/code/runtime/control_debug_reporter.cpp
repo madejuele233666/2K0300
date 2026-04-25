@@ -4,6 +4,13 @@
 #include <sstream>
 
 namespace ls2k::runtime {
+namespace {
+
+const char* BoolToken(bool value) {
+    return value ? "true" : "false";
+}
+
+}  // namespace
 
 void ControlDebugReporter::Configure(const port::RuntimeParameters& params) {
     interval_ms_ = std::max(1, params.control_snapshot_emit_interval_ms);
@@ -47,6 +54,42 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
     diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
                       "control.snapshot",
                       message.str(),
+                      now_ms});
+
+    if (!snapshot.steering.valid) {
+        return;
+    }
+
+    std::ostringstream steering_message;
+    steering_message << "phase=" << ToString(snapshot.motion_phase)
+                     << " frame_id=" << snapshot.steering.frame_id
+                     << " capture_time_ms=" << snapshot.steering.capture_time_ms
+                     << " lateral_error=" << snapshot.steering.lateral_error
+                     << " highest_line=" << snapshot.steering.highest_line
+                     << " farthest_line=" << snapshot.steering.farthest_line
+                     << " steering_reference_col=" << snapshot.steering.steering_reference_col
+                     << " threshold=" << snapshot.steering.threshold
+                     << " threshold_veto=" << BoolToken(snapshot.steering.threshold_veto)
+                     << " active_module=" << snapshot.steering.active_module
+                     << " scene_phase=" << snapshot.steering.scene_phase
+                     << " scene_override_source=" << snapshot.steering.scene_override_source
+                     << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
+                     << " last_special_scene_correction="
+                     << snapshot.steering.last_special_scene_correction
+                     << " roadblock_active=" << BoolToken(snapshot.steering.roadblock_active)
+                     << " resolved_fuzzy_p=" << snapshot.steering.resolved_fuzzy_p
+                     << " camera_p_term=" << snapshot.steering.camera_p_term
+                     << " camera_d_term=" << snapshot.steering.camera_d_term
+                     << " w_target=" << snapshot.steering.w_target
+                     << " gyro_z=" << snapshot.steering.gyro_z
+                     << " gyro_error=" << snapshot.steering.gyro_error
+                     << " gyro_p_term=" << snapshot.steering.gyro_p_term
+                     << " gyro_d_term=" << snapshot.steering.gyro_d_term
+                     << " raw_turn_output=" << snapshot.steering.raw_turn_output
+                     << " applied_turn_output=" << snapshot.steering.applied_turn_output;
+    diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
+                      "control.steering_snapshot",
+                      steering_message.str(),
                       now_ms});
 }
 

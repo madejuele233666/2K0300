@@ -17,7 +17,7 @@ Keep the main path short:
 continue active verifier
   -> prefer send_input while still open
   -> if send_input says agent not found, resume that same active agent
-  -> otherwise resume if that same active agent was closed
+  -> use continuation_probe to distinguish resume from recovery spawn
   -> or spawn for a literal no-active-agent case or a dedicated recovery case
   -> verifier returns block or pass
   -> repair until the same blocking agent returns valid pass
@@ -94,6 +94,7 @@ Decision mapping:
 Caller rule:
 
 - maintain `agent-table.json`
+- keep `agent-table.json` current-state-only
 - normalize current state mechanically
 - include `latest_result` in orchestrator input when the current `active`
   agent already produced a normalized verifier result
@@ -103,8 +104,8 @@ Caller rule:
 - for `resume_active`, prefer `send_input` to the same open `active` agent
 - if `send_input` returns `agent not found`, try `resume` for that same
   `active` agent next
-- use `resume` only when that same `active` agent was closed and must be
-  restored
+- use `continuation_probe.resume_result` to distinguish resume from dedicated
+  recovery spawns
 - keep `no_usable_active_agent` reserved for the literal no-`active`-entry
   case; use `active_agent_missing` or `active_agent_not_resumable` for
   recovery spawns instead of rewriting them
@@ -156,7 +157,8 @@ Partial-scope rule:
 
 - if a usable `active` agent exists, continue it first with `send_input` while
   it is still open; if `send_input` returns `agent not found`, `resume` that
-  same `active` agent next; otherwise `resume` it if it was closed
+  same `active` agent next and use `continuation_probe` to decide whether
+  recovery still stays on that baseline
 - if `agent-table.json` contains no `active` agent, or the prior `active`
   agent reached a dedicated recovery spawn case, spawn a new one and record
   it as `active`
@@ -165,7 +167,6 @@ Partial-scope rule:
 - if the active agent returns `block`, route to repair and keep that same
   agent active
 - only `block -> pass` may mark an agent `non_active`
-- `close` or `exit` does not imply `non_active`
 - termination may use only a valid pass from the current `active` agent
 
 ## Built-in Invocation Template: `verify-reviewer-inline-v3`

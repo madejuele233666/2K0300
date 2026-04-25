@@ -1,0 +1,22 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "target_ref": "workflow:fixture-active-valid-pass",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "target_ref": "workflow:fixture-active-valid-pass",
+    "agents": [
+      {
+        "agent_id": "verifier-2",
+        "status": "active",
+        "last_verdict": "pass",
+        "coverage_status": "complete",
+        "exhaustive": true,
+        "scope": "full",
+        "findings_path": "attempt-2/findings.json",
+        "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+        "updated_at": "2026-04-25T10:05:00Z"
+      }
+    ]
+  }
+}

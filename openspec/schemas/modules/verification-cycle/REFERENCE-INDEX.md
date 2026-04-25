@@ -24,6 +24,11 @@ Guard:
 
 - `bin/verification_cycle_guard.py`
 
+Fixtures:
+
+- `fixtures/review-runs/*`
+- `fixtures/orchestrator-inputs/*`
+
 Human-facing docs:
 
 - `README.md`
@@ -36,9 +41,9 @@ Human-facing docs:
 Shows:
 
 - initial active agent block
+- current-state-only active baseline
 - repair against the same agent
-- `block -> pass -> non_active`
-- final active pass for termination
+- historical attempts preserved outside `agent-table.json`
 
 ### `standalone-partial-scope-repair-close`
 
@@ -47,3 +52,4 @@ Shows:
 - partial scoped verification
 - required `scope`
 - follow-up full verification before termination
+- current-state-only terminal active pass

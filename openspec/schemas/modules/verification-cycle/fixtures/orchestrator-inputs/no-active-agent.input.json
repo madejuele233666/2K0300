@@ -1,0 +1,10 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "target_ref": "workflow:fixture-no-active-agent",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "target_ref": "workflow:fixture-no-active-agent",
+    "agents": []
+  }
+}

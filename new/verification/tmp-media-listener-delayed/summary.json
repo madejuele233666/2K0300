@@ -1,0 +1,14 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 19090,
+  "output_dir": "new/verification/tmp-media-listener-delayed",
+  "connected": true,
+  "connection_address": "127.0.0.1:43849",
+  "config_snapshot_path": "new/verification/tmp-media-listener-delayed/config_snapshot.json",
+  "metadata_path": "new/verification/tmp-media-listener-delayed/frame_metadata.jsonl",
+  "frame_dir": "new/verification/tmp-media-listener-delayed/frames",
+  "frame_count": 0,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 18197514,
+  "last_host_receive_monotonic_ms": 18197514
+}

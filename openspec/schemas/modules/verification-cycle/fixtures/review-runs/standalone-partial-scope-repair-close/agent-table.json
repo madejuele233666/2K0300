@@ -3,21 +3,8 @@
   "target_ref": "workflow:standalone-partial-scope-repair-close",
   "agents": [
     {
-      "agent_id": "verifier-a",
-      "status": "non_active",
-      "resumable": false,
-      "last_verdict": "pass",
-      "coverage_status": "complete",
-      "exhaustive": true,
-      "scope": "docs/specs",
-      "findings_path": "attempt-2/findings.json",
-      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
-      "updated_at": "2026-04-18T11:04:00Z"
-    },
-    {
       "agent_id": "verifier-b",
       "status": "active",
-      "resumable": true,
       "last_verdict": "pass",
       "coverage_status": "complete",
       "exhaustive": true,

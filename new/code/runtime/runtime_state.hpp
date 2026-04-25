@@ -1,7 +1,9 @@
 #ifndef LS2K_RUNTIME_RUNTIME_STATE_HPP
 #define LS2K_RUNTIME_RUNTIME_STATE_HPP
 
+#include <array>
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 
@@ -13,13 +15,35 @@
 
 namespace ls2k::runtime {
 
+struct CameraCaptureHistory {
+    static constexpr std::size_t kCapacity = 8;
+
+    void Push(const port::CameraCapture& capture) {
+        captures[next_index] = capture;
+        next_index = (next_index + 1) % kCapacity;
+        if (count < kCapacity) {
+            ++count;
+        }
+    }
+
+    const port::CameraCapture* FindExact(uint64_t frame_id, uint64_t capture_time_ms) const {
+        for (std::size_t offset = 0; offset < count; ++offset) {
+            const std::size_t index = (next_index + kCapacity - 1 - offset) % kCapacity;
+            const port::CameraCapture& capture = captures[index];
+            if (capture.frame_id == frame_id && capture.capture_time_ms == capture_time_ms) {
+                return &capture;
+            }
+        }
+        return nullptr;
+    }
+
+    std::array<port::CameraCapture, kCapacity> captures{};
+    std::size_t next_index = 0;
+    std::size_t count = 0;
+};
+
 struct RuntimeState {
-    // Retained and explicitly initialized carry-over patterns from legacy ISR/runtime.
-    float W_Target_last = 0.0F;
-    int bcount = 0;
-    bool circle_find = false;
-    bool zebra_flag = false;
-    bool cross_flag = false;
+    port::LegacySteeringState steering_state{};
 
     // Shared runtime channels.
     std::mutex shared_mutex{};
@@ -27,6 +51,7 @@ struct RuntimeState {
     port::ImuSample imu{};
     port::EncoderDelta encoder{};
     port::CameraCapture latest_camera_capture{};
+    CameraCaptureHistory recent_camera_captures{};
     port::ActuatorCommand last_command{};
     ControlCycleObservation control_observation{};
     ControlDebugSnapshot control_debug_snapshot{};

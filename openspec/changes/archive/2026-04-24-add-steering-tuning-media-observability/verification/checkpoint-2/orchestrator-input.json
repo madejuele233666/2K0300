@@ -1,0 +1,10 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "add-steering-tuning-media-observability",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "add-steering-tuning-media-observability",
+    "agents": []
+  }
+}

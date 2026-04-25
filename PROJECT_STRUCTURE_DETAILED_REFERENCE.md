@@ -280,12 +280,10 @@ Constants and types:
 
 | Symbol | Kind | Responsibility | Produced by / Consumed by |
 |---|---|---|---|
-| `kLegacyFrameWidth` | constant | legacy grayscale frame width (`160`) | camera/perception code |
-| `kLegacyFrameHeight` | constant | legacy grayscale frame height (`128`) | camera/perception code |
-| `kPhase1UvcWidth` | constant | expected phase-1 UVC width (`160`) | camera adapter |
-| `kPhase1UvcHeight` | constant | expected phase-1 UVC height (`120`) | camera adapter |
+| `kCompiledCameraFrameWidth` | constant | compiled max grayscale frame width (`320`) | camera/perception storage |
+| `kCompiledCameraFrameHeight` | constant | compiled max grayscale frame height (`240`) | camera/perception storage |
 | `CameraGeometryMarker` | enum | camera capture outcome classification | `CameraAdapter::Capture`, `PerceptionFrontend::ProcessOneFrame` |
-| `LegacyCameraFrame` | struct | grayscale buffer in legacy processing layout | camera adapter -> `legacy::AnalyzeFrame` |
+| `LegacyCameraFrame` | struct | grayscale buffer plus active `width/height` metadata | camera adapter -> `legacy::AnalyzeFrame` |
 | `CameraCapture` | struct | camera adapter output envelope | `ICameraAdapter::Capture` -> `PerceptionFrontend` |
 | `PerceptionResult` | struct | perception output + veto metadata | `AnalyzeFrame` or fallback path -> `ControlLoop::Tick` |
 | `ImuSample` | struct | IMU sample | `IImuAdapter::Read` -> `ControlLoop::Tick`, `LegacyAttitudeLogic` |
@@ -549,7 +547,7 @@ Concrete symbols:
 |---|---|---|---|
 | `CameraAdapter` | concrete class | implements `ICameraAdapter` | `MakeCameraAdapter` |
 | `CameraAdapter::Initialize(...)` | method | handles disabled mode, hook mode, or direct UVC initialization; sets exposure | `RunStartup` |
-| `CameraAdapter::Capture(...)` | method | captures one frame or reports a marker path; performs `160x120 -> 160x128` copy/adaptation | `PerceptionFrontend::ProcessOneFrame` |
+| `CameraAdapter::Capture(...)` | method | captures one frame or reports a marker path; validates configured geometry and copies the gray frame into project-owned storage | `PerceptionFrontend::ProcessOneFrame` |
 | `CameraAdapter::Shutdown(...)` | method | clears state and releases UVC device | `RunShutdown` |
 | `CameraAdapter::Ready()` | method | reports readiness | `RunStartup`, runtime checks |
 | `MakeCameraAdapter()` | factory | constructs adapter | `CreatePlatformBundle` |
@@ -571,7 +569,7 @@ Important capture branches:
 |---|---|
 | subsystem disabled | marker `kAdapterNotReady`, no frame |
 | adaptation hook mode | marker `kAdaptationHookRouted`, no frame, rate-limited log |
-| forced geometry override with non-`160x120` | marker `kNonPhase1Geometry`, no frame |
+| forced geometry override with non-expected geometry | marker `kNonPhase1Geometry`, no frame |
 | direct-match but device not ready | marker `kAdapterNotReady`, no frame |
 | refresh failed or gray pointer missing | marker `kEmptyFrame`, no frame |
 | direct-match success | `has_frame=true`, marker `kPhase1Adapted`, adapted legacy frame |
@@ -1089,7 +1087,7 @@ Current subsystem declarations:
 
 | Subsystem | Mode | Hook | Main consumers |
 |---|---|---|---|
-| `camera` | `direct-match` | `phase1-160x120-to-160x128` | `CameraAdapter`, startup diagnostics |
+| `camera` | `direct-match` | `parameterized-direct-gray-no-exp-light-control` | `CameraAdapter`, startup diagnostics |
 | `imu` | `direct-match` | `imu660ra-default` | `ImuAdapter` |
 | `encoder` | `direct-match` | `quadrature-default` | `EncoderAdapter` |
 | `motor` | `direct-match` | `pwm-gpio-default` | `MotorAdapter`, `ControlLoop::Start` |

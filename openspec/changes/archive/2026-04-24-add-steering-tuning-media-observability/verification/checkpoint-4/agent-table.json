@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-steering-tuning-media-observability",
+  "agents": [
+    {
+      "agent_id": "019dbd59-e182-79e2-9eac-f79dfdceaa15",
+      "status": "closed",
+      "resumable": false,
+      "last_verdict": "block",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Source-first checkpoint-4 review for OpenSpec change add-steering-tuning-media-observability, covering the accepted debug.sh/tune_speed host path, steering-media host capture path, board-side control/media wiring setup, preserved read-only scope, required runbook updates, and the declared end-to-end evidence bundle.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:03:49Z"
+    },
+    {
+      "agent_id": "019dbd72-a6a5-75b2-956d-68170c91ef21",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of the host workflow extension and evidence bundle for tasks 4.1-4.5 of add-steering-tuning-media-observability.",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:42:32Z"
+    }
+  ]
+}

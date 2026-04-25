@@ -1,0 +1,24 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "CHK1-CRIT-001",
+      "title": "Threshold-veto steering cycles never reach the non-assistant export surface",
+      "severity": "CRITICAL",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "The accepted contract requires the steering evidence surface to expose threshold_veto as part of the accepted steering snapshot fields and to make those fields visible from a non-assistant surface such as control.steering_snapshot (openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md:3-24; openspec/changes/add-steering-tuning-media-observability/tasks.md:30-32). In the implementation, threshold_veto sets perception.emergency_veto in new/code/legacy/camera_logic.cpp:121-124, and the gate converts perception_emergency_veto into a veto in new/code/runtime/control_decision.cpp:29-30. But new/code/runtime/control_loop.cpp:620-634 only sets steering_terms_valid=true inside the non-veto drive branch, while new/code/runtime/control_debug_reporter.cpp:59-84 refuses to emit control.steering_snapshot unless snapshot.steering.valid is true. As a result, threshold-veto/perception-emergency cycles never emit control.steering_snapshot, so the project-owned export cannot surface threshold_veto on the cycles where that field is true.",
+      "repair": "Decouple steering snapshot exportability from the non-veto drive branch. Preserve and emit a reportable steering snapshot for vetoed cycles as well, carrying the perception fields including threshold_veto and explicit semantics for any controller terms that were intentionally not computed."
+    },
+    {
+      "id": "CHK1-CRIT-002",
+      "title": "Checkpoint 1 lacks the required assistant-disabled proof for control.steering_snapshot",
+      "severity": "CRITICAL",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "Task 1.3 explicitly requires a focused local runtime test or diagnostics capture proving that assistant-disabled evidence still exposes the accepted steering fields (openspec/changes/add-steering-tuning-media-observability/tasks.md:30-33). The assistant-disabled parameter surface is present in new/verification/params/assistant-disabled.json:45-52, but the preserved local test artifact for this change is only openspec/changes/add-steering-tuning-media-observability/verification/local-tests/20260424T023253Z/run.log:1, which records only \"steering_media_selftest passed\" and does not exercise control.steering_snapshot at all. The inspected assistant-disabled runtime artifact new/verification/phase-b-assistant-disabled.log:50-57 shows assistant.disabled and control.snapshot, but no control.steering_snapshot evidence. The checkpoint-1 folder currently contains only agent-table.json and orchestrator-input.json, with no focused assistant-disabled capture under the change-owned verification surface.",
+      "repair": "Add and preserve a focused assistant-disabled runtime exercise for checkpoint 1: run with assistant_enabled=0 and steering media disabled, drive at least one steering-active cycle, and capture control.steering_snapshot showing all accepted fields. Store that evidence under the change-owned checkpoint-1 attempt bundle."
+    }
+  ]
+}

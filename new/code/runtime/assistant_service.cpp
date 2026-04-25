@@ -83,6 +83,9 @@ platform::AssistantStatusView BuildStatusView(const MotionSupervisorState& motio
 platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& snapshot) {
     platform::AssistantTelemetryView telemetry{};
     telemetry.motion_phase = ToString(snapshot.motion_phase);
+    telemetry.active_module = snapshot.steering.active_module;
+    telemetry.scene_phase = snapshot.steering.scene_phase;
+    telemetry.scene_override_source = snapshot.steering.scene_override_source;
     telemetry.tuning_mode_enabled = snapshot.tuning_mode_enabled;
     telemetry.turn_suppressed = snapshot.turn_suppressed;
     telemetry.target_speed_override_enabled = snapshot.target_speed_override_enabled;
@@ -96,6 +99,8 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.right_pwm_command = snapshot.right_pwm_command;
     telemetry.raw_turn_output = snapshot.raw_turn_output;
     telemetry.applied_turn_output = snapshot.applied_turn_output;
+    telemetry.farthest_line = snapshot.steering.farthest_line;
+    telemetry.steering_reference_col = snapshot.steering.steering_reference_col;
     return telemetry;
 }
 
@@ -347,7 +352,9 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         snapshot.cycle_count != last_telemetry_cycle_ &&
         (last_telemetry_publish_ms_ == 0 ||
          now_ms - last_telemetry_publish_ms_ >= static_cast<uint64_t>(telemetry_interval_ms_))) {
-        if (link_.PublishJsonLine(platform::EncodeAssistantTelemetry(BuildTelemetryView(snapshot)), diagnostics)) {
+        if (link_.PublishJsonLine(platform::EncodeAssistantTelemetry(BuildTelemetryView(snapshot)),
+                                  platform::AssistantJsonSendReliability::kBestEffort,
+                                  diagnostics)) {
             last_telemetry_publish_ms_ = now_ms;
             last_telemetry_cycle_ = snapshot.cycle_count;
         }
@@ -380,7 +387,9 @@ void AssistantService::EnqueueFeedback(std::string line) {
 
 void AssistantService::FlushFeedback(port::DiagnosticSink& diagnostics) {
     while (!pending_feedback_.empty() && link_.Ready()) {
-        if (!link_.PublishJsonLine(pending_feedback_.front(), diagnostics)) {
+        if (!link_.PublishJsonLine(pending_feedback_.front(),
+                                   platform::AssistantJsonSendReliability::kReliable,
+                                   diagnostics)) {
             return;
         }
         pending_feedback_.pop_front();
@@ -498,6 +507,10 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
     const bool enqueue_state_event = accepted && tuning_event.type != RuntimeTuningEventType::kNone;
     EnqueueFeedback(platform::EncodeAssistantAck(command.seq, accepted, reject_reason));
     FlushFeedback(diagnostics);
+
+    if (!accepted) {
+        PublishStateEvent(state, "input_rejected", reject_reason, diagnostics, now_ms);
+    }
 
     if (enqueue_state_event) {
         MotionSupervisorState motion_state{};

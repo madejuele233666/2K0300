@@ -1,0 +1,26 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DOCS-F1",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The docs keep the field-pruning policy at a principle level but do not actually define the retained, removed, and newly required steering fields, even though the control spec makes that explanation part of the contract.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md:31-36 requires the change to explain which fields are reused, deleted, and newly required. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/proposal.md:12, /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:459-507, and /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md:47-49 restate only the \"删旧增必需\" policy. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:567-569 still leaves the concrete field naming/deletion set as an open question.",
+      "recommendation": "Add a concrete steering field contract table for `RuntimeParameters`, `PerceptionResult`, `ControlDebugSnapshot::steering`, `control.steering_snapshot`, and the `new/user` consumers that marks each field as retained, removed, or newly added, and tie each required consumer update to that table.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "DOCS-F2",
+      "severity": "WARNING",
+      "dimension": "Correctness",
+      "problem": "The reset contract depends on a document-defined post-reset baseline, but the docs never define the actual initial/clean steering state that scene-state, controller memory, and roadblock placeholders must reset to.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-scene-state/spec.md:38-43 requires reset to return all modules and the roadblock placeholder to a documented initial state, and /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md:24-29 requires the first post-reset turn calculation to start from a documented clean state. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:150-178 only says state and memory are reset/cleared, without defining the concrete baseline values or module ownership after reset.",
+      "recommendation": "Document the exact post-reset steering baseline: active/default module, zeroed or preserved memory fields, roadblock placeholder state, diagnostic source fields, and the first-cycle expectations after reset for both scene-state and control.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

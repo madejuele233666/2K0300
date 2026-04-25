@@ -1,28 +1,28 @@
 #include "legacy/camera_logic.hpp"
 
-#include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
-#include <numeric>
+
+#include "legacy/steering_scene_common.hpp"
+#include "legacy/steering_scene_orchestrator.hpp"
 
 namespace ls2k::legacy {
 namespace {
 
 int OtsuThresholdFast(const port::LegacyCameraFrame& frame) {
     std::array<int, 256> hist{};
-    constexpr int kW = port::kLegacyFrameWidth;
-    constexpr int kH = port::kLegacyFrameHeight;
+    if (frame.width <= 0 || frame.height <= 0) {
+        return 0;
+    }
 
     int samples = 0;
-    for (int r = 0; r < kH; r += 2) {
-        for (int c = 0; c < kW; c += 2) {
-            const uint8_t pixel = frame.gray[static_cast<std::size_t>(r) * kW + c];
+    for (int r = 0; r < frame.height; r += 2) {
+        for (int c = 0; c < frame.width; c += 2) {
+            const uint8_t pixel = frame.gray[static_cast<std::size_t>(r) * frame.width + c];
             ++hist[pixel];
             ++samples;
         }
     }
-
     if (samples == 0) {
         return 0;
     }
@@ -58,71 +58,18 @@ int OtsuThresholdFast(const port::LegacyCameraFrame& frame) {
     return threshold;
 }
 
-float EightNeighborEquivalentError(const port::LegacyCameraFrame& frame, int threshold, int* highest_line) {
-    constexpr int kW = port::kLegacyFrameWidth;
-    constexpr int kH = port::kLegacyFrameHeight;
-
-    int best_row = 0;
-    double weighted_center_sum = 0.0;
-    double weight_sum = 0.0;
-    for (int row = kH - 2; row >= 16; --row) {
-        int left = -1;
-        int right = -1;
-        for (int col = 0; col < kW; ++col) {
-            const uint8_t px = frame.gray[static_cast<std::size_t>(row) * kW + col];
-            if (px > threshold) {
-                if (left < 0) {
-                    left = col;
-                }
-                right = col;
-            }
-        }
-        if (left >= 0 && right >= left) {
-            const double center = 0.5 * static_cast<double>(left + right);
-            const double weight = 1.0 + static_cast<double>(row) / static_cast<double>(kH);
-            weighted_center_sum += center * weight;
-            weight_sum += weight;
-            if (best_row == 0) {
-                best_row = row;
-            }
-        }
-    }
-
-    if (highest_line != nullptr) {
-        *highest_line = best_row;
-    }
-    if (weight_sum == 0.0) {
-        return 0.0F;
-    }
-
-    const double avg_center = weighted_center_sum / weight_sum;
-    return static_cast<float>(static_cast<double>(kW) * 0.5 - avg_center);
-}
-
 }  // namespace
 
-port::PerceptionResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
+SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                     const port::RuntimeParameters& params,
+                                    const port::LegacySteeringState& prior_state,
                                     bool low_voltage_emergency,
                                     uint64_t frame_id,
                                     uint64_t capture_time_ms) {
-    port::PerceptionResult result{};
-    result.published = true;
-    result.fresh = true;
-    result.frame_id = frame_id;
-    result.capture_time_ms = capture_time_ms;
-    result.publish_time_ms = capture_time_ms;
-    result.perception_tag = "otsu+eight-neighbor-equivalent";
-
-    result.threshold = OtsuThresholdFast(frame);
-    result.lateral_error = EightNeighborEquivalentError(frame, result.threshold, &result.highest_line);
-
-    result.low_voltage_veto = low_voltage_emergency;
-    result.threshold_veto =
-        (result.threshold <= params.emergency_threshold) || (result.threshold >= 220);
-    result.geometry_veto = false;
-    result.emergency_veto = result.low_voltage_veto || result.threshold_veto;
-    return result;
+    SteeringSceneContext context{frame, params, prior_state, {}};
+    context.metrics = ExtractLaneMetrics(
+        frame, OtsuThresholdFast(frame), params, prior_state.steering_reference_col);
+    return OrchestrateSteeringScenes(context, low_voltage_emergency, frame_id, capture_time_ms);
 }
 
 }  // namespace ls2k::legacy

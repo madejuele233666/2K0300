@@ -36,14 +36,6 @@ def _parse_datetime_value(value: Any) -> datetime | None:
         return None
 
 
-def valid_pass(agent: dict[str, Any]) -> bool:
-    return (
-        agent.get("last_verdict") == "pass"
-        and agent.get("coverage_status") == "complete"
-        and agent.get("exhaustive") is True
-    )
-
-
 def valid_pass_from_payloads(findings: dict[str, Any], evidence: dict[str, Any]) -> bool:
     if not isinstance(findings, dict) or not isinstance(evidence, dict):
         return False
@@ -104,7 +96,7 @@ def _validate_agent_table_payload(
     required_fields = set(
         contract["properties"]["agents"]["items"]["required"]
     )
-    allowed_status = {"active", "non_active", "closed"}
+    allowed_status = {"active", "non_active"}
     allowed_verdicts = {"block", "pass", "unknown"}
     allowed_coverage = {"complete", "partial", "unknown"}
 
@@ -132,8 +124,6 @@ def _validate_agent_table_payload(
 
         if agent.get("status") not in allowed_status:
             errors.append(f"{label} field 'status' must be one of {sorted(allowed_status)}")
-        if not isinstance(agent.get("resumable"), bool):
-            errors.append(f"{label} field 'resumable' must be boolean")
         if agent.get("last_verdict") not in allowed_verdicts:
             errors.append(f"{label} field 'last_verdict' must be one of {sorted(allowed_verdicts)}")
         if agent.get("coverage_status") not in allowed_coverage:
@@ -194,7 +184,8 @@ def _validate_required_evidence_fields(
 
 
 def _validate_evidence_semantics(
-    evidence: dict[str, Any], evidence_path: Path, contract: dict[str, Any]
+    evidence: dict[str, Any], evidence_path: Path, contract: dict[str, Any],
+    *, is_fast_pass: bool = False,
 ) -> list[str]:
     errors: list[str] = []
     required_template_id = contract.get("verifier_template_id_const")
@@ -208,6 +199,10 @@ def _validate_evidence_semantics(
     if allowed_final_states and final_state not in allowed_final_states:
         errors.append(
             f"Verifier evidence final_state must be one of {sorted(allowed_final_states)} in {evidence_path}"
+        )
+    if is_fast_pass and final_state != "completed_pass":
+        errors.append(
+            f"Verifier evidence fast-pass must use final_state='completed_pass' in {evidence_path}"
         )
 
     timestamp_fields = contract.get("verifier_timestamp_fields", [])
@@ -335,12 +330,12 @@ def validate_run_dir(run_dir: Path) -> list[str]:
     active = [agent for agent in agents if agent.get("status") == "active"]
     if len(active) > 1:
         errors.append("At most one active agent is allowed")
+    if len(active) != 1:
+        errors.append("Run dir must contain exactly one active agent baseline")
 
     for agent in agents:
         if agent.get("status") == "non_active" and agent.get("last_verdict") != "pass":
             errors.append(f"non_active agent must have pass verdict: {agent.get('agent_id')}")
-        if agent.get("status") == "closed" and agent.get("last_verdict") == "pass":
-            errors.append(f"closed agent pass cannot substitute for non_active: {agent.get('agent_id')}")
         if agent.get("coverage_status") == "partial" and not str(agent.get("scope", "")).strip():
             errors.append(f"partial agent must declare scope: {agent.get('agent_id')}")
 
@@ -407,7 +402,14 @@ def validate_run_dir(run_dir: Path) -> list[str]:
             evidence, evidence_path, core_contract,
             is_fast_pass=(verdict == "pass" and not findings_items),
         ))
-        errors.extend(_validate_evidence_semantics(evidence, evidence_path, core_contract))
+        errors.extend(
+            _validate_evidence_semantics(
+                evidence,
+                evidence_path,
+                core_contract,
+                is_fast_pass=(verdict == "pass" and not findings_items),
+            )
+        )
         if verdict not in {"block", "pass"}:
             errors.append(f"Invalid verdict in {findings_path}")
         if not isinstance(findings_items, list):
@@ -440,8 +442,6 @@ def validate_run_dir(run_dir: Path) -> list[str]:
             errors.append(f"pass verdict cannot contain blocking findings in {findings_path}")
         if coverage == "partial" and not str(scope).strip():
             errors.append(f"Partial verification must declare scope in {evidence_path}")
-        if verdict == "pass" and (coverage != "complete" or exhaustive is not True):
-            errors.append(f"Pass requires complete+exhaustive review in {evidence_path}")
         reviewed_axes = evidence.get("reviewed_axes")
         unreviewed_axes = evidence.get("unreviewed_axes")
         if verdict == "pass" and exhaustive is True and isinstance(reviewed_axes, list) and isinstance(unreviewed_axes, list):
@@ -504,24 +504,44 @@ def validate_run_dir(run_dir: Path) -> list[str]:
             errors.append(f"{row_label} exhaustive must match referenced evidence")
         if str(row_scope) != str(agent.get("scope")):
             errors.append(f"{row_label} scope must match referenced evidence")
+        if agent.get("status") == "non_active" and not valid_pass_from_payloads(
+            findings_payload, evidence_payload
+        ):
+            errors.append(f"{row_label} non_active rows must reference a valid pass")
 
     if active:
-        terminal_agent = active[0]
-        findings_path = (run_dir / terminal_agent["findings_path"]).resolve()
-        evidence_path = (run_dir / terminal_agent["verifier_evidence_path"]).resolve()
-        if not findings_path.exists() or not evidence_path.exists():
-            errors.append("Termination requires the active agent to reference existing findings/evidence artifacts")
+        active_agent = active[0]
+        findings_ref = active_agent.get("findings_path")
+        evidence_ref = active_agent.get("verifier_evidence_path")
+        if not isinstance(findings_ref, str) or not findings_ref.strip():
+            errors.append("Active agent findings_path must be a non-empty string")
+            return errors
+        if not isinstance(evidence_ref, str) or not evidence_ref.strip():
+            errors.append("Active agent verifier_evidence_path must be a non-empty string")
+            return errors
+        findings_path = (run_dir / findings_ref).resolve()
+        evidence_path = (run_dir / evidence_ref).resolve()
+        if (
+            not findings_path.exists()
+            or not evidence_path.exists()
+            or not findings_path.is_file()
+            or not evidence_path.is_file()
+        ):
+            errors.append("Active agent must reference existing findings/evidence artifacts")
         else:
             findings_payload = load_json(findings_path)
             evidence_payload = load_json(evidence_path)
-            errors.extend(_require_object_payload(findings_payload, findings_path, "terminal findings.json"))
-            errors.extend(_require_object_payload(evidence_payload, evidence_path, "terminal verifier-evidence.json"))
-            if not valid_pass_from_payloads(findings_payload, evidence_payload):
-                errors.append("Termination requires the active agent to hold a valid pass in referenced artifacts")
-        if findings_path.exists() and evidence_path.exists() and not valid_pass(terminal_agent):
-            errors.append("Termination requires the active agent to hold a valid pass")
-    else:
-        errors.append("Run dir must end with one active terminal agent")
+            errors.extend(_require_object_payload(findings_payload, findings_path, "active findings.json"))
+            errors.extend(_require_object_payload(evidence_payload, evidence_path, "active verifier-evidence.json"))
+            if isinstance(findings_payload, dict) and isinstance(evidence_payload, dict):
+                active_verdict = findings_payload.get("verdict")
+                if active_verdict == "block":
+                    pass
+                elif active_verdict == "pass":
+                    if not valid_pass_from_payloads(findings_payload, evidence_payload):
+                        errors.append("Active pass evidence must satisfy complete+exhaustive valid-pass requirements")
+                else:
+                    errors.append("Active agent must reference block or pass findings")
 
     return errors
 

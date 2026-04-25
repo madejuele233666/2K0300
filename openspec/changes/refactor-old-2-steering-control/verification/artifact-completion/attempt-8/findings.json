@@ -1,0 +1,16 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DOCS-F1",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The repaired docs still do not express the post-reset clean baseline using the full exact public field-name set published in the field contract table, so the reset contract remains partly implicit instead of mechanically reviewable from the docs surface.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md:51 names only `active_module=straight`, `scene_override_source=none`, `roadblock_interface_state=supported_not_implemented`, `last_special_scene_correction=none`, roadblock `active=false`, prior-cycle memory clearing, and first-cycle turn restart semantics. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:195-201 likewise encodes some reset outputs indirectly as prose (`circle / zebra / cross module state: idle`, `turn-reference column carry-over`) instead of the exact public field names. But the field contract table publishes the public names explicitly in /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:361-368 (`highest_line`, `farthest_line`, `steering_reference_col`, `active_module`, `scene_phase`, `roadblock_interface_state`) and /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:375-398 (`raw_turn_output`, `applied_turn_output`, `farthest_line`, `steering_reference_col`, `active_module`, `scene_phase`, `scene_override_source`, `roadblock_interface_state`, `last_special_scene_correction`).",
+      "recommendation": "Rewrite the post-reset clean baseline in the docs surface, including task 3.3.1, using the exact public field names and reset values from the contract table rather than partial semantic prose. At minimum, make the baseline explicitly cover the named public reset outputs such as `highest_line`, `farthest_line`, `steering_reference_col`, `active_module`, `scene_phase`, `scene_override_source`, `roadblock_interface_state`, `last_special_scene_correction`, and the first-cycle `raw_turn_output`/`applied_turn_output` expectations.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

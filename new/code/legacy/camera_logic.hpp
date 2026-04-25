@@ -5,8 +5,9 @@
 
 namespace ls2k::legacy {
 
-port::PerceptionResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
+SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                     const port::RuntimeParameters& params,
+                                    const port::LegacySteeringState& prior_state,
                                     bool low_voltage_emergency,
                                     uint64_t frame_id,
                                     uint64_t capture_time_ms);

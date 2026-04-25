@@ -21,9 +21,79 @@ bool ReadText(const std::string& path, std::string& out) {
     return true;
 }
 
+std::string StripJsonComments(const std::string& text) {
+    std::string output;
+    output.reserve(text.size());
+
+    bool in_string = false;
+    bool escaped = false;
+    bool in_line_comment = false;
+    bool in_block_comment = false;
+
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        const char c = text[i];
+        const char next = (i + 1 < text.size()) ? text[i + 1] : '\0';
+
+        if (in_line_comment) {
+            if (c == '\n') {
+                in_line_comment = false;
+                output.push_back(c);
+            }
+            continue;
+        }
+
+        if (in_block_comment) {
+            if (c == '\n') {
+                output.push_back(c);
+                continue;
+            }
+            if (c == '*' && next == '/') {
+                in_block_comment = false;
+                ++i;
+            }
+            continue;
+        }
+
+        if (in_string) {
+            output.push_back(c);
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+            continue;
+        }
+
+        if (c == '"' ) {
+            in_string = true;
+            output.push_back(c);
+            continue;
+        }
+
+        if (c == '/' && next == '/') {
+            in_line_comment = true;
+            ++i;
+            continue;
+        }
+
+        if (c == '/' && next == '*') {
+            in_block_comment = true;
+            ++i;
+            continue;
+        }
+
+        output.push_back(c);
+    }
+
+    return output;
+}
+
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
-        if (!storage.open(text,
+        const std::string sanitized = StripJsonComments(text);
+        if (!storage.open(sanitized,
                           cv::FileStorage::READ | cv::FileStorage::MEMORY |
                               cv::FileStorage::FORMAT_JSON)) {
             return false;
@@ -285,16 +355,7 @@ public:
         port::RuntimeParameters parsed{};
         bool all_ok = true;
         all_ok &= ReadRequiredNumber(root, "Speed_base", parsed.Speed_base);
-        all_ok &= ReadRequiredNumber(root, "JWJC", parsed.JWJC);
-        all_ok &= ReadRequiredNumber(root, "circle_k", parsed.circle_k);
-        all_ok &= ReadRequiredNumber(root, "circle_b", parsed.circle_b);
-        all_ok &= ReadRequiredNumber(root, "road_k", parsed.road_k);
-        all_ok &= ReadRequiredNumber(root, "road_b", parsed.road_b);
         all_ok &= ReadRequiredNumber(root, "see_max", parsed.see_max);
-        all_ok &= ReadRequiredNumber(root, "Straight_permit", parsed.Straight_permit);
-        all_ok &= ReadRequiredNumber(root, "island_point", parsed.island_point);
-        all_ok &= ReadRequiredNumber(root, "island_delay", parsed.island_delay);
-        all_ok &= ReadRequiredNumber(root, "circle_k_err", parsed.circle_k_err);
         all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_CAMERA", "D", parsed.pid_turn_camera_d);
         all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_GYRO_CAMERA", "D", parsed.pid_turn_gyro_camera_d);
         all_ok &= ReadRequiredInt(root, "P_Mode", parsed.P_Mode);
@@ -317,6 +378,7 @@ public:
         ReadOptionalInt(root, "control_period_ms", parsed.control_period_ms, optional_malformed);
         ReadOptionalInt(root, "perception_stale_ms", parsed.perception_stale_ms, optional_malformed);
         ReadOptionalInt(root, "pwm_limit", parsed.pwm_limit, optional_malformed);
+        ReadOptionalInt(root, "raw_turn_output_limit", parsed.raw_turn_output_limit, optional_malformed);
         ReadOptionalInt(root, "pwm_floor", parsed.pwm_floor, optional_malformed);
         ReadOptionalBool(root, "prohibit_reverse_pwm", parsed.prohibit_reverse_pwm, optional_malformed);
         ReadOptionalInt(root,
@@ -356,6 +418,14 @@ public:
                         "assistant_image_publish_interval_ms",
                         parsed.assistant_image_publish_interval_ms,
                         optional_malformed);
+        ReadOptionalBool(root, "steering_media_enabled", parsed.steering_media_enabled, optional_malformed);
+        ReadOptionalInt(root, "steering_media_port", parsed.steering_media_port, optional_malformed);
+        ReadOptionalInt(root,
+                        "steering_media_publish_interval_ms",
+                        parsed.steering_media_publish_interval_ms,
+                        optional_malformed);
+        ReadOptionalInt(root, "camera_frame_width", parsed.camera_frame_width, optional_malformed);
+        ReadOptionalInt(root, "camera_frame_height", parsed.camera_frame_height, optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "PID_TURN_CAMERA",
                                  "P",

@@ -124,9 +124,9 @@ def decide(data: dict[str, Any]) -> dict[str, Any]:
             return {
                 "contract": "verification-cycle-orchestrator-decision-v1",
                 "decision": "terminate",
-                    "reason": "latest_result is a valid pass for the active agent",
-                    "agent_id": agent_id,
-                }
+                "reason": "latest_result is a valid pass for the active agent",
+                "agent_id": agent_id,
+            }
         if latest_result.get("verdict") == "pass":
             if latest_result.get("coverage_status") == "partial" and not str(latest_result.get("scope", "")).strip():
                 return {
@@ -142,41 +142,24 @@ def decide(data: dict[str, Any]) -> dict[str, Any]:
                 "agent_id": agent_id,
             }
 
-    if active.get("resumable") is True:
-        if active.get("last_verdict") == "block":
-            return {
-                "contract": "verification-cycle-orchestrator-decision-v1",
-                "decision": "enter_repair",
-                "reason": "active agent is blocking",
-                "agent_id": agent_id,
-            }
-        if valid_pass(active):
-            return {
-                "contract": "verification-cycle-orchestrator-decision-v1",
-                "decision": "terminate",
-                "reason": "active agent has a valid pass",
-                "agent_id": agent_id,
-            }
+    if active.get("last_verdict") == "block":
         return {
             "contract": "verification-cycle-orchestrator-decision-v1",
-            "decision": "resume_active",
-            "reason": "active agent is resumable and requires continuation",
+            "decision": "enter_repair",
+            "reason": "active agent is blocking",
             "agent_id": agent_id,
         }
-
-    if active.get("last_verdict") == "pass":
+    if valid_pass(active):
         return {
             "contract": "verification-cycle-orchestrator-decision-v1",
-            "decision": "blocked_invalid_state",
-            "reason": "active agent with pass must be resumable or terminated",
+            "decision": "terminate",
+            "reason": "active agent has a valid pass",
             "agent_id": agent_id,
         }
-
     return {
         "contract": "verification-cycle-orchestrator-decision-v1",
-        "decision": "spawn_active",
-        "reason": "active agent is unusable and must be replaced",
-        "spawn_reason_code": "active_agent_not_resumable",
+        "decision": "resume_active",
+        "reason": "active agent requires continuation",
         "agent_id": agent_id,
     }
 

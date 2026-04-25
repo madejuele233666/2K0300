@@ -1,0 +1,47 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verifier",
+  "start_at": "2026-04-25T07:20:00+08:00",
+  "end_at": "2026-04-25T07:39:10+08:00",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "scope": "Exhaustive docs-first review of the declared OpenSpec change artifacts and required shared verification references for refactor-old-2-steering-control.",
+    "primary_surface": "proposal/design/tasks/specs",
+    "contract_alignment_checked_against": [
+      "verification-cycle-core-v1",
+      "verification-cycle-openspec-adapter-v1",
+      "verification-cycle-agent-table-v1",
+      "CALLER-INTEGRATION.md",
+      ".codex/agents/verify-reviewer.toml"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": "Reviewed the full declared docs-first surface for Completeness, Correctness, and Coherence. The repaired artifacts now include the verifier profile in the mandatory review surface, preserve the differential-drive terminal without reintroducing direct servo output, and keep artifact-completion plus source-first checkpoint numbering/output paths coherent across design and tasks, including the distinct checkpoint-3 task."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-perception-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-scene-state/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

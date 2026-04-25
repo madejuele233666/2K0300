@@ -7,10 +7,8 @@
 
 namespace ls2k::port {
 
-constexpr int kLegacyFrameWidth = 160;
-constexpr int kLegacyFrameHeight = 128;
-constexpr int kPhase1UvcWidth = 160;
-constexpr int kPhase1UvcHeight = 120;
+constexpr int kCompiledCameraFrameWidth = 320;
+constexpr int kCompiledCameraFrameHeight = 240;
 
 enum class CameraGeometryMarker {
     kPhase1Adapted,
@@ -21,7 +19,16 @@ enum class CameraGeometryMarker {
 };
 
 struct LegacyCameraFrame {
-    std::array<uint8_t, kLegacyFrameWidth * kLegacyFrameHeight> gray{};
+    std::array<uint8_t, kCompiledCameraFrameWidth * kCompiledCameraFrameHeight> gray{};
+    int width = 0;
+    int height = 0;
+
+    std::size_t PixelCount() const {
+        if (width <= 0 || height <= 0) {
+            return 0;
+        }
+        return static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+    }
 };
 
 struct CameraCapture {
@@ -44,10 +51,44 @@ struct PerceptionResult {
     float lateral_error = 0.0F;
     int threshold = 0;
     int highest_line = 0;
+    int farthest_line = 0;
+    int steering_reference_col = kCompiledCameraFrameWidth / 2;
+    bool roadblock_active = false;
     uint64_t frame_id = 0;
     uint64_t capture_time_ms = 0;
     uint64_t publish_time_ms = 0;
+    std::string active_module = "straight";
+    std::string scene_phase = "idle";
+    std::string scene_override_source = "none";
+    std::string roadblock_interface_state = "supported_not_implemented";
+    std::string last_special_scene_correction = "none";
     std::string perception_tag = "none";
+};
+
+struct LegacySteeringControllerMemory {
+    float w_target_last = 0.0F;
+    float camera_error_last = 0.0F;
+    float gyro_error_last = 0.0F;
+    float gyro_i_accumulator = 0.0F;
+};
+
+struct LegacySteeringState {
+    int highest_line = 0;
+    int farthest_line = 0;
+    int steering_reference_col = kCompiledCameraFrameWidth / 2;
+    bool roadblock_active = false;
+    int drive_cycle_count = 0;
+    std::string active_module = "straight";
+    std::string scene_phase = "idle";
+    std::string scene_override_source = "none";
+    std::string roadblock_interface_state = "supported_not_implemented";
+    std::string last_special_scene_correction = "none";
+    std::string special_wide_candidate = "none";
+    int special_wide_candidate_streak = 0;
+    float special_wide_cross_score_last = 0.0F;
+    float special_wide_circle_left_score_last = 0.0F;
+    float special_wide_circle_right_score_last = 0.0F;
+    LegacySteeringControllerMemory controller_memory{};
 };
 
 struct ImuSample {
@@ -96,13 +137,35 @@ struct AssistantTcpParameters {
     int port = 8888;
 };
 
+struct SceneWideClassifierParameters {
+    int lower_row_start = 168;
+    int lower_row_end = 228;
+    int middle_row_start = 112;
+    int middle_row_end = 164;
+    int upper_row_start = 40;
+    int upper_row_end = 108;
+    int row_step = 4;
+    int edge_margin_px = 12;
+    double upper_full_span_width_ratio = 0.78;
+
+    double special_wide_lower_width_min_ratio = 0.38;
+    int special_wide_valid_rows_min = 10;
+    int circle_open_min_px = 24;
+    int circle_contract_min_px = 14;
+    double cross_upper_full_span_min_ratio = 0.45;
+    double to_cross_margin = 0.2;
+    double to_circle_margin = 0.2;
+    int enter_confirm_cycles = 2;
+    int exit_confirm_cycles = 2;
+
+    double cross_weight_full_span = 1.25;
+    double cross_weight_both_open = 0.4;
+    double circle_weight_open = 1.0;
+    double circle_weight_contract = 0.75;
+};
+
 struct RuntimeParameters {
     double Speed_base = 77.0;
-    double JWJC = 1.0;
-    double circle_k = 1.10;
-    double circle_b = 35.0;
-    double road_k = 1.15;
-    double road_b = 55.0;
     double see_max = 35.0;
     double pid_turn_camera_p = 14.75;
     double pid_turn_camera_p_scale = 1.0;
@@ -110,10 +173,6 @@ struct RuntimeParameters {
     double pid_turn_gyro_camera_p = 20.0;
     double pid_turn_gyro_camera_i = 0.0;
     double pid_turn_gyro_camera_d = 9.0;
-    double Straight_permit = 0.0;
-    double island_point = 25.0;
-    double island_delay = 500.0;
-    double circle_k_err = 0.0;
     int P_Mode = 0;
     int exp_light = 65;
 
@@ -122,6 +181,7 @@ struct RuntimeParameters {
     int control_period_ms = 5;
     int perception_stale_ms = 120;
     int pwm_limit = 9000;
+    int raw_turn_output_limit = 3000;
     int pwm_floor = 0;
     bool prohibit_reverse_pwm = false;
     int prohibit_reverse_pwm_step_limit = 280;
@@ -140,7 +200,13 @@ struct RuntimeParameters {
     int assistant_waveform_publish_interval_ms = 40;
     int assistant_image_publish_interval_ms = 80;
     AssistantTcpParameters assistant_tcp{};
+    bool steering_media_enabled = false;
+    int steering_media_port = 8890;
+    int steering_media_publish_interval_ms = 80;
     bool pid_turn_camera_use_fuzzy = false;
+    int camera_frame_width = 320;
+    int camera_frame_height = 240;
+    SceneWideClassifierParameters scene_wide_classifier{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

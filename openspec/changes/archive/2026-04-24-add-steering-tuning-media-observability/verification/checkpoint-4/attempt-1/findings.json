@@ -1,0 +1,33 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "CP4-001",
+      "title": "Rejected tuning commands do not produce the required standalone input_rejected state evidence",
+      "severity": "CRITICAL",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "The accepted runbook requires state coverage for input_rejected/override_cleared/snapshot_cleared in new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md:88-95, and new/verification/phase-d-speed-tuning.md:104-113 requires one standalone input_rejected state frame in the host transcript and CSV. The preserved host bundle contains only one state row, snapshot_cleared, and no input_rejected or override_cleared rows (new/verification/steering-media-verify-20260424T022749Z/control.csv; new/verification/steering-media-verify-20260424T022749Z/host.log). The implementation explains why: new/code/runtime/assistant_service.cpp:415-420 publishes input_rejected only for inbound parser-level InputRejected messages, while command-level business rejections in HandleCommand at lines 459-500 only enqueue an ack and never publish a matching state event.",
+      "repair": "Make command-level rejected tuning inputs emit the documented standalone state event, or narrow the documented contract to match actual behavior. Then rerun the accepted host workflow and preserve a bundle whose host CSV/log visibly includes the required state evidence."
+    },
+    {
+      "id": "CP4-002",
+      "title": "alignment_summary.json is only a count summary and does not provide usable control/media alignment metadata",
+      "severity": "CRITICAL",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "The change spec requires a time-aligned summary or equivalent alignment metadata that lets reviewers explain a steering event without undocumented manual alignment steps (openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md:122-128). The implementation in new/user/tune_speed.py:653-668 writes alignment_summary.json with only timestamp_utc, control_csv, control_telemetry_frames, control_state_events, steering_media_summary, steering_media_frames, and steering_media_connected. The preserved file at new/verification/steering-media-verify-20260424T022749Z/control-steering-media/alignment_summary.json:1-10 contains exactly those fields and no offset, correlation pair, host session origin, or per-frame/control mapping. Reviewers therefore still have to infer alignment manually from unrelated UTC strings and mixed clock domains.",
+      "repair": "Persist actual alignment metadata, such as the host control-session monotonic origin plus media host-receive times converted into the control elapsed-ms domain, or a computed offset/correlation table that ties image_frame records to specific control rows. Regenerate the evidence bundle with that alignment artifact."
+    },
+    {
+      "id": "CP4-003",
+      "title": "The verification note claims conservative default settle delays that the host tool does not implement",
+      "severity": "WARNING",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "new/verification/phase-d-speed-tuning.md:48-53 says the accepted host tool now defaults to startup_delay_ms=600 and command_gap_ms=500. The implementation still defaults both flags to 0 in new/user/tune_speed.py:443-444, and new/user/debug.sh only forwards user args without injecting those delays (new/user/debug.sh:546-564). The accepted evidence run also shows immediate command sequencing in host.log, consistent with the code rather than the doc.",
+      "repair": "Either change tune_speed.py/debug.sh so the accepted workflow really applies the documented settle delays by default, or correct the runbook to describe the actual zero-delay behavior and rerun evidence using whatever timing contract is truly accepted."
+    }
+  ]
+}

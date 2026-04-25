@@ -1,0 +1,39 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "codex-verifier",
+  "start_at": "2026-04-25T00:00:00Z",
+  "end_at": "2026-04-25T00:08:00Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Docs-first review of the declared change artifacts and listed shared verification references for `refactor-old-2-steering-control`; coverage is partial because the artifacts require `.codex/agents/verify-reviewer.toml` in the docs-first surface but it was not supplied."
+  },
+  "review_coverage": {
+    "coverage_status": "partial",
+    "exhaustive": false
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-perception-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-scene-state/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [
+    "/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml"
+  ],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

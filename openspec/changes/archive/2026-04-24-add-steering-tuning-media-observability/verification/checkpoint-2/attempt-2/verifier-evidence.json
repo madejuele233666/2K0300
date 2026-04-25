@@ -1,0 +1,87 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "checkpoint-2-attempt-2-recovery-verifier",
+  "start_at": "2026-04-24T03:07:00Z",
+  "end_at": "2026-04-24T03:21:28Z",
+  "final_state": "completed_pass",
+  "review_scope": {
+    "scope": "Exhaustive source-first review of checkpoint 2 tasks 2.1-2.4 for add-steering-tuning-media-observability, limited to the project-owned steering media transport boundary, the length-prefixed media protocol contract, exact config_snapshot and image_frame header/payload shape, startup-loaded steering-media configuration keys, partial-write handling, and focused reproducible local protocol/transport tests.",
+    "review_surface": "source_first",
+    "risk_tier": "STANDARD",
+    "evidence_paths": [
+      "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/verification/checkpoint-2/attempt-1/findings.json",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/tasks.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/design.md",
+      "/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.hpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp",
+      "/home/madejuele/projects/2K0300/new/code/runtime/control_debug_snapshot.hpp",
+      "/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp",
+      "/home/madejuele/projects/2K0300/new/code/port/control_types.hpp",
+      "/home/madejuele/projects/2K0300/new/config/default_params.json",
+      "/home/madejuele/projects/2K0300/new/user/steering_media_selftest.cpp",
+      "/home/madejuele/projects/2K0300/new/user/CMakeLists.txt",
+      "/home/madejuele/projects/2K0300/new/verification/tests/run_steering_media_selftest.sh",
+      "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/verification/local-tests/20260424T025753Z/steering_media_selftest.log"
+    ],
+    "contract_paths": [
+      "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+      "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "dimensions_reviewed": [
+      "Completeness",
+      "Correctness",
+      "Coherence"
+    ],
+    "notes": "Reviewed all declared checkpoint-2 source, test, config, and contract paths plus the prior blocking findings. Confirmed the partial-write repair now tears the media socket down on any blocked partial frame so a later retry cannot append a second full envelope after truncated bytes. Confirmed the protocol encoder emits the frozen config_snapshot and image_frame header shapes with the accepted whitelist keys and fixed 160x128 gray payload contract. Confirmed startup-loaded steering-media wiring is sourced from assistant_tcp.host plus steering_media_enabled, steering_media_port, and steering_media_publish_interval_ms. Confirmed focused local coverage now includes header/payload length validation, image payload-size rejection, busy-socket latest-frame replacement, and automatic config_snapshot publication on readiness transition through SteeringMediaService::Tick. Executed an equivalent local compile-and-run of the checked-in selftest source/dependency set on 2026-04-24 UTC; the run passed with output 'steering_media_selftest passed'."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/verification/checkpoint-2/attempt-1/findings.json",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md",
+    "/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.hpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp",
+    "/home/madejuele/projects/2K0300/new/code/runtime/control_debug_snapshot.hpp",
+    "/home/madejuele/projects/2K0300/new/code/platform/param_store.cpp",
+    "/home/madejuele/projects/2K0300/new/code/port/control_types.hpp",
+    "/home/madejuele/projects/2K0300/new/config/default_params.json",
+    "/home/madejuele/projects/2K0300/new/user/steering_media_selftest.cpp",
+    "/home/madejuele/projects/2K0300/new/user/CMakeLists.txt",
+    "/home/madejuele/projects/2K0300/new/verification/tests/run_steering_media_selftest.sh",
+    "/home/madejuele/projects/2K0300/openspec/changes/add-steering-tuning-media-observability/verification/local-tests/20260424T025753Z/steering_media_selftest.log"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

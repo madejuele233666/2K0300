@@ -1,0 +1,16 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "STM-CHK5-001",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The steering-media runtime does not deliver sustained image-plus-steering metadata at the configured cadence during active tuning sessions.",
+      "evidence": "`new/code/runtime/steering_media_service.cpp:93-99` only publishes when `state.control_debug_snapshot.steering.frame_id` and `capture_time_ms` exactly match `state.latest_camera_capture`, so normal drift between the control timer and the foreground perception loop suppresses most candidate frames. The preserved accepted run advertises `media_publish_interval_ms=80` in `new/verification/steering-media-verify-20260424T025822Z/control-steering-media/config_snapshot.json`, but the same bundle preserved only 9 media frames total and only 7 `RUNNING` frames across roughly 4.5 seconds of active telemetry (`new/verification/steering-media-verify-20260424T025822Z/control-steering-media/frame_metadata.jsonl`, `summary.json`, `alignment_summary.json`, and `control.csv`). The recorded host receive intervals were `[146, 1108, 465, 749, 158, 968, 1004, 283]` ms, and `new/verification/steering-media-verify-20260424T025822Z/board.log` shows no corresponding `steering_media.image_frame.failed` congestion markers, so the sparse delivery is not explained by the accepted busy-socket drop policy. This misses the required proof in `openspec/changes/add-steering-tuning-media-observability/tasks.md:44-46,61` that active tuning sessions keep receiving steering image/metadata and that the final board package demonstrates sustained image-plus-steering metadata delivery.",
+      "recommendation": "Decouple media publication from exact control-loop/camera-frame identity. Latch the newest steering snapshot that belongs to or immediately precedes the latest camera capture, or publish from a dedicated synchronized sample struct, so the sidecar can emit the latest available image at `steering_media_publish_interval_ms` without requiring an exact timer-thread/frame-thread match. Then rerun the preserved board evidence bundle and show sustained `RUNNING`-phase media delivery at roughly the configured cadence while preserving the existing disconnect and cleanup behavior.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

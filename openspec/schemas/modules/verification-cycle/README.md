@@ -15,21 +15,22 @@ Use it when the caller needs an automatic:
 
 loop over a concrete implementation target.
 
-The active model is agent-state-based, not based on the archived dual-session
-model.
+The active model is a current-state agent baseline, not a historical
+dual-session log.
 
 ## Core Rules
 
 The cycle is governed by eight rules:
 
 1. If a usable `active` agent exists, continue it first: prefer `send_input`
-   while that agent is still open, and use `resume` only when that same
-   `active` agent was closed and must be restored.
+   while that agent is still open, and if `send_input` reports `agent not
+   found`, probe `resume` for that same `active` agent next.
 2. If no usable `active` agent exists, spawn one and record it as `active`.
 3. When an `active` agent reports `block`, repair until that same agent reports
    `pass`.
 4. Only `block -> pass` may mark an agent `non_active`.
-5. `close` or `exit` does not imply `non_active`.
+5. `continuation_probe` is the only recovery signal for missing or
+   non-resumable active agents.
 6. `pass` is valid only when `coverage_status=complete` and
    `exhaustive=true`.
 7. Termination may use only a valid `pass`.
@@ -48,6 +49,7 @@ The verifier sub-agent emits findings and verifier evidence only.
 The main process:
 
 - records agent state in `agent-table.json`
+- keeps `agent-table.json` current-state-only
 - decides `send_input`/`resume`/spawn/repair/terminate through the orchestrator
 - must not substitute its own judgment for verifier output
 

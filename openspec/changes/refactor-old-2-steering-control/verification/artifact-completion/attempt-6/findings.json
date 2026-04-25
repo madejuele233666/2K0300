@@ -1,0 +1,16 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DOCS-F1",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The repaired docs still do not use one exact public reset/debug field contract for the roadblock placeholder and the surrounding post-reset diagnostics. The post-reset baseline and task list still name the roadblock item as a `roadblock placeholder`/`roadblock placeholder state`, while the retained/removed/added field table exposes the public debug field as `roadblock_interface_state`; the same baseline list also falls back to prose labels (`scene source`, `last special-scene correction`) instead of the field-table names `scene_override_source` and `last_special_scene_correction`.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:193-211 defines the post-reset clean baseline and lists `roadblock placeholder state`, then separately lists diagnostic fields including `roadblock_interface_state`, `scene source`, and `last special-scene correction`. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:363-367 and :392-398 define the public retained/removed/added field contract with `roadblock_interface_state`, `active_module`, `scene_override_source`, and `last_special_scene_correction`. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md:49-51 requires a one-to-one field contract plus a concrete post-reset clean baseline, but task 3.3.1 still names the roadblock item as `roadblock placeholder=` rather than the published public field name.",
+      "recommendation": "Normalize the post-reset baseline and task wording to the exact public field names from the field contract table, and keep one roadblock field/value contract throughout the docs. For this change, that means using `roadblock_interface_state` consistently with the documented reset value, and expressing the other public diagnostic fields as `active_module`, `scene_override_source`, and `last_special_scene_correction` everywhere the reset/debug contract is stated.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

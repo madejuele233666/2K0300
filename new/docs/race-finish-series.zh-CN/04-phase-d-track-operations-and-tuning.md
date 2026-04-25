@@ -44,7 +44,8 @@
 本阶段接受一条 project-owned 的最小现场调参 workflow：
 
 1. 板端通过 assistant TCP sidecar 主动连到上位机。
-2. 上位机只使用一条 newline-delimited JSON session，同时消费 `ack` / `state` / `telemetry`。
+2. accepted control plane 仍然只使用一条 newline-delimited JSON session，消费 `ack` / `state` / `telemetry`。
+3. steering tuning observability 使用独立的只读 steering media session，板端复用同一 host、走独立 port，发送 `config_snapshot` 与 `image_frame`。
 3. 允许的首发命令仅限：
    - `enable_tuning_mode`
    - `disable_tuning_mode`
@@ -52,12 +53,12 @@
    - `stop`
    - `set_turn_suppressed`
    - `set_target_speed`
-4. PID 参数本身仍然只通过 JSON 参数文件加重启更新，不允许在线写回。
+4. steering `P/D` 与其他 PID 参数仍然只通过 JSON 参数文件加重启更新，不允许在线写回。
 
 accepted 现场步骤：
 
 ```bash
-(cd new/user && ./debug.sh assistant local 8888)
+(cd new/user && ./debug.sh assistant local 8888 8890)
 (cd new/user && ./debug.sh build)
 (cd new/user && ./debug.sh remote restart normal)
 (cd new/user && ./debug.sh tuning \
@@ -65,7 +66,8 @@ accepted 现场步骤：
   --ttl-ms 2500 \
   --step-dwell-ms 1200 \
   --disabled-mode-checks \
-  --invalid-target-speed 90 \
+  --invalid-target-speed 170 \
+  --media-listen-port 8890 \
   --csv ../verification/phase-d-speed-tuning.csv)
 ```
 
@@ -86,16 +88,29 @@ accepted rejection coverage：
 accepted 证据：
 
 1. `ack` 明确区分 `accepted` 与 `rejected`
-2. `state` 明确覆盖 `input_rejected` / `override_cleared` / `snapshot_cleared`
+2. `state` 证据要覆盖 `input_rejected` / `override_cleared` / `snapshot_cleared`；其中 steering media 板测 bundle 至少要保留 `input_rejected` 与 `snapshot_cleared`，`override_cleared` 可由独立 host-only verification transcript 补齐
 3. `telemetry` 明确包含左右目标、左右测速、左右 PWM、`raw_turn_output`、`applied_turn_output`
-4. CSV 可直接归档为重复调参 run 的主证据
+4. `control.steering_snapshot` 必须能在 assistant/media 关闭时独立解释 steering chain
+5. steering media 必须保留 `config_snapshot.json`、`frame_metadata.jsonl`、`frames/frame-*.raw`、`frame_control_alignment.jsonl` 与 `alignment_summary.json`
+6. CSV 继续作为 control-plane 主证据，并与 steering media 保持可对齐关系
+
+accepted control/media wiring 冻结键集合：
+
+1. `assistant_tcp.host`
+2. `assistant_tcp.port`
+3. `steering_media_enabled`
+4. `steering_media_port`
+5. `steering_media_publish_interval_ms`
+
+其中 `steering_media_publish_interval_ms` 只是启动读取和证据记录字段，不属于在线写参入口。
 
 不允许的 shortcut：
 
 1. 用 `stop` 代替 `disable_tuning_mode`
 2. 直接改 runtime phase 或 actuator 输出来模拟 remote start/stop
 3. 在线热写 PID 参数并把它包装成调参 workflow
-4. 用临时 Python socket 草稿替代 `new/user/tune_speed.py`
+4. 让 steering media 反向承载命令或 ACK
+5. 用临时 Python socket 草稿替代 `new/user/tune_speed.py`
 
 ### 2A-当前状态（2026-04-21）
 
@@ -105,17 +120,17 @@ accepted 证据：
 
 1. project-owned inbound command contract、transport-to-decoder-to-runtime 分层、ACK/state/telemetry 编码已经落地到 `new/code/platform/*` 与 `new/code/runtime/*`。
 2. host 侧 accepted workflow 已固定到 `new/user/debug.sh tuning ...` 与 `new/user/tune_speed.py`，并有本地 preserved CSV / host log / board log 证据。
-3. `input_rejected`、`override_cleared`、`snapshot_cleared`、`accepted/rejected` ACK、`raw_turn_output` / `applied_turn_output` 这组协议面已经闭环到当前代码与证据。
+3. `input_rejected`、`snapshot_cleared`、`accepted/rejected` ACK、`raw_turn_output` / `applied_turn_output` 这组协议面已经闭环到当前代码与证据；`override_cleared` 仍以 host-only verification transcript 为主证据。
 4. 这条子流程的本地 verifier 进度已经推进到：
    - `checkpoint-1` pass：命令边界、transport/decoder split、ACK/state contract
-   - `checkpoint-3` pass：structured telemetry、host workflow、runbook evidence
-   - `checkpoint-4` pass：final source-first implementation bundle
+   - `checkpoint-2` pass：steering media transport、protocol contract、focused local coverage
+   - `checkpoint-3` pass：structured telemetry、dual-channel coexistence、disconnect cleanup
 
 当前仍未完成的部分：
 
-1. focused runtime/board evidence 仍未补齐，所以 `checkpoint-2` 还没有关闭。
-2. 仍缺少在 active tuning session 下的 disconnect clear、`FAIL_SAFE_LATCHED` 下 remote `start` / `stop` rejection、以及 tuning mode 开启时 fail-safe 仍保持权威的 preserved board/runtime 证据。
-3. 因为上面这些证据缺口仍在，这条子流程只能算“Phase D 的一部分已完成”，不能把它写成“整个 Phase D 已通过”。
+1. `checkpoint-4` 仍未关闭：当前 steering media bundle 还缺 plotting fallback transcript，runbook 也需要和冻结 wiring surface 保持一致。
+2. `checkpoint-5` 仍未关闭：active tuning session 下的 steering media 发布 cadence 还不稳定，最终 board bundle 还不能证明持续的 image-plus-steering metadata delivery。
+3. 因为上面这些缺口仍在，这条子流程只能算“Phase D 的一部分已完成”，不能把它写成“整个 Phase D 已通过”。
 
 换句话说：
 

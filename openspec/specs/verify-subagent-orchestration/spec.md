@@ -66,7 +66,6 @@ files rather than restated across prompts:
 
 - `active`
 - `non_active`
-- `closed`
 
 The caller MUST maintain `agent-table.json` and MUST use the shared
 verification-cycle orchestrator to decide resume, spawn, repair, state
@@ -76,8 +75,13 @@ transitions, and termination.
 - **WHEN** a usable `active` verifier exists
 - **THEN** the caller continues that agent before considering a fresh spawn
 - **AND** the caller uses `send_input` while that `active` agent is still open
-- **AND** the caller uses `resume` only when that same `active` agent was
-  closed and must be restored
+- **AND** the caller uses `continuation_probe` to distinguish resume from a
+  recovery spawn for that same `active` agent
+
+#### Scenario: Agent table stays current-state-only
+- **WHEN** the caller records or updates `agent-table.json`
+- **THEN** the table keeps only the rows needed by the current state machine
+- **AND** complete attempt history remains in `attempt-*` artifact directories
 
 #### Scenario: Send-input lookup failure still resumes the same active verifier
 - **WHEN** the caller targets the current `active` verifier with `send_input`
@@ -89,9 +93,6 @@ transitions, and termination.
 #### Scenario: Fresh verifier is spawned only when no usable active agent exists
 - **WHEN** no usable `active` verifier exists
 - **THEN** the caller may spawn a new verifier and record it as `active`
-- **AND** the caller records the spawn reason in `agent-spawn-decision-v1`
-- **AND** `no_usable_active_agent` may describe initial bootstrap or the next
-  normal spawn after a prior agent became `non_active` or merely `closed`
 - **AND** `no_usable_active_agent` means only that `agent-table.json`
   literally contains no `active` verifier entry
 - **AND** recovery spawn cases such as `active_agent_missing` or
@@ -108,15 +109,14 @@ transitions, and termination.
 #### Scenario: Only block to pass marks non-active
 - **WHEN** an `active` verifier transitions from `block` to a valid `pass`
 - **THEN** that same agent may be marked `non_active`
-- **AND** `close`, `exit`, timeout, or observer-only completion does not imply
-  `non_active`
+- **AND** caller-local session metadata does not by itself imply `non_active`
 
 #### Scenario: Termination depends only on a valid active pass
 - **WHEN** the current `active` verifier returns `verdict=pass`
 - **THEN** termination is allowed only if
   `review_coverage.coverage_status=complete` and
   `review_coverage.exhaustive=true`
-- **AND** a `closed` or non-exhaustive pass cannot substitute for termination
+- **AND** a non-exhaustive pass cannot substitute for termination
 
 #### Scenario: Partial verification must declare scope
 - **WHEN** a verifier attempt records `review_coverage.coverage_status=partial`
@@ -124,19 +124,17 @@ transitions, and termination.
 - **AND** the caller must continue the cycle rather than treating that pass as
   terminal
 
-### Requirement: Spawn Decision Schema Uses Agent-State Semantics
-`ai-enforced-workflow` SHALL use `agent-spawn-decision-v1` only as a spawn
-record, not as termination authority. The schema MUST use agent-state semantics
-instead of legacy dual-session roles.
+### Requirement: Spawn Decision Schema Is Legacy-Compatible Only
+`ai-enforced-workflow` SHALL NOT depend on `agent-spawn-decision-v1` in the
+active verification path. The schema MAY remain for archive compatibility, but
+the current workflow MUST treat orchestrator input/output plus verifier
+artifacts as authoritative.
 
-#### Scenario: Spawn decision records active-agent absence or unusability
-- **WHEN** the caller records a verifier spawn decision
-- **THEN** `reason_code` is limited to active-agent availability or recovery
-  reasons such as `no_usable_active_agent`, `active_agent_missing`, or
-  `active_agent_not_resumable`
-- **AND** `no_usable_active_agent` remains valid when the previous recorded
-  agent is `none`, `non_active`, or `closed`
-- **AND** the record includes prior-agent state plus `agent_table_path`
+#### Scenario: Legacy spawn decision stays archive-readable
+- **WHEN** an archive record still references `agent-spawn-decision-v1`
+- **THEN** the schema remains readable
+- **AND** active callers do not require or consult that record to continue the
+  verification cycle
 
 ### Requirement: Verifier Runtime Profile Source Is Fixed
 `ai-enforced-workflow` SHALL use verifier runtime configuration from

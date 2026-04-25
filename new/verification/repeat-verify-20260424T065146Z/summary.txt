@@ -1,0 +1,21 @@
+run_dir=/home/madejuele/projects/2K0300/new/verification/repeat-verify-20260424T065146Z
+attempt=1 start=2026-04-24T06:52:06Z
+attempt=1 rc=0 end=2026-04-24T06:52:12Z
+attempt=2 start=2026-04-24T06:52:13Z
+attempt=2 rc=0 end=2026-04-24T06:52:20Z
+attempt=3 start=2026-04-24T06:52:21Z
+attempt=3 rc=0 end=2026-04-24T06:52:27Z
+attempt=4 start=2026-04-24T06:52:28Z
+attempt=4 rc=0 end=2026-04-24T06:52:35Z
+attempt=5 start=2026-04-24T06:52:36Z
+attempt=5 rc=0 end=2026-04-24T06:52:42Z
+attempt=6 start=2026-04-24T06:52:43Z
+attempt=6 rc=0 end=2026-04-24T06:52:50Z
+attempt=7 start=2026-04-24T06:52:51Z
+attempt=7 rc=0 end=2026-04-24T06:52:57Z
+attempt=8 start=2026-04-24T06:52:58Z
+attempt=8 rc=0 end=2026-04-24T06:53:05Z
+attempt=9 start=2026-04-24T06:53:06Z
+attempt=9 rc=0 end=2026-04-24T06:53:12Z
+attempt=10 start=2026-04-24T06:53:13Z
+attempt=10 rc=0 end=2026-04-24T06:53:20Z

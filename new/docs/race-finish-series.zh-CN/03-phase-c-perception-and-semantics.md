@@ -40,14 +40,11 @@
 
 此外，当前相机链路仍受以下运行时边界约束：
 
-1. `160x120 -> 160x128` 的 phase-1 适配边界
-2. 这个适配不是任意拉伸，而是固定的 legacy 行映射：
-   - source rows `0..119` -> destination rows `8..127`
-   - destination rows `0..7` 重复 source row `0`
-   - 后续接手者不得在未显式改契约的情况下改成裁剪、缩放或居中拷贝
+1. 期望分辨率由参数 `camera_frame_width/camera_frame_height` 给出，当前默认是 `320x240`
+2. direct-match 路径只接受与该参数完全一致的灰度 frame，不做静默裁剪、缩放或居中拷贝
 3. 非默认 `exp_light` 不能直接通过当前 direct-match 路径支持
-4. 当前实现中，`LS2K_FORCE_UVC_GEOMETRY` 强制走非 phase-1 几何时，会发出 grep-facing 的 `camera.geometry.override`
-5. 真实运行时捕获到非 `160x120` frame 时，当前代码只会把 `CameraGeometryMarker` 置为 `kNonPhase1Geometry` 并拒绝发布帧；它不是独立 stable code
+4. 当前实现中，`LS2K_FORCE_UVC_GEOMETRY` 强制走非期望几何时，会发出 grep-facing 的 `camera.geometry.override`
+5. 真实运行时捕获到与参数不一致的 frame 时，当前代码只会把 `CameraGeometryMarker` 置为 `kNonPhase1Geometry` 并拒绝发布帧；它不是独立 stable code
 6. 因此，几何异常的现阶段取证口径必须区分：
    - 人工验证路径：看 `camera.geometry.override`
    - 真实运行拒绝路径：看 frame 未发布、后续 veto 以及内部几何 marker 语义，而不是假定存在独立 grep marker

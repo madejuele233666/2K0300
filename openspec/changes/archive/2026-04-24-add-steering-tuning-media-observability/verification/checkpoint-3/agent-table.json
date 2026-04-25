@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-steering-tuning-media-observability",
+  "agents": [
+    {
+      "agent_id": "019dbd59-e139-7fb1-9ce2-a09541176ba5",
+      "status": "closed",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of OpenSpec change add-steering-tuning-media-observability checkpoint 3 attempt 1, limited to runtime dual-channel publish behavior for tasks 3.1-3.4: assistant control priority over media, preservation of accepted command/ack/state/telemetry semantics, and runtime evidence proving control/media coexistence plus safe media-disconnect cleanup.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:03:49Z"
+    },
+    {
+      "agent_id": "019dbd72-a63d-73e3-818b-bb34435689fd",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of the runtime dual-channel publish path and control regression bundle for tasks 3.1-3.4 of add-steering-tuning-media-observability.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:42:32Z"
+    }
+  ]
+}

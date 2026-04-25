@@ -1,0 +1,36 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "CP4-ATT2-001",
+      "severity": "CRITICAL",
+      "dimension": "Completeness",
+      "problem": "The preserved steering-media evidence bundle still does not include the plotting-fallback host transcript that the accepted verification note requires.",
+      "evidence": "`new/verification/phase-d-speed-tuning.md:104-113` requires one preserved host transcript proving plotting fallback behavior. The repaired host workflow still implements that fallback only when matplotlib import/install handling is exercised (`new/user/tune_speed.py:614-620`), but the accepted evidence transcript at `new/verification/steering-media-verify-20260424T025822Z/host.log:1-42` contains no `[plot]` lines at all. The README capture recipe also recommends `--no-plot` for evidence collection (`new/user/README.md:41-48`), which bypasses the required fallback path instead of preserving it.",
+      "recommendation": "Either preserve an accepted host transcript that actually exercises the matplotlib fallback path, or narrow the Phase D verification contract and README instructions so checkpoint-4 evidence no longer claims fallback proof from this steering-media bundle.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CP4-ATT2-002",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The runbooks still do not document the full frozen control/media wiring key set for the accepted steering-media path.",
+      "evidence": "The change spec freezes the board-side steering-media configuration surface as `assistant_tcp.host` plus `steering_media_enabled`, `steering_media_port`, and `steering_media_publish_interval_ms` (`openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md:34-43`). The shipped params file includes that interval key (`new/config/default_params.json:59-64`), but the user-facing README only documents `assistant_tcp.*`, `steering_media_enabled`, and `steering_media_port` (`new/user/README.md:23-27`). The Phase D runbooks likewise show only the port-based setup commands and never identify `steering_media_publish_interval_ms` as part of the accepted frozen wiring surface (`new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md:44-71`, `new/verification/phase-d-speed-tuning.md:75-83`).",
+      "recommendation": "Update the accepted runbooks to name the full frozen control/media wiring surface, including `steering_media_publish_interval_ms` and its read-only ownership, so task 4.3 actually documents the accepted configuration contract reviewers are expected to use.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "CP4-ATT2-003",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The Phase D operations note still overstates checkpoint-4 acceptance and state-event coverage relative to the currently preserved steering-media bundle.",
+      "evidence": "`new/docs/race-finish-series.zh-CN/04-phase-d-track-operations-and-tuning.md:90-117` says accepted evidence covers `input_rejected` / `override_cleared` / `snapshot_cleared` and reports `checkpoint-4` as passed. The refreshed bundle summary shows only `input_rejected` and `snapshot_cleared` state events (`new/verification/steering-media-verify-20260424T025822Z/host.log:35-42`, `new/verification/steering-media-verify-20260424T025822Z/control.csv:2-5`, `new/verification/steering-media-verify-20260424T025822Z/control.csv:123-124`), and the immediately prior checkpoint artifact is still a blocking result (`openspec/changes/add-steering-tuning-media-observability/verification/checkpoint-4/attempt-1/findings.json:1-33`).",
+      "recommendation": "Do not claim checkpoint-4 pass or broader state coverage in the Phase D runbook until the preserved checkpoint-4 artifacts actually prove those claims; either update the wording to match the current bundle or preserve evidence that demonstrates `override_cleared` and a valid checkpoint-4 pass.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

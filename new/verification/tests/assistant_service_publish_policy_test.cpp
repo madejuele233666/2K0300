@@ -236,6 +236,30 @@ void TestDisableTuningKeepsMediaSuppressedUntilDisconnect() {
            "disable_tuning_mode must still publish the snapshot-cleared state event");
 }
 
+void TestRejectedCommandPublishesStandaloneInputRejectedState() {
+    ResetLinkMock();
+
+    ls2k::runtime::AssistantService service;
+    RecordingDiagnostics diagnostics;
+    ls2k::runtime::RuntimeState state;
+    PrimeRuntimeState(state);
+
+    ls2k::port::RuntimeParameters params{};
+    params.assistant_enabled = true;
+    service.Start(params, diagnostics);
+
+    TickWithMessages(service,
+                     state,
+                     diagnostics,
+                     {MakeTargetSpeedCommand(1, 40.0, 2500)},
+                     7);
+
+    Expect(HasJsonLine("reject:1"),
+           "rejected command must still publish a rejected ACK");
+    Expect(HasJsonLine("state:input_rejected:tuning mode is disabled"),
+           "rejected command must publish a standalone input_rejected state event");
+}
+
 void TestControlOnlyStillPublishesTelemetryJson() {
     ResetLinkMock();
 
@@ -565,6 +589,7 @@ int main() {
     try {
         TestSetTargetSpeedSuppressesMediaInSameTick();
         TestDisableTuningKeepsMediaSuppressedUntilDisconnect();
+        TestRejectedCommandPublishesStandaloneInputRejectedState();
         TestControlOnlyStillPublishesTelemetryJson();
         TestConnectionLostResetsControlOnlyPublishPolicy();
         TestBecameReadyResetsControlOnlyPublishPolicy();

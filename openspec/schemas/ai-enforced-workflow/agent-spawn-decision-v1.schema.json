@@ -2,6 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "openspec/schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json",
   "title": "agent-spawn-decision-v1",
+  "deprecated": true,
+  "legacy_status": "archive-only compatibility schema; active verification-cycle callers must use orchestrator input/output plus verifier artifacts as authoritative state",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -78,7 +80,8 @@
           ]
         },
         "resumable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Caller-maintained reuse hint. If there is no explicit resumable evidence yet, callers default this field to true. False is reserved for explicit continuation evidence that proves the same agent cannot be resumed."
         }
       }
     },
@@ -153,9 +156,6 @@
                   },
                   "status": {
                     "const": "non_active"
-                  },
-                  "resumable": {
-                    "const": false
                   }
                 }
               }
@@ -171,9 +171,6 @@
                   },
                   "status": {
                     "const": "closed"
-                  },
-                  "resumable": {
-                    "const": false
                   }
                 }
               }
@@ -209,9 +206,6 @@
               },
               "status": {
                 "const": "active"
-              },
-              "resumable": {
-                "const": false
               }
             }
           }
@@ -245,9 +239,6 @@
               },
               "status": {
                 "const": "active"
-              },
-              "resumable": {
-                "const": false
               }
             }
           }
@@ -286,7 +277,7 @@
       "prior_agent": {
         "agent_id": "019d70df-2241-7520-b1df-79e54f0850f1",
         "status": "non_active",
-        "resumable": false
+        "resumable": true
       },
       "evidence": {
         "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/agent-table.json",
@@ -305,7 +296,7 @@
       "prior_agent": {
         "agent_id": "019d70df-2241-7520-b1df-79e54f0850f8",
         "status": "active",
-        "resumable": false
+        "resumable": true
       },
       "evidence": {
         "agent_table_path": "openspec/changes/implement-phase-b-motion-lifecycle/verification/checkpoint-2/agent-table.json",

@@ -63,6 +63,8 @@ set(NEW_SRCS
     ../code/platform/hardware_profile.cpp
     ../code/platform/assistant_link.cpp
     ../code/platform/assistant_protocol.cpp
+    ../code/platform/steering_media_link.cpp
+    ../code/platform/steering_media_protocol.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
     ../code/platform/true_ls2k0300/imu_bridge.cpp
     ../code/platform/true_ls2k0300/encoder_bridge.cpp
@@ -70,6 +72,7 @@ set(NEW_SRCS
     ../code/platform/true_ls2k0300/adc_bridge.cpp
     ../code/platform/true_ls2k0300/timer_bridge.cpp
     ../code/platform/true_ls2k0300/assistant_bridge.cpp
+    ../code/platform/true_ls2k0300/steering_media_bridge.cpp
     ../code/legacy/fuzzy_pid_ucas.cpp
     ../code/legacy/pid_control.cpp
     ../code/legacy/motor_logic.cpp
@@ -77,6 +80,17 @@ set(NEW_SRCS
     ../code/legacy/wheel_pid.cpp
     ../code/legacy/attitude_logic.cpp
     ../code/legacy/camera_logic.cpp
+    ../code/legacy/steering_scene_common.cpp
+    ../code/legacy/steering_scene_orchestrator.cpp
+    ../code/legacy/steering_scene_straight.cpp
+    ../code/legacy/steering_scene_bend.cpp
+    ../code/legacy/steering_scene_circle_entry.cpp
+    ../code/legacy/steering_scene_circle_interior.cpp
+    ../code/legacy/steering_scene_circle_exit.cpp
+    ../code/legacy/steering_scene_zebra.cpp
+    ../code/legacy/steering_scene_cross.cpp
+    ../code/legacy/steering_scene_special_wide.cpp
+    ../code/legacy/steering_scene_roadblock_stub.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/perception_frontend.cpp
     ../code/runtime/motion_supervisor.cpp
@@ -84,6 +98,7 @@ set(NEW_SRCS
     ../code/runtime/control_loop.cpp
     ../code/runtime/control_debug_reporter.cpp
     ../code/runtime/assistant_service.cpp
+    ../code/runtime/steering_media_service.cpp
     ../code/runtime/tuning_state.cpp
     ../code/runtime/shutdown.cpp
 )
@@ -138,3 +153,36 @@ target_link_libraries(
     pthread
     m
 )
+
+option(LS2K_BUILD_VERIFICATION_HELPERS "Build verification helper binaries" OFF)
+
+if(LS2K_BUILD_VERIFICATION_HELPERS)
+    add_executable(
+        steering_media_selftest
+        ../user/steering_media_selftest.cpp
+        ../code/platform/steering_media_link.cpp
+        ../code/platform/steering_media_protocol.cpp
+        ../code/platform/true_ls2k0300/steering_media_bridge.cpp
+        ../code/runtime/control_debug_reporter.cpp
+        ../code/runtime/control_decision.cpp
+        ../code/runtime/motion_supervisor.cpp
+        ../code/runtime/steering_media_service.cpp
+    )
+    target_link_libraries(
+        steering_media_selftest
+        pthread
+        m
+    )
+
+    add_executable(
+        runtime_params_load_test
+        ../verification/tests/runtime_params_load_test.cpp
+        ../code/platform/param_store.cpp
+    )
+    target_link_libraries(
+        runtime_params_load_test
+        ${OpenCV_LIBS}
+        pthread
+        m
+    )
+endif()

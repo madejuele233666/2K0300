@@ -1,0 +1,213 @@
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <unistd.h>
+#include <utility>
+#include <vector>
+
+#include "platform/bootstrap.hpp"
+
+namespace {
+
+struct TestFailure {
+    std::string message;
+};
+
+void Expect(bool condition, const std::string& message) {
+    if (!condition) {
+        throw TestFailure{message};
+    }
+}
+
+struct RecordingDiagnostics final : ls2k::port::DiagnosticSink {
+    std::vector<ls2k::port::DiagnosticEvent> events{};
+
+    void Emit(const ls2k::port::DiagnosticEvent& event) override {
+        events.push_back(event);
+    }
+};
+
+class TempFile final {
+public:
+    explicit TempFile(std::string contents) {
+        char pattern[] = "/tmp/ls2k_runtime_params_test_XXXXXX.json";
+        const int fd = mkstemps(pattern, 5);
+        if (fd < 0) {
+            throw std::runtime_error("mkstemps failed");
+        }
+        path_ = pattern;
+        std::FILE* file = fdopen(fd, "w");
+        if (file == nullptr) {
+            close(fd);
+            std::remove(path_.c_str());
+            throw std::runtime_error("fdopen failed");
+        }
+        const std::size_t written = std::fwrite(contents.data(), 1, contents.size(), file);
+        if (written != contents.size() || std::fclose(file) != 0) {
+            std::remove(path_.c_str());
+            throw std::runtime_error("failed to write temp file");
+        }
+    }
+
+    TempFile(const TempFile&) = delete;
+    TempFile& operator=(const TempFile&) = delete;
+
+    TempFile(TempFile&& other) noexcept : path_(std::move(other.path_)) {
+        other.path_.clear();
+    }
+
+    TempFile& operator=(TempFile&& other) noexcept {
+        if (this != &other) {
+            Cleanup();
+            path_ = std::move(other.path_);
+            other.path_.clear();
+        }
+        return *this;
+    }
+
+    ~TempFile() {
+        Cleanup();
+    }
+
+    const std::string& path() const {
+        return path_;
+    }
+
+private:
+    void Cleanup() {
+        if (!path_.empty()) {
+            std::remove(path_.c_str());
+        }
+    }
+
+    std::string path_{};
+};
+
+bool HasDiagnosticCode(const RecordingDiagnostics& diagnostics, const std::string& code) {
+    for (const auto& event : diagnostics.events) {
+        if (event.code == code) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string ValidRuntimeParamsJson() {
+    return R"JSON({
+  "Speed_base": 150.0,
+  "see_max": 24.0,
+  "PID_TURN_CAMERA": {
+    "USE_FUZZY": 0,
+    "P": 58.0,
+    "P_SCALE": 1.0,
+    "D": 10.0
+  },
+  "PID_TURN_GYRO_CAMERA": {
+    "P": 1.0,
+    "I": 0.0,
+    "D": 0.20
+  },
+  "P_Mode": 3,
+  "exp_light": 65,
+  "LEFT_WHEEL_PID": {
+    "P": 84.0,
+    "I": 2.4,
+    "D": 0.75,
+    "INTEGRAL_LIMIT": 2200.0,
+    "MEASUREMENT_FILTER_ALPHA": 0.4
+  },
+  "RIGHT_WHEEL_PID": {
+    "P": 96.0,
+    "I": 2.2,
+    "D": 0.2,
+    "INTEGRAL_LIMIT": 2200.0,
+    "MEASUREMENT_FILTER_ALPHA": 0.4
+  },
+  "assistant_tcp": {
+    "host": "10.100.170.115",
+    "port": 8888
+  },
+  "assistant_enabled": 1,
+  "camera_frame_width": 320,
+  "camera_frame_height": 240
+})JSON";
+}
+
+void TestLoadSucceedsWithoutRemovedLegacyFields() {
+    RecordingDiagnostics diagnostics;
+    auto store = ls2k::platform::MakeParamStore();
+    ls2k::port::RuntimeParameters params{};
+    TempFile json(ValidRuntimeParamsJson());
+
+    const bool ok = store->LoadRuntimeParameters(json.path(), params, diagnostics);
+
+    Expect(ok, "parameter load should return true for a valid JSON file");
+    Expect(!params.loaded_from_defaults, "valid parameter file must not fall back to defaults");
+    Expect(!params.parse_failure, "valid parameter file must not report parse failure");
+    Expect(params.Speed_base == 150.0, "Speed_base must load from the trimmed runtime parameter surface");
+    Expect(params.see_max == 24.0, "see_max must remain required and load correctly");
+    Expect(params.pid_turn_camera_d == 10.0, "PID_TURN_CAMERA.D must remain required");
+    Expect(params.pid_turn_gyro_camera_d == 0.20, "PID_TURN_GYRO_CAMERA.D must remain required");
+    Expect(params.P_Mode == 3, "P_Mode must remain required");
+    Expect(params.exp_light == 65, "exp_light must remain required");
+    Expect(HasDiagnosticCode(diagnostics, "params.loaded"),
+           "successful parse must emit params.loaded");
+}
+
+void TestMissingRemovedLegacyFieldsDoesNotFailParsing() {
+    RecordingDiagnostics diagnostics;
+    auto store = ls2k::platform::MakeParamStore();
+    ls2k::port::RuntimeParameters params{};
+    TempFile json(ValidRuntimeParamsJson());
+
+    const bool ok = store->LoadRuntimeParameters(json.path(), params, diagnostics);
+
+    Expect(ok, "trimmed parameter surface must still load successfully");
+    Expect(!params.loaded_from_defaults,
+           "removed legacy keys must not be treated as missing required fields");
+    Expect(!params.parse_failure, "removed legacy keys must not trigger parse failure");
+    Expect(params.left_wheel_pid.p == 84.0, "other required fields must still load unchanged");
+    Expect(params.right_wheel_pid.p == 96.0, "other required fields must still load unchanged");
+}
+
+void TestStillFailsWhenCurrentRequiredFieldIsMissing() {
+    RecordingDiagnostics diagnostics;
+    auto store = ls2k::platform::MakeParamStore();
+    ls2k::port::RuntimeParameters params{};
+
+    std::string json_text = ValidRuntimeParamsJson();
+    const std::string needle = R"(  "see_max": 24.0,
+)";
+    const std::size_t position = json_text.find(needle);
+    Expect(position != std::string::npos, "test fixture must include see_max");
+    json_text.erase(position, needle.size());
+    TempFile json(std::move(json_text));
+
+    const bool ok = store->LoadRuntimeParameters(json.path(), params, diagnostics);
+
+    Expect(ok, "parse failures still return true while falling back to defaults");
+    Expect(params.loaded_from_defaults,
+           "missing current required fields must still fall back to built-in defaults");
+    Expect(params.parse_failure, "missing current required fields must still report parse failure");
+    Expect(HasDiagnosticCode(diagnostics, "params.parse"),
+           "parse fallback must emit params.parse");
+}
+
+}  // namespace
+
+int main() {
+    try {
+        TestLoadSucceedsWithoutRemovedLegacyFields();
+        TestMissingRemovedLegacyFieldsDoesNotFailParsing();
+        TestStillFailsWhenCurrentRequiredFieldIsMissing();
+    } catch (const TestFailure& failure) {
+        std::cerr << "runtime_params_load_test failed: " << failure.message << "\n";
+        return 1;
+    } catch (const std::exception& error) {
+        std::cerr << "runtime_params_load_test unexpected exception: " << error.what() << "\n";
+        return 1;
+    }
+    return 0;
+}

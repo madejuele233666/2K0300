@@ -1,0 +1,27 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "target_ref": "workflow:fixture-send-input-agent-not-found",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "target_ref": "workflow:fixture-send-input-agent-not-found",
+    "agents": [
+      {
+        "agent_id": "verifier-3",
+        "status": "active",
+        "last_verdict": "unknown",
+        "coverage_status": "unknown",
+        "exhaustive": false,
+        "scope": "",
+        "findings_path": "attempt-1/findings.json",
+        "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+        "updated_at": "2026-04-25T10:10:00Z"
+      }
+    ]
+  },
+  "continuation_probe": {
+    "agent_id": "verifier-3",
+    "send_input_result": "agent_not_found",
+    "resume_result": "not_attempted"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F1",
+      "title": "The preserved steering-media evidence bundle is not deterministically alignable to the control CSV",
+      "severity": "CRITICAL",
+      "blocking": true,
+      "auto_fixable": false,
+      "evidence": "The accepted spec requires control/media artifacts with timestamps supporting one aligned evidence bundle and a time-aligned summary or equivalent alignment metadata (`openspec/changes/add-steering-tuning-media-observability/specs/runtime-speed-tuning-surface/spec.md`, scenario \"Host evidence can align control CSV and steering media artifacts\"; `openspec/changes/add-steering-tuning-media-observability/specs/steering-tuning-media-observability/spec.md`, scenario \"Steering tuning evidence bundle is complete enough for review\"). In the implementation, `new/user/tune_speed.py:185` starts a private monotonic epoch and `new/user/tune_speed.py:318-349` writes control rows with relative `elapsed_ms` plus second-resolution `timestamp_utc`; `new/user/steering_media_capture.py:197-205` writes media metadata with absolute `host_received_monotonic_ms`; `new/user/tune_speed.py:655-667` writes `alignment_summary.json` with only paths/counts/state counts and no offset or mapping. The preserved artifact confirms that gap: `new/verification/steering-media-verify-20260424T022749Z/control-steering-media/alignment_summary.json` contains only summary fields, while `control.csv` and `frame_metadata.jsonl` remain on different time bases.",
+      "repair": "Persist one shared alignment basis in the host workflow. For example, record a monotonic-to-control offset or absolute monotonic timestamp for each control row, include that basis in `alignment_summary.json`, and/or emit an explicit frame-to-control correlation record so a reviewer can map a media frame to the corresponding control event without manual reconstruction."
+    },
+    {
+      "id": "F2",
+      "title": "The accepted runbook claims conservative host delay defaults that the host tool does not implement",
+      "severity": "SUGGESTION",
+      "blocking": false,
+      "auto_fixable": false,
+      "evidence": "`new/verification/phase-d-speed-tuning.md:48-53` states that the accepted host tool defaults are `startup_delay_ms=600` and `command_gap_ms=500`, but `new/user/tune_speed.py:443-444` sets both defaults to `0`.",
+      "repair": "Either update the host tool defaults to match the documented accepted workflow, or correct the runbook so it reflects the actual runtime defaults."
+    },
+    {
+      "id": "F3",
+      "title": "The accepted host workflow cannot express an unsuppressed tuning run even though the CLI implies suppression is optional",
+      "severity": "SUGGESTION",
+      "blocking": false,
+      "auto_fixable": false,
+      "evidence": "`new/code/runtime/tuning_state.cpp:53-59` forces `turn_suppressed=true` on every `enable_tuning_mode`; `new/user/tune_speed.py:453-455` and `new/user/tune_speed.py:604-615` only expose an optional `--turn-suppressed` path that sends `set_turn_suppressed=true`, with no symmetric way to clear suppression. The preserved standard run did not send an accepted post-enable `set_turn_suppressed` command, yet `new/verification/steering-media-verify-20260424T022749Z/control.csv` shows `turn_suppressed=True` throughout telemetry, so the documented default workflow is effectively always suppression-on.",
+      "repair": "Make the semantics explicit and internally consistent: either stop auto-enabling suppression on `enable_tuning_mode`, or add/document an explicit host path for `set_turn_suppressed=false` so the accepted workflow can intentionally choose between suppressed and unsuppressed runs."
+    }
+  ]
+}

@@ -2,11 +2,40 @@
 #define LS2K_RUNTIME_CONTROL_DEBUG_SNAPSHOT_HPP
 
 #include <cstdint>
+#include <string>
 
 #include "runtime/control_decision.hpp"
 #include "runtime/motion_types.hpp"
 
 namespace ls2k::runtime {
+
+struct SteeringDebugSnapshot {
+    bool valid = false;
+    std::uint64_t frame_id = 0;
+    std::uint64_t capture_time_ms = 0;
+    double lateral_error = 0.0;
+    int highest_line = 0;
+    int farthest_line = 0;
+    int steering_reference_col = 160;
+    int threshold = 0;
+    bool threshold_veto = false;
+    double resolved_fuzzy_p = 0.0;
+    double camera_p_term = 0.0;
+    double camera_d_term = 0.0;
+    double w_target = 0.0;
+    double gyro_z = 0.0;
+    double gyro_error = 0.0;
+    double gyro_p_term = 0.0;
+    double gyro_d_term = 0.0;
+    int raw_turn_output = 0;
+    int applied_turn_output = 0;
+    bool roadblock_active = false;
+    std::string active_module = "straight";
+    std::string scene_phase = "idle";
+    std::string scene_override_source = "none";
+    std::string roadblock_interface_state = "supported_not_implemented";
+    std::string last_special_scene_correction = "none";
+};
 
 struct ControlDebugSnapshot {
     bool valid = false;
@@ -30,6 +59,7 @@ struct ControlDebugSnapshot {
     int left_pwm_command = 0;
     int right_pwm_command = 0;
     bool emergency_stop = true;
+    SteeringDebugSnapshot steering{};
 };
 
 }  // namespace ls2k::runtime

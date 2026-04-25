@@ -223,10 +223,38 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_pr
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.s
 
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.s
+
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.i: cmake_force
@@ -240,7 +268,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.i: cmake_force
@@ -254,7 +282,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.i: cmake_force
@@ -268,7 +296,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/motor_bridge.cpp.i: cmake_force
@@ -282,7 +310,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.i: cmake_force
@@ -296,7 +324,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.i: cmake_force
@@ -310,7 +338,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.i: cmake_force
@@ -321,10 +349,24 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k030
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.s
 
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o: /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o -c /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.s
+
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.i: cmake_force
@@ -338,7 +380,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.i: cmake_force
@@ -352,7 +394,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.i: cmake_force
@@ -366,7 +408,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_mixer.cpp.i: cmake_force
@@ -380,7 +422,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_target_m
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.i: cmake_force
@@ -394,7 +436,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.i: cmake_force
@@ -408,7 +450,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i: cmake_force
@@ -419,10 +461,150 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.c
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
+
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/startup.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/startup.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.i: cmake_force
@@ -436,7 +618,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.s
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.i: cmake_force
@@ -450,7 +632,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_fr
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_41) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.i: cmake_force
@@ -464,7 +646,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_superv
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_42) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decision.cpp.i: cmake_force
@@ -478,7 +660,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_decis
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_43) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.i: cmake_force
@@ -492,7 +674,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_44) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.i: cmake_force
@@ -506,7 +688,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_45) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.i: cmake_force
@@ -517,10 +699,24 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_ser
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.s
 
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o: CMakeFiles/new.dir/flags.make
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_46) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp > CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.i
+
+CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.s
+
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_47) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.i: cmake_force
@@ -534,7 +730,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o: /home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_48) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o -c /home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.i: cmake_force
@@ -548,7 +744,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_49) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.i: cmake_force
@@ -562,7 +758,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_50) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_font.cpp.i: cmake_force
@@ -576,7 +772,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_51) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_function.cpp.i: cmake_force
@@ -590,7 +786,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_52) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu_core.cpp.i: cmake_force
@@ -604,7 +800,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_53) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660ra.cpp.i: cmake_force
@@ -618,7 +814,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_54) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu660rb.cpp.i: cmake_force
@@ -632,7 +828,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_41) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_55) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_imu963ra.cpp.i: cmake_force
@@ -646,7 +842,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_42) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_56) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_ips200_fb.cpp.i: cmake_force
@@ -660,7 +856,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_43) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_57) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_device/zf_device_uvc.cpp.i: cmake_force
@@ -674,7 +870,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_44) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_58) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_adc.cpp.i: cmake_force
@@ -688,7 +884,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_45) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_59) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_delay.cpp.i: cmake_force
@@ -702,7 +898,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_46) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_60) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_encoder.cpp.i: cmake_force
@@ -716,7 +912,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_47) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_61) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_file.cpp.i: cmake_force
@@ -730,7 +926,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_48) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_62) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_gpio.cpp.i: cmake_force
@@ -744,7 +940,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_49) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_63) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pit.cpp.i: cmake_force
@@ -758,7 +954,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_50) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_64) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_pwm.cpp.i: cmake_force
@@ -772,7 +968,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_51) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_65) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_driver/zf_driver_udp.cpp.i: cmake_force
@@ -786,7 +982,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_52) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_66) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant.cpp.i: cmake_force
@@ -800,7 +996,7 @@ CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o: CMakeFiles/new.dir/flags.make
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o: /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o: CMakeFiles/new.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_53) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_67) "Building CXX object CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o -MF CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o.d -o CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.o -c /home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp
 
 CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_components/seekfree_assistant/seekfree_assistant_interface.cpp.i: cmake_force
@@ -824,6 +1020,8 @@ new_OBJECTS = \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/hardware_profile.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o" \
@@ -831,6 +1029,7 @@ new_OBJECTS = \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o" \
@@ -838,6 +1037,16 @@ new_OBJECTS = \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o" \
@@ -845,6 +1054,7 @@ new_OBJECTS = \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o" \
+"CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o" \
 "CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o" \
@@ -881,6 +1091,8 @@ new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/param_s
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/hardware_profile.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_link.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/assistant_protocol.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_link.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/steering_media_protocol.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/camera_bridge.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/imu_bridge.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/encoder_bridge.cpp.o
@@ -888,6 +1100,7 @@ new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/adc_bridge.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/timer_bridge.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/assistant_bridge.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/platform/true_ls2k0300/steering_media_bridge.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/motor_logic.cpp.o
@@ -895,6 +1108,16 @@ new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_tar
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/attitude_logic.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/startup.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/perception_frontend.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/motion_supervisor.cpp.o
@@ -902,6 +1125,7 @@ new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_loop.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/control_debug_reporter.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/assistant_service.cpp.o
+new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/steering_media_service.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/shutdown.cpp.o
 new: CMakeFiles/new.dir/home/madejuele/projects/2K0300/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library/libraries/zf_common/zf_common_fifo.cpp.o
@@ -940,7 +1164,7 @@ new: /opt/ls_2k0300_env/opencv_4_10_build/lib/libopencv_flann.so.4.10.0
 new: /opt/ls_2k0300_env/opencv_4_10_build/lib/libopencv_imgproc.so.4.10.0
 new: /opt/ls_2k0300_env/opencv_4_10_build/lib/libopencv_core.so.4.10.0
 new: CMakeFiles/new.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_54) "Linking CXX executable new"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/madejuele/projects/2K0300/new/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_68) "Linking CXX executable new"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/new.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

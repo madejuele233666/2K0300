@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-steering-tuning-media-observability",
+  "agents": [
+    {
+      "agent_id": "019dbd59-e0ec-7493-8b98-c98dca954ac6",
+      "status": "closed",
+      "resumable": false,
+      "last_verdict": "block",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of OpenSpec change add-steering-tuning-media-observability checkpoint 2 attempt 1, limited to tasks 2.1-2.4: the project-owned length-prefixed steering media envelope, exact config_snapshot/image_frame contract shape, startup-loaded board-side steering media configuration keys, and focused local protocol/transport test coverage, with direct-impact inspection of the runtime send-on-ready path.",
+      "findings_path": "attempt-1/findings.json",
+      "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:03:49Z"
+    },
+    {
+      "agent_id": "019dbd72-a5af-7f20-8172-a9ae8a5b0ad6",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive source-first review of the steering media transport and protocol contract for tasks 2.1-2.4 of add-steering-tuning-media-observability.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-24T03:42:32Z"
+    }
+  ]
+}

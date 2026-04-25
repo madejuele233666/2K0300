@@ -1,0 +1,14 @@
+{
+  "listen_host": "0.0.0.0",
+  "listen_port": 8890,
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/repeat-ss-20260424T/attempt-3/control-steering-media",
+  "connected": true,
+  "connection_address": "169.254.148.181:55122",
+  "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/repeat-ss-20260424T/attempt-3/control-steering-media/config_snapshot.json",
+  "metadata_path": "/home/madejuele/projects/2K0300/new/verification/repeat-ss-20260424T/attempt-3/control-steering-media/frame_metadata.jsonl",
+  "frame_dir": "/home/madejuele/projects/2K0300/new/verification/repeat-ss-20260424T/attempt-3/control-steering-media/frames",
+  "frame_count": 26,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 14800855,
+  "last_host_receive_monotonic_ms": 14802981
+}

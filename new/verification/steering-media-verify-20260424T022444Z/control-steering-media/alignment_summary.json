@@ -1,0 +1,9 @@
+{
+  "timestamp_utc": "2026-04-24T02:24:51Z",
+  "control_csv": "/home/madejuele/projects/2K0300/new/verification/steering-media-verify-20260424T022444Z/control.csv",
+  "control_telemetry_frames": 0,
+  "control_state_events": {},
+  "steering_media_summary": "/home/madejuele/projects/2K0300/new/verification/steering-media-verify-20260424T022444Z/control-steering-media/summary.json",
+  "steering_media_frames": 0,
+  "steering_media_connected": true
+}

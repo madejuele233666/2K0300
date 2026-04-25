@@ -46,6 +46,9 @@ struct AssistantStatusView {
 
 struct AssistantTelemetryView {
     std::string motion_phase = "DISARMED";
+    std::string active_module = "straight";
+    std::string scene_phase = "idle";
+    std::string scene_override_source = "none";
     bool tuning_mode_enabled = false;
     bool turn_suppressed = false;
     bool target_speed_override_enabled = false;
@@ -59,6 +62,8 @@ struct AssistantTelemetryView {
     int right_pwm_command = 0;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
+    int farthest_line = 0;
+    int steering_reference_col = 160;
 };
 
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed);

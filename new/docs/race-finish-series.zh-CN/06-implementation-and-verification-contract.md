@@ -184,7 +184,7 @@
 
 | Subsystem | 默认 mode | 当前 hook | 主线行为 |
 |---|---|---|---|
-| `camera` | `direct-match` | `phase1-160x120-to-160x128-no-exp-light-control` | 接受 `160x120`，按固定 legacy 行映射适配成 `160x128`；非默认 `exp_light` 在 direct-match 下 fail-closed |
+| `camera` | `direct-match` | `parameterized-direct-gray-no-exp-light-control` | 接受参数指定的期望灰度 frame 几何；非默认 `exp_light` 在 direct-match 下 fail-closed |
 | `imu` | `direct-match` | `imu-core-device-detect` | 通过真 baseline 的 IMU core 路径检测设备并输出 project-owned sample |
 | `encoder` | `direct-match` | `absolute-count-delta-baseline` | 读取绝对计数，先建 baseline，再导出 delta |
 | `motor` | `direct-match` | `pwm-gpio-free-function` | 通过 bridge 封装后的 PWM/GPIO 路径输出左右轮命令 |
@@ -204,20 +204,19 @@
 
 ### 4.4A 相机 frame 适配硬契约
 
-当前 phase-1 相机适配不是“把任意图塞进 `160x128`”。
+当前相机 direct-match 适配不是“把任意图塞进固定 buffer”。
 
 后续接手者必须保留以下硬契约，除非显式更新设计和验证口径：
 
-1. 源 frame 只接受 `160x120`
-2. source rows `0..119` -> destination rows `8..127`
-3. destination rows `0..7` 重复 source row `0`
-4. 不允许静默改成：
+1. 源 frame 只接受参数 `camera_frame_width/camera_frame_height` 指定的期望几何
+2. direct-match 路径按原始灰度 frame 直通拷贝，不做静默裁剪、缩放或居中拷贝
+3. 不允许静默改成：
    - 裁掉顶部或底部
-   - 缩放到 `160x128`
+   - 缩放到另一组固定尺寸
    - 居中拷贝
    - 任意补黑边
 
-这个映射存在的原因不是格式好看，而是为了保留当前 legacy camera logic 依赖的行语义。
+当前约束存在的原因不是格式好看，而是为了让运行时几何契约由参数和真实 frame 一致性共同定义，避免分辨率再次散落到多处硬编码。
 
 ### 4.5 新增硬件的 profile 扩展规则
 
@@ -240,20 +239,11 @@
 当前 phase-1 参数面至少包括：
 
 1. `Speed_base`
-2. `JWJC`
-3. `circle_k`
-4. `circle_b`
-5. `road_k`
-6. `road_b`
-7. `see_max`
-8. `PID_TURN_CAMERA.D`
-9. `PID_TURN_GYRO_CAMERA.D`
-10. `Straight_permit`
-11. `island_point`
-12. `island_delay`
-13. `circle_k_err`
-14. `P_Mode`
-15. `exp_light`
+2. `see_max`
+3. `PID_TURN_CAMERA.D`
+4. `PID_TURN_GYRO_CAMERA.D`
+5. `P_Mode`
+6. `exp_light`
 
 当前还支持以下附加运行策略字段：
 
@@ -368,7 +358,7 @@
 这里要补一条当前实现事实：
 
 1. `camera.geometry.override` 只对应 `LS2K_FORCE_UVC_GEOMETRY` 触发的人工验证路径
-2. 真实运行时如果捕获到非 `160x120` frame，当前代码只会把内部 marker 置为 `kNonPhase1Geometry` 并拒绝发布帧
+2. 真实运行时如果捕获到与参数 `camera_frame_width/camera_frame_height` 不一致的 frame，当前代码只会把内部 marker 置为 `kNonPhase1Geometry` 并拒绝发布帧
 3. 也就是说，真实几何不匹配当前没有单独 grep-facing stable code
 4. 因此，后续取证必须区分：
    - 人工强制覆盖路径：看 `camera.geometry.override`

@@ -1,0 +1,40 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer",
+  "start_at": "2026-04-25T16:00:00+08:00",
+  "end_at": "2026-04-25T16:22:00+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Full declared docs-first review over the repaired OpenSpec artifact surface and required verification references from the provided verification bundle.",
+    "selection_mode": "declared_evidence_paths"
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": "Reviewed all declared docs and verification-reference paths for Completeness, Correctness, and Coherence; one blocking contract-alignment issue remains."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-perception-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-scene-state/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/specs/legacy-steering-control-alignment/spec.md",
+    "/home/madejuele/projects/2K0300/.codex/agents/verify-reviewer.toml",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

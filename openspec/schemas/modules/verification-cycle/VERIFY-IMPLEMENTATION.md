@@ -65,7 +65,8 @@ Ownership rule:
 
 - the verifier owns only findings and verifier-evidence payloads
 - `agent-table.json` is caller-owned state and MUST NOT be treated as verifier-authored output
-- `final_state` and other verifier execution metadata do not by themselves decide `resumable`
+- `agent-table.json` is a current-state snapshot and MUST NOT mirror full attempt history
+- `continuation_probe` is the only recovery input for missing or non-resumable active agents
 
 `findings.json` must expose top-level:
 
@@ -111,7 +112,8 @@ explicit and non-empty.
 1. If a usable `active` agent exists, continue it first: prefer `send_input`
    while that agent is still open. If `send_input` returns `agent not found`,
    route to `resume` for that same `active` agent instead of spawning.
-2. Then use `resume` only when that same `active` agent was closed and must be restored.
+2. Use `continuation_probe.resume_result` to distinguish resume from recovery
+   spawn when that same `active` agent cannot be reached directly.
 3. If and only if `agent-table.json` contains no `active` agent, spawn one and
    record it as `active`. `no_usable_active_agent` has only that literal
    meaning.
@@ -119,20 +121,15 @@ explicit and non-empty.
    the active verifier baseline.
 5. After repair, rerun the same agent until it returns a valid `pass`.
 6. Only `block -> pass` may change that agent to `non_active`.
-7. `close`, `exit`, timeout, or observer-only completion never imply
-   `non_active`.
-8. When all prior blocking agents are `non_active`, continue the next `active`
-   verifier attempt by `send_input` if it is still open, otherwise `resume`
-   it if it was closed; spawn only when `agent-table.json` has no `active`
-   agent.
-9. Terminate only when the current `active` agent returns a valid `pass` and
+7. Persist only the rows needed for the current state machine in
+   `agent-table.json`.
+8. Terminate only when the current `active` agent returns a valid `pass` and
    no active blocking state remains.
 
 ## Forbidden Actions
 
 - Do not invent archived dual-session phases.
-- Do not use closure authority as a substitute for verifier output.
-- Do not treat `close` or `exit` as proof that a problem is resolved.
+- Do not use continuation recovery as a substitute for verifier output.
 - Do not terminate on partial coverage.
 - Do not allow a partial verifier to omit `scope`.
 

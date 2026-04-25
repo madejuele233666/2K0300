@@ -1,0 +1,30 @@
+{
+  "change": "add-steering-tuning-media-observability",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "SM-CHK2-001",
+      "title": "Partial nonblocking writes can corrupt the steering media stream",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "The bridge treats EAGAIN/EWOULDBLOCK as a clean queue-later condition even after part of the current frame may already have been written to the TCP socket. The link layer then retains and retransmits the full encoded frame, which can leave a truncated envelope on the wire followed by a second full envelope. That breaks the checkpoint's length-prefixed media contract instead of dropping a frame atomically.",
+      "evidence": "new/code/platform/true_ls2k0300/steering_media_bridge.cpp:277-300 loops on nonblocking send() and returns false on EAGAIN/EWOULDBLOCK without tracking whether sent_total is already nonzero. new/code/platform/steering_media_link.cpp:189-194 and 199-209 then queue and later resend the entire encoded image whenever PublishEncoded() fails but the transport still reports Ready(). Because this is a byte-stream protocol, any partial prefix/header/payload already written before EAGAIN will desynchronize the next envelope.",
+      "recommendation": "Make busy-socket handling atomic at the frame boundary. Either buffer per-frame progress and resume from the unsent offset, or treat any short/partial write as a hard transport failure that closes the socket before a later reconnect/resend. Do not leave partially emitted envelope bytes on a connection that will later receive a fresh full-frame retransmission.",
+      "repair": "Rework SendSteeringMediaBytes()/SteeringMediaLink so queued retries continue from the unsent offset or the socket is torn down on any partial write before a retry.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "SM-CHK2-002",
+      "title": "The scoped local tests do not prove the required send-on-ready behavior and are not reproducibly built from the project surface",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "Checkpoint 2 requires focused local tests for config_snapshot send-on-ready behavior, but the provided selftest only exercises a manual PublishConfigSnapshot() call after the link is already ready and never verifies the actual automatic send-on-ready path. The evidence bundle also does not show a reproducible project-owned build path for the selftest binary.",
+      "evidence": "openspec/changes/add-steering-tuning-media-observability/tasks.md:37-39 requires tests covering header/payload validation, config_snapshot send-on-ready behavior, image_frame payload-size checks, and busy-socket latest-frame drop semantics. new/code/runtime/steering_media_service.cpp:63-78 contains the real automatic send-on-ready logic, but new/user/steering_media_selftest.cpp:187-245 never calls SteeringMediaService::Tick() or otherwise asserts that readiness transitions trigger config_snapshot publication; it only calls link.PublishConfigSnapshot() directly at lines 203-207. new/user/CMakeLists.txt:126-144 defines only the main firmware executable and no steering_media_selftest target, openspec/changes/add-steering-tuning-media-observability/verification/local-tests/20260424T023253Z/build.log is empty, and run.log:1 only shows a pass line for an already-present binary.",
+      "recommendation": "Add a project-owned local test that drives the runtime/link readiness transition and asserts that one config_snapshot is emitted automatically when the media session becomes ready, then wire that test into the local build/test surface so the build evidence shows exactly how the reviewed binary was produced.",
+      "repair": "Add a reproducible selftest target and extend coverage to exercise SteeringMediaService send-on-ready behavior instead of only manual link publishing.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

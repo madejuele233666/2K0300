@@ -44,7 +44,8 @@
   "output_path_ownership_notes": [
     "findings_path and verifier_evidence_path are persistence targets for verifier-authored payloads.",
     "agent_table_path is caller-owned state and must not be treated as verifier-authored output.",
-    "verifier execution metadata such as final_state does not by itself determine resumable."
+    "agent-table.json is a current-state snapshot and should keep only the rows needed by the current state machine.",
+    "Recovery state belongs in continuation_probe, not in persisted agent-table resumable hints."
   ],
   "verifier_evidence_required": [
     "review_goal",
@@ -78,7 +79,7 @@
   "verifier_timestamp_order_rule": "end_at must be greater than or equal to start_at.",
   "spawn_reason_semantics": [
     "`no_usable_active_agent` means agent-table.json contains no active agent.",
-    "`active_agent_missing` and `active_agent_not_resumable` are distinct recovery spawn cases after the required send_input/resume path."
+    "`active_agent_missing` and `active_agent_not_resumable` are distinct recovery spawn cases derived only from continuation_probe."
   ],
   "subject_required_any_of": [
     "change",
@@ -147,12 +148,12 @@
   "cycle_rules": [
     "If a usable active agent exists, continue it first.",
     "Prefer send_input while that same active agent is still open.",
-    "Use resume only when that same active agent was closed and must be restored.",
-    "Spawn a new active agent only when agent-table.json contains no active agent or the prior active agent entered a distinct recovery spawn case.",
+    "If send_input reports agent_not_found, require continuation_probe and try resume for that same active agent next.",
+    "Use continuation_probe.resume_result to distinguish resume_active from the recovery spawn cases.",
+    "Spawn a new active agent only when agent-table.json contains no active agent or continuation_probe proves a distinct recovery spawn case.",
     "When an active agent reports block, repair until that same agent reports pass.",
     "Only block->pass may mark an agent non_active.",
-    "Close or exit does not imply non_active.",
-    "Termination may use only a valid pass."
+    "Termination may use only a valid pass from the current active agent."
   ],
   "fast_pass_evidence_required": [
     "review_goal",

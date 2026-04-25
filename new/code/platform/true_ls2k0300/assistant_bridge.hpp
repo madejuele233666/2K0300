@@ -31,7 +31,7 @@ struct AssistantBridgePollResult {
 bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string& detail);
 AssistantBridgePollResult PollAssistantBridge();
 bool AssistantBridgeReady();
-bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, std::string& detail);
+bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, bool reliable, std::string& detail);
 bool SendAssistantOscilloscope(const std::array<float, 8>& values,
                                std::size_t channel_count,
                                std::string& detail);

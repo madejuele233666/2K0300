@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <utility>
 #include <netinet/tcp.h>
@@ -22,6 +23,7 @@ namespace ls2k::platform::true_ls2k0300 {
 namespace {
 
 constexpr uint64_t kReconnectBackoffMs = 1000;
+constexpr uint64_t kReliableSendTimeoutMs = 75;
 constexpr std::size_t kMaxReceiveDrainBytesPerPoll = 8192;
 // Give the board TCP stack enough time to retransmit a just-sent small
 // control frame before user space tears the socket down on a spurious
@@ -33,6 +35,11 @@ enum class IoStatus {
     kWouldBlock,
     kClosed,
     kError,
+};
+
+enum class SendPolicy {
+    kDropIfBusy = 0,
+    kReliable,
 };
 
 struct AssistantBridgeContext {
@@ -52,6 +59,7 @@ struct AssistantBridgeContext {
     std::size_t last_received_bytes = 0;
     uint64_t last_send_at_ms = 0;
     uint64_t last_recv_at_ms = 0;
+    SendPolicy active_send_policy = SendPolicy::kDropIfBusy;
 };
 
 AssistantBridgeContext g_bridge{};
@@ -124,6 +132,96 @@ std::string DescribeRecentIo() {
            " total_recv_bytes=" + std::to_string(g_bridge.total_received_bytes);
 }
 
+const char* ToTcpStateName(uint8_t state) {
+    switch (state) {
+        case 1:
+            return "ESTABLISHED";
+        case 2:
+            return "SYN_SENT";
+        case 3:
+            return "SYN_RECV";
+        case 4:
+            return "FIN_WAIT1";
+        case 5:
+            return "FIN_WAIT2";
+        case 6:
+            return "TIME_WAIT";
+        case 7:
+            return "CLOSE";
+        case 8:
+            return "CLOSE_WAIT";
+        case 9:
+            return "LAST_ACK";
+        case 10:
+            return "LISTEN";
+        case 11:
+            return "CLOSING";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+std::string DescribeSocketEndpoints() {
+    if (g_bridge.socket_fd < 0) {
+        return " fd=closed";
+    }
+
+    sockaddr_in local_addr{};
+    socklen_t local_len = sizeof(local_addr);
+    sockaddr_in peer_addr{};
+    socklen_t peer_len = sizeof(peer_addr);
+    char local_ip[INET_ADDRSTRLEN] = {};
+    char peer_ip[INET_ADDRSTRLEN] = {};
+    std::string detail;
+    if (getsockname(g_bridge.socket_fd, reinterpret_cast<sockaddr*>(&local_addr), &local_len) == 0 &&
+        inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip)) != nullptr) {
+        detail += " local=" + std::string(local_ip) + ":" + std::to_string(ntohs(local_addr.sin_port));
+    }
+    if (getpeername(g_bridge.socket_fd, reinterpret_cast<sockaddr*>(&peer_addr), &peer_len) == 0 &&
+        inet_ntop(AF_INET, &peer_addr.sin_addr, peer_ip, sizeof(peer_ip)) != nullptr) {
+        detail += " peer=" + std::string(peer_ip) + ":" + std::to_string(ntohs(peer_addr.sin_port));
+    }
+    return detail;
+}
+
+std::string DescribeTcpInfo() {
+    if (g_bridge.socket_fd < 0) {
+        return {};
+    }
+
+    std::string detail;
+#ifdef TCP_INFO
+    tcp_info info{};
+    socklen_t info_len = sizeof(info);
+    if (getsockopt(g_bridge.socket_fd, IPPROTO_TCP, TCP_INFO, &info, &info_len) == 0) {
+        detail += " tcp_state=" + std::string(ToTcpStateName(info.tcpi_state));
+        detail += " unacked=" + std::to_string(info.tcpi_unacked);
+        detail += " retrans=" + std::to_string(info.tcpi_retransmits);
+        detail += " probes=" + std::to_string(info.tcpi_probes);
+        detail += " backoff=" + std::to_string(info.tcpi_backoff);
+        detail += " rto_us=" + std::to_string(info.tcpi_rto);
+        detail += " ato_us=" + std::to_string(info.tcpi_ato);
+        detail += " snd_mss=" + std::to_string(info.tcpi_snd_mss);
+        detail += " rcv_mss=" + std::to_string(info.tcpi_rcv_mss);
+        detail += " last_data_sent_ms=" + std::to_string(info.tcpi_last_data_sent);
+        detail += " last_data_recv_ms=" + std::to_string(info.tcpi_last_data_recv);
+    }
+#endif
+
+#ifdef TIOCOUTQ
+    int outq = 0;
+    if (ioctl(g_bridge.socket_fd, TIOCOUTQ, &outq) == 0) {
+        detail += " outq_bytes=" + std::to_string(outq);
+    }
+#endif
+
+    return detail;
+}
+
+std::string DescribeFullSocketState() {
+    return DescribeRecentIo() + DescribeSocketEndpoints() + DescribeTcpInfo();
+}
+
 void RecordIoStatus(IoStatus status, const std::string& detail) {
     if (status == IoStatus::kOk) {
         return;
@@ -186,13 +284,50 @@ bool SocketHasReadableEvent() {
     }
 }
 
-uint32 BridgeSendData(const uint8* buff, uint32 length) {
+bool WaitForSocketWritable(uint64_t started_at_ms, uint64_t timeout_ms) {
+    if (g_bridge.socket_fd < 0) {
+        return false;
+    }
+
+    while (true) {
+        const uint64_t now_ms = MonotonicNowMs();
+        if (now_ms < started_at_ms || now_ms - started_at_ms >= timeout_ms) {
+            return false;
+        }
+
+        pollfd descriptor{};
+        descriptor.fd = g_bridge.socket_fd;
+        descriptor.events = POLLOUT | POLLERR | POLLHUP;
+        const int remaining_ms = static_cast<int>(std::min<uint64_t>(timeout_ms - (now_ms - started_at_ms), 5));
+        const int poll_rc = poll(&descriptor, 1, remaining_ms);
+        if (poll_rc > 0) {
+            if ((descriptor.revents & POLLOUT) != 0) {
+                return true;
+            }
+            RecordIoStatus(IoStatus::kError,
+                           "assistant TCP socket reported an error while waiting to send");
+            return false;
+        }
+        if (poll_rc == 0) {
+            continue;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        RecordIoStatus(IoStatus::kError,
+                       "assistant TCP poll for writable failed: " + std::string(std::strerror(errno)));
+        return false;
+    }
+}
+
+uint32 BridgeSendDataWithPolicy(const uint8* buff, uint32 length, SendPolicy policy) {
     if (g_bridge.state != AssistantBridgeState::kReady || g_bridge.socket_fd < 0) {
         RecordIoStatus(IoStatus::kClosed, "assistant transport is not connected");
         return length;
     }
 
     uint32 sent_total = 0;
+    const uint64_t started_at_ms = MonotonicNowMs();
     while (sent_total < length) {
         const uint32 remaining = length - sent_total;
 #ifdef MSG_NOSIGNAL
@@ -220,7 +355,19 @@ uint32 BridgeSendData(const uint8* buff, uint32 length) {
             continue;
         }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            RecordIoStatus(IoStatus::kWouldBlock, "assistant TCP socket is busy; dropped this frame");
+            if (policy == SendPolicy::kDropIfBusy && sent_total == 0) {
+                RecordIoStatus(IoStatus::kWouldBlock, "assistant TCP socket is busy; dropped this frame");
+                return length;
+            }
+            if (WaitForSocketWritable(started_at_ms, kReliableSendTimeoutMs)) {
+                continue;
+            }
+            if (g_bridge.last_io_status == IoStatus::kOk) {
+                RecordIoStatus(sent_total == 0 ? IoStatus::kWouldBlock : IoStatus::kError,
+                               sent_total == 0
+                                   ? "assistant TCP socket stayed busy before sending this frame"
+                                   : "assistant TCP socket stalled after a partial frame send");
+            }
             return length - sent_total;
         }
         RecordIoStatus(IoStatus::kError,
@@ -228,6 +375,10 @@ uint32 BridgeSendData(const uint8* buff, uint32 length) {
         return length - sent_total;
     }
     return 0;
+}
+
+uint32 BridgeSendData(const uint8* buff, uint32 length) {
+    return BridgeSendDataWithPolicy(buff, length, g_bridge.active_send_policy);
 }
 
 uint32 BridgeReadData(uint8* buff, uint32 length) {
@@ -395,7 +546,7 @@ bool FinalizeTransferResult(std::string& detail) {
         detail.clear();
         return true;
     }
-    detail = g_bridge.last_io_detail + DescribeRecentIo();
+    detail = g_bridge.last_io_detail + DescribeRecentIo() + DescribeSocketEndpoints() + DescribeTcpInfo();
     if (g_bridge.last_io_status == IoStatus::kWouldBlock) {
         return false;
     }
@@ -458,7 +609,7 @@ AssistantBridgePollResult PollAssistantBridge() {
                     ResetIoStatus();
                     break;
                 }
-                HandleSocketFailure(g_bridge.last_io_detail + DescribeRecentIo());
+                HandleSocketFailure(g_bridge.last_io_detail + DescribeFullSocketState());
             }
             break;
     }
@@ -470,7 +621,7 @@ bool AssistantBridgeReady() {
     return g_bridge.state == AssistantBridgeState::kReady;
 }
 
-bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, std::string& detail) {
+bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, bool reliable, std::string& detail) {
     if (!AssistantBridgeReady()) {
         detail = "assistant bridge not connected";
         return false;
@@ -481,7 +632,9 @@ bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, std::strin
     }
 
     ResetIoStatus();
-    const uint32 unsent = BridgeSendData(reinterpret_cast<const uint8*>(data), static_cast<uint32>(length));
+    const uint32 unsent = BridgeSendDataWithPolicy(reinterpret_cast<const uint8*>(data),
+                                                   static_cast<uint32>(length),
+                                                   reliable ? SendPolicy::kReliable : SendPolicy::kDropIfBusy);
     if (unsent != 0 && g_bridge.last_io_status == IoStatus::kOk) {
         detail = "assistant payload send incomplete";
         return false;
@@ -506,7 +659,9 @@ bool SendAssistantOscilloscope(const std::array<float, 8>& values,
     }
 
     ResetIoStatus();
+    g_bridge.active_send_policy = SendPolicy::kDropIfBusy;
     seekfree_assistant_oscilloscope_send(&payload);
+    g_bridge.active_send_policy = SendPolicy::kDropIfBusy;
     return FinalizeTransferResult(detail);
 }
 
@@ -521,6 +676,7 @@ bool SendAssistantImage(const uint8_t* image_gray, int width, int height, std::s
     }
 
     ResetIoStatus();
+    g_bridge.active_send_policy = SendPolicy::kDropIfBusy;
     seekfree_assistant_camera_information_config(
         SEEKFREE_ASSISTANT_MT9V03X,
         const_cast<uint8_t*>(image_gray),
@@ -528,6 +684,7 @@ bool SendAssistantImage(const uint8_t* image_gray, int width, int height, std::s
         static_cast<uint16>(height));
     seekfree_assistant_camera_boundary_config(NO_BOUNDARY, 0, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
     seekfree_assistant_camera_send();
+    g_bridge.active_send_policy = SendPolicy::kDropIfBusy;
     return FinalizeTransferResult(detail);
 }
 

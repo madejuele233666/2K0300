@@ -208,6 +208,10 @@ port::ActuatorCommand ApplyProhibitReverse(const port::ActuatorCommand& previous
     return command;
 }
 
+void ResetLegacySteeringState(port::LegacySteeringState& steering_state) {
+    steering_state = {};
+}
+
 void ResetControllerState(legacy::LegacyPidControl& pid,
                           legacy::LegacyAttitudeLogic& attitude,
                           legacy::WheelPidController& left_wheel_pid,
@@ -217,8 +221,7 @@ void ResetControllerState(legacy::LegacyPidControl& pid,
     attitude.Reset();
     left_wheel_pid.Reset();
     right_wheel_pid.Reset();
-    state.W_Target_last = 0.0F;
-    state.bcount = 0;
+    ResetLegacySteeringState(state.steering_state);
 }
 
 void EmitMotionDiagnostics(port::DiagnosticSink& diagnostics,
@@ -433,6 +436,7 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     state_.actuators_armed = false;
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
+    ResetLegacySteeringState(state_.steering_state);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -521,6 +525,7 @@ void ControlLoop::ResetDisarmedControlState() {
     state_.last_command = {};
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
+    ResetLegacySteeringState(state_.steering_state);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -538,6 +543,7 @@ void ControlLoop::LatchTimerFailureState(uint64_t now_ms) {
     state_.control_observation.hold_disarmed = true;
     state_.control_observation.motion_reset_ready = false;
     state_.control_debug_snapshot = {};
+    ResetLegacySteeringState(state_.steering_state);
     state_.control_debug_snapshot.valid = true;
     state_.control_debug_snapshot.timestamp_ms = now_ms;
     state_.control_debug_snapshot.motion_phase = MotionPhase::kFailSafeLatched;
@@ -615,6 +621,10 @@ void ControlLoop::Tick() {
     bool hold_disarmed = false;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
+    legacy::CameraTurnComputation camera_turn{};
+    legacy::GyroTurnComputation gyro_turn{};
+    bool steering_terms_valid = perception.published && perception.fresh &&
+                               perception.frame_id != 0 && perception.capture_time_ms != 0;
     if (gate.veto_active || motion.require_emergency_stop) {
         command = {};
     } else if (motion.hold_disarmed || !motion.allow_drive) {
@@ -626,9 +636,10 @@ void ControlLoop::Tick() {
         command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
-        const float w_target = pid_.ComputeTurnTarget(perception, state_.W_Target_last);
-        const float turn_output = pid_.ComputeGyroTurn(w_target, imu.gyro_z);
-        raw_turn_output = ClampTurnOutput(turn_output, motion.turn_limit_scale, params_.pwm_limit);
+        camera_turn = pid_.ComputeTurnTarget(perception, state_.steering_state.controller_memory);
+        gyro_turn = pid_.ComputeGyroTurn(camera_turn.w_target, imu.gyro_z, state_.steering_state.controller_memory);
+        raw_turn_output =
+            ClampTurnOutput(gyro_turn.raw_turn_output, motion.turn_limit_scale, params_.raw_turn_output_limit);
         applied_turn_output = raw_turn_output;
         if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
             applied_turn_output = 0;
@@ -710,6 +721,31 @@ void ControlLoop::Tick() {
     debug_snapshot.left_pwm_command = command.left_pwm;
     debug_snapshot.right_pwm_command = command.right_pwm;
     debug_snapshot.emergency_stop = command.emergency_stop;
+    debug_snapshot.steering.valid = steering_terms_valid;
+    debug_snapshot.steering.frame_id = perception.frame_id;
+    debug_snapshot.steering.capture_time_ms = perception.capture_time_ms;
+    debug_snapshot.steering.lateral_error = perception.lateral_error;
+    debug_snapshot.steering.highest_line = perception.highest_line;
+    debug_snapshot.steering.farthest_line = perception.farthest_line;
+    debug_snapshot.steering.steering_reference_col = perception.steering_reference_col;
+    debug_snapshot.steering.threshold = perception.threshold;
+    debug_snapshot.steering.threshold_veto = perception.threshold_veto;
+    debug_snapshot.steering.active_module = perception.active_module;
+    debug_snapshot.steering.scene_phase = perception.scene_phase;
+    debug_snapshot.steering.scene_override_source = perception.scene_override_source;
+    debug_snapshot.steering.roadblock_interface_state = perception.roadblock_interface_state;
+    debug_snapshot.steering.last_special_scene_correction = perception.last_special_scene_correction;
+    debug_snapshot.steering.roadblock_active = perception.roadblock_active;
+    debug_snapshot.steering.resolved_fuzzy_p = camera_turn.resolved_fuzzy_p;
+    debug_snapshot.steering.camera_p_term = camera_turn.camera_p_term;
+    debug_snapshot.steering.camera_d_term = camera_turn.camera_d_term;
+    debug_snapshot.steering.w_target = camera_turn.w_target;
+    debug_snapshot.steering.gyro_z = gyro_turn.gyro_z;
+    debug_snapshot.steering.gyro_error = gyro_turn.gyro_error;
+    debug_snapshot.steering.gyro_p_term = gyro_turn.gyro_p_term;
+    debug_snapshot.steering.gyro_d_term = gyro_turn.gyro_d_term;
+    debug_snapshot.steering.raw_turn_output = raw_turn_output;
+    debug_snapshot.steering.applied_turn_output = applied_turn_output;
     debug_reporter_.MaybeEmit(debug_snapshot, diagnostics_);
 
     {
@@ -726,7 +762,7 @@ void ControlLoop::Tick() {
         state_.control_debug_snapshot = debug_snapshot;
         state_.actuators_armed = observation.actuators_armed;
         if (observation.apply_outcome == ControlApplyOutcome::kDriveCommandApplied) {
-            state_.bcount = std::min(state_.bcount + 1, 200);
+            state_.steering_state.drive_cycle_count = std::min(state_.steering_state.drive_cycle_count + 1, 200);
         }
     }
     ++state_.control_cycle_count;

@@ -1,0 +1,42 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "add-steering-tuning-media-observability",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "add-steering-tuning-media-observability",
+    "agents": [
+      {
+        "agent_id": "019dbd59-e24c-7010-9117-bce07f4b89d6",
+        "status": "closed",
+        "resumable": false,
+        "last_verdict": "block",
+        "coverage_status": "complete",
+        "exhaustive": true,
+        "scope": "Exhaustive source-first review of OpenSpec change add-steering-tuning-media-observability for checkpoint 5 attempt 1 across the declared platform/runtime/user-tooling/documentation surfaces and the listed local/board evidence bundles.",
+        "findings_path": "attempt-1/findings.json",
+        "verifier_evidence_path": "attempt-1/verifier-evidence.json",
+        "updated_at": "2026-04-24T03:03:49Z"
+      },
+      {
+        "agent_id": "019dbd72-a73f-7032-a330-00367f18afde",
+        "status": "active",
+        "resumable": false,
+        "last_verdict": "pass",
+        "coverage_status": "complete",
+        "exhaustive": true,
+        "scope": "Exhaustive final source-first review of the completed implementation bundle for tasks 5.1-5.4 of add-steering-tuning-media-observability.",
+        "findings_path": "attempt-3/findings.json",
+        "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+        "updated_at": "2026-04-24T03:42:32Z"
+      }
+    ]
+  },
+  "latest_result": {
+    "agent_id": "019dbd72-a73f-7032-a330-00367f18afde",
+    "verdict": "pass",
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "scope": "Exhaustive final source-first review of the completed implementation bundle for tasks 5.1-5.4 of add-steering-tuning-media-observability."
+  }
+}

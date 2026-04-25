@@ -1,0 +1,21 @@
+run_dir=/home/madejuele/projects/2K0300/new/verification/repeat-after-fix-invalid-20260424T072358Z
+attempt=1 start=2026-04-24T07:23:58Z
+attempt=1 rc=0 end=2026-04-24T07:24:05Z
+attempt=2 start=2026-04-24T07:24:06Z
+attempt=2 rc=0 end=2026-04-24T07:24:12Z
+attempt=3 start=2026-04-24T07:24:13Z
+attempt=3 rc=0 end=2026-04-24T07:24:20Z
+attempt=4 start=2026-04-24T07:24:21Z
+attempt=4 rc=0 end=2026-04-24T07:24:27Z
+attempt=5 start=2026-04-24T07:24:28Z
+attempt=5 rc=0 end=2026-04-24T07:24:35Z
+attempt=6 start=2026-04-24T07:24:36Z
+attempt=6 rc=0 end=2026-04-24T07:24:42Z
+attempt=7 start=2026-04-24T07:24:43Z
+attempt=7 rc=0 end=2026-04-24T07:24:50Z
+attempt=8 start=2026-04-24T07:24:51Z
+attempt=8 rc=0 end=2026-04-24T07:24:57Z
+attempt=9 start=2026-04-24T07:24:58Z
+attempt=9 rc=0 end=2026-04-24T07:25:05Z
+attempt=10 start=2026-04-24T07:25:06Z
+attempt=10 rc=0 end=2026-04-24T07:25:12Z

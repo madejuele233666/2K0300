@@ -1,0 +1,29 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "refactor-old-2-steering-control",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "refactor-old-2-steering-control",
+    "agents": [
+      {
+        "agent_id": "verify-reviewer",
+        "status": "active",
+        "last_verdict": "pass",
+        "coverage_status": "complete",
+        "exhaustive": true,
+        "scope": "Docs-first re-review of the repaired verification-cycle simplification surface for refactor-old-2-steering-control, covering shared verification-cycle contracts/tooling, ai-enforced-workflow docs/contracts, the change-local tasks contract, and the current artifact-completion directory state.",
+        "findings_path": "attempt-10/findings.json",
+        "verifier_evidence_path": "attempt-10/verifier-evidence.json",
+        "updated_at": "2026-04-25T10:28:00Z"
+      }
+    ]
+  },
+  "latest_result": {
+    "agent_id": "verify-reviewer",
+    "verdict": "pass",
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "scope": "Docs-first re-review of the repaired verification-cycle simplification surface for refactor-old-2-steering-control, covering shared verification-cycle contracts/tooling, ai-enforced-workflow docs/contracts, the change-local tasks contract, and the current artifact-completion directory state."
+  }
+}

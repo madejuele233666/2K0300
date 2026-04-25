@@ -1,0 +1,16 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001-agent-table-ownership-conflict",
+      "severity": "CRITICAL",
+      "dimension": "Correctness",
+      "problem": "`tasks.md` repeatedly assigns `agent-table.json` as an output of the verifier-subagent review flow, which conflicts with the shared verification-cycle contract that makes `agent_table_path` caller-owned and explicitly forbids the verifier from writing or claiming authorship of that file.",
+      "evidence": "`openspec/changes/refactor-old-2-steering-control/tasks.md:35-36` says the docs-first review should write findings, verifier evidence, and `agent-table.json`; the same verifier-subagent checkpoint wording is repeated at `tasks.md:43`, `tasks.md:52`, `tasks.md:58-59`. This contradicts `openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json:44-47` (`agent_table_path is caller-owned state and must not be treated as verifier-authored output`), `.codex/agents/verify-reviewer.toml:37-45` and `:83-86` (output paths are caller-owned; verifier must not write or imply authorship of `agent_table_path` / `agent-table.json`), and `openspec/schemas/modules/verification-cycle/orchestrator/CALLER-INTEGRATION.md:14-18`, which assigns agent-table handling to the caller.",
+      "recommendation": "Revise each checkpoint and review task so the verifier-subagent is described as authoring only `findings.json` and `verifier-evidence.json`, while the caller/orchestrator reads, reconciles, and writes `agent-table.json` per the shared verification-cycle contract.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

@@ -13,6 +13,7 @@
 #include "runtime/perception_frontend.hpp"
 #include "runtime/shutdown.hpp"
 #include "runtime/startup.hpp"
+#include "runtime/steering_media_service.hpp"
 
 namespace {
 
@@ -333,7 +334,9 @@ int main() {
     ls2k::runtime::PerceptionFrontend perception(
         *platform.camera, *platform.power, runtime_state, diagnostics);
     ls2k::runtime::AssistantService assistant_service;
+    ls2k::runtime::SteeringMediaService steering_media_service;
     assistant_service.Start(params, diagnostics);
+    steering_media_service.Start(params, diagnostics);
     const AutomationConfig automation = LoadAutomationConfig();
     EmitHarnessContext(diagnostics, automation);
 
@@ -373,6 +376,7 @@ int main() {
 
         perception.ProcessOneFrame(params);
         assistant_service.Tick(runtime_state, diagnostics);
+        steering_media_service.Tick(runtime_state, diagnostics);
         ++processed_frames;
         if (automation.emit_frame_progress) {
             diagnostics.Emit({ls2k::port::DiagnosticLevel::kInfo,

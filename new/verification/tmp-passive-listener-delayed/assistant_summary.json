@@ -1,0 +1,14 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 19088,
+  "csv_path": "new/verification/tmp-passive-listener-delayed/assistant_control.csv",
+  "connected": true,
+  "connection_address": "127.0.0.1:41267",
+  "ack_frames": 0,
+  "state_frames": 0,
+  "telemetry_frames": 1,
+  "unknown_frames": 0,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 18197460,
+  "last_host_receive_monotonic_ms": 18197460
+}

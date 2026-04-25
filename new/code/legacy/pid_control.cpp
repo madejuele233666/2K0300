@@ -16,13 +16,10 @@ void LegacyPidControl::Configure(const port::RuntimeParameters& params) {
     fuzzy_.InitMH(params.P_Mode);
 }
 
-void LegacyPidControl::Reset() {
-    camera_error_last_ = 0.0F;
-    gyro_error_last_ = 0.0F;
-    gyro_i_count_ = 0.0F;
-}
+void LegacyPidControl::Reset() {}
 
-float LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& perception, float& w_target_last) {
+CameraTurnComputation LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& perception,
+                                                          port::LegacySteeringControllerMemory& memory) {
     const float err = perception.lateral_error;
     const float proportional_gain = cam_use_fuzzy_
                                         ? cam_p_scale_ * fuzzy_.DuoJiGetP(
@@ -30,23 +27,39 @@ float LegacyPidControl::ComputeTurnTarget(const port::PerceptionResult& percepti
                                                              static_cast<int>(std::round(err)))
                                         : cam_p_;
     const float p_data = proportional_gain * err;
-    const float d_data = cam_d_ * (err - camera_error_last_);
-    camera_error_last_ = err;
+    const float d_data = cam_d_ * (err - memory.camera_error_last);
+    memory.camera_error_last = err;
     const float candidate = p_data + d_data;
 
     // Retain the old W_Target_last smoothing pattern from old/user/isr.c.
-    const float smoothed = 0.9F * candidate + 0.1F * w_target_last;
-    w_target_last = smoothed;
-    return smoothed;
+    const float smoothed = 0.9F * candidate + 0.1F * memory.w_target_last;
+    memory.w_target_last = smoothed;
+
+    CameraTurnComputation computation{};
+    computation.resolved_fuzzy_p = proportional_gain;
+    computation.camera_p_term = p_data;
+    computation.camera_d_term = d_data;
+    computation.w_target = smoothed;
+    return computation;
 }
 
-float LegacyPidControl::ComputeGyroTurn(float w_target, float gyro_z) {
+GyroTurnComputation LegacyPidControl::ComputeGyroTurn(float w_target,
+                                                      float gyro_z,
+                                                      port::LegacySteeringControllerMemory& memory) {
     const float error = w_target - gyro_z;
-    gyro_i_count_ = std::clamp(gyro_i_count_ + error, -1200.0F, 1200.0F);
-    const float output =
-        gyro_p_ * error + gyro_i_ * gyro_i_count_ + gyro_d_ * (error - gyro_error_last_);
-    gyro_error_last_ = error;
-    return std::clamp(output, -9000.0F, 9000.0F);
+    memory.gyro_i_accumulator = std::clamp(memory.gyro_i_accumulator + error, -1200.0F, 1200.0F);
+    const float p_term = gyro_p_ * error;
+    const float d_term = gyro_d_ * (error - memory.gyro_error_last);
+    const float output = p_term + gyro_i_ * memory.gyro_i_accumulator + d_term;
+    memory.gyro_error_last = error;
+
+    GyroTurnComputation computation{};
+    computation.gyro_z = gyro_z;
+    computation.gyro_error = error;
+    computation.gyro_p_term = p_term;
+    computation.gyro_d_term = d_term;
+    computation.raw_turn_output = std::clamp(output, -9000.0F, 9000.0F);
+    return computation;
 }
 
 }  // namespace ls2k::legacy

@@ -1,0 +1,30 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "add-steering-tuning-media-observability",
+  "agents": [
+    {
+      "agent_id": "019dbab3-a9e8-7413-8320-5b8effca6ce1",
+      "status": "non_active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive docs-first re-review of the repaired proposal, design, tasks, delta specs, and verification-cycle reference contracts for OpenSpec change add-steering-tuning-media-observability, with focus on resolution of STM-ART-001 and STM-ART-002.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-23T14:29:50Z"
+    },
+    {
+      "agent_id": "019dbac8-62e9-7163-81c5-5dfb7bd7b98c",
+      "status": "active",
+      "resumable": false,
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Exhaustive fresh docs-first confirmation review of proposal, design, tasks, delta specs, and verification-cycle reference contracts for OpenSpec change add-steering-tuning-media-observability.",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-04-23T14:54:52Z"
+    }
+  ]
+}

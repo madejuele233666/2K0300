@@ -28,7 +28,6 @@
         "required": [
           "agent_id",
           "status",
-          "resumable",
           "last_verdict",
           "coverage_status",
           "exhaustive",
@@ -45,12 +44,9 @@
           "status": {
             "enum": [
               "active",
-              "non_active",
-              "closed"
-            ]
-          },
-          "resumable": {
-            "type": "boolean"
+              "non_active"
+            ],
+            "description": "`active` is the current authoritative verifier baseline. `non_active` is a prior baseline that no longer drives the current cycle."
           },
           "last_verdict": {
             "enum": [
@@ -128,6 +124,7 @@
       }
     }
   },
+  "current_state_only_rule": "agent-table.json is a current-state snapshot. Keep only the rows needed by the current state machine and do not mirror full attempt history here.",
   "oneOf": [
     {
       "required": [

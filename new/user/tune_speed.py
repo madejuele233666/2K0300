@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+from bisect import bisect_left
 import csv
 import json
 import select
 import socket
+import errno
 import subprocess
 import sys
 import time
@@ -15,6 +17,8 @@ from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Deque, Dict, Iterable, Optional, Tuple
+
+from steering_media_capture import SteeringMediaListener
 
 
 def log(message: str) -> None:
@@ -29,20 +33,37 @@ def utc_timestamp() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def pip_install_args_for_current_python() -> list[str]:
+    in_virtualenv = (
+        hasattr(sys, "real_prefix") or
+        sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+    )
+    args = [sys.executable, "-m", "pip", "install"]
+    if not in_virtualenv:
+        args.append("--user")
+    args.append("matplotlib")
+    return args
+
+
+def import_matplotlib_pyplot() -> Any:
+    import matplotlib.pyplot as plt  # type: ignore
+
+    return plt
+
+
 def bootstrap_matplotlib(disabled: bool) -> Optional[Tuple[Any, Any]]:
     if disabled:
         return None
 
     try:
-        import matplotlib.pyplot as plt  # type: ignore
-
-        return plt, None
+        return import_matplotlib_pyplot(), None
     except Exception as import_error:
         log(f"[plot] matplotlib import failed: {import_error}")
 
-    log("[plot] attempting `python -m pip install --user matplotlib`")
+    install_cmd = pip_install_args_for_current_python()
+    log(f"[plot] attempting `{ ' '.join(install_cmd) }`")
     install = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--user", "matplotlib"],
+        install_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -56,10 +77,8 @@ def bootstrap_matplotlib(disabled: bool) -> Optional[Tuple[Any, Any]]:
         return None
 
     try:
-        import matplotlib.pyplot as plt  # type: ignore
-
         log("[plot] matplotlib installed successfully")
-        return plt, install.stdout
+        return import_matplotlib_pyplot(), install.stdout
     except Exception as import_error:
         log(f"[plot] matplotlib still unavailable after install: {import_error}")
         return None
@@ -75,6 +94,7 @@ class AckResult:
 class CsvRecorder:
     FIELDNAMES = [
         "timestamp_utc",
+        "host_monotonic_ms",
         "elapsed_ms",
         "frame_type",
         "seq",
@@ -188,6 +208,7 @@ class AssistantSession:
         self._telemetry_frames = 0
         self._receiver_error: Optional[str] = None
         self._rx_buffer = bytearray()
+        self._failure_diagnostics_logged = False
 
     def start(self) -> None:
         try:
@@ -223,7 +244,9 @@ class AssistantSession:
         deadline = time.monotonic() + timeout_s
         if not self._pump_until(deadline, lambda: seq in self._pending_acks):
             if self._receiver_error is not None:
+                self._log_failure_diagnostics("wait_for_ack receiver_error")
                 raise RuntimeError(self._receiver_error)
+            self._log_failure_diagnostics(f"wait_for_ack timeout seq={seq} cmd={self._sent_commands.get(seq, '')}")
             raise TimeoutError(f"timed out waiting for ack seq={seq} cmd={self._sent_commands.get(seq, '')}")
         return self._pending_acks.pop(seq)
 
@@ -245,6 +268,7 @@ class AssistantSession:
 
     def summary(self) -> Dict[str, Any]:
         return {
+            "control_session_start_monotonic_ms": self._start_monotonic_ms,
             "telemetry_frames": self._telemetry_frames,
             "state_events": dict(self._state_events),
             "receiver_error": self._receiver_error,
@@ -262,6 +286,7 @@ class AssistantSession:
                 readable, _, _ = select.select([self._connection], [], [], timeout_s)
             except OSError as error:
                 self._receiver_error = f"assistant receive failed: {error}"
+                self._log_failure_diagnostics("select failure")
                 return False
             if not readable:
                 continue
@@ -270,9 +295,11 @@ class AssistantSession:
                 chunk = self._connection.recv(4096)
             except OSError as error:
                 self._receiver_error = f"assistant receive failed: {error}"
+                self._log_failure_diagnostics("recv failure")
                 return False
             if not chunk:
                 self._receiver_error = "assistant connection closed unexpectedly"
+                self._log_failure_diagnostics("peer closed")
                 return False
 
             self._rx_buffer.extend(chunk)
@@ -324,6 +351,7 @@ class AssistantSession:
         frame_type = frame.get("type")
         row = {
             "timestamp_utc": timestamp,
+            "host_monotonic_ms": self._start_monotonic_ms + elapsed_ms,
             "elapsed_ms": elapsed_ms,
             "frame_type": frame_type,
             "seq": frame.get("seq", ""),
@@ -391,6 +419,66 @@ class AssistantSession:
 
         log(f"[recv] unknown frame type: {frame_type!r}")
 
+    def _log_failure_diagnostics(self, reason: str) -> None:
+        if self._failure_diagnostics_logged:
+            return
+        self._failure_diagnostics_logged = True
+
+        details: list[str] = [f"reason={reason}"]
+        try:
+            local_host, local_port = self._connection.getsockname()[:2]
+            details.append(f"local={local_host}:{local_port}")
+        except OSError as error:
+            local_port = None
+            details.append(f"local=<error:{error}>")
+
+        try:
+            peer_host, peer_port = self._connection.getpeername()[:2]
+            details.append(f"peer={peer_host}:{peer_port}")
+        except OSError as error:
+            details.append(f"peer=<error:{error}>")
+
+        try:
+            so_error = self._connection.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            details.append(f"so_error={so_error}")
+        except OSError as error:
+            details.append(f"so_error=<error:{error}>")
+
+        try:
+            peek = self._connection.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT)
+            details.append(f"peek_len={len(peek)}")
+        except BlockingIOError:
+            details.append("peek=would_block")
+        except OSError as error:
+            if error.errno == errno.ENOTCONN:
+                details.append("peek=not_connected")
+            else:
+                details.append(f"peek=<error:{error}>")
+
+        log("[diag] control_socket " + " ".join(details))
+
+        if local_port is None:
+            return
+        try:
+            ss = subprocess.run(
+                ["ss", "-tinp", f"( sport = :{local_port} or dport = :{local_port} )"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                check=False,
+            )
+        except OSError as error:
+            log(f"[diag] ss failed: {error}")
+            return
+
+        ss_output = (ss.stdout or "").strip()
+        if not ss_output:
+            log(f"[diag] ss rc={ss.returncode} output=<empty>")
+            return
+        log(f"[diag] ss rc={ss.returncode}")
+        for line in ss_output.splitlines():
+            log(f"[diag] ss {line}")
+
 
 def parse_speed_sequence(sequence_text: str) -> Iterable[float]:
     if not sequence_text.strip():
@@ -402,6 +490,28 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Minimal assistant host tuning workflow")
     parser.add_argument("--listen-host", default="0.0.0.0", help="host/interface to bind")
     parser.add_argument("--listen-port", type=int, default=8888, help="TCP port to bind")
+    parser.add_argument(
+        "--media-listen-host",
+        default=None,
+        help="optional host/interface for steering media listener; defaults to --listen-host",
+    )
+    parser.add_argument(
+        "--media-listen-port",
+        type=int,
+        default=None,
+        help="optional TCP port for the steering media sidecar",
+    )
+    parser.add_argument(
+        "--media-out-dir",
+        default=None,
+        help="optional output directory for steering media config/image captures",
+    )
+    parser.add_argument(
+        "--media-accept-timeout-s",
+        type=float,
+        default=8.0,
+        help="time budget for the steering media connection to arrive",
+    )
     parser.add_argument(
         "--csv",
         default=str(Path(__file__).resolve().parent.parent / "verification" / "phase-d-speed-tuning.csv"),
@@ -468,10 +578,120 @@ def command_gap(session: AssistantSession, gap_ms: int) -> None:
         session.pump_for(gap_ms / 1000.0)
 
 
+def load_control_alignment_rows(csv_path: Path) -> list[Dict[str, Any]]:
+    rows: list[Dict[str, Any]] = []
+    with csv_path.open("r", encoding="utf-8", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            host_monotonic_ms_raw = row.get("host_monotonic_ms", "")
+            elapsed_ms_raw = row.get("elapsed_ms", "")
+            if not host_monotonic_ms_raw or not elapsed_ms_raw:
+                continue
+            rows.append(
+                {
+                    "host_monotonic_ms": int(host_monotonic_ms_raw),
+                    "elapsed_ms": int(elapsed_ms_raw),
+                    "frame_type": row.get("frame_type", ""),
+                    "event": row.get("event", ""),
+                    "cmd": row.get("cmd", ""),
+                    "outcome": row.get("outcome", ""),
+                }
+            )
+    return rows
+
+
+def load_media_alignment_rows(metadata_path: Path) -> list[Dict[str, Any]]:
+    rows: list[Dict[str, Any]] = []
+    if not metadata_path.is_file():
+        return rows
+    with metadata_path.open("r", encoding="utf-8") as file:
+        for line in file:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            host_received_monotonic_ms = record.get("host_received_monotonic_ms")
+            if host_received_monotonic_ms is None:
+                continue
+            rows.append(record)
+    return rows
+
+
+def build_alignment_bundle(
+    csv_path: Path, control_summary: Dict[str, Any], media_summary: Dict[str, Any]
+) -> Dict[str, Any]:
+    control_rows = load_control_alignment_rows(csv_path)
+    metadata_path = Path(str(media_summary.get("metadata_path", "")))
+    media_rows = load_media_alignment_rows(metadata_path)
+
+    alignment_summary: Dict[str, Any] = {
+        "timestamp_utc": utc_timestamp(),
+        "control_csv": str(csv_path),
+        "control_session_start_monotonic_ms": control_summary["control_session_start_monotonic_ms"],
+        "control_row_count": len(control_rows),
+        "control_telemetry_frames": control_summary["telemetry_frames"],
+        "control_state_events": control_summary["state_events"],
+        "steering_media_summary": media_summary["summary_path"],
+        "steering_media_frames": media_summary["frame_count"],
+        "steering_media_connected": media_summary["connected"],
+        "media_first_host_receive_monotonic_ms": media_summary.get("first_host_receive_monotonic_ms"),
+        "media_last_host_receive_monotonic_ms": media_summary.get("last_host_receive_monotonic_ms"),
+        "alignment_basis": {
+            "control_rows_host_monotonic_ms": "same host monotonic clock as steering media host_received_monotonic_ms",
+            "control_elapsed_ms_origin": "elapsed_ms = host_monotonic_ms - control_session_start_monotonic_ms",
+        },
+    }
+    if not control_rows or not media_rows:
+        alignment_summary["alignment_available"] = False
+        alignment_summary["frame_alignment_count"] = 0
+        return alignment_summary
+
+    control_times = [row["host_monotonic_ms"] for row in control_rows]
+    alignment_records: list[Dict[str, Any]] = []
+    delta_ms_values: list[int] = []
+    alignment_path = Path(str(media_summary["summary_path"])).with_name("frame_control_alignment.jsonl")
+    with alignment_path.open("w", encoding="utf-8") as file:
+        for media_row in media_rows:
+            media_time = int(media_row["host_received_monotonic_ms"])
+            insert_at = bisect_left(control_times, media_time)
+            candidate_indices = []
+            if insert_at < len(control_rows):
+                candidate_indices.append(insert_at)
+            if insert_at > 0:
+                candidate_indices.append(insert_at - 1)
+            nearest = min(
+                (control_rows[index] for index in candidate_indices),
+                key=lambda row: abs(int(row["host_monotonic_ms"]) - media_time),
+            )
+            delta_ms = media_time - int(nearest["host_monotonic_ms"])
+            delta_ms_values.append(abs(delta_ms))
+            record = {
+                "frame_id": media_row.get("frame_id"),
+                "media_host_received_monotonic_ms": media_time,
+                "nearest_control_host_monotonic_ms": nearest["host_monotonic_ms"],
+                "nearest_control_elapsed_ms": nearest["elapsed_ms"],
+                "nearest_control_frame_type": nearest["frame_type"],
+                "nearest_control_event": nearest["event"],
+                "nearest_control_cmd": nearest["cmd"],
+                "nearest_control_outcome": nearest["outcome"],
+                "delta_to_nearest_control_ms": delta_ms,
+            }
+            alignment_records.append(record)
+            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    alignment_summary["alignment_available"] = True
+    alignment_summary["frame_alignment_path"] = str(alignment_path)
+    alignment_summary["frame_alignment_count"] = len(alignment_records)
+    alignment_summary["max_nearest_control_delta_ms"] = max(delta_ms_values)
+    alignment_summary["mean_nearest_control_delta_ms"] = sum(delta_ms_values) / len(delta_ms_values)
+    alignment_summary["first_frame_alignment"] = alignment_records[0]
+    return alignment_summary
+
+
 def main() -> int:
     args = parse_args()
     sequence = list(parse_speed_sequence(args.sequence))
     csv_path = Path(args.csv).resolve()
+    media_listener: Optional[SteeringMediaListener] = None
 
     matplotlib_result = bootstrap_matplotlib(args.no_plot)
     plotter: Optional[LivePlotter] = None
@@ -480,6 +700,21 @@ def main() -> int:
         if install_log:
             log("[plot] install fallback succeeded and plotting is enabled")
         plotter = LivePlotter(plt_module)
+
+    if args.media_listen_port is not None:
+        media_out_dir = (
+            Path(args.media_out_dir).resolve()
+            if args.media_out_dir is not None
+            else (csv_path.parent / f"{csv_path.stem}-steering-media")
+        )
+        media_listener = SteeringMediaListener(
+            args.media_listen_host or args.listen_host,
+            args.media_listen_port,
+            media_out_dir,
+            accept_timeout_s=args.media_accept_timeout_s,
+            log_fn=log,
+        )
+        media_listener.start()
 
     with socket.create_server((args.listen_host, args.listen_port), reuse_port=False) as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -610,12 +845,30 @@ def main() -> int:
     finally:
         summary = session.summary()
         session.close()
+        media_summary = media_listener.close() if media_listener is not None else None
+        if media_summary is not None and media_summary.get("summary_path"):
+            alignment_summary = build_alignment_bundle(csv_path, summary, media_summary)
+            alignment_path = Path(media_summary["summary_path"]).with_name("alignment_summary.json")
+            with alignment_path.open("w", encoding="utf-8") as file:
+                json.dump(alignment_summary, file, indent=2, ensure_ascii=False)
+                file.write("\n")
+            media_summary["alignment_summary_path"] = str(alignment_path)
 
     log("[summary] csv=" + str(csv_path))
     log("[summary] telemetry_frames=" + str(summary["telemetry_frames"]))
     log("[summary] state_events=" + json.dumps(summary["state_events"], sort_keys=True))
+    if media_summary is not None:
+        log("[summary] steering_media_frames=" + str(media_summary["frame_count"]))
+        log("[summary] steering_media_connected=" + str(media_summary["connected"]))
+        if media_summary.get("summary_path"):
+            log("[summary] steering_media_summary=" + str(media_summary["summary_path"]))
+        if media_summary.get("alignment_summary_path"):
+            log("[summary] steering_media_alignment=" + str(media_summary["alignment_summary_path"]))
     if summary["receiver_error"]:
         log("[summary] receiver_error=" + str(summary["receiver_error"]))
+        return 1
+    if media_summary is not None and media_summary["receiver_error"]:
+        log("[summary] steering_media_error=" + str(media_summary["receiver_error"]))
         return 1
     return 0
 

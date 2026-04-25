@@ -1,0 +1,16 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "DOCS-F1",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The repaired docs still leave the task surface short of the declared public post-reset field contract: task 3.3.1 does not include `last_special_scene_correction=none`, even though the design baseline and field contract table now publish `last_special_scene_correction` as a required public debug field alongside `active_module`, `scene_override_source`, and `roadblock_interface_state`.",
+      "evidence": "/home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/tasks.md:51 defines the post-reset clean baseline task with `active_module=straight`, `scene_override_source=none`, and `roadblock_interface_state=supported_not_implemented`, but omits `last_special_scene_correction=none`. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:207-211 defines the diagnostic source fields in the post-reset baseline as `active_module=straight`, `scene_override_source=none`, `roadblock_interface_state=supported_not_implemented`, and `last_special_scene_correction=none`. /home/madejuele/projects/2K0300/openspec/changes/refactor-old-2-steering-control/design.md:394-398 publishes the field contract table with the same exact public field names, including `last_special_scene_correction`.",
+      "recommendation": "Update task 3.3.1 so the post-reset clean baseline uses the full exact public field-name set from the field contract table, including `last_special_scene_correction=none`, and keep that wording aligned with the design baseline.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

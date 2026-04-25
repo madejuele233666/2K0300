@@ -1,0 +1,14 @@
+{
+  "listen_host": "169.254.6.147",
+  "listen_port": 8888,
+  "csv_path": "/home/madejuele/projects/2K0300/new/verification/board-steering-test-20260425T041523Z/assistant_control.csv",
+  "connected": false,
+  "connection_address": null,
+  "ack_frames": 0,
+  "state_frames": 0,
+  "telemetry_frames": 0,
+  "unknown_frames": 0,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": null,
+  "last_host_receive_monotonic_ms": null
+}

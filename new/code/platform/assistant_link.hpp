@@ -24,11 +24,18 @@ struct AssistantPollResult {
     std::vector<AssistantInboundMessage> inbound_messages{};
 };
 
+enum class AssistantJsonSendReliability {
+    kBestEffort = 0,
+    kReliable,
+};
+
 class AssistantLink {
 public:
     bool Initialize(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics);
     AssistantPollResult Poll(port::DiagnosticSink& diagnostics);
-    bool PublishJsonLine(const std::string& line, port::DiagnosticSink& diagnostics);
+    bool PublishJsonLine(const std::string& line,
+                         AssistantJsonSendReliability reliability,
+                         port::DiagnosticSink& diagnostics);
     bool PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics);
     bool PublishImage(const port::CameraCapture& capture, port::DiagnosticSink& diagnostics);
     bool Ready() const;
@@ -38,6 +45,7 @@ private:
 
     bool configured_ = false;
     bool ready_ = false;
+    bool disconnect_pending_ = false;
     int last_state_code_ = -1;
     double max_target_speed_ = 0.0;
     std::string inbound_buffer_{};

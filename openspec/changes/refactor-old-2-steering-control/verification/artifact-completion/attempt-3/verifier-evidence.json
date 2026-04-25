@@ -1,0 +1,19 @@
+{
+  "change": "refactor-old-2-steering-control",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer",
+  "final_state": "completed_pass",
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true
+  },
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

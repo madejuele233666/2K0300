@@ -43,6 +43,7 @@ port::DiagnosticLevel ToStateLevel(true_ls2k0300::AssistantBridgeState state) {
 bool AssistantLink::Initialize(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     ready_ = false;
+    disconnect_pending_ = false;
     last_state_code_ = static_cast<int>(true_ls2k0300::AssistantBridgeState::kUnconfigured);
     max_target_speed_ = params.Speed_base;
     inbound_buffer_.clear();
@@ -71,11 +72,13 @@ AssistantPollResult AssistantLink::Poll(port::DiagnosticSink& diagnostics) {
         return poll_result;
     }
     const bool was_ready = ready_;
+    const bool disconnect_pending = disconnect_pending_;
+    disconnect_pending_ = false;
     const true_ls2k0300::AssistantBridgePollResult result = true_ls2k0300::PollAssistantBridge();
     ready_ = result.state == true_ls2k0300::AssistantBridgeState::kReady;
     poll_result.ready = ready_;
     poll_result.became_ready = !was_ready && ready_;
-    poll_result.connection_lost = was_ready && !ready_;
+    poll_result.connection_lost = disconnect_pending || (was_ready && !ready_);
     if (poll_result.became_ready || poll_result.connection_lost) {
         inbound_buffer_.clear();
     }
@@ -92,18 +95,27 @@ AssistantPollResult AssistantLink::Poll(port::DiagnosticSink& diagnostics) {
     return poll_result;
 }
 
-bool AssistantLink::PublishJsonLine(const std::string& line, port::DiagnosticSink& diagnostics) {
+bool AssistantLink::PublishJsonLine(const std::string& line,
+                                    AssistantJsonSendReliability reliability,
+                                    port::DiagnosticSink& diagnostics) {
     if (!ready_) {
         return false;
     }
 
+    const bool was_ready = ready_;
     std::string payload = line;
     payload.push_back('\n');
     std::string detail;
     const bool ok = true_ls2k0300::SendAssistantBytes(
-        reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size(), detail);
+        reinterpret_cast<const std::uint8_t*>(payload.data()),
+        payload.size(),
+        reliability == AssistantJsonSendReliability::kReliable,
+        detail);
     if (!ok) {
         ready_ = true_ls2k0300::AssistantBridgeReady();
+        if (was_ready && !ready_) {
+            disconnect_pending_ = true;
+        }
         diagnostics.Emit({port::DiagnosticLevel::kWarning,
                           "assistant.json.failed",
                           detail,
@@ -116,10 +128,14 @@ bool AssistantLink::PublishWaveform(const AssistantWaveformFrame& frame, port::D
     if (!ready_) {
         return false;
     }
+    const bool was_ready = ready_;
     std::string detail;
     const bool ok = true_ls2k0300::SendAssistantOscilloscope(frame.values, frame.channel_count, detail);
     if (!ok) {
         ready_ = true_ls2k0300::AssistantBridgeReady();
+        if (was_ready && !ready_) {
+            disconnect_pending_ = true;
+        }
         diagnostics.Emit({port::DiagnosticLevel::kWarning,
                           "assistant.wave.failed",
                           detail,
@@ -132,11 +148,15 @@ bool AssistantLink::PublishImage(const port::CameraCapture& capture, port::Diagn
     if (!ready_ || !capture.has_frame) {
         return false;
     }
+    const bool was_ready = ready_;
     std::string detail;
     const bool ok = true_ls2k0300::SendAssistantImage(
-        capture.frame.gray.data(), port::kLegacyFrameWidth, port::kLegacyFrameHeight, detail);
+        capture.frame.gray.data(), capture.frame.width, capture.frame.height, detail);
     if (!ok) {
         ready_ = true_ls2k0300::AssistantBridgeReady();
+        if (was_ready && !ready_) {
+            disconnect_pending_ = true;
+        }
         diagnostics.Emit({port::DiagnosticLevel::kWarning,
                           "assistant.image.failed",
                           detail,

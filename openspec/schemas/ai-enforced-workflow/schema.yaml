@@ -1,6 +1,6 @@
 name: ai-enforced-workflow
 version: 8
-description: Spec-driven workflow with unified verification-cycle checkpoints, optional external `.index/` reference material, resumable active verifier sessions, and valid-pass termination
+description: Spec-driven workflow with unified verification-cycle checkpoints, optional external `.index/` reference material, current-state active verifier baselines, and valid-pass termination
 artifacts:
   - id: proposal
     generates: proposal.md
@@ -230,8 +230,9 @@ artifacts:
         `verify-sequence/default` for [specific output]. Reference field
         groups in `verification-cycle-core-v1.json` and
         `verification-cycle-openspec-adapter-v1.json`. Follow `cycle_rules`
-        for agent lifecycle. Require authoritative findings JSON, verifier
-        evidence JSON, and `agent-table.json`.
+        for agent lifecycle. Require authoritative findings JSON and verifier
+        evidence JSON, and require caller/orchestrator-maintained
+        `agent-table.json`.
 
 
       SKILL AWARENESS:
@@ -266,7 +267,7 @@ apply:
       into a verifier bundle field or review-completion dependency
     - assume docs-first artifact gate already closed before apply started
     - require findings JSON, verifier evidence JSON (with `review_scope` and
-      `review_coverage`), and `agent-table.json`
+      `review_coverage`), and caller-maintained `agent-table.json`
     - finding semantics: follow `finding_semantics` and
       `repair_routing_rules` in `verification-cycle-core-v1.json`
     - route blocking non-auto-fixable findings to `openspec-repair-change`

@@ -1,0 +1,14 @@
+{
+  "listen_host": "0.0.0.0",
+  "listen_port": 8890,
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/steering-camera-suspended-core-20260424T/control-steering-media",
+  "connected": true,
+  "connection_address": "169.254.148.181:48110",
+  "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/steering-camera-suspended-core-20260424T/control-steering-media/config_snapshot.json",
+  "metadata_path": "/home/madejuele/projects/2K0300/new/verification/steering-camera-suspended-core-20260424T/control-steering-media/frame_metadata.jsonl",
+  "frame_dir": "/home/madejuele/projects/2K0300/new/verification/steering-camera-suspended-core-20260424T/control-steering-media/frames",
+  "frame_count": 75,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 12299599,
+  "last_host_receive_monotonic_ms": 12305832
+}

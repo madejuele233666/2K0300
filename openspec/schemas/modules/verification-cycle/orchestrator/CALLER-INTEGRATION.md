@@ -20,11 +20,14 @@ The caller must:
      produced a normalized outcome for the same `active` agent
    - include `continuation_probe` when a `send_input` / `resume` recovery path
      was attempted for the current `active` agent
+   - treat `agent-table.json` as current-state-only; do not mirror full
+     attempt history there
 4. run `verification_cycle_resolve.py`
 5. execute the returned decision exactly
 6. for `resume_active`, prefer `send_input` when the same `active` agent is
    still open; if `send_input` returns `agent not found`, use `resume` for
-   that same `active` agent next; and use `resume` only when that same `active` agent was closed and must be restored before continuing
+   that same `active` agent next; use `continuation_probe.resume_result` to
+   distinguish resume from recovery spawn before continuing
 
 The caller must not improvise resume/spawn/terminate logic from prompt prose.
 
@@ -32,7 +35,8 @@ The caller must not improvise resume/spawn/terminate logic from prompt prose.
 
 - `resume_active`: a usable active agent exists and must be continued; use
   `send_input` if it is still open, route `agent not found` to `resume`, and
-  otherwise `resume` it if it was closed
+  keep following the same active baseline unless `continuation_probe` proves a
+  dedicated recovery spawn case
 - `spawn_active`: spawn a new active verifier only when either
   `agent-table.json` contains no active agent (`reason_code=no_usable_active_agent`,
   literal only) or the prior `active` agent entered a dedicated recovery case
@@ -51,6 +55,8 @@ The caller must not improvise resume/spawn/terminate logic from prompt prose.
 
 ## Notes
 
-- `closed` is observational only; it never implies `non_active`
+- `continuation_probe` is the only recovery input for active-agent
+  missing/not-resumable branches
+- `agent-table.json` stores only current state, not complete attempt history
 - partial verification requires explicit `scope`
 - the active agent is the only agent that may drive termination
