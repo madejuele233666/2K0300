@@ -238,6 +238,28 @@ void ReadOptionalNestedBool(const cv::FileNode& root,
     }
 }
 
+void ReadOptionalNestedInt(const cv::FileNode& root,
+                           const char* parent,
+                           const char* child,
+                           int& value,
+                           bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadIntegerValue(node, value)) {
+        malformed = true;
+    }
+}
+
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -450,6 +472,116 @@ public:
                                  "PID_TURN_GYRO_CAMERA",
                                  "I",
                                  parsed.pid_turn_gyro_camera_i,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "LOWER_ROW_START",
+                              parsed.scene_wide_classifier.lower_row_start,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "LOWER_ROW_END",
+                              parsed.scene_wide_classifier.lower_row_end,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "MIDDLE_ROW_START",
+                              parsed.scene_wide_classifier.middle_row_start,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "MIDDLE_ROW_END",
+                              parsed.scene_wide_classifier.middle_row_end,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "UPPER_ROW_START",
+                              parsed.scene_wide_classifier.upper_row_start,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "UPPER_ROW_END",
+                              parsed.scene_wide_classifier.upper_row_end,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "ROW_STEP",
+                              parsed.scene_wide_classifier.row_step,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "EDGE_MARGIN_PX",
+                              parsed.scene_wide_classifier.edge_margin_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "UPPER_FULL_SPAN_WIDTH_RATIO",
+                                 parsed.scene_wide_classifier.upper_full_span_width_ratio,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO",
+                                 parsed.scene_wide_classifier.special_wide_lower_width_min_ratio,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "SPECIAL_WIDE_VALID_ROWS_MIN",
+                              parsed.scene_wide_classifier.special_wide_valid_rows_min,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "CIRCLE_OPEN_MIN_PX",
+                              parsed.scene_wide_classifier.circle_open_min_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "CIRCLE_CONTRACT_MIN_PX",
+                              parsed.scene_wide_classifier.circle_contract_min_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CROSS_UPPER_FULL_SPAN_MIN_RATIO",
+                                 parsed.scene_wide_classifier.cross_upper_full_span_min_ratio,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "TO_CROSS_MARGIN",
+                                 parsed.scene_wide_classifier.to_cross_margin,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "TO_CIRCLE_MARGIN",
+                                 parsed.scene_wide_classifier.to_circle_margin,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "ENTER_CONFIRM_CYCLES",
+                              parsed.scene_wide_classifier.enter_confirm_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "SCENE_WIDE_CLASSIFIER",
+                              "EXIT_CONFIRM_CYCLES",
+                              parsed.scene_wide_classifier.exit_confirm_cycles,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CROSS_WEIGHT_FULL_SPAN",
+                                 parsed.scene_wide_classifier.cross_weight_full_span,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CROSS_WEIGHT_BOTH_OPEN",
+                                 parsed.scene_wide_classifier.cross_weight_both_open,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CIRCLE_WEIGHT_OPEN",
+                                 parsed.scene_wide_classifier.circle_weight_open,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "CIRCLE_WEIGHT_CONTRACT",
+                                 parsed.scene_wide_classifier.circle_weight_contract,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",

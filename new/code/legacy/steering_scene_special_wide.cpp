@@ -82,10 +82,22 @@ SteeringSceneOutput EvaluateSpecialWideScene(const SteeringSceneContext& context
     }
 
     if (candidate == std::string("cross") && streak >= wide.enter_confirm_cycles) {
-        return BuildCrossSceneOutput(context);
+        SteeringSceneOutput confirmed = BuildCrossSceneOutput(context);
+        confirmed.special_wide_candidate = "cross";
+        confirmed.special_wide_candidate_streak = streak;
+        confirmed.special_wide_cross_score = cross_score;
+        confirmed.special_wide_circle_left_score = circle_left_score;
+        confirmed.special_wide_circle_right_score = circle_right_score;
+        return confirmed;
     }
     if (candidate == std::string("circle_entry") && streak >= wide.enter_confirm_cycles) {
-        return BuildCircleEntrySceneOutput(context);
+        SteeringSceneOutput confirmed = BuildCircleEntrySceneOutput(context);
+        confirmed.special_wide_candidate = "circle_entry";
+        confirmed.special_wide_candidate_streak = streak;
+        confirmed.special_wide_cross_score = cross_score;
+        confirmed.special_wide_circle_left_score = circle_left_score;
+        confirmed.special_wide_circle_right_score = circle_right_score;
+        return confirmed;
     }
     if (candidate == std::string("none") && streak >= wide.exit_confirm_cycles) {
         return output;

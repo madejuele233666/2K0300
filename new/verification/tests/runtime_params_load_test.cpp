@@ -125,6 +125,30 @@ std::string ValidRuntimeParamsJson() {
     "INTEGRAL_LIMIT": 2200.0,
     "MEASUREMENT_FILTER_ALPHA": 0.4
   },
+  "SCENE_WIDE_CLASSIFIER": {
+    "LOWER_ROW_START": 156,
+    "LOWER_ROW_END": 184,
+    "MIDDLE_ROW_START": 120,
+    "MIDDLE_ROW_END": 148,
+    "UPPER_ROW_START": 80,
+    "UPPER_ROW_END": 112,
+    "ROW_STEP": 4,
+    "EDGE_MARGIN_PX": 12,
+    "UPPER_FULL_SPAN_WIDTH_RATIO": 0.95,
+    "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO": 0.38,
+    "SPECIAL_WIDE_VALID_ROWS_MIN": 10,
+    "CIRCLE_OPEN_MIN_PX": 24,
+    "CIRCLE_CONTRACT_MIN_PX": 14,
+    "CROSS_UPPER_FULL_SPAN_MIN_RATIO": 0.45,
+    "TO_CROSS_MARGIN": 0.2,
+    "TO_CIRCLE_MARGIN": 0.2,
+    "ENTER_CONFIRM_CYCLES": 2,
+    "EXIT_CONFIRM_CYCLES": 2,
+    "CROSS_WEIGHT_FULL_SPAN": 1.25,
+    "CROSS_WEIGHT_BOTH_OPEN": 0.4,
+    "CIRCLE_WEIGHT_OPEN": 1.0,
+    "CIRCLE_WEIGHT_CONTRACT": 0.75
+  },
   "assistant_tcp": {
     "host": "10.100.170.115",
     "port": 8888
@@ -152,6 +176,10 @@ void TestLoadSucceedsWithoutRemovedLegacyFields() {
     Expect(params.pid_turn_gyro_camera_d == 0.20, "PID_TURN_GYRO_CAMERA.D must remain required");
     Expect(params.P_Mode == 3, "P_Mode must remain required");
     Expect(params.exp_light == 65, "exp_light must remain required");
+    Expect(params.scene_wide_classifier.enter_confirm_cycles == 2,
+           "SCENE_WIDE_CLASSIFIER block must load independently");
+    Expect(params.scene_wide_classifier.cross_weight_full_span == 1.25,
+           "SCENE_WIDE_CLASSIFIER weights must load without touching legacy fields");
     Expect(HasDiagnosticCode(diagnostics, "params.loaded"),
            "successful parse must emit params.loaded");
 }

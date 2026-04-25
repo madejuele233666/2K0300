@@ -138,15 +138,15 @@ struct AssistantTcpParameters {
 };
 
 struct SceneWideClassifierParameters {
-    int lower_row_start = 168;
-    int lower_row_end = 228;
-    int middle_row_start = 112;
-    int middle_row_end = 164;
-    int upper_row_start = 40;
-    int upper_row_end = 108;
+    int lower_row_start = 156;
+    int lower_row_end = 184;
+    int middle_row_start = 120;
+    int middle_row_end = 148;
+    int upper_row_start = 80;
+    int upper_row_end = 112;
     int row_step = 4;
     int edge_margin_px = 12;
-    double upper_full_span_width_ratio = 0.78;
+    double upper_full_span_width_ratio = 0.95;
 
     double special_wide_lower_width_min_ratio = 0.38;
     int special_wide_valid_rows_min = 10;

@@ -441,6 +441,30 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
 
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
+
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o
 
@@ -1785,6 +1809,9 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s"

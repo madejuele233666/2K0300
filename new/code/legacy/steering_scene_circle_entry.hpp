@@ -8,6 +8,7 @@ namespace ls2k::legacy {
 float ComputeCircleLeftEntryScore(const SteeringSceneContext& context);
 float ComputeCircleRightEntryScore(const SteeringSceneContext& context);
 SteeringSceneOutput BuildCircleEntrySceneOutput(const SteeringSceneContext& context);
+SteeringSceneOutput EvaluateCircleEntryScene(const SteeringSceneContext& context);
 
 }  // namespace ls2k::legacy
 

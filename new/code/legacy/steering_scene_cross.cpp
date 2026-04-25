@@ -18,14 +18,18 @@ float NormalizePositive(float value, float threshold) {
 
 float ComputeCrossSceneScore(const SteeringSceneContext& context) {
     const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
+    if (context.metrics.upper_full_span_ratio <= 0.0F) {
+        return 0.0F;
+    }
     const float full_span_score =
         NormalizePositive(context.metrics.upper_full_span_ratio,
                           static_cast<float>(wide.cross_upper_full_span_min_ratio));
+    const float full_span_gate = std::clamp(full_span_score, 0.0F, 1.0F);
     const float both_open_score =
         NormalizePositive(std::min(context.metrics.left_open, context.metrics.right_open),
                           static_cast<float>(wide.circle_open_min_px));
     return static_cast<float>(wide.cross_weight_full_span) * full_span_score +
-           static_cast<float>(wide.cross_weight_both_open) * both_open_score;
+           static_cast<float>(wide.cross_weight_both_open) * both_open_score * full_span_gate;
 }
 
 SteeringSceneOutput BuildCrossSceneOutput(const SteeringSceneContext& context) {

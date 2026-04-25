@@ -1,7 +1,7 @@
 #ifndef LS2K_LEGACY_CAMERA_LOGIC_HPP
 #define LS2K_LEGACY_CAMERA_LOGIC_HPP
 
-#include "port/control_types.hpp"
+#include "legacy/steering_scene_common.hpp"
 
 namespace ls2k::legacy {
 

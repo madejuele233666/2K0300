@@ -185,4 +185,26 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         pthread
         m
     )
+
+    add_executable(
+        scene_classifier_selftest
+        ../verification/tests/scene_classifier_selftest.cpp
+        ../code/legacy/camera_logic.cpp
+        ../code/legacy/steering_scene_common.cpp
+        ../code/legacy/steering_scene_orchestrator.cpp
+        ../code/legacy/steering_scene_straight.cpp
+        ../code/legacy/steering_scene_bend.cpp
+        ../code/legacy/steering_scene_circle_entry.cpp
+        ../code/legacy/steering_scene_circle_interior.cpp
+        ../code/legacy/steering_scene_circle_exit.cpp
+        ../code/legacy/steering_scene_zebra.cpp
+        ../code/legacy/steering_scene_cross.cpp
+        ../code/legacy/steering_scene_special_wide.cpp
+        ../code/legacy/steering_scene_roadblock_stub.cpp
+    )
+    target_link_libraries(
+        scene_classifier_selftest
+        pthread
+        m
+    )
 endif()

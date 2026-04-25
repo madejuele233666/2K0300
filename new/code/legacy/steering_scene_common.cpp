@@ -98,7 +98,22 @@ int OverlapWidth(const RowRun& lhs, const RowRun& rhs) {
     return std::max(0, std::min(lhs.right, rhs.right) - std::max(lhs.left, rhs.left) + 1);
 }
 
-RowRun PickLowerPrimaryRun(const std::vector<RowRun>& runs, int reference_col, int image_center) {
+int BorderTouchCount(const RowRun& run, int frame_width, int edge_margin_px) {
+    int touches = 0;
+    if (run.left <= edge_margin_px) {
+        ++touches;
+    }
+    if (run.right >= frame_width - 1 - edge_margin_px) {
+        ++touches;
+    }
+    return touches;
+}
+
+RowRun PickLowerPrimaryRun(const std::vector<RowRun>& runs,
+                           int reference_col,
+                           int image_center,
+                           int frame_width,
+                           int edge_margin_px) {
     const RowRun* best = nullptr;
     for (const RowRun& run : runs) {
         const bool run_crosses_center = run.left <= image_center && run.right >= image_center;
@@ -116,13 +131,23 @@ RowRun PickLowerPrimaryRun(const std::vector<RowRun>& runs, int reference_col, i
         }
 
         if (run_crosses_center) {
-            if (run.width != best->width) {
-                if (run.width > best->width) {
+            const int run_border_touches = BorderTouchCount(run, frame_width, edge_margin_px);
+            const int best_border_touches = BorderTouchCount(*best, frame_width, edge_margin_px);
+            if (run_border_touches != best_border_touches) {
+                if (run_border_touches < best_border_touches) {
                     best = &run;
                 }
                 continue;
             }
-            if (std::abs(run.center - reference_col) < std::abs(best->center - reference_col)) {
+            const int run_distance = std::abs(run.center - reference_col);
+            const int best_distance = std::abs(best->center - reference_col);
+            if (run_distance != best_distance) {
+                if (run_distance < best_distance) {
+                    best = &run;
+                }
+                continue;
+            }
+            if (run.width > best->width) {
                 best = &run;
             }
             continue;
@@ -147,7 +172,9 @@ RowRun PickLowerPrimaryRun(const std::vector<RowRun>& runs, int reference_col, i
 RowRun PickUpperPrimaryRun(const std::vector<RowRun>& runs,
                            const RowRun& previous_primary,
                            bool previous_valid,
-                           int reference_col) {
+                           int reference_col,
+                           int frame_width,
+                           int edge_margin_px) {
     if (previous_valid) {
         const RowRun* best = nullptr;
         int best_overlap = 0;
@@ -176,7 +203,8 @@ RowRun PickUpperPrimaryRun(const std::vector<RowRun>& runs,
         }
     }
 
-    return PickLowerPrimaryRun(runs, reference_col, port::kCompiledCameraFrameWidth / 2);
+    return PickLowerPrimaryRun(
+        runs, reference_col, port::kCompiledCameraFrameWidth / 2, frame_width, edge_margin_px);
 }
 
 bool RowInBand(int row, int start, int end) {
@@ -226,6 +254,7 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
     const int row_step = std::max(1, wide.row_step);
 
     const int image_center = frame.width / 2;
+    const int edge_margin_px = std::max(0, wide.edge_margin_px);
     const float full_span_ratio_threshold =
         static_cast<float>(std::clamp(wide.upper_full_span_width_ratio, 0.0, 1.0));
 
@@ -250,9 +279,15 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
 
         RowRun primary{};
         if (RowInBand(row, lower_start, lower_end)) {
-            primary = PickLowerPrimaryRun(runs, metrics.steering_reference_col, image_center);
+            primary = PickLowerPrimaryRun(
+                runs, metrics.steering_reference_col, image_center, frame.width, edge_margin_px);
         } else {
-            primary = PickUpperPrimaryRun(runs, previous_primary, previous_primary_valid, metrics.steering_reference_col);
+            primary = PickUpperPrimaryRun(runs,
+                                          previous_primary,
+                                          previous_primary_valid,
+                                          metrics.steering_reference_col,
+                                          frame.width,
+                                          edge_margin_px);
         }
 
         if (primary.width <= 0) {

@@ -25,6 +25,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o.d"
+  "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o"
+  "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o.d"
   "CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o"

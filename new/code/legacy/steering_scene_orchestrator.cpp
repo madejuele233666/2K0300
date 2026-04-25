@@ -39,6 +39,11 @@ SteeringSceneOutput PickSceneOutput(const SteeringSceneContext& context) {
         return cross;
     }
 
+    const SteeringSceneOutput circle_entry = EvaluateCircleEntryScene(context);
+    if (circle_entry.active) {
+        return circle_entry;
+    }
+
     const SteeringSceneOutput special_wide = EvaluateSpecialWideScene(context);
     if (special_wide.active) {
         return special_wide;
