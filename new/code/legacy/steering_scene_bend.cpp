@@ -6,7 +6,7 @@ namespace ls2k::legacy {
 
 SteeringSceneOutput EvaluateBendScene(const SteeringSceneContext& context) {
     SteeringSceneOutput output{};
-    const bool active = context.metrics.bend_severity >= 0.9F ||
+    const bool active = LooksLikeOrdinaryBend(context) || context.metrics.bend_severity >= 0.9F ||
                         context.metrics.left_edge_missing_bottom ||
                         context.metrics.right_edge_missing_bottom;
     if (!active) {

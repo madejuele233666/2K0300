@@ -65,6 +65,10 @@ void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analys
         analysis.special_wide_circle_left_score_last;
     state.steering_state.special_wide_circle_right_score_last =
         analysis.special_wide_circle_right_score_last;
+    state.steering_state.lane_geometry_previous = state.steering_state.lane_geometry_recent;
+    state.steering_state.lane_geometry_recent = analysis.lane_geometry_snapshot;
+    state.steering_state.track_history = analysis.track_history_snapshot;
+    state.steering_state.gyro_continuity = analysis.gyro_continuity_state;
 }
 
 }  // namespace
@@ -160,14 +164,17 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
     }
 
     port::LegacySteeringState prior_state{};
+    port::ImuSample imu{};
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
         prior_state = state_.steering_state;
+        imu = state_.imu;
     }
     const legacy::SteeringAnalysisResult analysis =
         legacy::AnalyzeFrame(capture.frame,
                              params,
                              prior_state,
+                             imu,
                              state_.low_voltage_emergency.load(),
                              capture.frame_id,
                              capture.capture_time_ms);

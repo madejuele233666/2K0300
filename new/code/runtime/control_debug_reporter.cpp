@@ -65,14 +65,26 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " frame_id=" << snapshot.steering.frame_id
                      << " capture_time_ms=" << snapshot.steering.capture_time_ms
                      << " lateral_error=" << snapshot.steering.lateral_error
+                     << " heading_error=" << snapshot.steering.heading_error
+                     << " curvature=" << snapshot.steering.curvature
+                     << " track_confidence=" << snapshot.steering.track_confidence
                      << " highest_line=" << snapshot.steering.highest_line
                      << " farthest_line=" << snapshot.steering.farthest_line
                      << " steering_reference_col=" << snapshot.steering.steering_reference_col
+                     << " track_valid=" << BoolToken(snapshot.steering.track_valid)
+                     << " track_seed_col=" << snapshot.steering.track_seed_col
+                     << " track_seed_score=" << snapshot.steering.track_seed_score
+                     << " track_sign=" << snapshot.steering.track_sign
+                     << " sign_flip_blocked=" << BoolToken(snapshot.steering.sign_flip_blocked)
+                     << " imu_grace_active=" << BoolToken(snapshot.steering.imu_grace_active)
+                     << " gyro_heading_delta_deg=" << snapshot.steering.gyro_heading_delta_deg
+                     << " gyro_consistency_score=" << snapshot.steering.gyro_consistency_score
                      << " threshold=" << snapshot.steering.threshold
                      << " threshold_veto=" << BoolToken(snapshot.steering.threshold_veto)
                      << " active_module=" << snapshot.steering.active_module
                      << " scene_phase=" << snapshot.steering.scene_phase
                      << " scene_override_source=" << snapshot.steering.scene_override_source
+                     << " track_source=" << snapshot.steering.track_source
                      << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
                      << " last_special_scene_correction="
                      << snapshot.steering.last_special_scene_correction

@@ -20,7 +20,7 @@ ControlGateInputs BuildControlGateInputs(const port::PerceptionResult& perceptio
     inputs.perception_publish_time_ms = perception.publish_time_ms;
     inputs.perception_emergency_veto = perception.emergency_veto;
     inputs.low_voltage_emergency = low_voltage_emergency;
-    inputs.imu_valid = imu.valid;
+    inputs.imu_valid = imu.valid || perception.imu_grace_active;
     inputs.encoder_valid = encoder.valid;
     inputs.now_ms = now_ms;
     inputs.perception_stale_ms = params.perception_stale_ms;
@@ -636,8 +636,12 @@ void ControlLoop::Tick() {
         command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
-        camera_turn = pid_.ComputeTurnTarget(perception, state_.steering_state.controller_memory);
-        gyro_turn = pid_.ComputeGyroTurn(camera_turn.w_target, imu.gyro_z, state_.steering_state.controller_memory);
+        camera_turn =
+            pid_.ComputeTurnTarget(perception, motion.effective_speed_target, state_.steering_state.controller_memory);
+        gyro_turn = pid_.ComputeGyroTurn(camera_turn.w_target,
+                                        imu.gyro_z,
+                                        imu.valid,
+                                        state_.steering_state.controller_memory);
         raw_turn_output =
             ClampTurnOutput(gyro_turn.raw_turn_output, motion.turn_limit_scale, params_.raw_turn_output_limit);
         applied_turn_output = raw_turn_output;
@@ -725,9 +729,20 @@ void ControlLoop::Tick() {
     debug_snapshot.steering.frame_id = perception.frame_id;
     debug_snapshot.steering.capture_time_ms = perception.capture_time_ms;
     debug_snapshot.steering.lateral_error = perception.lateral_error;
+    debug_snapshot.steering.heading_error = perception.heading_error;
+    debug_snapshot.steering.curvature = perception.curvature;
+    debug_snapshot.steering.track_confidence = perception.track_confidence;
     debug_snapshot.steering.highest_line = perception.highest_line;
     debug_snapshot.steering.farthest_line = perception.farthest_line;
     debug_snapshot.steering.steering_reference_col = perception.steering_reference_col;
+    debug_snapshot.steering.track_valid = perception.track_valid;
+    debug_snapshot.steering.track_seed_col = perception.track_seed_col;
+    debug_snapshot.steering.track_seed_score = perception.track_seed_score;
+    debug_snapshot.steering.track_sign = perception.track_sign;
+    debug_snapshot.steering.sign_flip_blocked = perception.sign_flip_blocked;
+    debug_snapshot.steering.imu_grace_active = perception.imu_grace_active;
+    debug_snapshot.steering.gyro_heading_delta_deg = perception.gyro_heading_delta_deg;
+    debug_snapshot.steering.gyro_consistency_score = perception.gyro_consistency_score;
     debug_snapshot.steering.threshold = perception.threshold;
     debug_snapshot.steering.threshold_veto = perception.threshold_veto;
     debug_snapshot.steering.active_module = perception.active_module;
@@ -735,6 +750,7 @@ void ControlLoop::Tick() {
     debug_snapshot.steering.scene_override_source = perception.scene_override_source;
     debug_snapshot.steering.roadblock_interface_state = perception.roadblock_interface_state;
     debug_snapshot.steering.last_special_scene_correction = perception.last_special_scene_correction;
+    debug_snapshot.steering.track_source = perception.track_source;
     debug_snapshot.steering.roadblock_active = perception.roadblock_active;
     debug_snapshot.steering.resolved_fuzzy_p = camera_turn.resolved_fuzzy_p;
     debug_snapshot.steering.camera_p_term = camera_turn.camera_p_term;

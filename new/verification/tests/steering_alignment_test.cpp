@@ -50,7 +50,7 @@ PerceptionResult Analyze(const LegacyCameraFrame& frame, const LegacySteeringSta
     params.camera_frame_height = 240;
     params.see_max = 35.0;
     params.emergency_threshold = 40;
-    return ls2k::legacy::AnalyzeFrame(frame, params, prior_state, false, 1, 100).perception;
+    return ls2k::legacy::AnalyzeFrame(frame, params, prior_state, {}, false, 1, 100).perception;
 }
 
 void ExpectRoadblockStubState(const PerceptionResult& result) {

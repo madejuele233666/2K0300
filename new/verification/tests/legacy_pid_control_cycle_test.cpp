@@ -50,30 +50,30 @@ void TestCarryOverLivesInRuntimeOwnedMemory() {
     const ls2k::port::PerceptionResult perception = BuildPerception();
     ls2k::port::LegacySteeringControllerMemory memory{};
 
-    const auto camera_first = pid.ComputeTurnTarget(perception, memory);
+    const auto camera_first = pid.ComputeTurnTarget(perception, 77.0, memory);
     ExpectNear(camera_first.camera_p_term, 20.0F, 0.0001F, "camera P term must reflect current frame");
-    ExpectNear(camera_first.camera_d_term, 10.0F, 0.0001F, "camera D term must use prior zero error");
-    ExpectNear(camera_first.w_target, 27.0F, 0.0001F, "first w_target must start from zero memory");
-    ExpectNear(memory.w_target_last, 27.0F, 0.0001F, "runtime-owned memory must retain w_target_last");
+    ExpectNear(camera_first.camera_d_term, 0.0F, 0.0001F, "camera D term must stay disabled in the fused target");
+    ExpectNear(camera_first.w_target, 18.0F, 0.0001F, "first w_target must reflect the fused camera target");
+    ExpectNear(memory.w_target_last, 18.0F, 0.0001F, "runtime-owned memory must retain w_target_last");
     ExpectNear(memory.camera_error_last, 10.0F, 0.0001F, "runtime-owned memory must retain camera error");
 
-    const auto gyro_first = pid.ComputeGyroTurn(camera_first.w_target, 0.0F, memory);
-    ExpectNear(gyro_first.raw_turn_output, 43.2F, 0.0001F, "first gyro output must use zeroed carry-over");
-    ExpectNear(memory.gyro_error_last, 27.0F, 0.0001F, "runtime-owned memory must retain gyro error");
-    ExpectNear(memory.gyro_i_accumulator, 27.0F, 0.0001F, "runtime-owned memory must retain gyro accumulator");
+    const auto gyro_first = pid.ComputeGyroTurn(camera_first.w_target, 0.0F, true, memory);
+    ExpectNear(gyro_first.raw_turn_output, 28.8F, 0.0001F, "first gyro output must use zeroed carry-over");
+    ExpectNear(memory.gyro_error_last, 18.0F, 0.0001F, "runtime-owned memory must retain gyro error");
+    ExpectNear(memory.gyro_i_accumulator, 18.0F, 0.0001F, "runtime-owned memory must retain gyro accumulator");
 
-    const auto camera_second = pid.ComputeTurnTarget(perception, memory);
+    const auto camera_second = pid.ComputeTurnTarget(perception, 77.0, memory);
     ExpectNear(camera_second.camera_p_term, 20.0F, 0.0001F, "camera P term must stay frame-driven");
-    ExpectNear(camera_second.camera_d_term, 0.0F, 0.0001F, "second camera D term must observe prior-cycle memory");
-    ExpectNear(camera_second.w_target, 20.7F, 0.0001F, "second w_target must change only via carried memory");
+    ExpectNear(camera_second.camera_d_term, 0.0F, 0.0001F, "second camera D term must remain disabled");
+    ExpectNear(camera_second.w_target, 19.8F, 0.0001F, "second w_target must change only via carried memory");
 
-    const auto gyro_second = pid.ComputeGyroTurn(camera_second.w_target, 0.0F, memory);
-    ExpectNear(gyro_second.raw_turn_output, 22.32F, 0.0001F,
+    const auto gyro_second = pid.ComputeGyroTurn(camera_second.w_target, 0.0F, true, memory);
+    ExpectNear(gyro_second.raw_turn_output, 24.48F, 0.0001F,
                "second gyro output must change because prior-cycle memory was retained");
 
     ls2k::port::LegacySteeringControllerMemory reset_memory{};
-    const auto camera_after_reset = pid.ComputeTurnTarget(perception, reset_memory);
-    const auto gyro_after_reset = pid.ComputeGyroTurn(camera_after_reset.w_target, 0.0F, reset_memory);
+    const auto camera_after_reset = pid.ComputeTurnTarget(perception, 77.0, reset_memory);
+    const auto gyro_after_reset = pid.ComputeGyroTurn(camera_after_reset.w_target, 0.0F, true, reset_memory);
     ExpectNear(camera_after_reset.w_target, camera_first.w_target, 0.0001F,
                "reset memory must reproduce the first-cycle w_target");
     ExpectNear(gyro_after_reset.raw_turn_output, gyro_first.raw_turn_output, 0.0001F,

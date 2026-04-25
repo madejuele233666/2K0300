@@ -1,9 +1,46 @@
 #ifndef LS2K_LEGACY_STEERING_SCENE_COMMON_HPP
 #define LS2K_LEGACY_STEERING_SCENE_COMMON_HPP
 
+#include "legacy/steering_bottom_tracker.hpp"
 #include "port/control_types.hpp"
 
 namespace ls2k::legacy {
+
+enum class EdgeObservationState {
+    visible,
+    border_truncated,
+    missing
+};
+
+struct EdgeAnchor {
+    int row = 0;
+    int col = port::kCompiledCameraFrameWidth / 2;
+    EdgeObservationState state = EdgeObservationState::missing;
+    bool current_frame_extrapolated = false;
+    bool history_fallback = false;
+};
+
+struct LaneEdgeMetrics {
+    std::array<EdgeAnchor, port::kLaneGeometryAnchorCount> observed_anchors{};
+    std::array<EdgeAnchor, port::kLaneGeometryAnchorCount> bend_anchors{};
+    int observed_anchor_count = 0;
+    int visible_anchor_count = 0;
+    int truncated_anchor_count = 0;
+    int bend_anchor_count = 0;
+    int current_frame_extrapolated_anchor_count = 0;
+    int history_fallback_anchor_count = 0;
+    float observed_lower_mid_dx = 0.0F;
+    float observed_mid_upper_dx = 0.0F;
+    float observed_curvature = 0.0F;
+    float bend_lower_mid_dx = 0.0F;
+    float bend_mid_upper_dx = 0.0F;
+    float bend_curvature = 0.0F;
+    int observed_motion_sign = 0;
+    int bend_motion_sign = 0;
+    bool strict_straight = false;
+    bool circle_curve = false;
+    bool bend_curve = false;
+};
 
 struct LaneMetrics {
     int threshold = 0;
@@ -30,6 +67,9 @@ struct LaneMetrics {
     int right_dx_lower_mid = 0;
     int right_dx_mid_upper = 0;
     float lateral_error = 0.0F;
+    float heading_error = 0.0F;
+    float curvature = 0.0F;
+    float track_confidence = 0.0F;
     float bend_severity = 0.0F;
     float left_curvature = 0.0F;
     float right_curvature = 0.0F;
@@ -46,7 +86,26 @@ struct LaneMetrics {
     bool right_edge_missing_bottom = false;
     bool zebra_candidate = false;
     bool cross_candidate = false;
+    bool track_valid = false;
+    int track_seed_col = port::kCompiledCameraFrameWidth / 2;
+    float track_seed_score = 0.0F;
+    float gyro_heading_delta_deg = 0.0F;
+    float gyro_consistency_score = 1.0F;
+    int track_sign = 0;
+    bool sign_flip_blocked = false;
+    bool imu_grace_active = false;
+    const char* track_source = "bottom_connected";
+    std::array<port::LaneHistoryAnchor, port::kLaneGeometryAnchorCount> track_center_anchors{};
+    float tracked_lane_width_px = 0.0F;
+    int track_flip_candidate_sign = 0;
+    int track_flip_candidate_frames = 0;
     int upper_full_span_consecutive_rows_max = 0;
+    LaneEdgeMetrics left_edge{};
+    LaneEdgeMetrics right_edge{};
+    int same_direction_bend_sign = 0;
+    bool bend_used_current_frame_extrapolation = false;
+    bool bend_used_history_fallback = false;
+    port::LaneGeometryHistorySnapshot lane_geometry_snapshot{};
 };
 
 struct SteeringSceneContext {
@@ -78,12 +137,19 @@ struct SteeringAnalysisResult {
     float special_wide_cross_score_last = 0.0F;
     float special_wide_circle_left_score_last = 0.0F;
     float special_wide_circle_right_score_last = 0.0F;
+    port::LaneGeometryHistorySnapshot lane_geometry_snapshot{};
+    port::TrackHistorySnapshot track_history_snapshot{};
+    port::GyroContinuityState gyro_continuity_state{};
 };
 
 LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
                                int threshold,
                                const port::RuntimeParameters& params,
-                               int prior_reference_col);
+                               const port::LegacySteeringState& prior_state,
+                               const port::ImuSample& imu,
+                               uint64_t capture_time_ms);
+port::TrackHistorySnapshot BuildTrackHistorySnapshot(const LaneMetrics& metrics,
+                                                     const port::LegacySteeringState& prior_state);
 bool HasCrossUpperFullSpanStructure(const SteeringSceneContext& context);
 bool HasCircleLeftEntryStructure(const SteeringSceneContext& context);
 bool HasCircleRightEntryStructure(const SteeringSceneContext& context);

@@ -1,6 +1,7 @@
 #include "legacy/steering_scene_common.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -14,12 +15,6 @@ struct RowRun {
     int right = 0;
     int width = 0;
     int center = 0;
-};
-
-struct RowSelection {
-    bool valid = false;
-    RowRun primary{};
-    int transitions = 0;
 };
 
 struct BandAccumulator {
@@ -52,6 +47,20 @@ struct BandAccumulator {
         }
     }
 };
+
+struct EdgeSample {
+    int row = 0;
+    int col = 0;
+    EdgeObservationState state = EdgeObservationState::missing;
+};
+
+struct LinearFit {
+    bool valid = false;
+    float slope = 0.0F;
+    float intercept = 0.0F;
+};
+
+constexpr std::array<float, port::kLaneGeometryAnchorCount> kAnchorQuantiles{{0.2F, 0.5F, 0.8F}};
 
 int ClampRow(int row, int frame_height) {
     return std::clamp(row, 0, std::max(0, frame_height - 1));
@@ -237,24 +246,24 @@ float AbsFloat(float value) {
     return std::abs(value);
 }
 
-int SignWithThreshold(int value, int threshold) {
-    if (value >= threshold) {
+int SignWithThreshold(float value, int threshold) {
+    if (value >= static_cast<float>(threshold)) {
         return 1;
     }
-    if (value <= -threshold) {
+    if (value <= -static_cast<float>(threshold)) {
         return -1;
     }
     return 0;
 }
 
-bool HasDirectionTurn(int lower_mid_dx, int mid_upper_dx, int motion_threshold) {
+bool HasDirectionTurn(float lower_mid_dx, float mid_upper_dx, int motion_threshold) {
     const int lower_sign = SignWithThreshold(lower_mid_dx, motion_threshold);
     const int upper_sign = SignWithThreshold(mid_upper_dx, motion_threshold);
     return lower_sign != 0 && upper_sign != 0 && lower_sign != upper_sign;
 }
 
-int DominantMotionSign(int lower_mid_dx, int mid_upper_dx, int motion_threshold) {
-    const int total_dx = lower_mid_dx + mid_upper_dx;
+int DominantMotionSign(float lower_mid_dx, float mid_upper_dx, int motion_threshold) {
+    const float total_dx = lower_mid_dx + mid_upper_dx;
     const int total_sign = SignWithThreshold(total_dx, motion_threshold);
     if (total_sign != 0) {
         return total_sign;
@@ -267,21 +276,24 @@ int DominantMotionSign(int lower_mid_dx, int mid_upper_dx, int motion_threshold)
     return 0;
 }
 
-bool EdgeHasStrongCurveSignal(int lower_mid_dx,
-                              int mid_upper_dx,
+bool EdgeHasCircleCurveSignal(float lower_mid_dx,
+                              float mid_upper_dx,
                               float curvature,
                               const port::SceneWideClassifierParameters& wide) {
     return AbsFloat(curvature) >= static_cast<float>(wide.edge_curvature_min_px) ||
            HasDirectionTurn(lower_mid_dx, mid_upper_dx, wide.edge_motion_min_px);
 }
 
-bool EdgeLooksStraight(bool visible_confident,
-                       float border_touch_ratio,
-                       float curvature,
-                       const port::SceneWideClassifierParameters& wide) {
-    return visible_confident &&
-           border_touch_ratio <= static_cast<float>(wide.opposite_edge_border_touch_max_ratio) &&
-           AbsFloat(curvature) <= static_cast<float>(wide.opposite_edge_straight_max_curvature_px);
+bool EdgeHasBendCurveSignal(float lower_mid_dx,
+                            float mid_upper_dx,
+                            float curvature,
+                            const port::SceneWideClassifierParameters& wide) {
+    return EdgeHasCircleCurveSignal(lower_mid_dx, mid_upper_dx, curvature, wide);
+}
+
+bool AnchorAvailable(const EdgeAnchor& anchor) {
+    return anchor.state != EdgeObservationState::missing || anchor.current_frame_extrapolated ||
+           anchor.history_fallback;
 }
 
 void FinalizeBandMetrics(BandAccumulator& band, int& left, int& right, int& width, int& valid_rows) {
@@ -291,15 +303,271 @@ void FinalizeBandMetrics(BandAccumulator& band, int& left, int& right, int& widt
     width = Median(band.widths);
 }
 
+std::array<int, port::kLaneGeometryAnchorCount> BuildTargetRows(std::vector<int> valid_rows) {
+    std::array<int, port::kLaneGeometryAnchorCount> target_rows{};
+    if (valid_rows.empty()) {
+        return target_rows;
+    }
+    std::sort(valid_rows.begin(), valid_rows.end());
+    for (std::size_t i = 0; i < kAnchorQuantiles.size(); ++i) {
+        const float quantile = std::clamp(kAnchorQuantiles[i], 0.0F, 1.0F);
+        const std::size_t index =
+            static_cast<std::size_t>(std::lround(quantile * static_cast<float>(valid_rows.size() - 1)));
+        target_rows[i] = valid_rows[index];
+    }
+    return target_rows;
+}
+
+EdgeAnchor PickNearestObservedAnchor(const std::vector<EdgeSample>& samples, int target_row) {
+    EdgeAnchor anchor{};
+    anchor.row = target_row;
+    if (samples.empty()) {
+        return anchor;
+    }
+
+    const EdgeSample* best = nullptr;
+    int best_distance = 0;
+    for (const EdgeSample& sample : samples) {
+        const int distance = std::abs(sample.row - target_row);
+        if (best == nullptr || distance < best_distance) {
+            best = &sample;
+            best_distance = distance;
+        }
+    }
+    if (best == nullptr) {
+        return anchor;
+    }
+
+    anchor.col = best->col;
+    anchor.state = best->state;
+    return anchor;
+}
+
+LinearFit FitVisibleTrend(const std::vector<EdgeSample>& samples) {
+    double row_sum = 0.0;
+    double col_sum = 0.0;
+    double row_sq_sum = 0.0;
+    double row_col_sum = 0.0;
+    int count = 0;
+    for (const EdgeSample& sample : samples) {
+        if (sample.state != EdgeObservationState::visible) {
+            continue;
+        }
+        row_sum += static_cast<double>(sample.row);
+        col_sum += static_cast<double>(sample.col);
+        row_sq_sum += static_cast<double>(sample.row) * static_cast<double>(sample.row);
+        row_col_sum += static_cast<double>(sample.row) * static_cast<double>(sample.col);
+        ++count;
+    }
+    if (count < 2) {
+        return {};
+    }
+
+    const double denom = static_cast<double>(count) * row_sq_sum - row_sum * row_sum;
+    if (std::abs(denom) < 1e-6) {
+        return {};
+    }
+
+    LinearFit fit{};
+    fit.valid = true;
+    fit.slope = static_cast<float>((static_cast<double>(count) * row_col_sum - row_sum * col_sum) / denom);
+    fit.intercept = static_cast<float>((col_sum - static_cast<double>(fit.slope) * row_sum) /
+                                       static_cast<double>(count));
+    return fit;
+}
+
+int PredictCol(const LinearFit& fit, int row, int frame_width) {
+    const float predicted = fit.slope * static_cast<float>(row) + fit.intercept;
+    return std::clamp(static_cast<int>(std::lround(predicted)), 0, std::max(0, frame_width - 1));
+}
+
+void ComputeAnchorShape(const std::array<EdgeAnchor, port::kLaneGeometryAnchorCount>& anchors,
+                        int motion_threshold,
+                        float& lower_mid_dx,
+                        float& mid_upper_dx,
+                        float& curvature,
+                        int& motion_sign) {
+    const bool upper_valid = AnchorAvailable(anchors[0]);
+    const bool mid_valid = AnchorAvailable(anchors[1]);
+    const bool lower_valid = AnchorAvailable(anchors[2]);
+    lower_mid_dx = 0.0F;
+    mid_upper_dx = 0.0F;
+    curvature = 0.0F;
+    motion_sign = 0;
+
+    if (upper_valid && mid_valid && lower_valid) {
+        lower_mid_dx = static_cast<float>(anchors[1].col - anchors[2].col);
+        mid_upper_dx = static_cast<float>(anchors[0].col - anchors[1].col);
+        curvature = mid_upper_dx - lower_mid_dx;
+        motion_sign = DominantMotionSign(lower_mid_dx, mid_upper_dx, motion_threshold);
+        return;
+    }
+
+    if (upper_valid && lower_valid) {
+        motion_sign = SignWithThreshold(static_cast<float>(anchors[0].col - anchors[2].col), motion_threshold);
+    } else if (mid_valid && lower_valid) {
+        lower_mid_dx = static_cast<float>(anchors[1].col - anchors[2].col);
+        motion_sign = SignWithThreshold(lower_mid_dx, motion_threshold);
+    } else if (upper_valid && mid_valid) {
+        mid_upper_dx = static_cast<float>(anchors[0].col - anchors[1].col);
+        motion_sign = SignWithThreshold(mid_upper_dx, motion_threshold);
+    }
+}
+
+LaneEdgeMetrics BuildEdgeMetrics(const std::vector<EdgeSample>& samples,
+                                 const std::array<int, port::kLaneGeometryAnchorCount>& target_rows,
+                                 const port::LegacySteeringState& prior_state,
+                                 bool use_left_side,
+                                 int frame_width,
+                                 const port::SceneWideClassifierParameters& wide) {
+    LaneEdgeMetrics edge{};
+    for (std::size_t i = 0; i < target_rows.size(); ++i) {
+        edge.observed_anchors[i] = PickNearestObservedAnchor(samples, target_rows[i]);
+        if (edge.observed_anchors[i].state == EdgeObservationState::visible) {
+            ++edge.visible_anchor_count;
+        } else if (edge.observed_anchors[i].state == EdgeObservationState::border_truncated) {
+            ++edge.truncated_anchor_count;
+        }
+        if (edge.observed_anchors[i].state != EdgeObservationState::missing) {
+            ++edge.observed_anchor_count;
+        }
+        edge.bend_anchors[i] = edge.observed_anchors[i];
+    }
+
+    ComputeAnchorShape(edge.observed_anchors,
+                       wide.edge_motion_min_px,
+                       edge.observed_lower_mid_dx,
+                       edge.observed_mid_upper_dx,
+                       edge.observed_curvature,
+                       edge.observed_motion_sign);
+
+    edge.strict_straight = edge.visible_anchor_count == port::kLaneGeometryAnchorCount &&
+                           edge.truncated_anchor_count == 0 &&
+                           AbsFloat(edge.observed_curvature) <=
+                               static_cast<float>(wide.opposite_edge_straight_max_curvature_px);
+    edge.circle_curve = EdgeHasCircleCurveSignal(
+        edge.observed_lower_mid_dx, edge.observed_mid_upper_dx, edge.observed_curvature, wide);
+
+    const LinearFit fit = FitVisibleTrend(samples);
+    for (std::size_t i = 0; i < edge.bend_anchors.size(); ++i) {
+        EdgeAnchor& anchor = edge.bend_anchors[i];
+        if (anchor.state == EdgeObservationState::visible) {
+            continue;
+        }
+
+        anchor = {};
+        anchor.row = target_rows[i];
+        if (fit.valid) {
+            anchor.col = PredictCol(fit, anchor.row, frame_width);
+            anchor.state = edge.observed_anchors[i].state == EdgeObservationState::border_truncated
+                               ? EdgeObservationState::border_truncated
+                               : EdgeObservationState::missing;
+            anchor.current_frame_extrapolated = true;
+            continue;
+        }
+
+        const auto* recent = use_left_side ? &prior_state.lane_geometry_recent.left_visible_anchors
+                                           : &prior_state.lane_geometry_recent.right_visible_anchors;
+        const auto* previous = use_left_side ? &prior_state.lane_geometry_previous.left_visible_anchors
+                                             : &prior_state.lane_geometry_previous.right_visible_anchors;
+        if ((*recent)[i].valid) {
+            anchor.col = (*recent)[i].col;
+            anchor.state = EdgeObservationState::visible;
+            anchor.history_fallback = true;
+        } else if ((*previous)[i].valid) {
+            anchor.col = (*previous)[i].col;
+            anchor.state = EdgeObservationState::visible;
+            anchor.history_fallback = true;
+        }
+    }
+
+    for (const EdgeAnchor& anchor : edge.bend_anchors) {
+        if (!AnchorAvailable(anchor)) {
+            continue;
+        }
+        ++edge.bend_anchor_count;
+        if (anchor.current_frame_extrapolated) {
+            ++edge.current_frame_extrapolated_anchor_count;
+        }
+        if (anchor.history_fallback) {
+            ++edge.history_fallback_anchor_count;
+        }
+    }
+
+    ComputeAnchorShape(edge.bend_anchors,
+                       wide.edge_motion_min_px,
+                       edge.bend_lower_mid_dx,
+                       edge.bend_mid_upper_dx,
+                       edge.bend_curvature,
+                       edge.bend_motion_sign);
+    edge.bend_curve = EdgeHasBendCurveSignal(
+        edge.bend_lower_mid_dx, edge.bend_mid_upper_dx, edge.bend_curvature, wide);
+    return edge;
+}
+
+port::LaneGeometryHistorySnapshot BuildHistorySnapshot(const LaneMetrics& metrics) {
+    port::LaneGeometryHistorySnapshot snapshot{};
+    for (std::size_t i = 0; i < port::kLaneGeometryAnchorCount; ++i) {
+        const EdgeAnchor& left = metrics.left_edge.observed_anchors[i];
+        if (left.state == EdgeObservationState::visible) {
+            snapshot.left_visible_anchors[i].valid = true;
+            snapshot.left_visible_anchors[i].row = left.row;
+            snapshot.left_visible_anchors[i].col = left.col;
+            snapshot.valid = true;
+        }
+        const EdgeAnchor& right = metrics.right_edge.observed_anchors[i];
+        if (right.state == EdgeObservationState::visible) {
+            snapshot.right_visible_anchors[i].valid = true;
+            snapshot.right_visible_anchors[i].row = right.row;
+            snapshot.right_visible_anchors[i].col = right.col;
+            snapshot.valid = true;
+        }
+    }
+    return snapshot;
+}
+
+port::TrackHistorySnapshot BuildTrackHistorySnapshotImpl(const LaneMetrics& metrics,
+                                                         const port::LegacySteeringState& prior_state) {
+    if (!metrics.track_valid) {
+        port::TrackHistorySnapshot snapshot = prior_state.track_history;
+        if (snapshot.valid) {
+            snapshot.track_confidence *= 0.85F;
+        }
+        snapshot.flip_candidate_sign = metrics.track_flip_candidate_sign;
+        snapshot.flip_candidate_frames = metrics.track_flip_candidate_frames;
+        return snapshot;
+    }
+
+    port::TrackHistorySnapshot snapshot{};
+    snapshot.valid = true;
+    snapshot.center_anchors = metrics.track_center_anchors;
+    snapshot.lane_width_px = metrics.tracked_lane_width_px;
+    snapshot.heading_px_per_row = metrics.heading_error;
+    snapshot.curvature_px_per_row2 = metrics.curvature;
+    snapshot.turn_sign = metrics.track_sign;
+    snapshot.track_confidence = metrics.track_confidence;
+    snapshot.flip_candidate_sign = metrics.track_flip_candidate_sign;
+    snapshot.flip_candidate_frames = metrics.track_flip_candidate_frames;
+    return snapshot;
+}
+
 }  // namespace
+
+port::TrackHistorySnapshot BuildTrackHistorySnapshot(const LaneMetrics& metrics,
+                                                     const port::LegacySteeringState& prior_state) {
+    return BuildTrackHistorySnapshotImpl(metrics, prior_state);
+}
 
 LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
                                int threshold,
                                const port::RuntimeParameters& params,
-                               int prior_reference_col) {
+                               const port::LegacySteeringState& prior_state,
+                               const port::ImuSample& imu,
+                               uint64_t capture_time_ms) {
     LaneMetrics metrics{};
     metrics.threshold = threshold;
-    metrics.steering_reference_col = std::clamp(prior_reference_col, 0, std::max(0, frame.width - 1));
+    metrics.steering_reference_col =
+        std::clamp(prior_state.steering_reference_col, 0, std::max(0, frame.width - 1));
     metrics.lateral_error =
         static_cast<float>(frame.width / 2.0F - static_cast<float>(metrics.steering_reference_col));
 
@@ -319,23 +587,60 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
     const int upper_end = ClampRow(wide.upper_row_end, frame.height);
     const int row_step = std::max(1, wide.row_step);
 
-    const int image_center = frame.width / 2;
     const int edge_margin_px = std::max(0, wide.edge_margin_px);
     const float full_span_ratio_threshold =
         static_cast<float>(std::clamp(wide.upper_full_span_width_ratio, 0.0, 1.0));
+    const GyroContinuityConstraint continuity =
+        ComputeGyroContinuityConstraint(prior_state, imu, capture_time_ms);
+    const BottomTrackResult track = TrackBottomConnectedLane(
+        BottomTrackRequest{frame, threshold, scan_top, scan_bottom, row_step, prior_state, continuity});
 
     BandAccumulator lower_band{};
     BandAccumulator middle_band{};
     BandAccumulator upper_band{};
+    std::vector<int> valid_rows{};
+    std::vector<EdgeSample> left_samples{};
+    std::vector<EdgeSample> right_samples{};
 
-    bool bottom_seen = false;
-    bool previous_primary_valid = false;
-    RowRun previous_primary{};
-    double weighted_center_sum = 0.0;
-    double weight_sum = 0.0;
     metrics.highest_line = 0;
     metrics.farthest_line = 0;
+    metrics.track_valid = track.valid;
+    metrics.track_seed_col = track.seed_col;
+    metrics.track_seed_score = track.seed_score;
+    metrics.track_confidence = track.track_confidence;
+    metrics.heading_error = track.heading_error;
+    metrics.curvature = track.curvature;
+    metrics.gyro_heading_delta_deg = track.gyro_heading_delta_deg;
+    metrics.gyro_consistency_score = track.gyro_consistency_score;
+    metrics.track_sign = track.track_sign;
+    metrics.sign_flip_blocked = track.sign_flip_blocked;
+    metrics.imu_grace_active = track.imu_grace_active;
+    metrics.track_source = ToString(track.source);
+    metrics.track_center_anchors = track.center_anchors;
+    metrics.tracked_lane_width_px = track.lane_width_px;
+    metrics.track_flip_candidate_sign = track.flip_candidate_sign;
+    metrics.track_flip_candidate_frames = track.flip_candidate_frames;
+    metrics.lateral_error = track.lateral_error;
+    metrics.steering_reference_col =
+        std::clamp(static_cast<int>(std::lround(frame.width / 2.0F - track.lateral_error)),
+                   0,
+                   std::max(0, frame.width - 1));
 
+    for (const TrackRowObservation& row : track.rows) {
+        if (!row.valid || row.width <= 0) {
+            continue;
+        }
+        ++metrics.valid_row_count;
+        metrics.highest_line = metrics.highest_line == 0 ? row.row : std::min(metrics.highest_line, row.row);
+        if (row.row_confidence >= 0.55F) {
+            metrics.farthest_line = metrics.farthest_line == 0 ? row.row : std::min(metrics.farthest_line, row.row);
+        }
+    }
+
+    bool strict_bottom_seen = false;
+    bool previous_primary_valid = false;
+    RowRun previous_primary{};
+    int strict_valid_row_count = 0;
     for (int row = scan_bottom; row >= scan_top; row -= row_step) {
         int transitions = 0;
         const std::vector<RowRun> runs = ExtractRuns(frame, row, threshold, transitions);
@@ -346,38 +651,35 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
         RowRun primary{};
         if (RowInBand(row, lower_start, lower_end)) {
             primary = PickLowerPrimaryRun(
-                runs, metrics.steering_reference_col, image_center, frame.width, edge_margin_px);
+                runs, metrics.steering_reference_col, frame.width / 2, frame.width, edge_margin_px);
         } else {
-            primary = PickUpperPrimaryRun(runs,
-                                          previous_primary,
-                                          previous_primary_valid,
-                                          metrics.steering_reference_col,
-                                          frame.width,
-                                          edge_margin_px);
+            primary = PickUpperPrimaryRun(
+                runs, previous_primary, previous_primary_valid, metrics.steering_reference_col, frame.width, edge_margin_px);
         }
-
         if (primary.width <= 0) {
             continue;
         }
 
-        ++metrics.valid_row_count;
-        metrics.highest_line = metrics.highest_line == 0 ? row : std::min(metrics.highest_line, row);
-        if (primary.width >= frame.width / 6) {
-            metrics.farthest_line = metrics.farthest_line == 0 ? row : std::min(metrics.farthest_line, row);
-        }
-        if (!bottom_seen) {
-            bottom_seen = true;
+        valid_rows.push_back(row);
+        ++strict_valid_row_count;
+        if (!strict_bottom_seen) {
+            strict_bottom_seen = true;
             metrics.lane_width_bottom = primary.width;
             metrics.transitions_bottom = transitions;
             metrics.left_edge_missing_bottom = primary.left > frame.width / 3;
             metrics.right_edge_missing_bottom = primary.right < (frame.width * 2) / 3;
         }
 
-        const double upward_bias =
-            static_cast<double>(scan_bottom - row) / static_cast<double>(std::max(1, scan_bottom - scan_top));
-        const double weight = 1.0 + upward_bias * 1.8;
-        weighted_center_sum += static_cast<double>(primary.center) * weight;
-        weight_sum += weight;
+        left_samples.push_back(
+            {row,
+             primary.left,
+             primary.left <= edge_margin_px ? EdgeObservationState::border_truncated
+                                            : EdgeObservationState::visible});
+        right_samples.push_back(
+            {row,
+             primary.right,
+             primary.right >= frame.width - 1 - edge_margin_px ? EdgeObservationState::border_truncated
+                                                               : EdgeObservationState::visible});
 
         const bool full_span =
             static_cast<float>(primary.width) / static_cast<float>(frame.width) >= full_span_ratio_threshold;
@@ -392,12 +694,7 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
         previous_primary = primary;
         previous_primary_valid = true;
     }
-
-    if (weight_sum > 0.0) {
-        metrics.steering_reference_col = static_cast<int>(std::lround(weighted_center_sum / weight_sum));
-        metrics.lateral_error =
-            static_cast<float>(frame.width / 2.0 - static_cast<double>(metrics.steering_reference_col));
-    }
+    metrics.valid_row_count = std::max(metrics.valid_row_count, strict_valid_row_count);
     if (metrics.farthest_line == 0) {
         metrics.farthest_line = metrics.highest_line;
     }
@@ -424,18 +721,17 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
         SafeRatio(upper_band.left_border_touch_rows, metrics.upper_valid_row_count);
     metrics.right_upper_border_touch_ratio =
         SafeRatio(upper_band.right_border_touch_rows, metrics.upper_valid_row_count);
-    metrics.left_open = static_cast<float>(metrics.lower_left - metrics.upper_left);
-    metrics.right_open = static_cast<float>(metrics.upper_right - metrics.lower_right);
-    metrics.left_contract = static_cast<float>(metrics.upper_left - metrics.lower_left);
-    metrics.right_contract = static_cast<float>(metrics.lower_right - metrics.upper_right);
-    metrics.left_dx_lower_mid = metrics.middle_left - metrics.lower_left;
-    metrics.left_dx_mid_upper = metrics.upper_left - metrics.middle_left;
-    metrics.right_dx_lower_mid = metrics.middle_right - metrics.lower_right;
-    metrics.right_dx_mid_upper = metrics.upper_right - metrics.middle_right;
-    metrics.left_curvature =
-        static_cast<float>(metrics.left_dx_mid_upper - metrics.left_dx_lower_mid);
-    metrics.right_curvature =
-        static_cast<float>(metrics.right_dx_mid_upper - metrics.right_dx_lower_mid);
+
+    const std::array<int, port::kLaneGeometryAnchorCount> target_rows = BuildTargetRows(valid_rows);
+    metrics.left_edge = BuildEdgeMetrics(left_samples, target_rows, prior_state, true, frame.width, wide);
+    metrics.right_edge = BuildEdgeMetrics(right_samples, target_rows, prior_state, false, frame.width, wide);
+
+    metrics.left_dx_lower_mid = static_cast<int>(std::lround(metrics.left_edge.observed_lower_mid_dx));
+    metrics.left_dx_mid_upper = static_cast<int>(std::lround(metrics.left_edge.observed_mid_upper_dx));
+    metrics.right_dx_lower_mid = static_cast<int>(std::lround(metrics.right_edge.observed_lower_mid_dx));
+    metrics.right_dx_mid_upper = static_cast<int>(std::lround(metrics.right_edge.observed_mid_upper_dx));
+    metrics.left_curvature = metrics.left_edge.observed_curvature;
+    metrics.right_curvature = metrics.right_edge.observed_curvature;
     metrics.left_visible_confident =
         !metrics.left_edge_missing_bottom && metrics.middle_valid_row_count > 0 &&
         metrics.upper_valid_row_count >= 2;
@@ -443,9 +739,42 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
         !metrics.right_edge_missing_bottom && metrics.middle_valid_row_count > 0 &&
         metrics.upper_valid_row_count >= 2;
 
+    if (AnchorAvailable(metrics.left_edge.observed_anchors[0]) &&
+        AnchorAvailable(metrics.left_edge.observed_anchors[2])) {
+        metrics.left_open = static_cast<float>(metrics.left_edge.observed_anchors[2].col -
+                                               metrics.left_edge.observed_anchors[0].col);
+        metrics.left_contract = -metrics.left_open;
+    } else {
+        metrics.left_open = static_cast<float>(metrics.lower_left - metrics.upper_left);
+        metrics.left_contract = static_cast<float>(metrics.upper_left - metrics.lower_left);
+    }
+    if (AnchorAvailable(metrics.right_edge.observed_anchors[0]) &&
+        AnchorAvailable(metrics.right_edge.observed_anchors[2])) {
+        metrics.right_open = static_cast<float>(metrics.right_edge.observed_anchors[0].col -
+                                                metrics.right_edge.observed_anchors[2].col);
+        metrics.right_contract = -metrics.right_open;
+    } else {
+        metrics.right_open = static_cast<float>(metrics.upper_right - metrics.lower_right);
+        metrics.right_contract = static_cast<float>(metrics.lower_right - metrics.upper_right);
+    }
+
+    metrics.same_direction_bend_sign = metrics.track_sign != 0 ? metrics.track_sign
+                                                               : (metrics.left_edge.bend_motion_sign != 0 &&
+                                                                          metrics.left_edge.bend_motion_sign ==
+                                                                              metrics.right_edge.bend_motion_sign
+                                                                      ? metrics.left_edge.bend_motion_sign
+                                                                      : 0);
+    metrics.bend_used_current_frame_extrapolation =
+        metrics.left_edge.current_frame_extrapolated_anchor_count > 0 ||
+        metrics.right_edge.current_frame_extrapolated_anchor_count > 0;
+    metrics.bend_used_history_fallback = std::string(metrics.track_source) == "history_guarded" ||
+                                         metrics.left_edge.history_fallback_anchor_count > 0 ||
+                                         metrics.right_edge.history_fallback_anchor_count > 0;
+
     const float normalized_error =
         std::abs(metrics.lateral_error) / static_cast<float>(std::max(1, frame.width / 4));
-    metrics.bend_severity = normalized_error;
+    metrics.bend_severity = normalized_error + std::abs(metrics.heading_error) * 1.8F +
+                            std::abs(metrics.curvature) * 1.2F;
     if (metrics.left_edge_missing_bottom) {
         metrics.bend_severity += 0.75F;
     }
@@ -455,11 +784,21 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
     if (metrics.valid_row_count < 12) {
         metrics.bend_severity += 0.35F;
     }
+    if (metrics.left_edge.bend_curve || metrics.right_edge.bend_curve) {
+        metrics.bend_severity += 0.35F;
+    }
+    if (metrics.same_direction_bend_sign != 0) {
+        metrics.bend_severity += 0.35F;
+    }
+    if (metrics.bend_used_history_fallback) {
+        metrics.bend_severity += 0.1F;
+    }
 
     metrics.zebra_candidate =
         metrics.transitions_bottom >= 8 && metrics.lane_width_bottom >= frame.width / 3;
     metrics.cross_candidate =
-        HasCrossUpperFullSpanStructure(SteeringSceneContext{frame, params, port::LegacySteeringState{}, metrics});
+        HasCrossUpperFullSpanStructure(SteeringSceneContext{frame, params, prior_state, metrics});
+    metrics.lane_geometry_snapshot = BuildHistorySnapshot(metrics);
     return metrics;
 }
 
@@ -471,26 +810,20 @@ bool HasCrossUpperFullSpanStructure(const SteeringSceneContext& context) {
 
 bool HasCircleLeftEntryStructure(const SteeringSceneContext& context) {
     const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
-    return EdgeHasStrongCurveSignal(context.metrics.left_dx_lower_mid,
-                                    context.metrics.left_dx_mid_upper,
-                                    context.metrics.left_curvature,
-                                    wide) &&
-           EdgeLooksStraight(context.metrics.right_visible_confident,
-                             context.metrics.right_upper_border_touch_ratio,
-                             context.metrics.right_curvature,
-                             wide);
+    return context.metrics.left_edge.circle_curve && context.metrics.right_visible_confident &&
+           context.metrics.right_upper_border_touch_ratio <=
+               static_cast<float>(wide.opposite_edge_border_touch_max_ratio) &&
+           std::abs(context.metrics.right_curvature) <=
+               static_cast<float>(wide.opposite_edge_straight_max_curvature_px);
 }
 
 bool HasCircleRightEntryStructure(const SteeringSceneContext& context) {
     const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
-    return EdgeHasStrongCurveSignal(context.metrics.right_dx_lower_mid,
-                                    context.metrics.right_dx_mid_upper,
-                                    context.metrics.right_curvature,
-                                    wide) &&
-           EdgeLooksStraight(context.metrics.left_visible_confident,
-                             context.metrics.left_upper_border_touch_ratio,
-                             context.metrics.left_curvature,
-                             wide);
+    return context.metrics.right_edge.circle_curve && context.metrics.left_visible_confident &&
+           context.metrics.left_upper_border_touch_ratio <=
+               static_cast<float>(wide.opposite_edge_border_touch_max_ratio) &&
+           std::abs(context.metrics.left_curvature) <=
+               static_cast<float>(wide.opposite_edge_straight_max_curvature_px);
 }
 
 bool LooksLikeOrdinaryBend(const SteeringSceneContext& context) {
@@ -498,43 +831,27 @@ bool LooksLikeOrdinaryBend(const SteeringSceneContext& context) {
         return false;
     }
 
-    const port::SceneWideClassifierParameters& wide = context.params.scene_wide_classifier;
-    const bool left_curve = EdgeHasStrongCurveSignal(context.metrics.left_dx_lower_mid,
-                                                     context.metrics.left_dx_mid_upper,
-                                                     context.metrics.left_curvature,
-                                                     wide);
-    const bool right_curve = EdgeHasStrongCurveSignal(context.metrics.right_dx_lower_mid,
-                                                      context.metrics.right_dx_mid_upper,
-                                                      context.metrics.right_curvature,
-                                                      wide);
-    const bool left_straight = EdgeLooksStraight(context.metrics.left_visible_confident,
-                                                 context.metrics.left_upper_border_touch_ratio,
-                                                 context.metrics.left_curvature,
-                                                 wide);
-    const bool right_straight = EdgeLooksStraight(context.metrics.right_visible_confident,
-                                                  context.metrics.right_upper_border_touch_ratio,
-                                                  context.metrics.right_curvature,
-                                                  wide);
-    if (left_curve && right_curve) {
-        return true;
-    }
-    if (left_curve && !right_straight) {
-        return true;
-    }
-    if (right_curve && !left_straight) {
+    if (context.metrics.track_valid && context.metrics.track_confidence >= 0.35F &&
+        (std::abs(context.metrics.heading_error) >= 0.18F ||
+         std::abs(context.metrics.curvature) >= 0.08F || context.metrics.track_sign != 0)) {
         return true;
     }
 
-    const int left_motion_sign =
-        DominantMotionSign(context.metrics.left_dx_lower_mid,
-                           context.metrics.left_dx_mid_upper,
-                           wide.edge_motion_min_px);
-    const int right_motion_sign =
-        DominantMotionSign(context.metrics.right_dx_lower_mid,
-                           context.metrics.right_dx_mid_upper,
-                           wide.edge_motion_min_px);
-    return left_motion_sign != 0 && left_motion_sign == right_motion_sign &&
-           !HasCircleLeftEntryStructure(context) && !HasCircleRightEntryStructure(context);
+    const bool left_curve = context.metrics.left_edge.bend_curve;
+    const bool right_curve = context.metrics.right_edge.bend_curve;
+    if (left_curve && right_curve) {
+        return true;
+    }
+    if (left_curve && !context.metrics.right_edge.strict_straight) {
+        return true;
+    }
+    if (right_curve && !context.metrics.left_edge.strict_straight) {
+        return true;
+    }
+    if (context.metrics.same_direction_bend_sign != 0) {
+        return true;
+    }
+    return context.metrics.bend_used_history_fallback && (left_curve || right_curve);
 }
 
 bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context) {
@@ -559,9 +876,6 @@ bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context) {
     const bool circle_precondition =
         HasCircleLeftEntryStructure(context) || HasCircleRightEntryStructure(context);
     if (!cross_precondition && !circle_precondition) {
-        return false;
-    }
-    if (LooksLikeOrdinaryBend(context)) {
         return false;
     }
     return true;

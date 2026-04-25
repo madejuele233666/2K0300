@@ -77,11 +77,23 @@ SteeringAnalysisResult OrchestrateSteeringScenes(const SteeringSceneContext& con
     result.farthest_line = context.metrics.farthest_line;
     result.steering_reference_col = scene.steering_reference_col;
     result.lateral_error = scene.lateral_error;
+    result.heading_error = context.metrics.heading_error;
+    result.curvature = context.metrics.curvature;
+    result.track_confidence = context.metrics.track_confidence;
+    result.track_valid = context.metrics.track_valid;
+    result.track_seed_col = context.metrics.track_seed_col;
+    result.track_seed_score = context.metrics.track_seed_score;
+    result.gyro_heading_delta_deg = context.metrics.gyro_heading_delta_deg;
+    result.gyro_consistency_score = context.metrics.gyro_consistency_score;
+    result.track_sign = context.metrics.track_sign;
+    result.sign_flip_blocked = context.metrics.sign_flip_blocked;
+    result.imu_grace_active = context.metrics.imu_grace_active;
     result.active_module = scene.active_module;
     result.scene_phase = scene.scene_phase;
     result.scene_override_source = scene.scene_override_source;
     result.roadblock_interface_state = context.prior_state.roadblock_interface_state;
     result.last_special_scene_correction = scene.last_special_scene_correction;
+    result.track_source = context.metrics.track_source;
     result.roadblock_active = false;
     result.perception_tag = std::string("scene-orchestrator:") + result.active_module;
     result.low_voltage_veto = low_voltage_emergency;
@@ -95,6 +107,7 @@ SteeringAnalysisResult OrchestrateSteeringScenes(const SteeringSceneContext& con
     analysis.special_wide_cross_score_last = scene.special_wide_cross_score;
     analysis.special_wide_circle_left_score_last = scene.special_wide_circle_left_score;
     analysis.special_wide_circle_right_score_last = scene.special_wide_circle_right_score;
+    analysis.lane_geometry_snapshot = context.metrics.lane_geometry_snapshot;
     return analysis;
 }
 

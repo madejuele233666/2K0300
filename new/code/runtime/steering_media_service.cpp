@@ -66,9 +66,20 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     const SteeringDebugSnapshot& snapshot) const {
     platform::SteeringMediaSnapshotView view{};
     view.lateral_error = snapshot.lateral_error;
+    view.heading_error = snapshot.heading_error;
+    view.curvature = snapshot.curvature;
+    view.track_confidence = snapshot.track_confidence;
     view.highest_line = snapshot.highest_line;
     view.farthest_line = snapshot.farthest_line;
     view.steering_reference_col = snapshot.steering_reference_col;
+    view.track_valid = snapshot.track_valid;
+    view.track_seed_col = snapshot.track_seed_col;
+    view.track_seed_score = snapshot.track_seed_score;
+    view.track_sign = snapshot.track_sign;
+    view.sign_flip_blocked = snapshot.sign_flip_blocked;
+    view.imu_grace_active = snapshot.imu_grace_active;
+    view.gyro_heading_delta_deg = snapshot.gyro_heading_delta_deg;
+    view.gyro_consistency_score = snapshot.gyro_consistency_score;
     view.threshold = snapshot.threshold;
     view.threshold_veto = snapshot.threshold_veto;
     view.active_module = snapshot.active_module;
@@ -76,6 +87,7 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.scene_override_source = snapshot.scene_override_source;
     view.roadblock_interface_state = snapshot.roadblock_interface_state;
     view.last_special_scene_correction = snapshot.last_special_scene_correction;
+    view.track_source = snapshot.track_source;
     view.roadblock_active = snapshot.roadblock_active;
     view.resolved_fuzzy_p = snapshot.resolved_fuzzy_p;
     view.camera_p_term = snapshot.camera_p_term;

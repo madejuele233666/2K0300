@@ -49,10 +49,21 @@ struct PerceptionResult {
     bool threshold_veto = false;
     bool geometry_veto = false;
     float lateral_error = 0.0F;
+    float heading_error = 0.0F;
+    float curvature = 0.0F;
+    float track_confidence = 0.0F;
     int threshold = 0;
     int highest_line = 0;
     int farthest_line = 0;
     int steering_reference_col = kCompiledCameraFrameWidth / 2;
+    bool track_valid = false;
+    int track_seed_col = kCompiledCameraFrameWidth / 2;
+    float track_seed_score = 0.0F;
+    float gyro_heading_delta_deg = 0.0F;
+    float gyro_consistency_score = 1.0F;
+    int track_sign = 0;
+    bool sign_flip_blocked = false;
+    bool imu_grace_active = false;
     bool roadblock_active = false;
     uint64_t frame_id = 0;
     uint64_t capture_time_ms = 0;
@@ -63,6 +74,7 @@ struct PerceptionResult {
     std::string roadblock_interface_state = "supported_not_implemented";
     std::string last_special_scene_correction = "none";
     std::string perception_tag = "none";
+    std::string track_source = "bottom_connected";
 };
 
 struct LegacySteeringControllerMemory {
@@ -70,6 +82,39 @@ struct LegacySteeringControllerMemory {
     float camera_error_last = 0.0F;
     float gyro_error_last = 0.0F;
     float gyro_i_accumulator = 0.0F;
+};
+
+constexpr int kLaneGeometryAnchorCount = 3;
+
+struct LaneHistoryAnchor {
+    bool valid = false;
+    int row = 0;
+    int col = kCompiledCameraFrameWidth / 2;
+};
+
+struct LaneGeometryHistorySnapshot {
+    bool valid = false;
+    std::array<LaneHistoryAnchor, kLaneGeometryAnchorCount> left_visible_anchors{};
+    std::array<LaneHistoryAnchor, kLaneGeometryAnchorCount> right_visible_anchors{};
+};
+
+struct TrackHistorySnapshot {
+    bool valid = false;
+    std::array<LaneHistoryAnchor, kLaneGeometryAnchorCount> center_anchors{};
+    float lane_width_px = 0.0F;
+    float heading_px_per_row = 0.0F;
+    float curvature_px_per_row2 = 0.0F;
+    int turn_sign = 0;
+    float track_confidence = 0.0F;
+    int flip_candidate_sign = 0;
+    int flip_candidate_frames = 0;
+};
+
+struct GyroContinuityState {
+    uint64_t last_valid_capture_time_ms = 0;
+    float filtered_yaw_rate = 0.0F;
+    float heading_delta_deg_150ms = 0.0F;
+    bool imu_grace_active = false;
 };
 
 struct LegacySteeringState {
@@ -88,6 +133,10 @@ struct LegacySteeringState {
     float special_wide_cross_score_last = 0.0F;
     float special_wide_circle_left_score_last = 0.0F;
     float special_wide_circle_right_score_last = 0.0F;
+    LaneGeometryHistorySnapshot lane_geometry_recent{};
+    LaneGeometryHistorySnapshot lane_geometry_previous{};
+    TrackHistorySnapshot track_history{};
+    GyroContinuityState gyro_continuity{};
     LegacySteeringControllerMemory controller_memory{};
 };
 

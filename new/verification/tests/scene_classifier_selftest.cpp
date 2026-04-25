@@ -42,6 +42,9 @@ std::string DescribeAnalysis(const FixtureAnalysis& analysis) {
            " upper_span_consec=" + std::to_string(metrics.upper_full_span_consecutive_rows_max) +
            " left_curve=" + std::to_string(metrics.left_curvature) +
            " right_curve=" + std::to_string(metrics.right_curvature) +
+           " bend_same_sign=" + std::to_string(metrics.same_direction_bend_sign) +
+           " bend_extrap=" + std::to_string(metrics.bend_used_current_frame_extrapolation ? 1 : 0) +
+           " bend_hist=" + std::to_string(metrics.bend_used_history_fallback ? 1 : 0) +
            " left_touch=" + std::to_string(metrics.left_upper_border_touch_ratio) +
            " right_touch=" + std::to_string(metrics.right_upper_border_touch_ratio) +
            " left_visible=" + std::to_string(metrics.left_visible_confident ? 1 : 0) +
@@ -88,6 +91,10 @@ void ApplyAnalysisToState(const ls2k::legacy::SteeringAnalysisResult& analysis,
     state.special_wide_cross_score_last = analysis.special_wide_cross_score_last;
     state.special_wide_circle_left_score_last = analysis.special_wide_circle_left_score_last;
     state.special_wide_circle_right_score_last = analysis.special_wide_circle_right_score_last;
+    state.lane_geometry_previous = state.lane_geometry_recent;
+    state.lane_geometry_recent = analysis.lane_geometry_snapshot;
+    state.track_history = analysis.track_history_snapshot;
+    state.gyro_continuity = analysis.gyro_continuity_state;
 }
 
 FixtureAnalysis AnalyzeRawFixture(const RawFixture& fixture,
@@ -95,12 +102,9 @@ FixtureAnalysis AnalyzeRawFixture(const RawFixture& fixture,
                                   ls2k::port::LegacySteeringState state) {
     const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(fixture.path);
     FixtureAnalysis result{};
-    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, false, 1, 1);
-    result.metrics =
-        ls2k::legacy::ExtractLaneMetrics(frame,
-                                         result.analysis.perception.threshold,
-                                         params,
-                                         state.steering_reference_col);
+    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, {}, false, 1, 1);
+    result.metrics = ls2k::legacy::ExtractLaneMetrics(
+        frame, result.analysis.perception.threshold, params, state, {}, 1);
     ApplyAnalysisToState(result.analysis, state);
     return result;
 }
@@ -133,13 +137,14 @@ void ExpectNotConfirmedModule(const RawFixture& fixture,
                DescribeAnalysis(analysis));
 }
 
-void ExpectNeutralNotWide(const RawFixture& fixture) {
+void ExpectNeutralBend(const RawFixture& fixture) {
     const ls2k::port::RuntimeParameters params = MakeSceneParams();
     const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, ls2k::port::LegacySteeringState{});
-    const std::string module = analysis.analysis.perception.active_module;
-    Expect(module != "special_wide" && module != "circle_entry" && module != "cross",
-           std::string(fixture.label) +
-               " must stay out of special_wide/circle_entry/cross; " + DescribeAnalysis(analysis));
+    Expect(analysis.analysis.perception.active_module == "bend",
+           std::string(fixture.label) + " must enter bend on neutral entry; " + DescribeAnalysis(analysis));
+    Expect(analysis.analysis.special_wide_candidate == "none",
+           std::string(fixture.label) + " must not nominate a wide candidate; " +
+               DescribeAnalysis(analysis));
 }
 
 void ExpectNeutralSpecialWide(const RawFixture& fixture, const char* expected_candidate) {
@@ -151,6 +156,76 @@ void ExpectNeutralSpecialWide(const RawFixture& fixture, const char* expected_ca
     Expect(analysis.analysis.special_wide_candidate == expected_candidate,
            std::string(fixture.label) + " must nominate " + expected_candidate + "; " +
                DescribeAnalysis(analysis));
+}
+
+FixtureAnalysis AnalyzeRawFramePath(const std::string& path,
+                                    const ls2k::port::RuntimeParameters& params,
+                                    ls2k::port::LegacySteeringState state,
+                                    uint64_t frame_id) {
+    const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(path.c_str());
+    FixtureAnalysis result{};
+    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, {}, false, frame_id, frame_id);
+    result.metrics =
+        ls2k::legacy::ExtractLaneMetrics(frame, result.analysis.perception.threshold, params, state, {}, frame_id);
+    return result;
+}
+
+FixtureAnalysis AnalyzeSequentialFrames(const std::string& directory, const std::vector<int>& frames) {
+    const ls2k::port::RuntimeParameters params = MakeSceneParams();
+    ls2k::port::LegacySteeringState state{};
+    FixtureAnalysis current{};
+    for (int frame : frames) {
+        const std::string path = directory + "/frame-" +
+                                 (frame < 100000 ? std::string(6 - std::to_string(frame).size(), '0') : "") +
+                                 std::to_string(frame) + ".raw";
+        current = AnalyzeRawFramePath(path, params, state, static_cast<uint64_t>(frame));
+        ApplyAnalysisToState(current.analysis, state);
+    }
+    return current;
+}
+
+ls2k::port::LegacyCameraFrame MakeSyntheticLaneFrame(bool left_truncated, bool left_only_one_visible_row) {
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
+    for (int row = 80; row <= 184; ++row) {
+        int left = 44 + (184 - row) / 5;
+        if (left_truncated) {
+            left = row == 184 ? 20 : 0;
+            if (!left_only_one_visible_row && row >= 156) {
+                left = 18 + (184 - row) / 8;
+            }
+        }
+        const int right = 250 - (184 - row) / 7;
+        for (int col = std::max(0, left); col <= std::min(frame.width - 1, right); ++col) {
+            frame.gray[static_cast<std::size_t>(row) * frame.width + col] = 255;
+        }
+    }
+    return frame;
+}
+
+ls2k::port::LegacySteeringState MakeHistoryPrimedState() {
+    ls2k::port::LegacySteeringState state{};
+    state.steering_reference_col = 160;
+    state.lane_geometry_recent.valid = true;
+    state.lane_geometry_previous.valid = true;
+    state.lane_geometry_recent.left_visible_anchors[0] = {true, 100, 28};
+    state.lane_geometry_recent.left_visible_anchors[1] = {true, 132, 34};
+    state.lane_geometry_recent.left_visible_anchors[2] = {true, 168, 42};
+    state.lane_geometry_recent.right_visible_anchors[0] = {true, 100, 244};
+    state.lane_geometry_recent.right_visible_anchors[1] = {true, 132, 238};
+    state.lane_geometry_recent.right_visible_anchors[2] = {true, 168, 232};
+    state.lane_geometry_previous = state.lane_geometry_recent;
+    state.track_history.valid = true;
+    state.track_history.center_anchors[0] = {true, 100, 136};
+    state.track_history.center_anchors[1] = {true, 132, 136};
+    state.track_history.center_anchors[2] = {true, 168, 137};
+    state.track_history.lane_width_px = 200.0F;
+    state.track_history.heading_px_per_row = -0.12F;
+    state.track_history.curvature_px_per_row2 = 0.0F;
+    state.track_history.turn_sign = -1;
+    state.track_history.track_confidence = 0.8F;
+    return state;
 }
 
 ls2k::legacy::SteeringAnalysisResult RunSyntheticScene(const ls2k::legacy::LaneMetrics& metrics,
@@ -206,9 +281,20 @@ void TestRepresentativeWideSamples() {
     ExpectConfirmedModule(cross_2, "cross", "cross");
     ExpectNotConfirmedModule(cross_3, "circle_entry", "circle_entry");
 
-    ExpectNeutralNotWide(bend_1);
-    ExpectNeutralNotWide(bend_2);
-    ExpectNeutralNotWide(bend_3);
+    ExpectNeutralBend(bend_1);
+    ExpectNeutralBend(bend_2);
+    ExpectNeutralBend(bend_3);
+
+    ExpectNotConfirmedModule(circle_1, "cross", "cross");
+    ExpectNotConfirmedModule(circle_2, "cross", "cross");
+    ExpectNotConfirmedModule(cross_1, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(cross_2, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(bend_1, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(bend_2, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(bend_3, "circle_entry", "circle_entry");
+    ExpectNotConfirmedModule(bend_1, "cross", "cross");
+    ExpectNotConfirmedModule(bend_2, "cross", "cross");
+    ExpectNotConfirmedModule(bend_3, "cross", "cross");
 }
 
 void TestSyntheticSceneRegression() {
@@ -251,12 +337,96 @@ void TestSyntheticSceneRegression() {
            "baseline circle_exit regression must stay circle_exit-compatible");
 }
 
+void TestGeometryRegression() {
+    const ls2k::port::RuntimeParameters params = MakeSceneParams();
+
+    {
+        ls2k::legacy::LaneMetrics metrics{};
+        metrics.valid_row_count = 24;
+        metrics.lower_valid_row_count = 8;
+        metrics.upper_valid_row_count = 8;
+        metrics.left_edge.circle_curve = true;
+        metrics.left_edge.bend_curve = true;
+        metrics.left_curvature = -24.0F;
+        metrics.right_edge.strict_straight = false;
+        metrics.right_visible_confident = false;
+        metrics.right_upper_border_touch_ratio = 1.0F;
+        ls2k::port::LegacyCameraFrame frame{};
+        frame.width = ls2k::port::kCompiledCameraFrameWidth;
+        frame.height = ls2k::port::kCompiledCameraFrameHeight;
+        const ls2k::legacy::SteeringSceneContext context{frame, params, {}, metrics};
+        Expect(!ls2k::legacy::HasCircleLeftEntryStructure(context),
+               "border_truncated opposite edge must not satisfy circle proof");
+    }
+
+    {
+        const ls2k::port::LegacyCameraFrame visible_frame = MakeSyntheticLaneFrame(false, false);
+        const ls2k::legacy::LaneMetrics metrics =
+            ls2k::legacy::ExtractLaneMetrics(visible_frame, 128, params, MakeHistoryPrimedState(), {}, 1);
+        Expect(!metrics.bend_used_history_fallback,
+               "history fallback must stay disabled when current frame anchors are sufficient");
+    }
+
+    {
+        const ls2k::port::LegacyCameraFrame truncated_frame = MakeSyntheticLaneFrame(true, true);
+        const ls2k::port::LegacySteeringState prior_state = MakeHistoryPrimedState();
+        const ls2k::legacy::LaneMetrics metrics =
+            ls2k::legacy::ExtractLaneMetrics(truncated_frame, 128, params, prior_state, {}, 1);
+        ls2k::port::LegacyCameraFrame frame{};
+        frame.width = ls2k::port::kCompiledCameraFrameWidth;
+        frame.height = ls2k::port::kCompiledCameraFrameHeight;
+        const ls2k::legacy::SteeringSceneContext context{frame, params, prior_state, metrics};
+        const ls2k::legacy::SteeringAnalysisResult analysis =
+            ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 1);
+        Expect(metrics.bend_used_history_fallback,
+               "history fallback must engage only when current anchors are insufficient");
+        Expect(!ls2k::legacy::HasCircleLeftEntryStructure(context) &&
+                   !ls2k::legacy::HasCircleRightEntryStructure(context),
+               "history fallback must not promote circle proofs");
+        Expect(!ls2k::legacy::HasCrossUpperFullSpanStructure(context),
+               "history fallback must not promote cross proofs");
+        Expect(analysis.perception.active_module == "bend",
+               "history fallback must only influence bend classification");
+    }
+}
+
+void TestBottomTrackRegressionFrames() {
+    const std::string base =
+        "new/verification/steering-debug-20260425T092518Z/steering-media/frames";
+
+    const FixtureAnalysis frame_274 = AnalyzeSequentialFrames(base, {274});
+    Expect(frame_274.analysis.perception.active_module == "bend",
+           "frame-000274 must stay on bend; " + DescribeAnalysis(frame_274));
+    Expect(frame_274.analysis.perception.track_sign <= 0,
+           "frame-000274 must not flip to right-turn sign; " + DescribeAnalysis(frame_274));
+    Expect(frame_274.analysis.perception.track_source != "history_guarded",
+           "frame-000274 must stay on current-frame track evidence; " + DescribeAnalysis(frame_274));
+    Expect(!frame_274.analysis.perception.sign_flip_blocked ||
+               frame_274.analysis.perception.steering_reference_col <= 190,
+           "frame-000274 must not jump steering reference into the wrong right-side region; " +
+               DescribeAnalysis(frame_274));
+
+    const FixtureAnalysis frame_296 = AnalyzeSequentialFrames(base, {274, 279, 284, 290, 296});
+    Expect(frame_296.analysis.perception.active_module == "bend",
+           "frame-000296 must stay on bend; " + DescribeAnalysis(frame_296));
+    Expect(frame_296.analysis.perception.track_sign <= 0,
+           "frame-000296 must not flip to right-turn sign; " + DescribeAnalysis(frame_296));
+    Expect(frame_296.analysis.perception.track_source != "history_guarded",
+           "frame-000296 must stay on current-frame track evidence; " + DescribeAnalysis(frame_296));
+    Expect(!frame_296.analysis.perception.sign_flip_blocked ||
+               frame_296.analysis.perception.steering_reference_col <= 190,
+           "frame-000296 must not jump steering reference into the wrong right-side region; " +
+               DescribeAnalysis(frame_296));
+}
+
 }  // namespace
 
 int main() {
     try {
         TestRepresentativeWideSamples();
         TestSyntheticSceneRegression();
+        TestGeometryRegression();
+        TestBottomTrackRegressionFrames();
     } catch (const TestFailure& failure) {
         std::cerr << "scene_classifier_selftest failed: " << failure.message << "\n";
         return 1;

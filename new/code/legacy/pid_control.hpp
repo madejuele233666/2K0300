@@ -27,9 +27,11 @@ public:
     void Reset();
 
     CameraTurnComputation ComputeTurnTarget(const port::PerceptionResult& perception,
+                                            double effective_speed_target,
                                             port::LegacySteeringControllerMemory& memory);
     GyroTurnComputation ComputeGyroTurn(float w_target,
                                         float gyro_z,
+                                        bool imu_valid,
                                         port::LegacySteeringControllerMemory& memory);
 
 private:
@@ -41,6 +43,7 @@ private:
     float gyro_p_ = 20.0F;
     float gyro_i_ = 0.0F;
     float gyro_d_ = 9.0F;
+    float speed_base_ = 77.0F;
     bool cam_use_fuzzy_ = false;
 };
 

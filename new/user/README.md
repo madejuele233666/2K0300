@@ -2,6 +2,8 @@
 
 统一调试脚本是 `debug.sh`。它把原来的构建上传、助手开关、板端进程控制、运行冒烟合并成一个入口。
 
+参数说明与调参攻略见 [`../config/default_params.md`](../config/default_params.md)。
+
 ## 常用命令
 
 ```bash

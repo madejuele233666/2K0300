@@ -190,6 +190,8 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         scene_classifier_selftest
         ../verification/tests/scene_classifier_selftest.cpp
         ../code/legacy/camera_logic.cpp
+        ../code/legacy/steering_bottom_tracker.cpp
+        ../code/legacy/steering_gyro_continuity.cpp
         ../code/legacy/steering_scene_common.cpp
         ../code/legacy/steering_scene_orchestrator.cpp
         ../code/legacy/steering_scene_straight.cpp

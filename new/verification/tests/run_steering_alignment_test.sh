@@ -11,6 +11,8 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   -I"${REPO_ROOT}/new/code/legacy" \
   "${REPO_ROOT}/new/verification/tests/steering_alignment_test.cpp" \
   "${REPO_ROOT}/new/code/legacy/camera_logic.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bottom_tracker.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_gyro_continuity.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_common.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_orchestrator.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_straight.cpp" \

@@ -1,0 +1,61 @@
+{
+  "timestamp_utc": "2026-04-25T09:04:55Z",
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z",
+  "duration_s": 12.0,
+  "interrupted": false,
+  "assistant_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8888,
+    "csv_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/assistant_control.csv",
+    "connected": true,
+    "connection_address": "10.100.170.226:53168",
+    "ack_frames": 0,
+    "state_frames": 0,
+    "telemetry_frames": 0,
+    "unknown_frames": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": null,
+    "last_host_receive_monotonic_ms": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/assistant_summary.json"
+  },
+  "board_summary": {
+    "board_ip": "10.100.170.226",
+    "board_user": "root",
+    "remote_log": "/home/root/new_runtime.log",
+    "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/board_runtime.log",
+    "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/board_steering_snapshot.jsonl",
+    "snapshot_count": 94,
+    "receiver_error": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/board_summary.json"
+  },
+  "media_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8890,
+    "output_dir": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering-media",
+    "connected": true,
+    "connection_address": "10.100.170.226:33846",
+    "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering-media/config_snapshot.json",
+    "metadata_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering-media/frame_metadata.jsonl",
+    "frame_dir": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering-media/frames",
+    "frame_count": 23,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": 34870284,
+    "last_host_receive_monotonic_ms": 34882168,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering-media/summary.json"
+  },
+  "steering_media_alignment": {
+    "timestamp_utc": "2026-04-25T09:04:55Z",
+    "board_snapshot_count": 94,
+    "media_frame_count": 23,
+    "alignment_basis": "frame_id exact match, fallback nearest capture_time_ms within 200ms",
+    "fallback_capture_time_window_ms": 200,
+    "alignment_available": true,
+    "alignment_count": 12,
+    "exact_match_count": 1,
+    "fallback_match_count": 11,
+    "fallback_rejected_count": 11,
+    "alignment_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T090443Z/steering_media_alignment.jsonl",
+    "max_capture_time_delta_ms": 44,
+    "mean_capture_time_delta_ms": 26.083333333333332
+  }
+}

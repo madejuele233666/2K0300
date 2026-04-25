@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "legacy/steering_scene_common.hpp"
+#include "legacy/steering_gyro_continuity.hpp"
 #include "legacy/steering_scene_orchestrator.hpp"
 
 namespace ls2k::legacy {
@@ -63,13 +64,19 @@ int OtsuThresholdFast(const port::LegacyCameraFrame& frame) {
 SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                     const port::RuntimeParameters& params,
                                     const port::LegacySteeringState& prior_state,
+                                    const port::ImuSample& imu,
                                     bool low_voltage_emergency,
                                     uint64_t frame_id,
                                     uint64_t capture_time_ms) {
     SteeringSceneContext context{frame, params, prior_state, {}};
-    context.metrics = ExtractLaneMetrics(
-        frame, OtsuThresholdFast(frame), params, prior_state.steering_reference_col);
-    return OrchestrateSteeringScenes(context, low_voltage_emergency, frame_id, capture_time_ms);
+    context.metrics =
+        ExtractLaneMetrics(frame, OtsuThresholdFast(frame), params, prior_state, imu, capture_time_ms);
+    SteeringAnalysisResult analysis =
+        OrchestrateSteeringScenes(context, low_voltage_emergency, frame_id, capture_time_ms);
+    analysis.track_history_snapshot = BuildTrackHistorySnapshot(context.metrics, prior_state);
+    analysis.gyro_continuity_state =
+        ComputeGyroContinuityConstraint(prior_state, imu, capture_time_ms).next_state;
+    return analysis;
 }
 
 }  // namespace ls2k::legacy
