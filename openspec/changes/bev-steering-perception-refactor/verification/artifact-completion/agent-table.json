@@ -1,0 +1,17 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "bev-steering-perception-refactor",
+  "agents": [
+    {
+      "agent_id": "019dc7fa-40ef-7061-b128-751da6427b3c",
+      "status": "active",
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "Docs-first Stage A review of proposal/specs/design/tasks for bev-steering-perception-refactor.",
+      "findings_path": "attempt-2/findings.json",
+      "verifier_evidence_path": "attempt-2/verifier-evidence.json",
+      "updated_at": "2026-04-26T04:18:00Z"
+    }
+  ]
+}

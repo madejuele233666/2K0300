@@ -1,0 +1,35 @@
+{
+  "change": "bev-steering-perception-refactor",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer",
+  "start_at": "2026-04-26T03:45:00Z",
+  "end_at": "2026-04-26T04:12:03Z",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Docs-first Stage A review of the declared OpenSpec artifact surface for bev-steering-perception-refactor, limited to proposal.md, design.md, tasks.md, and the four change-local spec documents provided in the invocation bundle."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "notes": "Reviewed all declared evidence paths against Completeness, Correctness, and Coherence. Coverage was limited to the supplied docs-first artifact set, and the blocking findings arise from inconsistencies and missing contract/task coverage within that declared surface."
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/proposal.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/design.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/specs/bev-steering-geometry/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/specs/bev-special-scene-fsm/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/specs/bev-steering-control-model/spec.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/bev-steering-perception-refactor/specs/steering-tuning-media-observability/spec.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

@@ -1,0 +1,10 @@
+{
+  "contract": "verification-cycle-orchestrator-input-v1",
+  "change": "bev-steering-perception-refactor",
+  "manual_pause": false,
+  "agent_table": {
+    "contract": "verification-cycle-agent-table-v1",
+    "change": "bev-steering-perception-refactor",
+    "agents": []
+  }
+}

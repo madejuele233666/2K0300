@@ -1,0 +1,45 @@
+# Code-index-only exclusions.
+# Keep the index focused on active source and current spec surfaces.
+
+# Build outputs and generated runtime artifacts.
+new/out/
+new/out-runtime-params-test/
+a.out
+
+# Verification evidence is high-volume and low-signal for code navigation.
+# Keep only the top-level Markdown summaries in this area.
+new/verification/**
+!new/verification/
+!new/verification/*.md
+
+# Local helper environments and one-off backups.
+new/user/.fallback-verify-venv/
+new/user/build.sh.bak
+
+# Model-training bulk assets; keep the top-level scripts and README.
+model_training/dataset/
+model_training/venv/
+model_training/saved_models/
+
+# Historical and generated workflow evidence.
+openspec/changes/archive/
+openspec/changes/*/verification/
+docs/review-flow/archive/
+review/
+docx/
+
+# Auxiliary repository-index material is not part of the active code surface.
+docs/repo-index/
+
+# OpenSpec archive/test-fixture noise.
+openspec/schemas/modules/archive/
+openspec/schemas/modules/verification-cycle/fixtures/
+
+# Extensions this code-index build cannot parse anyway.
+.gitignore
+.codeindexignore
+*.md
+*.txt
+*.yaml
+*.yml
+*.cmake

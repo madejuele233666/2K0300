@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "hybrid": {
+    "denseWeight": 0.6,
+    "sparseWeight": 0.4,
+    "model": "gte-small",
+    "dimensions": 384
+  },
+  "ngram": {
+    "minGram": 3,
+    "maxGram": 5,
+    "numFeatures": 262144
+  },
+  "createdAt": "2026-04-26T08:09:24.437Z",
+  "updatedAt": "2026-04-26T08:09:24.437Z"
+}

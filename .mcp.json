@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "mcpServers": {
+    "code-index": {
+      "command": "code-index",
+      "args": [
+        "serve"
+      ],
+      "env": {
+        "PROJECT_ROOT": "/home/madejuele/projects/2K0300"
+      }
+    }
+  }
+}

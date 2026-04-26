@@ -1,0 +1,6 @@
+{
+  "contract": "verification-cycle-orchestrator-decision-v1",
+  "decision": "spawn_active",
+  "reason": "no active agent exists",
+  "spawn_reason_code": "no_usable_active_agent"
+}
