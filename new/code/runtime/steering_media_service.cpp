@@ -59,6 +59,12 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.speed_base = params_.Speed_base;
     snapshot.param_snapshot.control_period_ms = params_.control_period_ms;
     snapshot.param_snapshot.raw_turn_output_limit = params_.raw_turn_output_limit;
+    snapshot.param_snapshot.scene_wide_classifier = params_.scene_wide_classifier;
+    snapshot.param_snapshot.circle_scene = params_.circle_scene;
+    snapshot.param_snapshot.circle_entry = params_.circle_entry;
+    snapshot.param_snapshot.circle_interior = params_.circle_interior;
+    snapshot.param_snapshot.circle_exit = params_.circle_exit;
+    snapshot.param_snapshot.circle_fallback = params_.circle_fallback;
     return snapshot;
 }
 
@@ -88,6 +94,12 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.roadblock_interface_state = snapshot.roadblock_interface_state;
     view.last_special_scene_correction = snapshot.last_special_scene_correction;
     view.track_source = snapshot.track_source;
+    view.circle_direction = snapshot.circle_direction;
+    view.circle_reference_mode = snapshot.circle_reference_mode;
+    view.circle_heading_delta_deg = snapshot.circle_heading_delta_deg;
+    view.circle_fallback_reason = snapshot.circle_fallback_reason;
+    view.circle_entry_signal_active = snapshot.circle_entry_signal_active;
+    view.circle_entry_release_reason = snapshot.circle_entry_release_reason;
     view.roadblock_active = snapshot.roadblock_active;
     view.resolved_fuzzy_p = snapshot.resolved_fuzzy_p;
     view.camera_p_term = snapshot.camera_p_term;

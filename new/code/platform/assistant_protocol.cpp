@@ -317,6 +317,18 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     stream << ",\"applied_turn_output\":" << telemetry.applied_turn_output;
     stream << ",\"farthest_line\":" << telemetry.farthest_line;
     stream << ",\"steering_reference_col\":" << telemetry.steering_reference_col;
+    stream << ",\"circle_direction\":";
+    AppendJsonString(stream, telemetry.circle_direction);
+    stream << ",\"circle_reference_mode\":";
+    AppendJsonString(stream, telemetry.circle_reference_mode);
+    stream << ",\"circle_heading_delta_deg\":";
+    AppendJsonNumber(stream, telemetry.circle_heading_delta_deg);
+    stream << ",\"circle_fallback_reason\":";
+    AppendJsonString(stream, telemetry.circle_fallback_reason);
+    stream << ",\"circle_entry_signal_active\":";
+    AppendJsonBool(stream, telemetry.circle_entry_signal_active);
+    stream << ",\"circle_entry_release_reason\":";
+    AppendJsonString(stream, telemetry.circle_entry_release_reason);
     stream << '}';
     return stream.str();
 }

@@ -278,6 +278,9 @@ int main(int argc, char** argv) {
 
         std::cout << "module=" << analysis.perception.active_module
                   << " scene=" << analysis.perception.scene_phase
+                  << " circle_direction=" << analysis.perception.circle_direction
+                  << " circle_reference_mode=" << analysis.perception.circle_reference_mode
+                  << " circle_fallback_reason=" << analysis.perception.circle_fallback_reason
                   << " threshold=" << analysis.perception.threshold
                   << " lateral_error=" << analysis.perception.lateral_error
                   << " steering_reference_col=" << analysis.perception.steering_reference_col << "\n";

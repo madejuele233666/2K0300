@@ -88,6 +88,18 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     AppendJsonString(stream, snapshot.scene_override_source);
     stream << ",\"track_source\":";
     AppendJsonString(stream, snapshot.track_source);
+    stream << ",\"circle_direction\":";
+    AppendJsonString(stream, snapshot.circle_direction);
+    stream << ",\"circle_reference_mode\":";
+    AppendJsonString(stream, snapshot.circle_reference_mode);
+    stream << ",\"circle_heading_delta_deg\":";
+    AppendJsonNumber(stream, snapshot.circle_heading_delta_deg);
+    stream << ",\"circle_fallback_reason\":";
+    AppendJsonString(stream, snapshot.circle_fallback_reason);
+    stream << ",\"circle_entry_signal_active\":";
+    AppendJsonBool(stream, snapshot.circle_entry_signal_active);
+    stream << ",\"circle_entry_release_reason\":";
+    AppendJsonString(stream, snapshot.circle_entry_release_reason);
     stream << ",\"roadblock_interface_state\":";
     AppendJsonString(stream, snapshot.roadblock_interface_state);
     stream << ",\"last_special_scene_correction\":";
@@ -203,6 +215,103 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header, snapshot.param_snapshot.speed_base);
     header << ",\"control_period_ms\":" << snapshot.param_snapshot.control_period_ms;
     header << ",\"raw_turn_output_limit\":" << snapshot.param_snapshot.raw_turn_output_limit;
+    header << ",\"SCENE_WIDE_CLASSIFIER\":{";
+    header << "\"LOWER_ROW_START\":" << snapshot.param_snapshot.scene_wide_classifier.lower_row_start;
+    header << ",\"LOWER_ROW_END\":" << snapshot.param_snapshot.scene_wide_classifier.lower_row_end;
+    header << ",\"MIDDLE_ROW_START\":" << snapshot.param_snapshot.scene_wide_classifier.middle_row_start;
+    header << ",\"MIDDLE_ROW_END\":" << snapshot.param_snapshot.scene_wide_classifier.middle_row_end;
+    header << ",\"UPPER_ROW_START\":" << snapshot.param_snapshot.scene_wide_classifier.upper_row_start;
+    header << ",\"UPPER_ROW_END\":" << snapshot.param_snapshot.scene_wide_classifier.upper_row_end;
+    header << ",\"ROW_STEP\":" << snapshot.param_snapshot.scene_wide_classifier.row_step;
+    header << ",\"EDGE_MARGIN_PX\":" << snapshot.param_snapshot.scene_wide_classifier.edge_margin_px;
+    header << ",\"UPPER_FULL_SPAN_WIDTH_RATIO\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.upper_full_span_width_ratio);
+    header << ",\"SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.special_wide_lower_width_min_ratio);
+    header << ",\"SPECIAL_WIDE_VALID_ROWS_MIN\":"
+           << snapshot.param_snapshot.scene_wide_classifier.special_wide_valid_rows_min;
+    header << ",\"EDGE_MOTION_MIN_PX\":" << snapshot.param_snapshot.scene_wide_classifier.edge_motion_min_px;
+    header << ",\"EDGE_CURVATURE_MIN_PX\":"
+           << snapshot.param_snapshot.scene_wide_classifier.edge_curvature_min_px;
+    header << ",\"OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX\":"
+           << snapshot.param_snapshot.scene_wide_classifier.opposite_edge_straight_max_curvature_px;
+    header << ",\"OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.scene_wide_classifier.opposite_edge_border_touch_max_ratio);
+    header << ",\"CIRCLE_OPEN_MIN_PX\":" << snapshot.param_snapshot.scene_wide_classifier.circle_open_min_px;
+    header << ",\"CIRCLE_CONTRACT_MIN_PX\":"
+           << snapshot.param_snapshot.scene_wide_classifier.circle_contract_min_px;
+    header << ",\"CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN\":"
+           << snapshot.param_snapshot.scene_wide_classifier.cross_upper_full_span_consec_rows_min;
+    header << ",\"CROSS_UPPER_FULL_SPAN_MIN_RATIO\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.cross_upper_full_span_min_ratio);
+    header << ",\"TO_CROSS_MARGIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.to_cross_margin);
+    header << ",\"TO_CIRCLE_MARGIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.to_circle_margin);
+    header << ",\"ENTER_CONFIRM_CYCLES\":"
+           << snapshot.param_snapshot.scene_wide_classifier.enter_confirm_cycles;
+    header << ",\"EXIT_CONFIRM_CYCLES\":"
+           << snapshot.param_snapshot.scene_wide_classifier.exit_confirm_cycles;
+    header << ",\"CROSS_WEIGHT_FULL_SPAN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.cross_weight_full_span);
+    header << ",\"CROSS_WEIGHT_BOTH_OPEN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.cross_weight_both_open);
+    header << ",\"CIRCLE_CURVE_WEIGHT\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.circle_curve_weight);
+    header << ",\"CIRCLE_OPPOSITE_STRAIGHT_WEIGHT\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.scene_wide_classifier.circle_opposite_straight_weight);
+    header << ",\"CIRCLE_WEIGHT_OPEN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.circle_weight_open);
+    header << ",\"CIRCLE_WEIGHT_CONTRACT\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.scene_wide_classifier.circle_weight_contract);
+    header << "}";
+    header << ",\"CIRCLE_SCENE\":{";
+    header << "\"ACTIVE_VALID_ROWS_MIN\":" << snapshot.param_snapshot.circle_scene.active_valid_rows_min;
+    header << ",\"MINIMUM_TRACK_CONFIDENCE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_scene.minimum_track_confidence);
+    header << "}";
+    header << ",\"CIRCLE_ENTRY\":{";
+    header << "\"ENTRY_INNER_OFFSET_NEAR_PX\":" << snapshot.param_snapshot.circle_entry.inner_offset_near_px;
+    header << ",\"ENTRY_INNER_OFFSET_FAR_PX\":" << snapshot.param_snapshot.circle_entry.inner_offset_far_px;
+    header << ",\"ENTRY_REPAIR_OVER_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_entry.repair_over_deg);
+    header << ",\"ENTRY_SETTLE_CONFIRM_CYCLES\":"
+           << snapshot.param_snapshot.circle_entry.settle_confirm_cycles;
+    header << "}";
+    header << ",\"CIRCLE_INTERIOR\":{";
+    header << "\"INTERIOR_INNER_OFFSET_PX\":" << snapshot.param_snapshot.circle_interior.inner_offset_px;
+    header << ",\"INTERIOR_BLEND_ENABLE\":";
+    AppendJsonBool(header, snapshot.param_snapshot.circle_interior.blend_enable);
+    header << ",\"INTERIOR_BLEND_MIN_CONFIDENCE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_interior.blend_min_confidence);
+    header << "}";
+    header << ",\"CIRCLE_EXIT\":{";
+    header << "\"EXIT_OUTER_OFFSET_NEAR_PX\":" << snapshot.param_snapshot.circle_exit.outer_offset_near_px;
+    header << ",\"EXIT_OUTER_OFFSET_FAR_PX\":" << snapshot.param_snapshot.circle_exit.outer_offset_far_px;
+    header << ",\"EXIT_HANDOVER_START_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_exit.handover_start_deg);
+    header << ",\"HANDOVER_CONFIRM_CYCLES\":" << snapshot.param_snapshot.circle_exit.handover_confirm_cycles;
+    header << ",\"HANDOVER_RAMP_CYCLES\":" << snapshot.param_snapshot.circle_exit.handover_ramp_cycles;
+    header << ",\"EXIT_RELEASE_CYCLES\":" << snapshot.param_snapshot.circle_exit.exit_release_cycles;
+    header << ",\"EXIT_COMPLETE_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_exit.exit_complete_deg);
+    header << ",\"EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES\":"
+           << snapshot.param_snapshot.circle_exit.opposite_edge_straight_confirm_cycles;
+    header << ",\"EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX\":"
+           << snapshot.param_snapshot.circle_exit.opposite_edge_max_curvature_px;
+    header << ",\"EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS\":"
+           << snapshot.param_snapshot.circle_exit.opposite_edge_min_visible_rows;
+    header << ",\"EXIT_FIXSTEER_START_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_exit.fixsteer_start_deg);
+    header << ",\"EXIT_FALLBACK_MAX_CYCLES\":"
+           << snapshot.param_snapshot.circle_exit.exit_fallback_max_cycles;
+    header << "}";
+    header << ",\"CIRCLE_FALLBACK\":{";
+    header << "\"FIXSTEER_BIAS_SCALE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.circle_fallback.fixsteer_bias_scale);
+    header << "}";
     header << "}}";
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);
 }

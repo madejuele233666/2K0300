@@ -100,6 +100,13 @@ struct LaneMetrics {
     int track_flip_candidate_sign = 0;
     int track_flip_candidate_frames = 0;
     int upper_full_span_consecutive_rows_max = 0;
+    float circle_left_inner_confidence = 0.0F;
+    float circle_right_inner_confidence = 0.0F;
+    float circle_left_opposite_straight_confidence = 0.0F;
+    float circle_right_opposite_straight_confidence = 0.0F;
+    int circle_left_opposite_straight_rows = 0;
+    int circle_right_opposite_straight_rows = 0;
+    float circle_reference_width_baseline = 0.0F;
     LaneEdgeMetrics left_edge{};
     LaneEdgeMetrics right_edge{};
     int same_direction_bend_sign = 0;
@@ -112,6 +119,8 @@ struct SteeringSceneContext {
     const port::LegacyCameraFrame& frame;
     const port::RuntimeParameters& params;
     const port::LegacySteeringState& prior_state;
+    const port::ImuSample& imu;
+    uint64_t capture_time_ms = 0;
     LaneMetrics metrics{};
 };
 
@@ -128,6 +137,30 @@ struct SteeringSceneOutput {
     float special_wide_cross_score = 0.0F;
     float special_wide_circle_left_score = 0.0F;
     float special_wide_circle_right_score = 0.0F;
+    bool circle_state_valid = false;
+    std::string circle_active_direction = "none";
+    std::string circle_entry_state = "idle";
+    std::string circle_exit_state = "idle";
+    std::string circle_reference_mode = "none";
+    float circle_heading_delta_deg = 0.0F;
+    float circle_heading_baseline_deg = 0.0F;
+    uint64_t circle_last_imu_capture_time_ms = 0;
+    int circle_fixsteer_cycles = 0;
+    int circle_handover_cycles = 0;
+    std::string circle_fallback_reason = "none";
+    int circle_entry_settle_cycles = 0;
+    int circle_entry_loss_cycles = 0;
+    bool circle_entry_signal_active = false;
+    std::string circle_entry_release_reason = "none";
+    int circle_opposite_edge_confirm_cycles = 0;
+    int circle_release_cycles = 0;
+    int circle_last_stable_reference_col = port::kCompiledCameraFrameWidth / 2;
+};
+
+struct CircleHeadingIntegrationResult {
+    float heading_delta_deg = 0.0F;
+    uint64_t capture_time_ms = 0;
+    bool imu_invalid = false;
 };
 
 struct SteeringAnalysisResult {
@@ -140,6 +173,8 @@ struct SteeringAnalysisResult {
     port::LaneGeometryHistorySnapshot lane_geometry_snapshot{};
     port::TrackHistorySnapshot track_history_snapshot{};
     port::GyroContinuityState gyro_continuity_state{};
+    port::LegacySteeringState steering_state_update{};
+    bool steering_state_update_valid = false;
 };
 
 LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
@@ -155,6 +190,19 @@ bool HasCircleLeftEntryStructure(const SteeringSceneContext& context);
 bool HasCircleRightEntryStructure(const SteeringSceneContext& context);
 bool LooksLikeOrdinaryBend(const SteeringSceneContext& context);
 bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context);
+bool IsLeftCircleDirection(const std::string& direction);
+int BlendSteeringReferenceCols(int from_col, int to_col, float to_weight);
+int BuildOffsetReferenceFromEdge(const LaneEdgeMetrics& edge,
+                                 bool use_left_side,
+                                 int near_offset_px,
+                                 int far_offset_px,
+                                 int fallback_col);
+float ComputeCircleEdgeConfidence(const LaneEdgeMetrics& edge);
+CircleHeadingIntegrationResult IntegrateCircleHeadingDeltaDeg(float prior_heading_delta_deg,
+                                                              uint64_t prior_capture_time_ms,
+                                                              const port::ImuSample& imu,
+                                                              uint64_t capture_time_ms,
+                                                              bool reset_heading);
 
 }  // namespace ls2k::legacy
 

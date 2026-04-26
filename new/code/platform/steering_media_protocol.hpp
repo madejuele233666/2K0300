@@ -24,6 +24,12 @@ struct SteeringMediaParamSnapshotView {
     double speed_base = 0.0;
     int control_period_ms = 0;
     int raw_turn_output_limit = 0;
+    port::SceneWideClassifierParameters scene_wide_classifier{};
+    port::CircleSceneParameters circle_scene{};
+    port::CircleEntryParameters circle_entry{};
+    port::CircleInteriorParameters circle_interior{};
+    port::CircleExitParameters circle_exit{};
+    port::CircleFallbackParameters circle_fallback{};
 };
 
 struct SteeringMediaSnapshotView {
@@ -61,6 +67,12 @@ struct SteeringMediaSnapshotView {
     std::string roadblock_interface_state = "supported_not_implemented";
     std::string last_special_scene_correction = "none";
     std::string track_source = "bottom_connected";
+    std::string circle_direction = "none";
+    std::string circle_reference_mode = "none";
+    double circle_heading_delta_deg = 0.0;
+    std::string circle_fallback_reason = "none";
+    bool circle_entry_signal_active = false;
+    std::string circle_entry_release_reason = "none";
 };
 
 struct SteeringMediaConfigSnapshot {

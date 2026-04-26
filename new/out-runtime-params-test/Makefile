@@ -291,6 +291,60 @@ home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o: home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i: home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s: home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+
 home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o
 
@@ -1959,6 +2013,12 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s"

@@ -36,6 +36,7 @@ constexpr int kSeedRowCount = 5;
 constexpr int kSearchCorrectionRadiusPx = 12;
 constexpr int kSeedAdjacencyPx = 6;
 constexpr float kWidthUpdateAlpha = 0.25F;
+constexpr int kTurnSignZeroHoldFrames = 3;
 
 int ClampCol(int col, int frame_width) {
     return std::clamp(col, 0, std::max(0, frame_width - 1));
@@ -479,7 +480,8 @@ void FinalizeTrackShape(BottomTrackResult& result, const BottomTrackRequest& req
     }
 
     const int raw_sign = SignWithThreshold(result.heading_error, 0.18F);
-    const int prior_sign = request.prior_state.track_history.valid ? request.prior_state.track_history.turn_sign : 0;
+    const int prior_sign =
+        request.prior_state.track_history.valid ? EffectivePriorTurnSign(request.prior_state.track_history) : 0;
     const bool opposite_sign = raw_sign != 0 && prior_sign != 0 && raw_sign != prior_sign;
     int pending_sign = 0;
     int pending_frames = 0;
@@ -717,6 +719,16 @@ SignFlipDecision EvaluateTrackSignFlip(const SignFlipDecisionRequest& request) {
     decision.pending_sign = 0;
     decision.pending_frames = 0;
     return decision;
+}
+
+int EffectivePriorTurnSign(const port::TrackHistorySnapshot& history) {
+    if (history.turn_sign != 0) {
+        return history.turn_sign;
+    }
+    if (history.zero_turn_sign_frames <= 0 || history.zero_turn_sign_frames > kTurnSignZeroHoldFrames) {
+        return 0;
+    }
+    return history.last_nonzero_turn_sign;
 }
 
 BottomTrackResult TrackBottomConnectedLane(const BottomTrackRequest& request) {

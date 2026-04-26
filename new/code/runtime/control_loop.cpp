@@ -751,6 +751,12 @@ void ControlLoop::Tick() {
     debug_snapshot.steering.roadblock_interface_state = perception.roadblock_interface_state;
     debug_snapshot.steering.last_special_scene_correction = perception.last_special_scene_correction;
     debug_snapshot.steering.track_source = perception.track_source;
+    debug_snapshot.steering.circle_direction = perception.circle_direction;
+    debug_snapshot.steering.circle_reference_mode = perception.circle_reference_mode;
+    debug_snapshot.steering.circle_heading_delta_deg = perception.circle_heading_delta_deg;
+    debug_snapshot.steering.circle_fallback_reason = perception.circle_fallback_reason;
+    debug_snapshot.steering.circle_entry_signal_active = perception.circle_entry_signal_active;
+    debug_snapshot.steering.circle_entry_release_reason = perception.circle_entry_release_reason;
     debug_snapshot.steering.roadblock_active = perception.roadblock_active;
     debug_snapshot.steering.resolved_fuzzy_p = camera_turn.resolved_fuzzy_p;
     debug_snapshot.steering.camera_p_term = camera_turn.camera_p_term;

@@ -239,6 +239,8 @@ class SteeringMediaListener:
                 "[media] "
                 f"frame_id={frame_id} phase={header.get('motion_phase')} "
                 f"module={steering.get('active_module')} scene={steering.get('scene_phase')} "
+                f"circle={steering.get('circle_direction')}/{steering.get('circle_reference_mode')} "
+                f"entry_signal={steering.get('circle_entry_signal_active')} "
                 f"lateral_error={steering.get('lateral_error')} "
                 f"raw_turn={steering.get('raw_turn_output')} applied_turn={steering.get('applied_turn_output')}"
             )

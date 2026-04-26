@@ -80,6 +80,8 @@ set(NEW_SRCS
     ../code/legacy/wheel_pid.cpp
     ../code/legacy/attitude_logic.cpp
     ../code/legacy/camera_logic.cpp
+    ../code/legacy/steering_bottom_tracker.cpp
+    ../code/legacy/steering_gyro_continuity.cpp
     ../code/legacy/steering_scene_common.cpp
     ../code/legacy/steering_scene_orchestrator.cpp
     ../code/legacy/steering_scene_straight.cpp

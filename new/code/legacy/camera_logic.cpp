@@ -68,7 +68,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                     bool low_voltage_emergency,
                                     uint64_t frame_id,
                                     uint64_t capture_time_ms) {
-    SteeringSceneContext context{frame, params, prior_state, {}};
+    SteeringSceneContext context{frame, params, prior_state, imu, capture_time_ms, {}};
     context.metrics =
         ExtractLaneMetrics(frame, OtsuThresholdFast(frame), params, prior_state, imu, capture_time_ms);
     SteeringAnalysisResult analysis =

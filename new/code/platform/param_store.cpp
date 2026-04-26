@@ -378,7 +378,6 @@ public:
         bool all_ok = true;
         all_ok &= ReadRequiredNumber(root, "Speed_base", parsed.Speed_base);
         all_ok &= ReadRequiredNumber(root, "see_max", parsed.see_max);
-        all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_CAMERA", "D", parsed.pid_turn_camera_d);
         all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_GYRO_CAMERA", "D", parsed.pid_turn_gyro_camera_d);
         all_ok &= ReadRequiredInt(root, "P_Mode", parsed.P_Mode);
         all_ok &= ReadRequiredInt(root, "exp_light", parsed.exp_light);
@@ -448,6 +447,11 @@ public:
                         optional_malformed);
         ReadOptionalInt(root, "camera_frame_width", parsed.camera_frame_width, optional_malformed);
         ReadOptionalInt(root, "camera_frame_height", parsed.camera_frame_height, optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "PID_TURN_CAMERA",
+                                 "D",
+                                 parsed.pid_turn_camera_d,
+                                 optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "PID_TURN_CAMERA",
                                  "P",
@@ -578,6 +582,11 @@ public:
                                  "TO_CIRCLE_MARGIN",
                                  parsed.scene_wide_classifier.to_circle_margin,
                                  optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "SCENE_WIDE_CLASSIFIER",
+                                 "TO_CIRCLE_OVER_BEND_MARGIN",
+                                 parsed.scene_wide_classifier.to_circle_over_bend_margin,
+                                 optional_malformed);
         ReadOptionalNestedInt(root,
                               "SCENE_WIDE_CLASSIFIER",
                               "ENTER_CONFIRM_CYCLES",
@@ -618,6 +627,121 @@ public:
                                  "CIRCLE_WEIGHT_CONTRACT",
                                  parsed.scene_wide_classifier.circle_weight_contract,
                                  optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_SCENE",
+                              "ACTIVE_VALID_ROWS_MIN",
+                              parsed.circle_scene.active_valid_rows_min,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_SCENE",
+                                 "MINIMUM_TRACK_CONFIDENCE",
+                                 parsed.circle_scene.minimum_track_confidence,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_ENTRY",
+                              "ENTRY_INNER_OFFSET_NEAR_PX",
+                              parsed.circle_entry.inner_offset_near_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_ENTRY",
+                              "ENTRY_INNER_OFFSET_FAR_PX",
+                              parsed.circle_entry.inner_offset_far_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_ENTRY",
+                                 "ENTRY_REPAIR_OVER_DEG",
+                                 parsed.circle_entry.repair_over_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_ENTRY",
+                              "ENTRY_SETTLE_CONFIRM_CYCLES",
+                              parsed.circle_entry.settle_confirm_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_ENTRY",
+                              "ENTRY_RELEASE_LOSS_CYCLES",
+                              parsed.circle_entry.release_loss_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_INTERIOR",
+                              "INTERIOR_INNER_OFFSET_PX",
+                              parsed.circle_interior.inner_offset_px,
+                              optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "CIRCLE_INTERIOR",
+                               "INTERIOR_BLEND_ENABLE",
+                               parsed.circle_interior.blend_enable,
+                               optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_INTERIOR",
+                                 "INTERIOR_BLEND_MIN_CONFIDENCE",
+                                 parsed.circle_interior.blend_min_confidence,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_OUTER_OFFSET_NEAR_PX",
+                              parsed.circle_exit.outer_offset_near_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_OUTER_OFFSET_FAR_PX",
+                              parsed.circle_exit.outer_offset_far_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_EXIT",
+                                 "EXIT_HANDOVER_START_DEG",
+                                 parsed.circle_exit.handover_start_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "HANDOVER_CONFIRM_CYCLES",
+                              parsed.circle_exit.handover_confirm_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "HANDOVER_RAMP_CYCLES",
+                              parsed.circle_exit.handover_ramp_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_RELEASE_CYCLES",
+                              parsed.circle_exit.exit_release_cycles,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_EXIT",
+                                 "EXIT_COMPLETE_DEG",
+                                 parsed.circle_exit.exit_complete_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES",
+                              parsed.circle_exit.opposite_edge_straight_confirm_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX",
+                              parsed.circle_exit.opposite_edge_max_curvature_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS",
+                              parsed.circle_exit.opposite_edge_min_visible_rows,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_EXIT",
+                                 "EXIT_FIXSTEER_START_DEG",
+                                 parsed.circle_exit.fixsteer_start_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CIRCLE_EXIT",
+                              "EXIT_FALLBACK_MAX_CYCLES",
+                              parsed.circle_exit.exit_fallback_max_cycles,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "CIRCLE_FALLBACK",
+                                 "FIXSTEER_BIAS_SCALE",
+                                 parsed.circle_fallback.fixsteer_bias_scale,
+                                 optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",
@@ -646,6 +770,12 @@ public:
                               "params.loaded",
                               "runtime parameters loaded from " + path,
                               port::NowMs()});
+            if (std::fabs(out.pid_turn_camera_d) > 1e-6) {
+                diagnostics.Emit({port::DiagnosticLevel::kWarning,
+                                  "params.deprecated.pid_turn_camera_d",
+                                  "PID_TURN_CAMERA.D is deprecated and ignored by the current camera outer-loop; keep it at 0.0",
+                                  port::NowMs()});
+            }
         }
         return true;
     }

@@ -101,6 +101,12 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.applied_turn_output = snapshot.applied_turn_output;
     telemetry.farthest_line = snapshot.steering.farthest_line;
     telemetry.steering_reference_col = snapshot.steering.steering_reference_col;
+    telemetry.circle_direction = snapshot.steering.circle_direction;
+    telemetry.circle_reference_mode = snapshot.steering.circle_reference_mode;
+    telemetry.circle_heading_delta_deg = snapshot.steering.circle_heading_delta_deg;
+    telemetry.circle_fallback_reason = snapshot.steering.circle_fallback_reason;
+    telemetry.circle_entry_signal_active = snapshot.steering.circle_entry_signal_active;
+    telemetry.circle_entry_release_reason = snapshot.steering.circle_entry_release_reason;
     return telemetry;
 }
 

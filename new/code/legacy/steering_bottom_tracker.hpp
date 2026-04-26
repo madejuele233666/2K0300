@@ -84,6 +84,7 @@ struct SignFlipDecision {
 
 BottomTrackResult TrackBottomConnectedLane(const BottomTrackRequest& request);
 SignFlipDecision EvaluateTrackSignFlip(const SignFlipDecisionRequest& request);
+int EffectivePriorTurnSign(const port::TrackHistorySnapshot& history);
 const char* ToString(TrackSource source);
 
 }  // namespace ls2k::legacy

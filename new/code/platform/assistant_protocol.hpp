@@ -64,6 +64,12 @@ struct AssistantTelemetryView {
     int applied_turn_output = 0;
     int farthest_line = 0;
     int steering_reference_col = 160;
+    std::string circle_direction = "none";
+    std::string circle_reference_mode = "none";
+    double circle_heading_delta_deg = 0.0;
+    std::string circle_fallback_reason = "none";
+    bool circle_entry_signal_active = false;
+    std::string circle_entry_release_reason = "none";
 };
 
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed);

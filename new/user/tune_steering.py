@@ -77,6 +77,12 @@ class StreamingCsvRecorder:
         "applied_turn_output",
         "farthest_line",
         "steering_reference_col",
+        "circle_direction",
+        "circle_reference_mode",
+        "circle_heading_delta_deg",
+        "circle_fallback_reason",
+        "circle_entry_signal_active",
+        "circle_entry_release_reason",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -316,6 +322,12 @@ class PassiveAssistantListener:
             "applied_turn_output": frame.get("applied_turn_output", ""),
             "farthest_line": frame.get("farthest_line", ""),
             "steering_reference_col": frame.get("steering_reference_col", ""),
+            "circle_direction": frame.get("circle_direction", ""),
+            "circle_reference_mode": frame.get("circle_reference_mode", ""),
+            "circle_heading_delta_deg": frame.get("circle_heading_delta_deg", ""),
+            "circle_fallback_reason": frame.get("circle_fallback_reason", ""),
+            "circle_entry_signal_active": frame.get("circle_entry_signal_active", ""),
+            "circle_entry_release_reason": frame.get("circle_entry_release_reason", ""),
         }
         self._csv.write(row)
         if frame_type != "telemetry":

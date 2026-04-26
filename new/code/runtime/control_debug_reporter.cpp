@@ -85,6 +85,14 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " scene_phase=" << snapshot.steering.scene_phase
                      << " scene_override_source=" << snapshot.steering.scene_override_source
                      << " track_source=" << snapshot.steering.track_source
+                     << " circle_direction=" << snapshot.steering.circle_direction
+                     << " circle_reference_mode=" << snapshot.steering.circle_reference_mode
+                     << " circle_heading_delta_deg=" << snapshot.steering.circle_heading_delta_deg
+                     << " circle_fallback_reason=" << snapshot.steering.circle_fallback_reason
+                     << " circle_entry_signal_active="
+                     << BoolToken(snapshot.steering.circle_entry_signal_active)
+                     << " circle_entry_release_reason="
+                     << snapshot.steering.circle_entry_release_reason
                      << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
                      << " last_special_scene_correction="
                      << snapshot.steering.last_special_scene_correction

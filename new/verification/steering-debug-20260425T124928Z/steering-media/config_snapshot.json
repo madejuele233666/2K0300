@@ -1,0 +1,18 @@
+{
+  "type": "config_snapshot",
+  "publish_time_ms": 4681656,
+  "media_publish_interval_ms": 120,
+  "param_snapshot": {
+    "pid_turn_camera_p": 40,
+    "pid_turn_camera_p_scale": 1,
+    "pid_turn_camera_d": 0,
+    "pid_turn_camera_use_fuzzy": false,
+    "pid_turn_gyro_camera_p": 1,
+    "pid_turn_gyro_camera_i": 0,
+    "pid_turn_gyro_camera_d": 0,
+    "p_mode": 3,
+    "speed_base": 200,
+    "control_period_ms": 5,
+    "raw_turn_output_limit": 8000
+  }
+}

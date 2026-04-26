@@ -246,6 +246,10 @@ float AbsFloat(float value) {
     return std::abs(value);
 }
 
+float ClampUnit(float value) {
+    return std::clamp(value, 0.0F, 1.0F);
+}
+
 int SignWithThreshold(float value, int threshold) {
     if (value >= static_cast<float>(threshold)) {
         return 1;
@@ -545,6 +549,10 @@ port::TrackHistorySnapshot BuildTrackHistorySnapshotImpl(const LaneMetrics& metr
     snapshot.heading_px_per_row = metrics.heading_error;
     snapshot.curvature_px_per_row2 = metrics.curvature;
     snapshot.turn_sign = metrics.track_sign;
+    snapshot.last_nonzero_turn_sign =
+        metrics.track_sign != 0 ? metrics.track_sign : prior_state.track_history.last_nonzero_turn_sign;
+    snapshot.zero_turn_sign_frames =
+        metrics.track_sign == 0 ? prior_state.track_history.zero_turn_sign_frames + 1 : 0;
     snapshot.track_confidence = metrics.track_confidence;
     snapshot.flip_candidate_sign = metrics.track_flip_candidate_sign;
     snapshot.flip_candidate_frames = metrics.track_flip_candidate_frames;
@@ -770,6 +778,40 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
     metrics.bend_used_history_fallback = std::string(metrics.track_source) == "history_guarded" ||
                                          metrics.left_edge.history_fallback_anchor_count > 0 ||
                                          metrics.right_edge.history_fallback_anchor_count > 0;
+    metrics.circle_left_inner_confidence = ComputeCircleEdgeConfidence(metrics.left_edge);
+    metrics.circle_right_inner_confidence = ComputeCircleEdgeConfidence(metrics.right_edge);
+    metrics.circle_left_opposite_straight_rows = metrics.right_edge.strict_straight
+                                                     ? metrics.right_edge.visible_anchor_count
+                                                     : 0;
+    metrics.circle_right_opposite_straight_rows = metrics.left_edge.strict_straight
+                                                      ? metrics.left_edge.visible_anchor_count
+                                                      : 0;
+    const port::CircleExitParameters& exit = params.circle_exit;
+    const float exit_curvature_limit =
+        static_cast<float>(std::max(1, exit.opposite_edge_max_curvature_px));
+    if (metrics.circle_left_opposite_straight_rows > 0) {
+        const float rows_score = ClampUnit(static_cast<float>(metrics.circle_left_opposite_straight_rows) /
+                                           static_cast<float>(
+                                               std::max(1, exit.opposite_edge_min_visible_rows)));
+        const float curvature_score =
+            ClampUnit(1.0F - AbsFloat(metrics.right_curvature) / exit_curvature_limit);
+        metrics.circle_left_opposite_straight_confidence = rows_score * curvature_score;
+    }
+    if (metrics.circle_right_opposite_straight_rows > 0) {
+        const float rows_score = ClampUnit(static_cast<float>(metrics.circle_right_opposite_straight_rows) /
+                                           static_cast<float>(
+                                               std::max(1, exit.opposite_edge_min_visible_rows)));
+        const float curvature_score =
+            ClampUnit(1.0F - AbsFloat(metrics.left_curvature) / exit_curvature_limit);
+        metrics.circle_right_opposite_straight_confidence = rows_score * curvature_score;
+    }
+    if (track.valid && track.lane_width_px > 1.0F) {
+        metrics.circle_reference_width_baseline = track.lane_width_px;
+    } else if (metrics.middle_width_median > 0) {
+        metrics.circle_reference_width_baseline = static_cast<float>(metrics.middle_width_median);
+    } else {
+        metrics.circle_reference_width_baseline = static_cast<float>(metrics.lower_width_median);
+    }
 
     const float normalized_error =
         std::abs(metrics.lateral_error) / static_cast<float>(std::max(1, frame.width / 4));
@@ -797,7 +839,7 @@ LaneMetrics ExtractLaneMetrics(const port::LegacyCameraFrame& frame,
     metrics.zebra_candidate =
         metrics.transitions_bottom >= 8 && metrics.lane_width_bottom >= frame.width / 3;
     metrics.cross_candidate =
-        HasCrossUpperFullSpanStructure(SteeringSceneContext{frame, params, prior_state, metrics});
+        HasCrossUpperFullSpanStructure(SteeringSceneContext{frame, params, prior_state, imu, capture_time_ms, metrics});
     metrics.lane_geometry_snapshot = BuildHistorySnapshot(metrics);
     return metrics;
 }
@@ -879,6 +921,88 @@ bool MeetsSpecialWidePrecondition(const SteeringSceneContext& context) {
         return false;
     }
     return true;
+}
+
+bool IsLeftCircleDirection(const std::string& direction) {
+    return direction == "left";
+}
+
+CircleHeadingIntegrationResult IntegrateCircleHeadingDeltaDeg(float prior_heading_delta_deg,
+                                                              uint64_t prior_capture_time_ms,
+                                                              const port::ImuSample& imu,
+                                                              uint64_t capture_time_ms,
+                                                              bool reset_heading) {
+    constexpr float kRadToDeg = 57.2957795F;
+
+    CircleHeadingIntegrationResult result{};
+    result.heading_delta_deg = reset_heading ? 0.0F : prior_heading_delta_deg;
+    result.capture_time_ms = reset_heading ? (imu.valid ? capture_time_ms : 0) : prior_capture_time_ms;
+    result.imu_invalid = !imu.valid;
+    if (!imu.valid) {
+        return result;
+    }
+    if (reset_heading) {
+        return result;
+    }
+    if (prior_capture_time_ms == 0 || capture_time_ms <= prior_capture_time_ms) {
+        result.capture_time_ms = capture_time_ms;
+        return result;
+    }
+
+    const float dt_s = static_cast<float>(capture_time_ms - prior_capture_time_ms) * 0.001F;
+    result.heading_delta_deg += std::abs(imu.gyro_z) * dt_s * kRadToDeg;
+    result.capture_time_ms = capture_time_ms;
+    return result;
+}
+
+int BlendSteeringReferenceCols(int from_col, int to_col, float to_weight) {
+    const float weight = ClampUnit(to_weight);
+    return static_cast<int>(std::lround(static_cast<float>(from_col) * (1.0F - weight) +
+                                        static_cast<float>(to_col) * weight));
+}
+
+int BuildOffsetReferenceFromEdge(const LaneEdgeMetrics& edge,
+                                 bool use_left_side,
+                                 int near_offset_px,
+                                 int far_offset_px,
+                                 int fallback_col) {
+    const auto& lower = edge.bend_anchors[2];
+    const auto& upper = edge.bend_anchors[0];
+    if (!AnchorAvailable(lower) && !AnchorAvailable(upper)) {
+        return fallback_col;
+    }
+
+    const auto apply_offset = [use_left_side](int col, int offset) {
+        return use_left_side ? col + offset : col - offset;
+    };
+
+    int weighted_sum = 0;
+    int weight_total = 0;
+    if (AnchorAvailable(lower)) {
+        weighted_sum += 2 * apply_offset(lower.col, near_offset_px);
+        weight_total += 2;
+    }
+    if (AnchorAvailable(upper)) {
+        weighted_sum += apply_offset(upper.col, far_offset_px);
+        weight_total += 1;
+    }
+    if (weight_total == 0) {
+        return fallback_col;
+    }
+    return weighted_sum / weight_total;
+}
+
+float ComputeCircleEdgeConfidence(const LaneEdgeMetrics& edge) {
+    float confidence =
+        static_cast<float>(edge.visible_anchor_count) /
+        static_cast<float>(std::max(1, port::kLaneGeometryAnchorCount));
+    if (edge.history_fallback_anchor_count > 0) {
+        confidence *= 0.75F;
+    }
+    if (edge.current_frame_extrapolated_anchor_count > 0) {
+        confidence *= 0.85F;
+    }
+    return ClampUnit(confidence);
 }
 
 }  // namespace ls2k::legacy

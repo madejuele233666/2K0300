@@ -123,6 +123,12 @@ void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
     snapshot.steering.scene_phase = "tracking";
     snapshot.steering.scene_override_source = "lane_geometry";
     snapshot.steering.last_special_scene_correction = "bend_bias";
+    snapshot.steering.circle_direction = "left";
+    snapshot.steering.circle_reference_mode = "inner_offset";
+    snapshot.steering.circle_heading_delta_deg = 48.5;
+    snapshot.steering.circle_fallback_reason = "none";
+    snapshot.steering.circle_entry_signal_active = false;
+    snapshot.steering.circle_entry_release_reason = "entry_signal_lost";
 
     reporter.MaybeEmit(snapshot, diagnostics);
 
@@ -138,6 +144,10 @@ void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
             "steering snapshot must expose active_module");
     Require(Contains(diagnostics.events[1].message, "farthest_line=38"),
             "steering snapshot must expose farthest_line");
+    Require(Contains(diagnostics.events[1].message, "circle_reference_mode=inner_offset"),
+            "steering snapshot must expose circle reference mode");
+    Require(Contains(diagnostics.events[1].message, "circle_entry_release_reason=entry_signal_lost"),
+            "steering snapshot must expose circle entry release reason");
 }
 
 void TestEnvelopeValidation() {
@@ -154,6 +164,8 @@ void TestEnvelopeValidation() {
     config.param_snapshot.p_mode = 3;
     config.param_snapshot.speed_base = 77.0;
     config.param_snapshot.control_period_ms = 5;
+    config.param_snapshot.circle_exit.exit_complete_deg = 300.0;
+    config.param_snapshot.circle_fallback.fixsteer_bias_scale = 0.55;
 
     std::vector<std::uint8_t> encoded;
     std::string error;
@@ -178,6 +190,10 @@ void TestEnvelopeValidation() {
             "config snapshot must include gyro P");
     Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.75"),
             "config snapshot must include gyro I");
+    Require(Contains(header_json, "\"CIRCLE_EXIT\""),
+            "config snapshot must include decoupled circle exit group");
+    Require(Contains(header_json, "\"FIXSTEER_BIAS_SCALE\":0.55"),
+            "config snapshot must include circle fallback settings");
 
     Require(!ls2k::platform::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size() - 1, header_json, payload, error),
@@ -288,6 +304,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.P_Mode = 3;
     params.Speed_base = 77.0;
     params.control_period_ms = 5;
+    params.circle_exit.exit_complete_deg = 300.0;
+    params.circle_fallback.fixsteer_bias_scale = 0.55;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -299,9 +317,15 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
         state.control_debug_snapshot.steering.active_module = "circle_entry";
-        state.control_debug_snapshot.steering.scene_phase = "entry";
+        state.control_debug_snapshot.steering.scene_phase = "repairing";
         state.control_debug_snapshot.steering.farthest_line = 55;
         state.control_debug_snapshot.steering.steering_reference_col = 148;
+        state.control_debug_snapshot.steering.circle_direction = "left";
+        state.control_debug_snapshot.steering.circle_reference_mode = "inner_offset";
+        state.control_debug_snapshot.steering.circle_heading_delta_deg = 52.0;
+        state.control_debug_snapshot.steering.circle_fallback_reason = "none";
+        state.control_debug_snapshot.steering.circle_entry_signal_active = true;
+        state.control_debug_snapshot.steering.circle_entry_release_reason = "none";
         state.latest_camera_capture.has_frame = true;
         state.latest_camera_capture.frame_id = 41;
         state.latest_camera_capture.capture_time_ms = 1234;
@@ -337,6 +361,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must export gyro P");
     Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.5"),
             "service config snapshot must export gyro I");
+    Require(Contains(header_json, "\"CIRCLE_ENTRY\""),
+            "service config snapshot must expose decoupled circle entry group");
 
     Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
@@ -348,10 +374,16 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "second emitted frame must be image_frame");
     Require(Contains(header_json, "\"active_module\":\"circle_entry\""),
             "image frame must include active_module in steering snapshot");
-    Require(Contains(header_json, "\"scene_phase\":\"entry\""),
+    Require(Contains(header_json, "\"scene_phase\":\"repairing\""),
             "image frame must include scene_phase in steering snapshot");
     Require(Contains(header_json, "\"farthest_line\":55"),
             "image frame must include farthest_line in steering snapshot");
+    Require(Contains(header_json, "\"circle_direction\":\"left\""),
+            "image frame must include circle direction");
+    Require(Contains(header_json, "\"circle_reference_mode\":\"inner_offset\""),
+            "image frame must include circle reference mode");
+    Require(Contains(header_json, "\"circle_entry_signal_active\":true"),
+            "image frame must include circle entry signal activity");
 }
 
 void TestServicePublishesFromRecentMatchingCapture() {

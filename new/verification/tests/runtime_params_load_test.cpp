@@ -147,6 +147,7 @@ std::string ValidRuntimeParamsJson() {
     "CROSS_UPPER_FULL_SPAN_MIN_RATIO": 0.45,
     "TO_CROSS_MARGIN": 0.2,
     "TO_CIRCLE_MARGIN": 0.2,
+    "TO_CIRCLE_OVER_BEND_MARGIN": 2.0,
     "ENTER_CONFIRM_CYCLES": 2,
     "EXIT_CONFIRM_CYCLES": 2,
     "CROSS_WEIGHT_FULL_SPAN": 1.25,
@@ -155,6 +156,39 @@ std::string ValidRuntimeParamsJson() {
     "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT": 1.0,
     "CIRCLE_WEIGHT_OPEN": 0.25,
     "CIRCLE_WEIGHT_CONTRACT": 0.2
+  },
+  "CIRCLE_SCENE": {
+    "ACTIVE_VALID_ROWS_MIN": 8,
+    "MINIMUM_TRACK_CONFIDENCE": 0.35
+  },
+  "CIRCLE_ENTRY": {
+    "ENTRY_INNER_OFFSET_NEAR_PX": 48,
+    "ENTRY_INNER_OFFSET_FAR_PX": 28,
+    "ENTRY_REPAIR_OVER_DEG": 45.0,
+    "ENTRY_SETTLE_CONFIRM_CYCLES": 3,
+    "ENTRY_RELEASE_LOSS_CYCLES": 2
+  },
+  "CIRCLE_INTERIOR": {
+    "INTERIOR_INNER_OFFSET_PX": 40,
+    "INTERIOR_BLEND_ENABLE": 1,
+    "INTERIOR_BLEND_MIN_CONFIDENCE": 0.55
+  },
+  "CIRCLE_EXIT": {
+    "EXIT_OUTER_OFFSET_NEAR_PX": 34,
+    "EXIT_OUTER_OFFSET_FAR_PX": 20,
+    "EXIT_HANDOVER_START_DEG": 180.0,
+    "HANDOVER_CONFIRM_CYCLES": 2,
+    "HANDOVER_RAMP_CYCLES": 4,
+    "EXIT_RELEASE_CYCLES": 3,
+    "EXIT_COMPLETE_DEG": 300.0,
+    "EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES": 2,
+    "EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX": 5,
+    "EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS": 3,
+    "EXIT_FIXSTEER_START_DEG": 235.0,
+    "EXIT_FALLBACK_MAX_CYCLES": 6
+  },
+  "CIRCLE_FALLBACK": {
+    "FIXSTEER_BIAS_SCALE": 0.55
   },
   "assistant_tcp": {
     "host": "10.100.170.115",
@@ -191,6 +225,16 @@ void TestLoadSucceedsWithoutRemovedLegacyFields() {
            "SCENE_WIDE_CLASSIFIER geometry thresholds must load correctly");
     Expect(params.scene_wide_classifier.circle_curve_weight == 1.2,
            "SCENE_WIDE_CLASSIFIER circle weights must load correctly");
+    Expect(params.scene_wide_classifier.to_circle_over_bend_margin == 2.0,
+           "SCENE_WIDE_CLASSIFIER bend arbitration margin must load correctly");
+    Expect(params.circle_entry.inner_offset_near_px == 48,
+           "CIRCLE_ENTRY group must load independently");
+    Expect(params.circle_entry.release_loss_cycles == 2,
+           "CIRCLE_ENTRY release loss cycles must load independently");
+    Expect(params.circle_exit.exit_complete_deg == 300.0,
+           "CIRCLE_EXIT group must load independently");
+    Expect(params.circle_fallback.fixsteer_bias_scale == 0.55,
+           "CIRCLE_FALLBACK group must load independently");
     Expect(HasDiagnosticCode(diagnostics, "params.loaded"),
            "successful parse must emit params.loaded");
 }

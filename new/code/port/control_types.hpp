@@ -75,6 +75,12 @@ struct PerceptionResult {
     std::string last_special_scene_correction = "none";
     std::string perception_tag = "none";
     std::string track_source = "bottom_connected";
+    std::string circle_direction = "none";
+    std::string circle_reference_mode = "none";
+    float circle_heading_delta_deg = 0.0F;
+    std::string circle_fallback_reason = "none";
+    bool circle_entry_signal_active = false;
+    std::string circle_entry_release_reason = "none";
 };
 
 struct LegacySteeringControllerMemory {
@@ -105,6 +111,8 @@ struct TrackHistorySnapshot {
     float heading_px_per_row = 0.0F;
     float curvature_px_per_row2 = 0.0F;
     int turn_sign = 0;
+    int last_nonzero_turn_sign = 0;
+    int zero_turn_sign_frames = 0;
     float track_confidence = 0.0F;
     int flip_candidate_sign = 0;
     int flip_candidate_frames = 0;
@@ -133,6 +141,22 @@ struct LegacySteeringState {
     float special_wide_cross_score_last = 0.0F;
     float special_wide_circle_left_score_last = 0.0F;
     float special_wide_circle_right_score_last = 0.0F;
+    std::string circle_active_direction = "none";
+    std::string circle_entry_state = "idle";
+    std::string circle_exit_state = "idle";
+    std::string circle_reference_mode = "none";
+    float circle_heading_delta_deg = 0.0F;
+    float circle_heading_baseline_deg = 0.0F;
+    uint64_t circle_last_imu_capture_time_ms = 0;
+    int circle_fixsteer_cycles = 0;
+    int circle_handover_cycles = 0;
+    std::string circle_fallback_reason = "none";
+    int circle_entry_settle_cycles = 0;
+    int circle_entry_loss_cycles = 0;
+    std::string circle_entry_release_reason = "none";
+    int circle_opposite_edge_confirm_cycles = 0;
+    int circle_release_cycles = 0;
+    int circle_last_stable_reference_col = kCompiledCameraFrameWidth / 2;
     LaneGeometryHistorySnapshot lane_geometry_recent{};
     LaneGeometryHistorySnapshot lane_geometry_previous{};
     TrackHistorySnapshot track_history{};
@@ -186,6 +210,11 @@ struct AssistantTcpParameters {
     int port = 8888;
 };
 
+struct CircleSceneParameters {
+    int active_valid_rows_min = 8;
+    double minimum_track_confidence = 0.3;
+};
+
 struct SceneWideClassifierParameters {
     int lower_row_start = 156;
     int lower_row_end = 184;
@@ -209,6 +238,7 @@ struct SceneWideClassifierParameters {
     double cross_upper_full_span_min_ratio = 0.45;
     double to_cross_margin = 0.2;
     double to_circle_margin = 0.2;
+    double to_circle_over_bend_margin = 2.0;
     int enter_confirm_cycles = 2;
     int exit_confirm_cycles = 2;
 
@@ -220,12 +250,45 @@ struct SceneWideClassifierParameters {
     double circle_weight_contract = 0.2;
 };
 
+struct CircleEntryParameters {
+    int inner_offset_near_px = 48;
+    int inner_offset_far_px = 28;
+    double repair_over_deg = 45.0;
+    int settle_confirm_cycles = 3;
+    int release_loss_cycles = 2;
+};
+
+struct CircleInteriorParameters {
+    int inner_offset_px = 40;
+    bool blend_enable = true;
+    double blend_min_confidence = 0.55;
+};
+
+struct CircleExitParameters {
+    int outer_offset_near_px = 34;
+    int outer_offset_far_px = 20;
+    double handover_start_deg = 180.0;
+    int handover_confirm_cycles = 2;
+    int handover_ramp_cycles = 4;
+    int exit_release_cycles = 3;
+    double exit_complete_deg = 300.0;
+    int opposite_edge_straight_confirm_cycles = 2;
+    int opposite_edge_max_curvature_px = 5;
+    int opposite_edge_min_visible_rows = 3;
+    double fixsteer_start_deg = 235.0;
+    int exit_fallback_max_cycles = 6;
+};
+
+struct CircleFallbackParameters {
+    double fixsteer_bias_scale = 0.55;
+};
+
 struct RuntimeParameters {
     double Speed_base = 77.0;
     double see_max = 35.0;
     double pid_turn_camera_p = 14.75;
     double pid_turn_camera_p_scale = 1.0;
-    double pid_turn_camera_d = 5.0;
+    double pid_turn_camera_d = 0.0;
     double pid_turn_gyro_camera_p = 20.0;
     double pid_turn_gyro_camera_i = 0.0;
     double pid_turn_gyro_camera_d = 9.0;
@@ -262,7 +325,12 @@ struct RuntimeParameters {
     bool pid_turn_camera_use_fuzzy = false;
     int camera_frame_width = 320;
     int camera_frame_height = 240;
+    CircleSceneParameters circle_scene{};
     SceneWideClassifierParameters scene_wide_classifier{};
+    CircleEntryParameters circle_entry{};
+    CircleInteriorParameters circle_interior{};
+    CircleExitParameters circle_exit{};
+    CircleFallbackParameters circle_fallback{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

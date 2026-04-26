@@ -95,6 +95,12 @@ SteeringAnalysisResult OrchestrateSteeringScenes(const SteeringSceneContext& con
     result.last_special_scene_correction = scene.last_special_scene_correction;
     result.track_source = context.metrics.track_source;
     result.roadblock_active = false;
+    result.circle_direction = scene.circle_state_valid ? scene.circle_active_direction : "none";
+    result.circle_reference_mode = scene.circle_state_valid ? scene.circle_reference_mode : "none";
+    result.circle_heading_delta_deg = scene.circle_state_valid ? scene.circle_heading_delta_deg : 0.0F;
+    result.circle_fallback_reason = scene.circle_state_valid ? scene.circle_fallback_reason : "none";
+    result.circle_entry_signal_active = scene.circle_entry_signal_active;
+    result.circle_entry_release_reason = scene.circle_entry_release_reason;
     result.perception_tag = std::string("scene-orchestrator:") + result.active_module;
     result.low_voltage_veto = low_voltage_emergency;
     result.threshold_veto =
@@ -108,6 +114,40 @@ SteeringAnalysisResult OrchestrateSteeringScenes(const SteeringSceneContext& con
     analysis.special_wide_circle_left_score_last = scene.special_wide_circle_left_score;
     analysis.special_wide_circle_right_score_last = scene.special_wide_circle_right_score;
     analysis.lane_geometry_snapshot = context.metrics.lane_geometry_snapshot;
+    analysis.steering_state_update = context.prior_state;
+    analysis.steering_state_update.circle_active_direction =
+        scene.circle_state_valid ? scene.circle_active_direction : "none";
+    analysis.steering_state_update.circle_entry_state =
+        scene.circle_state_valid ? scene.circle_entry_state : "idle";
+    analysis.steering_state_update.circle_exit_state =
+        scene.circle_state_valid ? scene.circle_exit_state : "idle";
+    analysis.steering_state_update.circle_reference_mode =
+        scene.circle_state_valid ? scene.circle_reference_mode : "none";
+    analysis.steering_state_update.circle_heading_delta_deg =
+        scene.circle_state_valid ? scene.circle_heading_delta_deg : 0.0F;
+    analysis.steering_state_update.circle_heading_baseline_deg =
+        scene.circle_state_valid ? scene.circle_heading_baseline_deg : 0.0F;
+    analysis.steering_state_update.circle_last_imu_capture_time_ms =
+        scene.circle_state_valid ? scene.circle_last_imu_capture_time_ms : 0;
+    analysis.steering_state_update.circle_fixsteer_cycles =
+        scene.circle_state_valid ? scene.circle_fixsteer_cycles : 0;
+    analysis.steering_state_update.circle_handover_cycles =
+        scene.circle_state_valid ? scene.circle_handover_cycles : 0;
+    analysis.steering_state_update.circle_fallback_reason =
+        scene.circle_state_valid ? scene.circle_fallback_reason : "none";
+    analysis.steering_state_update.circle_entry_settle_cycles =
+        scene.circle_state_valid ? scene.circle_entry_settle_cycles : 0;
+    analysis.steering_state_update.circle_entry_loss_cycles =
+        scene.circle_state_valid ? scene.circle_entry_loss_cycles : 0;
+    analysis.steering_state_update.circle_entry_release_reason = scene.circle_entry_release_reason;
+    analysis.steering_state_update.circle_opposite_edge_confirm_cycles =
+        scene.circle_state_valid ? scene.circle_opposite_edge_confirm_cycles : 0;
+    analysis.steering_state_update.circle_release_cycles =
+        scene.circle_state_valid ? scene.circle_release_cycles : 0;
+    analysis.steering_state_update.circle_last_stable_reference_col =
+        scene.circle_state_valid ? scene.circle_last_stable_reference_col
+                                 : port::kCompiledCameraFrameWidth / 2;
+    analysis.steering_state_update_valid = true;
     return analysis;
 }
 

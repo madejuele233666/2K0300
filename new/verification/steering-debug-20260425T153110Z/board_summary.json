@@ -1,0 +1,9 @@
+{
+  "board_ip": "10.100.170.226",
+  "board_user": "root",
+  "remote_log": "/home/root/new_runtime.log",
+  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T153110Z/board_runtime.log",
+  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260425T153110Z/board_steering_snapshot.jsonl",
+  "snapshot_count": 0,
+  "receiver_error": null
+}

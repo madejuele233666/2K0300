@@ -1,6 +1,10 @@
 file(REMOVE_RECURSE
   "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o"
   "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o.d"
+  "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o"
+  "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o.d"
+  "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o"
+  "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o.d"
   "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o"
   "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o.d"
   "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o"

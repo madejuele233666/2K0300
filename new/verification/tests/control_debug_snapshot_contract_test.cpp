@@ -76,6 +76,8 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
     snapshot.steering.gyro_d_term = 3.0;
     snapshot.steering.raw_turn_output = 123;
     snapshot.steering.applied_turn_output = 117;
+    snapshot.steering.circle_entry_signal_active = false;
+    snapshot.steering.circle_entry_release_reason = "entry_signal_lost";
 
     RecordingDiagnostics diagnostics;
     reporter.MaybeEmit(snapshot, diagnostics);
@@ -101,6 +103,9 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
            "steering snapshot must keep raw_turn_output for assistant-disabled review");
     Expect(steering_event->message.find("applied_turn_output=117") != std::string::npos,
            "steering snapshot must keep applied_turn_output for assistant-disabled review");
+    Expect(steering_event->message.find("circle_entry_release_reason=entry_signal_lost") !=
+               std::string::npos,
+           "steering snapshot must expose circle entry release diagnostics");
 }
 
 }  // namespace

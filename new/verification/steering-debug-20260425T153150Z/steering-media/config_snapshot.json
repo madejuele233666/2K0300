@@ -1,0 +1,81 @@
+{
+  "type": "config_snapshot",
+  "publish_time_ms": 8723130,
+  "media_publish_interval_ms": 120,
+  "param_snapshot": {
+    "pid_turn_camera_p": 20,
+    "pid_turn_camera_p_scale": 1,
+    "pid_turn_camera_d": 0,
+    "pid_turn_camera_use_fuzzy": false,
+    "pid_turn_gyro_camera_p": 0.5,
+    "pid_turn_gyro_camera_i": 0,
+    "pid_turn_gyro_camera_d": 0,
+    "p_mode": 3,
+    "speed_base": 200,
+    "control_period_ms": 5,
+    "raw_turn_output_limit": 8000,
+    "SCENE_WIDE_CLASSIFIER": {
+      "LOWER_ROW_START": 156,
+      "LOWER_ROW_END": 184,
+      "MIDDLE_ROW_START": 120,
+      "MIDDLE_ROW_END": 148,
+      "UPPER_ROW_START": 80,
+      "UPPER_ROW_END": 112,
+      "ROW_STEP": 4,
+      "EDGE_MARGIN_PX": 12,
+      "UPPER_FULL_SPAN_WIDTH_RATIO": 0.95,
+      "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO": 0.38,
+      "SPECIAL_WIDE_VALID_ROWS_MIN": 10,
+      "EDGE_MOTION_MIN_PX": 8,
+      "EDGE_CURVATURE_MIN_PX": 6,
+      "OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX": 5,
+      "OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO": 0.45,
+      "CIRCLE_OPEN_MIN_PX": 24,
+      "CIRCLE_CONTRACT_MIN_PX": 14,
+      "CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN": 3,
+      "CROSS_UPPER_FULL_SPAN_MIN_RATIO": 0.45,
+      "TO_CROSS_MARGIN": 0.2,
+      "TO_CIRCLE_MARGIN": 0.2,
+      "ENTER_CONFIRM_CYCLES": 2,
+      "EXIT_CONFIRM_CYCLES": 2,
+      "CROSS_WEIGHT_FULL_SPAN": 1.25,
+      "CROSS_WEIGHT_BOTH_OPEN": 0.4,
+      "CIRCLE_CURVE_WEIGHT": 1.2,
+      "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT": 1,
+      "CIRCLE_WEIGHT_OPEN": 0.25,
+      "CIRCLE_WEIGHT_CONTRACT": 0.2
+    },
+    "CIRCLE_SCENE": {
+      "ACTIVE_VALID_ROWS_MIN": 8,
+      "MINIMUM_TRACK_CONFIDENCE": 0.3
+    },
+    "CIRCLE_ENTRY": {
+      "ENTRY_INNER_OFFSET_NEAR_PX": 48,
+      "ENTRY_INNER_OFFSET_FAR_PX": 28,
+      "ENTRY_REPAIR_OVER_DEG": 45,
+      "ENTRY_SETTLE_CONFIRM_CYCLES": 3
+    },
+    "CIRCLE_INTERIOR": {
+      "INTERIOR_INNER_OFFSET_PX": 40,
+      "INTERIOR_BLEND_ENABLE": true,
+      "INTERIOR_BLEND_MIN_CONFIDENCE": 0.55
+    },
+    "CIRCLE_EXIT": {
+      "EXIT_OUTER_OFFSET_NEAR_PX": 34,
+      "EXIT_OUTER_OFFSET_FAR_PX": 20,
+      "EXIT_HANDOVER_START_DEG": 180,
+      "HANDOVER_CONFIRM_CYCLES": 2,
+      "HANDOVER_RAMP_CYCLES": 4,
+      "EXIT_RELEASE_CYCLES": 3,
+      "EXIT_COMPLETE_DEG": 300,
+      "EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES": 2,
+      "EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX": 5,
+      "EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS": 3,
+      "EXIT_FIXSTEER_START_DEG": 235,
+      "EXIT_FALLBACK_MAX_CYCLES": 6
+    },
+    "CIRCLE_FALLBACK": {
+      "FIXSTEER_BIAS_SCALE": 0.55
+    }
+  }
+}

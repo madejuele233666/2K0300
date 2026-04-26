@@ -32,16 +32,30 @@ SteeringSceneOutput BuildSpecialWideOutput(const SteeringSceneContext& context,
     output.special_wide_cross_score = cross_score;
     output.special_wide_circle_left_score = circle_left_score;
     output.special_wide_circle_right_score = circle_right_score;
+    output.circle_entry_signal_active = std::string(candidate) == "circle_entry";
     return output;
 }
 
-const char* PickWideCandidate(float cross_score,
+float ComputeOrdinaryBendCompetitionScore(const SteeringSceneContext& context) {
+    if (!LooksLikeOrdinaryBend(context)) {
+        return 0.0F;
+    }
+    return std::max(0.0F, context.metrics.bend_severity);
+}
+
+const char* PickWideCandidate(const SteeringSceneContext& context,
+                              float cross_score,
                               float circle_score,
                               const port::SceneWideClassifierParameters& wide) {
     if (cross_score - circle_score >= static_cast<float>(wide.to_cross_margin)) {
         return "cross";
     }
     if (circle_score - cross_score >= static_cast<float>(wide.to_circle_margin)) {
+        const float ordinary_bend_score = ComputeOrdinaryBendCompetitionScore(context);
+        if (circle_score - ordinary_bend_score <
+            static_cast<float>(wide.to_circle_over_bend_margin)) {
+            return "none";
+        }
         return "circle_entry";
     }
     return "none";
@@ -73,10 +87,14 @@ SteeringSceneOutput EvaluateSpecialWideScene(const SteeringSceneContext& context
     const float circle_left_score = wide_precondition ? ComputeCircleLeftEntryScore(context) : 0.0F;
     const float circle_right_score = wide_precondition ? ComputeCircleRightEntryScore(context) : 0.0F;
     const float circle_score = std::max(circle_left_score, circle_right_score);
-    const char* candidate = wide_precondition ? PickWideCandidate(cross_score, circle_score, wide) : "none";
+    const char* candidate =
+        wide_precondition ? PickWideCandidate(context, cross_score, circle_score, wide) : "none";
     const int streak = UpdateCandidateStreak(context.prior_state, candidate);
 
     if (!prior_special_wide) {
+        if (candidate == std::string("none")) {
+            return output;
+        }
         return BuildSpecialWideOutput(
             context, candidate, streak, cross_score, circle_left_score, circle_right_score);
     }

@@ -1,0 +1,14 @@
+{
+  "listen_host": "10.100.170.115",
+  "listen_port": 8890,
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260426T015112Z/steering-media",
+  "connected": true,
+  "connection_address": "10.100.170.226:46988",
+  "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260426T015112Z/steering-media/config_snapshot.json",
+  "metadata_path": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260426T015112Z/steering-media/frame_metadata.jsonl",
+  "frame_dir": "/home/madejuele/projects/2K0300/new/verification/steering-debug-20260426T015112Z/steering-media/frames",
+  "frame_count": 47,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 97181706,
+  "last_host_receive_monotonic_ms": 97193540
+}

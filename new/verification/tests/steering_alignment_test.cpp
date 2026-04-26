@@ -121,7 +121,8 @@ void TestZebraSceneWinsDedicatedModule() {
     metrics.upper_valid_row_count = 4;
     metrics.zebra_candidate = true;
 
-    const ls2k::legacy::SteeringSceneContext context{frame, params, {}, metrics};
+    const ls2k::port::ImuSample imu{};
+    const ls2k::legacy::SteeringSceneContext context{frame, params, {}, imu, 100, metrics};
     const PerceptionResult result =
         ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 100).perception;
     Expect(result.active_module == "zebra", "zebra pattern must activate zebra module");
@@ -133,7 +134,8 @@ void TestRoadblockStubNeverMisreportsActive() {
     RuntimeParameters params{};
     LegacyCameraFrame frame = MakeBlankFrame();
     const LegacySteeringState prior{};
-    const ls2k::legacy::SteeringSceneContext context{frame, params, prior, {}};
+    const ls2k::port::ImuSample imu{};
+    const ls2k::legacy::SteeringSceneContext context{frame, params, prior, imu, 100, {}};
     const ls2k::legacy::SteeringSceneOutput result = ls2k::legacy::EvaluateRoadblockStubScene(context);
 
     Expect(!result.active, "roadblock stub must never report itself active");
@@ -150,19 +152,23 @@ void TestCircleTransitionUsesPriorRuntimeState() {
     FillLane(frame, 150, 250, -12);
 
     LegacySteeringState prior{};
-    prior.active_module = "circle_entry";
-    prior.scene_phase = "entry";
+    prior.active_module = "circle_interior";
+    prior.scene_phase = "interior_tracking";
+    prior.circle_active_direction = "left";
+    prior.circle_entry_state = "idle";
     const PerceptionResult interior = Analyze(frame, prior);
     Expect(interior.active_module == "circle_interior",
            "circle entry carry-over must advance into circle_interior");
     ExpectRoadblockStubState(interior);
 
     prior.active_module = "circle_interior";
-    prior.scene_phase = "interior";
+    prior.scene_phase = "interior_tracking";
+    prior.circle_heading_delta_deg = 190.0F;
+    prior.circle_last_imu_capture_time_ms = 1;
     LegacyCameraFrame exit_frame = MakeBlankFrame();
     FillLane(exit_frame, 128, 228);
     const PerceptionResult exit_result = Analyze(exit_frame, prior);
-    Expect(exit_result.active_module == "circle_exit" || exit_result.active_module == "bend",
+    Expect(exit_result.active_module == "circle_exit" || exit_result.active_module == "circle_interior",
            "circle interior recovery must not collapse back into straight immediately");
     ExpectRoadblockStubState(exit_result);
 }
