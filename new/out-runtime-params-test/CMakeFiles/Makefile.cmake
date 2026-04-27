@@ -54,6 +54,9 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/new.dir/DependInfo.cmake"
   "CMakeFiles/steering_media_selftest.dir/DependInfo.cmake"
   "CMakeFiles/runtime_params_load_test.dir/DependInfo.cmake"
+  "CMakeFiles/bev_sparse_sampler_test.dir/DependInfo.cmake"
+  "CMakeFiles/corridor_interval_test.dir/DependInfo.cmake"
+  "CMakeFiles/corridor_graph_test.dir/DependInfo.cmake"
   "CMakeFiles/scene_classifier_selftest.dir/DependInfo.cmake"
   "CMakeFiles/scene_overlay_probe.dir/DependInfo.cmake"
   )

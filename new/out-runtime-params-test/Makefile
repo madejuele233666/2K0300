@@ -156,6 +156,45 @@ runtime_params_load_test/fast:
 .PHONY : runtime_params_load_test/fast
 
 #=============================================================================
+# Target rules for targets named bev_sparse_sampler_test
+
+# Build rule for target.
+bev_sparse_sampler_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bev_sparse_sampler_test
+.PHONY : bev_sparse_sampler_test
+
+# fast build rule for target.
+bev_sparse_sampler_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/build
+.PHONY : bev_sparse_sampler_test/fast
+
+#=============================================================================
+# Target rules for targets named corridor_interval_test
+
+# Build rule for target.
+corridor_interval_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 corridor_interval_test
+.PHONY : corridor_interval_test
+
+# fast build rule for target.
+corridor_interval_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/build
+.PHONY : corridor_interval_test/fast
+
+#=============================================================================
+# Target rules for targets named corridor_graph_test
+
+# Build rule for target.
+corridor_graph_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 corridor_graph_test
+.PHONY : corridor_graph_test
+
+# fast build rule for target.
+corridor_graph_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/build
+.PHONY : corridor_graph_test/fast
+
+#=============================================================================
 # Target rules for targets named scene_classifier_selftest
 
 # Build rule for target.
@@ -211,6 +250,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.o: home/madejuele/pr
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 
@@ -220,6 +260,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.i: home/madejuele/pr
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
 
@@ -229,6 +270,7 @@ home/madejuele/projects/2K0300/new/code/legacy/camera_logic.s: home/madejuele/pr
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
 
@@ -346,6 +388,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.o: home/ma
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
@@ -356,6 +399,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.i: home/ma
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
@@ -366,9 +410,43 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.s: home/ma
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.o: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.i: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.s: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o: home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o
@@ -400,12 +478,79 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
 
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.o: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.i: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.s: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.o: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.i: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.s: home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+
 home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o: home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o
 
 # target to build an object file
 home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 
@@ -415,6 +560,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i: home/
 # target to preprocess a source file
 home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
 
@@ -424,6 +570,7 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s: home/
 # target to generate assembly for a file
 home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
 
@@ -516,6 +663,66 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.o: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.i: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.s: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.o: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.i: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.s: home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_classifier_selftest.dir/build.make CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/scene_overlay_probe.dir/build.make CMakeFiles/scene_overlay_probe.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o
@@ -1309,6 +1516,78 @@ home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/runtime/tuning_state.cpp.s
 
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.o: home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.o
+
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.i: home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.i
+
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.s: home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bev_sparse_sampler_test.dir/build.make CMakeFiles/bev_sparse_sampler_test.dir/home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.cpp.s
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.o: home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.o
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.i: home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.i
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.s: home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_graph_test.dir/build.make CMakeFiles/corridor_graph_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.cpp.s
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.o: home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.o
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.i: home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.i
+
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.s: home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/corridor_interval_test.dir/build.make CMakeFiles/corridor_interval_test.dir/home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.cpp.s
+
 home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o: home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o
 
@@ -1893,6 +2172,9 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... bev_sparse_sampler_test"
+	@echo "... corridor_graph_test"
+	@echo "... corridor_interval_test"
 	@echo "... new"
 	@echo "... runtime_params_load_test"
 	@echo "... scene_classifier_selftest"
@@ -1919,9 +2201,18 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s"
@@ -1934,6 +2225,12 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.s"
@@ -2030,6 +2327,15 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/runtime/tuning_state.s"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.o"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.i"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/bev_sparse_sampler_test.s"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.o"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.i"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_graph_test.s"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.o"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.i"
+	@echo "... home/madejuele/projects/2K0300/new/verification/tests/corridor_interval_test.s"
 	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.o"
 	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.i"
 	@echo "... home/madejuele/projects/2K0300/new/verification/tests/runtime_params_load_test.s"

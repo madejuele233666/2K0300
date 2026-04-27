@@ -83,10 +83,24 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/veri
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.s
 
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.s
+
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i: cmake_force
@@ -97,10 +111,80 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
 
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.s
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.s
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.s
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.s
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.s
+
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.i: cmake_force
@@ -114,7 +198,7 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.i: cmake_force
@@ -128,7 +212,7 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.i: cmake_force
@@ -142,7 +226,7 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.i: cmake_force
@@ -156,7 +240,7 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.i: cmake_force
@@ -167,10 +251,24 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
 
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp > CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.i
+
+CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
+
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.i: cmake_force
@@ -184,7 +282,7 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: CMakeFiles/scene_classifier_selftest.dir/flags.make
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: /home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o: CMakeFiles/scene_classifier_selftest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o -MF CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o.d -o CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o -c /home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp
 
 CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.i: cmake_force
@@ -198,12 +296,19 @@ CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code
 # Object files for target scene_classifier_selftest
 scene_classifier_selftest_OBJECTS = \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o" \
+"CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o" \
 "CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o"
 
@@ -211,17 +316,24 @@ scene_classifier_selftest_OBJECTS = \
 scene_classifier_selftest_EXTERNAL_OBJECTS =
 
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/verification/tests/scene_classifier_selftest.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/camera_logic.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_sparse_sampler.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_intervals.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_corridor_graph.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_hypotheses.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_topology_evidence.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o
+scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/home/madejuele/projects/2K0300/new/code/legacy/fuzzy_pid_ucas.cpp.o
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/build.make
 scene_classifier_selftest: CMakeFiles/scene_classifier_selftest.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable scene_classifier_selftest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/madejuele/projects/2K0300/new/out-runtime-params-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX executable scene_classifier_selftest"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/scene_classifier_selftest.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
