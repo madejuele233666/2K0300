@@ -55,4 +55,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/steering_media_selftest.dir/DependInfo.cmake"
   "CMakeFiles/runtime_params_load_test.dir/DependInfo.cmake"
   "CMakeFiles/scene_classifier_selftest.dir/DependInfo.cmake"
+  "CMakeFiles/scene_overlay_probe.dir/DependInfo.cmake"
   )

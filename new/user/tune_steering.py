@@ -75,14 +75,30 @@ class StreamingCsvRecorder:
         "right_pwm_command",
         "raw_turn_output",
         "applied_turn_output",
-        "farthest_line",
-        "steering_reference_col",
+        "near_lateral_error",
+        "far_heading_error",
+        "preview_curvature",
+        "lookahead_distance_m",
+        "lookahead_lateral_error",
+        "lookahead_heading_error",
+        "reference_curvature",
+        "curvature_command",
+        "yaw_rate_target",
+        "visible_range_m",
+        "track_confidence",
+        "reference_mode",
         "circle_direction",
         "circle_reference_mode",
         "circle_heading_delta_deg",
-        "circle_fallback_reason",
         "circle_entry_signal_active",
-        "circle_entry_release_reason",
+        "scene_cross_candidate",
+        "scene_circle_left_candidate",
+        "scene_circle_right_candidate",
+        "scene_cross_bilateral_open_score_m",
+        "scene_left_open_score",
+        "scene_right_open_score",
+        "scene_left_boundary_heading_abs_rad",
+        "scene_right_boundary_heading_abs_rad",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -293,6 +309,7 @@ class PassiveAssistantListener:
 
         elapsed_ms = receive_monotonic_ms - self._start_monotonic_ms
         frame_type = str(frame.get("type", ""))
+        scene_evidence = frame.get("scene_evidence", {}) if isinstance(frame.get("scene_evidence"), dict) else {}
         row = {
             "timestamp_utc": utc_timestamp(),
             "host_monotonic_ms": receive_monotonic_ms,
@@ -320,14 +337,36 @@ class PassiveAssistantListener:
             "right_pwm_command": frame.get("right_pwm_command", ""),
             "raw_turn_output": frame.get("raw_turn_output", ""),
             "applied_turn_output": frame.get("applied_turn_output", ""),
-            "farthest_line": frame.get("farthest_line", ""),
-            "steering_reference_col": frame.get("steering_reference_col", ""),
+            "near_lateral_error": frame.get("near_lateral_error", ""),
+            "far_heading_error": frame.get("far_heading_error", ""),
+            "preview_curvature": frame.get("preview_curvature", ""),
+            "lookahead_distance_m": frame.get("lookahead_distance_m", ""),
+            "lookahead_lateral_error": frame.get("lookahead_lateral_error", ""),
+            "lookahead_heading_error": frame.get("lookahead_heading_error", ""),
+            "reference_curvature": frame.get("reference_curvature", ""),
+            "curvature_command": frame.get("curvature_command", ""),
+            "yaw_rate_target": frame.get("yaw_rate_target", ""),
+            "visible_range_m": frame.get("visible_range_m", ""),
+            "track_confidence": frame.get("track_confidence", ""),
+            "reference_mode": frame.get("reference_mode", ""),
             "circle_direction": frame.get("circle_direction", ""),
             "circle_reference_mode": frame.get("circle_reference_mode", ""),
             "circle_heading_delta_deg": frame.get("circle_heading_delta_deg", ""),
-            "circle_fallback_reason": frame.get("circle_fallback_reason", ""),
             "circle_entry_signal_active": frame.get("circle_entry_signal_active", ""),
-            "circle_entry_release_reason": frame.get("circle_entry_release_reason", ""),
+            "scene_cross_candidate": scene_evidence.get("cross_candidate", ""),
+            "scene_circle_left_candidate": scene_evidence.get("circle_left_candidate", ""),
+            "scene_circle_right_candidate": scene_evidence.get("circle_right_candidate", ""),
+            "scene_cross_bilateral_open_score_m": scene_evidence.get(
+                "cross_bilateral_open_score_m", ""
+            ),
+            "scene_left_open_score": scene_evidence.get("left_open_score", ""),
+            "scene_right_open_score": scene_evidence.get("right_open_score", ""),
+            "scene_left_boundary_heading_abs_rad": scene_evidence.get(
+                "left_boundary_heading_abs_rad", ""
+            ),
+            "scene_right_boundary_heading_abs_rad": scene_evidence.get(
+                "right_boundary_heading_abs_rad", ""
+            ),
         }
         self._csv.write(row)
         if frame_type != "telemetry":
@@ -358,6 +397,10 @@ class PassiveAssistantListener:
                     "[control] "
                     f"telemetry phase={frame.get('motion_phase')} "
                     f"module={frame.get('active_module')} scene={frame.get('scene_phase')} "
+                    f"ref={frame.get('reference_mode')} near={frame.get('near_lateral_error')} "
+                    f"lookahead_m={frame.get('lookahead_distance_m')} "
+                    f"curvature_command={frame.get('curvature_command')} "
+                    f"yaw_rate_target={frame.get('yaw_rate_target')} "
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"raw_turn={frame.get('raw_turn_output')} applied_turn={frame.get('applied_turn_output')}"
@@ -481,7 +524,11 @@ class BoardSteeringLogCapture:
                             "[board] "
                             f"snapshot frame_id={snapshot.get('frame_id')} "
                             f"module={snapshot.get('active_module')} scene={snapshot.get('scene_phase')} "
-                            f"lateral_error={snapshot.get('lateral_error')} "
+                            f"ref={snapshot.get('reference_mode')} "
+                            f"near_lateral_error={snapshot.get('near_lateral_error', snapshot.get('lateral_error'))} "
+                            f"lookahead_m={snapshot.get('lookahead_distance_m')} "
+                            f"curvature_command={snapshot.get('curvature_command')} "
+                            f"yaw_rate_target={snapshot.get('yaw_rate_target')} "
                             f"raw_turn={snapshot.get('raw_turn_output')} "
                             f"applied_turn={snapshot.get('applied_turn_output')}"
                         )
@@ -511,7 +558,16 @@ class BoardSteeringLogCapture:
             if "=" not in token:
                 continue
             key, value = token.split("=", 1)
-            record[key] = parse_scalar(value)
+            parsed_value = parse_scalar(value)
+            if "." in key:
+                prefix, child_key = key.split(".", 1)
+                nested = record.get(prefix)
+                if not isinstance(nested, dict):
+                    nested = {}
+                    record[prefix] = nested
+                nested[child_key] = parsed_value
+                continue
+            record[key] = parsed_value
         return record
 
 
@@ -585,6 +641,7 @@ def build_steering_media_alignment(output_dir: Path, board_summary: Dict[str, An
                     fallback_rejected_count += 1
             if matched is None:
                 continue
+            matched_scene = matched.get("scene_evidence", {}) if isinstance(matched.get("scene_evidence"), dict) else {}
             alignment_count += 1
             if match_mode == "frame_id":
                 exact_match_count += 1
@@ -609,10 +666,27 @@ def build_steering_media_alignment(output_dir: Path, board_summary: Dict[str, An
                 "active_module": matched.get("active_module"),
                 "scene_phase": matched.get("scene_phase"),
                 "scene_override_source": matched.get("scene_override_source"),
+                "reference_mode": matched.get("reference_mode"),
+                "near_lateral_error": matched.get("near_lateral_error"),
+                "far_heading_error": matched.get("far_heading_error"),
+                "preview_curvature": matched.get("preview_curvature"),
+                "lookahead_distance_m": matched.get("lookahead_distance_m"),
+                "lookahead_lateral_error": matched.get("lookahead_lateral_error"),
+                "lookahead_heading_error": matched.get("lookahead_heading_error"),
+                "reference_curvature": matched.get("reference_curvature"),
+                "curvature_command": matched.get("curvature_command"),
+                "yaw_rate_target": matched.get("yaw_rate_target"),
+                "visible_range_m": matched.get("visible_range_m"),
                 "raw_turn_output": matched.get("raw_turn_output"),
                 "applied_turn_output": matched.get("applied_turn_output"),
-                "farthest_line": matched.get("farthest_line"),
-                "steering_reference_col": matched.get("steering_reference_col"),
+                "scene_cross_candidate": matched_scene.get("cross_candidate"),
+                "scene_circle_left_candidate": matched_scene.get("circle_left_candidate"),
+                "scene_circle_right_candidate": matched_scene.get("circle_right_candidate"),
+                "scene_cross_bilateral_open_score_m": matched_scene.get("cross_bilateral_open_score_m"),
+                "scene_left_open_score": matched_scene.get("left_open_score"),
+                "scene_right_open_score": matched_scene.get("right_open_score"),
+                "scene_left_boundary_heading_abs_rad": matched_scene.get("left_boundary_heading_abs_rad"),
+                "scene_right_boundary_heading_abs_rad": matched_scene.get("right_boundary_heading_abs_rad"),
             }
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
 

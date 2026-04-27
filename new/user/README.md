@@ -19,7 +19,9 @@
 ./debug.sh remote status
 ./debug.sh remote logs
 ./debug.sh remote stop
+./stop_car.sh controlled
 ./start_with_upload.sh
+CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
 ./start_with_params_upload.sh
 ./stop_car.sh
 ./debug.sh smoke run
@@ -34,9 +36,36 @@
 - `steering`：运行主机侧被动转向调试 workflow，在正常运行态下同时采集 assistant control 连接、steering media 和板端 `control.steering_snapshot`。
 - `remote`：远程启动、停止、查看板端 `new` 进程。
 - `smoke`：执行板端或本地冒烟验证，并生成验证日志。
-- `start_with_upload.sh`：一键停旧进程、上传最新参数和程序，并自动发车。
-- `start_with_params_upload.sh`：只上传最新 `default_params.json`，不重新编译，并自动发车。
-- `stop_car.sh`：一键停车，等价于 `./debug.sh remote stop`。
+- `start_with_upload.sh`：一键停旧进程、上传最新参数和程序，然后以 no-motion 默认启动；显式 `drive` 模式才会请求自动发车。
+- `start_with_params_upload.sh`：只上传最新 `default_params.json`，不重新编译，然后以 no-motion 默认启动；显式 `drive` 模式才会请求自动发车。
+- `stop_car.sh`：停车入口。默认 `now` 为立即停运行时并关执行器；低速测试的正常收车使用 `controlled`，超时会回退到 `now`。
+
+## 启动安全语义
+
+正常 profile 的启动默认不发车。`./debug.sh remote start normal`、`./debug.sh remote restart normal`、`./start_with_upload.sh` 和 `./start_with_params_upload.sh` 都应先用于 no-motion 检查：运行时可以初始化 camera / IMU / encoder / motor / timer，但不会自动请求 motion start。
+
+如果确实要使用 harness 的自动发车能力，必须同时满足两个条件：
+
+```bash
+CONFIRM_POWERED_START=1 LS2K_AUTO_START=1 ./debug.sh remote restart normal
+CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
+CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
+```
+
+在参数、标定或场景证据未知时，不要使用 `drive` 模式；先用 steering-media 和 `control.steering_snapshot` 确认 BEV 观测、门控和 0 PWM 状态。
+
+正常低速测试结束时优先使用：
+
+```bash
+./stop_car.sh controlled
+```
+
+需要应急立即停时使用：
+
+```bash
+./stop_car.sh
+./stop_car.sh now
+```
 
 ## 典型流程
 
@@ -76,7 +105,7 @@
 - `steering_media_alignment.jsonl`
 - `summary.json`
 
-`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开 `active_module`、`scene_phase`、`scene_override_source`、`farthest_line`、`steering_reference_col`、`raw_turn_output`、`applied_turn_output` 等转向合同字段，可直接用于 assistant-disabled 复核和 host 侧对齐分析。
+`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开 `active_module`、`scene_phase`、`scene_override_source`、`curvature_command`、`lookahead_distance_m`、`raw_turn_output`、`applied_turn_output` 等 BEV-first 转向合同字段，可直接用于 assistant-disabled 复核和 host 侧对齐分析。`near_lateral_error`、`far_heading_error`、`preview_curvature` 仅保留为过渡期调试派生量，后续稳定后继续清除。
 
 如果 steering media 已启用，`tuning` 会额外写出一组 sibling evidence：
 

@@ -86,6 +86,18 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.active_module = snapshot.steering.active_module;
     telemetry.scene_phase = snapshot.steering.scene_phase;
     telemetry.scene_override_source = snapshot.steering.scene_override_source;
+    telemetry.reference_mode = snapshot.steering.reference_mode;
+    telemetry.near_lateral_error = snapshot.steering.near_lateral_error;
+    telemetry.far_heading_error = snapshot.steering.far_heading_error;
+    telemetry.preview_curvature = snapshot.steering.preview_curvature;
+    telemetry.lookahead_distance_m = snapshot.steering.lookahead_distance_m;
+    telemetry.lookahead_lateral_error = snapshot.steering.lookahead_lateral_error;
+    telemetry.lookahead_heading_error = snapshot.steering.lookahead_heading_error;
+    telemetry.reference_curvature = snapshot.steering.reference_curvature;
+    telemetry.curvature_command = snapshot.steering.curvature_command;
+    telemetry.yaw_rate_target = snapshot.steering.yaw_rate_target;
+    telemetry.visible_range_m = snapshot.steering.visible_range_m;
+    telemetry.track_confidence = snapshot.steering.track_confidence;
     telemetry.tuning_mode_enabled = snapshot.tuning_mode_enabled;
     telemetry.turn_suppressed = snapshot.turn_suppressed;
     telemetry.target_speed_override_enabled = snapshot.target_speed_override_enabled;
@@ -99,14 +111,10 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.right_pwm_command = snapshot.right_pwm_command;
     telemetry.raw_turn_output = snapshot.raw_turn_output;
     telemetry.applied_turn_output = snapshot.applied_turn_output;
-    telemetry.farthest_line = snapshot.steering.farthest_line;
-    telemetry.steering_reference_col = snapshot.steering.steering_reference_col;
     telemetry.circle_direction = snapshot.steering.circle_direction;
     telemetry.circle_reference_mode = snapshot.steering.circle_reference_mode;
     telemetry.circle_heading_delta_deg = snapshot.steering.circle_heading_delta_deg;
-    telemetry.circle_fallback_reason = snapshot.steering.circle_fallback_reason;
     telemetry.circle_entry_signal_active = snapshot.steering.circle_entry_signal_active;
-    telemetry.circle_entry_release_reason = snapshot.steering.circle_entry_release_reason;
     return telemetry;
 }
 

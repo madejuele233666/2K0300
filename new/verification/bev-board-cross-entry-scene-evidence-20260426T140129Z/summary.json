@@ -1,0 +1,59 @@
+{
+  "timestamp_utc": "2026-04-26T14:01:49Z",
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z",
+  "duration_s": 20.0,
+  "interrupted": false,
+  "assistant_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8888,
+    "csv_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/assistant_control.csv",
+    "connected": true,
+    "connection_address": "10.100.170.226:45084",
+    "ack_frames": 0,
+    "state_frames": 0,
+    "telemetry_frames": 0,
+    "unknown_frames": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": null,
+    "last_host_receive_monotonic_ms": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/assistant_summary.json"
+  },
+  "board_summary": {
+    "board_ip": "10.100.170.226",
+    "board_user": "root",
+    "remote_log": "/home/root/new_runtime.log",
+    "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/board_runtime.log",
+    "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/board_steering_snapshot.jsonl",
+    "snapshot_count": 69,
+    "receiver_error": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/board_summary.json"
+  },
+  "media_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8890,
+    "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering-media",
+    "connected": true,
+    "connection_address": "10.100.170.226:42364",
+    "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering-media/config_snapshot.json",
+    "metadata_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering-media/frame_metadata.jsonl",
+    "frame_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering-media/frames",
+    "frame_count": 1,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": 141985716,
+    "last_host_receive_monotonic_ms": 142001571,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering-media/summary.json"
+  },
+  "steering_media_alignment": {
+    "timestamp_utc": "2026-04-26T14:01:49Z",
+    "board_snapshot_count": 69,
+    "media_frame_count": 1,
+    "alignment_basis": "frame_id exact match, fallback nearest capture_time_ms within 200ms",
+    "fallback_capture_time_window_ms": 200,
+    "alignment_available": true,
+    "alignment_count": 0,
+    "exact_match_count": 0,
+    "fallback_match_count": 0,
+    "fallback_rejected_count": 1,
+    "alignment_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-scene-evidence-20260426T140129Z/steering_media_alignment.jsonl"
+  }
+}

@@ -11,19 +11,13 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   -I"${REPO_ROOT}/new/code/legacy" \
   "${REPO_ROOT}/new/verification/tests/steering_alignment_test.cpp" \
   "${REPO_ROOT}/new/code/legacy/camera_logic.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_bottom_tracker.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_geometry.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_observation_assembly.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_scene_fsm.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_reference_policy.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_control_error_model.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_gyro_continuity.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_common.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_orchestrator.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_straight.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_bend.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_circle_entry.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_circle_interior.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_circle_exit.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_zebra.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_cross.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_special_wide.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_scene_roadblock_stub.cpp" \
   -o "${OUT_BIN}"
 
 "${OUT_BIN}"

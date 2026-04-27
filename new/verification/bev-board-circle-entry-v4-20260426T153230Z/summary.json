@@ -1,0 +1,61 @@
+{
+  "timestamp_utc": "2026-04-26T15:33:03Z",
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z",
+  "duration_s": 24.0,
+  "interrupted": false,
+  "assistant_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8888,
+    "csv_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/assistant_control.csv",
+    "connected": true,
+    "connection_address": "10.100.170.226:52084",
+    "ack_frames": 0,
+    "state_frames": 0,
+    "telemetry_frames": 0,
+    "unknown_frames": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": null,
+    "last_host_receive_monotonic_ms": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/assistant_summary.json"
+  },
+  "board_summary": {
+    "board_ip": "10.100.170.226",
+    "board_user": "root",
+    "remote_log": "/home/root/new_runtime_circle_entry_v4.log",
+    "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/board_runtime.log",
+    "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/board_steering_snapshot.jsonl",
+    "snapshot_count": 129,
+    "receiver_error": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/board_summary.json"
+  },
+  "media_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8890,
+    "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering-media",
+    "connected": true,
+    "connection_address": "10.100.170.226:51054",
+    "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering-media/config_snapshot.json",
+    "metadata_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering-media/frame_metadata.jsonl",
+    "frame_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering-media/frames",
+    "frame_count": 7,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": 147463310,
+    "last_host_receive_monotonic_ms": 147476705,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering-media/summary.json"
+  },
+  "steering_media_alignment": {
+    "timestamp_utc": "2026-04-26T15:33:03Z",
+    "board_snapshot_count": 129,
+    "media_frame_count": 7,
+    "alignment_basis": "frame_id exact match, fallback nearest capture_time_ms within 200ms",
+    "fallback_capture_time_window_ms": 200,
+    "alignment_available": true,
+    "alignment_count": 7,
+    "exact_match_count": 1,
+    "fallback_match_count": 6,
+    "fallback_rejected_count": 0,
+    "alignment_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-circle-entry-v4-20260426T153230Z/steering_media_alignment.jsonl",
+    "max_capture_time_delta_ms": 35,
+    "mean_capture_time_delta_ms": 19.857142857142858
+  }
+}

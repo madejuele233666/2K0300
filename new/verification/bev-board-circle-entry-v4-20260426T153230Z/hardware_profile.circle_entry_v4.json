@@ -1,0 +1,30 @@
+{
+  "camera": {
+    "mode": "direct-match",
+    "hook": "parameterized-direct-gray-no-exp-light-control"
+  },
+  "imu": {
+    "mode": "disabled",
+    "hook": "circle-entry-v4-imu-disabled"
+  },
+  "encoder": {
+    "mode": "direct-match",
+    "hook": "absolute-count-delta-baseline"
+  },
+  "motor": {
+    "mode": "disabled",
+    "hook": "circle-entry-v4-motor-disabled"
+  },
+  "timer": {
+    "mode": "direct-match",
+    "hook": "pit-timer-bridge"
+  },
+  "persistence": {
+    "mode": "direct-match",
+    "hook": "json-file-store"
+  },
+  "display": {
+    "mode": "disabled",
+    "hook": "phase1-deferred"
+  }
+}

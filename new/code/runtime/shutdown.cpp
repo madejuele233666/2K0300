@@ -14,7 +14,11 @@ void RunShutdown(port::PlatformBundle& platform, RuntimeState& state, port::Diag
         platform.motor->Disable(diagnostics);
     }
     state.actuators_armed = false;
+    state.perception = {};
+    state.last_command = {};
     state.control_observation = {};
+    state.control_debug_snapshot = {};
+    ResetSteeringRuntimeState(state.steering_state);
 
     if (platform.camera) {
         platform.camera->Shutdown(diagnostics);

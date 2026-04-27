@@ -19,6 +19,15 @@ import tune_speed  # noqa: E402
 
 
 class TuneSpeedMatplotlibBootstrapTest(unittest.TestCase):
+    def test_csv_recorder_includes_bev_control_fields(self) -> None:
+        self.assertIn("lookahead_distance_m", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("lookahead_lateral_error", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("lookahead_heading_error", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("reference_curvature", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("curvature_command", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("yaw_rate_target", tune_speed.CsvRecorder.FIELDNAMES)
+        self.assertIn("reference_mode", tune_speed.CsvRecorder.FIELDNAMES)
+
     def test_pip_install_args_use_current_virtualenv(self) -> None:
         with patch.object(tune_speed.sys, "executable", "/tmp/venv/bin/python"), \
              patch.object(tune_speed.sys, "prefix", "/tmp/venv"), \

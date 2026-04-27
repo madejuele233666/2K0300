@@ -45,6 +45,7 @@ private:
     float gyro_d_ = 9.0F;
     float speed_base_ = 77.0F;
     bool cam_use_fuzzy_ = false;
+    float curvature_to_w_target_gain_ = 12000.0F;
 };
 
 }  // namespace ls2k::legacy

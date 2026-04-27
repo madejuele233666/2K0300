@@ -208,10 +208,6 @@ port::ActuatorCommand ApplyProhibitReverse(const port::ActuatorCommand& previous
     return command;
 }
 
-void ResetLegacySteeringState(port::LegacySteeringState& steering_state) {
-    steering_state = {};
-}
-
 void ResetControllerState(legacy::LegacyPidControl& pid,
                           legacy::LegacyAttitudeLogic& attitude,
                           legacy::WheelPidController& left_wheel_pid,
@@ -221,7 +217,7 @@ void ResetControllerState(legacy::LegacyPidControl& pid,
     attitude.Reset();
     left_wheel_pid.Reset();
     right_wheel_pid.Reset();
-    ResetLegacySteeringState(state.steering_state);
+    ResetSteeringRuntimeState(state.steering_state);
 }
 
 void EmitMotionDiagnostics(port::DiagnosticSink& diagnostics,
@@ -436,7 +432,7 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     state_.actuators_armed = false;
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
-    ResetLegacySteeringState(state_.steering_state);
+    ResetSteeringRuntimeState(state_.steering_state);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -525,7 +521,7 @@ void ControlLoop::ResetDisarmedControlState() {
     state_.last_command = {};
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
-    ResetLegacySteeringState(state_.steering_state);
+    ResetSteeringRuntimeState(state_.steering_state);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -543,7 +539,7 @@ void ControlLoop::LatchTimerFailureState(uint64_t now_ms) {
     state_.control_observation.hold_disarmed = true;
     state_.control_observation.motion_reset_ready = false;
     state_.control_debug_snapshot = {};
-    ResetLegacySteeringState(state_.steering_state);
+    ResetSteeringRuntimeState(state_.steering_state);
     state_.control_debug_snapshot.valid = true;
     state_.control_debug_snapshot.timestamp_ms = now_ms;
     state_.control_debug_snapshot.motion_phase = MotionPhase::kFailSafeLatched;
@@ -636,20 +632,28 @@ void ControlLoop::Tick() {
         command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
         attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
+        const double constrained_speed_target =
+            motion.effective_speed_target *
+            std::clamp(perception.control_model.valid ? perception.control_model.speed_limit_scale : 1.0,
+                       0.0,
+                       1.0);
         camera_turn =
-            pid_.ComputeTurnTarget(perception, motion.effective_speed_target, state_.steering_state.controller_memory);
+            pid_.ComputeTurnTarget(perception, constrained_speed_target, state_.steering_state.controller_memory);
         gyro_turn = pid_.ComputeGyroTurn(camera_turn.w_target,
                                         imu.gyro_z,
                                         imu.valid,
                                         state_.steering_state.controller_memory);
-        raw_turn_output =
-            ClampTurnOutput(gyro_turn.raw_turn_output, motion.turn_limit_scale, params_.raw_turn_output_limit);
+        raw_turn_output = ClampTurnOutput(
+            gyro_turn.raw_turn_output,
+            motion.turn_limit_scale *
+                (perception.control_model.valid ? perception.control_model.turn_limit_scale : 1.0),
+            params_.raw_turn_output_limit);
         applied_turn_output = raw_turn_output;
         if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
             applied_turn_output = 0;
         }
         wheel_targets =
-            wheel_target_mixer_.Compute(motion.effective_speed_target, applied_turn_output, params_.pwm_limit);
+            wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output, params_.pwm_limit);
         const int left_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
         const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
@@ -714,7 +718,11 @@ void ControlLoop::Tick() {
     debug_snapshot.target_speed_override_enabled = override_active;
     debug_snapshot.target_speed_override_value =
         override_active ? tuning_snapshot.target_speed_override_value : 0.0;
-    debug_snapshot.effective_speed_target = final_motion.effective_speed_target;
+    debug_snapshot.effective_speed_target =
+        final_motion.effective_speed_target *
+        std::clamp(perception.control_model.valid ? perception.control_model.speed_limit_scale : 1.0,
+                   0.0,
+                   1.0);
     debug_snapshot.left_speed_target = snapshot_wheel_targets.left;
     debug_snapshot.right_speed_target = snapshot_wheel_targets.right;
     debug_snapshot.left_measured_speed = static_cast<double>(encoder.left);
@@ -728,17 +736,46 @@ void ControlLoop::Tick() {
     debug_snapshot.steering.valid = steering_terms_valid;
     debug_snapshot.steering.frame_id = perception.frame_id;
     debug_snapshot.steering.capture_time_ms = perception.capture_time_ms;
+    debug_snapshot.steering.near_lateral_error = perception.near_lateral_error;
+    debug_snapshot.steering.far_heading_error = perception.far_heading_error;
+    debug_snapshot.steering.preview_curvature = perception.preview_curvature;
+    debug_snapshot.steering.lookahead_distance_m = perception.control_model.lookahead_distance_m;
+    debug_snapshot.steering.lookahead_lateral_error = perception.control_model.lookahead_lateral_error;
+    debug_snapshot.steering.lookahead_heading_error = perception.control_model.lookahead_heading_error;
+    debug_snapshot.steering.reference_curvature = perception.control_model.reference_curvature;
+    debug_snapshot.steering.curvature_command = perception.control_model.curvature_command;
+    debug_snapshot.steering.yaw_rate_target = perception.control_model.yaw_rate_target;
+    debug_snapshot.steering.visible_range_m = perception.visible_range_m;
+    debug_snapshot.steering.scene_width_expand_ratio = perception.scene_observation.width_expand_ratio;
+    debug_snapshot.steering.scene_cross_bilateral_open_score_m =
+        perception.scene_observation.cross_bilateral_open_score_m;
+    debug_snapshot.steering.scene_cross_bilateral_open =
+        perception.scene_observation.cross_bilateral_open;
+    debug_snapshot.steering.scene_cross_candidate = perception.scene_observation.cross_candidate;
+    debug_snapshot.steering.scene_zebra_candidate = perception.scene_observation.zebra_candidate;
+    debug_snapshot.steering.scene_circle_left_candidate =
+        perception.scene_observation.circle_left_candidate;
+    debug_snapshot.steering.scene_circle_right_candidate =
+        perception.scene_observation.circle_right_candidate;
+    debug_snapshot.steering.scene_left_open_score = perception.scene_observation.left_open_score;
+    debug_snapshot.steering.scene_right_open_score = perception.scene_observation.right_open_score;
+    debug_snapshot.steering.scene_left_contract_score =
+        perception.scene_observation.left_contract_score;
+    debug_snapshot.steering.scene_right_contract_score =
+        perception.scene_observation.right_contract_score;
+    debug_snapshot.steering.scene_left_boundary_heading_abs_rad =
+        perception.scene_observation.left_boundary_heading_abs_rad;
+    debug_snapshot.steering.scene_right_boundary_heading_abs_rad =
+        perception.scene_observation.right_boundary_heading_abs_rad;
+    debug_snapshot.steering.scene_circle_left_opposite_straight =
+        perception.scene_observation.circle_left_opposite_straight;
+    debug_snapshot.steering.scene_circle_right_opposite_straight =
+        perception.scene_observation.circle_right_opposite_straight;
     debug_snapshot.steering.lateral_error = perception.lateral_error;
     debug_snapshot.steering.heading_error = perception.heading_error;
     debug_snapshot.steering.curvature = perception.curvature;
     debug_snapshot.steering.track_confidence = perception.track_confidence;
-    debug_snapshot.steering.highest_line = perception.highest_line;
-    debug_snapshot.steering.farthest_line = perception.farthest_line;
-    debug_snapshot.steering.steering_reference_col = perception.steering_reference_col;
     debug_snapshot.steering.track_valid = perception.track_valid;
-    debug_snapshot.steering.track_seed_col = perception.track_seed_col;
-    debug_snapshot.steering.track_seed_score = perception.track_seed_score;
-    debug_snapshot.steering.track_sign = perception.track_sign;
     debug_snapshot.steering.sign_flip_blocked = perception.sign_flip_blocked;
     debug_snapshot.steering.imu_grace_active = perception.imu_grace_active;
     debug_snapshot.steering.gyro_heading_delta_deg = perception.gyro_heading_delta_deg;
@@ -748,15 +785,12 @@ void ControlLoop::Tick() {
     debug_snapshot.steering.active_module = perception.active_module;
     debug_snapshot.steering.scene_phase = perception.scene_phase;
     debug_snapshot.steering.scene_override_source = perception.scene_override_source;
+    debug_snapshot.steering.reference_mode = perception.reference_mode;
     debug_snapshot.steering.roadblock_interface_state = perception.roadblock_interface_state;
-    debug_snapshot.steering.last_special_scene_correction = perception.last_special_scene_correction;
-    debug_snapshot.steering.track_source = perception.track_source;
     debug_snapshot.steering.circle_direction = perception.circle_direction;
     debug_snapshot.steering.circle_reference_mode = perception.circle_reference_mode;
     debug_snapshot.steering.circle_heading_delta_deg = perception.circle_heading_delta_deg;
-    debug_snapshot.steering.circle_fallback_reason = perception.circle_fallback_reason;
     debug_snapshot.steering.circle_entry_signal_active = perception.circle_entry_signal_active;
-    debug_snapshot.steering.circle_entry_release_reason = perception.circle_entry_release_reason;
     debug_snapshot.steering.roadblock_active = perception.roadblock_active;
     debug_snapshot.steering.resolved_fuzzy_p = camera_turn.resolved_fuzzy_p;
     debug_snapshot.steering.camera_p_term = camera_turn.camera_p_term;

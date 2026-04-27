@@ -9,6 +9,7 @@ g++ -std=c++17 -Wall -Wextra -pedantic \
   -I"${REPO_ROOT}/new/code" \
   "${REPO_ROOT}/new/verification/tests/legacy_pid_control_cycle_test.cpp" \
   "${REPO_ROOT}/new/code/legacy/pid_control.cpp" \
+  "${REPO_ROOT}/new/code/legacy/wheel_target_mixer.cpp" \
   "${REPO_ROOT}/new/code/legacy/fuzzy_pid_ucas.cpp" \
   -o "${OUT_BIN}"
 

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "legacy/pid_control.hpp"
+#include "legacy/wheel_target_mixer.hpp"
 
 namespace {
 
@@ -28,6 +29,24 @@ ls2k::port::RuntimeParameters BuildParams() {
     params.pid_turn_gyro_camera_i = 0.1;
     params.pid_turn_gyro_camera_d = 0.5;
     params.P_Mode = 3;
+    params.bev_control_model.curvature_to_w_target_gain = 2.0;
+    return params;
+}
+
+ls2k::port::RuntimeParameters BuildBevAuthorityParams() {
+    ls2k::port::RuntimeParameters params{};
+    params.Speed_base = 100.0;
+    params.pid_turn_camera_use_fuzzy = false;
+    params.pid_turn_camera_p = 3000.0;
+    params.pid_turn_camera_p_scale = 1.0;
+    params.pid_turn_camera_d = 0.0;
+    params.pid_turn_gyro_camera_p = 0.5;
+    params.pid_turn_gyro_camera_i = 0.0;
+    params.pid_turn_gyro_camera_d = 0.0;
+    params.P_Mode = 3;
+    params.pwm_limit = 5000;
+    params.wheel_turn_target_scale = 100.0;
+    params.bev_control_model.curvature_to_w_target_gain = 3000.0;
     return params;
 }
 
@@ -37,7 +56,10 @@ ls2k::port::PerceptionResult BuildPerception() {
     perception.fresh = true;
     perception.emergency_veto = false;
     perception.lateral_error = 10.0F;
-    perception.highest_line = 40;
+    perception.near_lateral_error = 10.0F;
+    perception.control_model.valid = true;
+    perception.control_model.curvature_command = 10.0F;
+    perception.control_model.steering_gain_scale = 1.0;
     perception.active_module = "straight";
     perception.scene_phase = "idle";
     return perception;
@@ -80,11 +102,61 @@ void TestCarryOverLivesInRuntimeOwnedMemory() {
                "reset memory must reproduce the first-cycle gyro output");
 }
 
+void TestBevMetricOffsetHasTurnAuthority() {
+    const ls2k::port::RuntimeParameters params = BuildBevAuthorityParams();
+    ls2k::legacy::LegacyPidControl pid;
+    pid.Configure(params);
+
+    ls2k::port::PerceptionResult perception{};
+    perception.published = true;
+    perception.fresh = true;
+    perception.visible_range_m = 4.5F;
+    perception.control_model.valid = true;
+    perception.control_model.near_lateral_error = 0.10F;
+    perception.control_model.far_heading_error = 0.012F;
+    perception.control_model.preview_curvature = 0.0F;
+    perception.control_model.curvature_command = 0.10F;
+    perception.control_model.steering_gain_scale = 1.0;
+
+    ls2k::port::LegacySteeringControllerMemory memory{};
+    const auto camera = pid.ComputeTurnTarget(perception, params.Speed_base, memory);
+    const auto gyro = pid.ComputeGyroTurn(camera.w_target, 0.0F, true, memory);
+
+    const int applied_turn = static_cast<int>(std::lround(gyro.raw_turn_output));
+    ExpectNear(camera.camera_p_term, 300.0F, 0.0001F,
+               "retuned camera P must give 10cm right-side BEV lateral offset visible authority");
+    if (applied_turn < 120) {
+        throw TestFailure{"10cm right-side BEV lateral offset must produce meaningful positive turn output actual=" +
+                          std::to_string(applied_turn)};
+    }
+
+    ls2k::legacy::WheelTargetMixer mixer;
+    mixer.Configure(params);
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(params.Speed_base, applied_turn, params.pwm_limit);
+    const double split = targets.left - targets.right;
+    if (split < 5.0) {
+        throw TestFailure{"positive BEV turn must produce a right-turn wheel target split actual=" +
+                          std::to_string(split)};
+    }
+
+    ls2k::port::RuntimeParameters decoupled_params = params;
+    decoupled_params.pid_turn_camera_p = 999999.0;
+    ls2k::legacy::LegacyPidControl decoupled_pid;
+    decoupled_pid.Configure(decoupled_params);
+    ls2k::port::LegacySteeringControllerMemory decoupled_memory{};
+    const auto decoupled_camera =
+        decoupled_pid.ComputeTurnTarget(perception, decoupled_params.Speed_base, decoupled_memory);
+    ExpectNear(decoupled_camera.w_target, camera.w_target, 0.0001F,
+               "PID_TURN_CAMERA.P must not scale the BEV curvature command");
+}
+
 }  // namespace
 
 int main() {
     try {
         TestCarryOverLivesInRuntimeOwnedMemory();
+        TestBevMetricOffsetHasTurnAuthority();
     } catch (const TestFailure& failure) {
         std::cerr << "legacy_pid_control_cycle_test failed: " << failure.message << "\n";
         return 1;

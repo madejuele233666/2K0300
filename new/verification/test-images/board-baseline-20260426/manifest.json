@@ -1,0 +1,97 @@
+{
+  "dataset": "board-baseline-20260426",
+  "samples": [
+    {
+      "name": "straight-center-45m",
+      "scene": "straight",
+      "note": "straight center, 4.5m projector deployed board capture",
+      "source_evidence": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-center-45m-deployed-20260426T132014Z",
+      "source_raw": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-center-45m-deployed-20260426T132014Z/steering-media/frames/frame-000677.raw",
+      "raw": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/straight-center-45m/straight-center-45m.raw",
+      "raw_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/straight-center-45m/straight-center-45m.png",
+      "overlay_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/straight-center-45m/straight-center-45m-overlay.png",
+      "probe_summary": "module=straight scene=idle reference_mode=centerline cross_candidate=false width_expand_ratio=1.02824 cross_bilateral_open_score_m=0.00417903 left_open_score=0.0116482 right_open_score=0.00417903 near_lateral_error=5.2567e-06 far_heading_error=-0.00580578 preview_curvature=-0.00186282 visible_range_m=4.5 track_confidence=1 compatibility_ref_col=158 projector_id=bev_projector_straight_center_45m_v3\nwrote_overlay=/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/straight-center-45m/straight-center-45m-overlay.bmp",
+      "metadata_json": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/straight-center-45m/straight-center-45m-metadata.json",
+      "captured_snapshot": {
+        "active_module": "straight",
+        "scene_phase": "idle",
+        "reference_mode": "centerline",
+        "scene_evidence": null,
+        "raw_turn_output": 0,
+        "applied_turn_output": 0
+      }
+    },
+    {
+      "name": "bend-entry-45m",
+      "scene": "bend",
+      "note": "bend entry negative cross/circle scene-evidence contract board capture",
+      "source_evidence": "/home/madejuele/projects/2K0300/new/verification/bev-board-bend-entry-scene-evidence-contract-20260426T135707Z",
+      "source_raw": "/home/madejuele/projects/2K0300/new/verification/bev-board-bend-entry-scene-evidence-contract-20260426T135707Z/steering-media/frames/frame-000811.raw",
+      "raw": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/bend-entry-45m/bend-entry-45m.raw",
+      "raw_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/bend-entry-45m/bend-entry-45m.png",
+      "overlay_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/bend-entry-45m/bend-entry-45m-overlay.png",
+      "probe_summary": "module=straight scene=idle reference_mode=centerline cross_candidate=false width_expand_ratio=1.62989 cross_bilateral_open_score_m=0.00516127 left_open_score=0.509083 right_open_score=0.00516127 near_lateral_error=5.2567e-06 far_heading_error=-0.0333667 preview_curvature=-0.017968 visible_range_m=4.5 track_confidence=0.8875 compatibility_ref_col=162 projector_id=bev_projector_straight_center_45m_v3\nwrote_overlay=/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/bend-entry-45m/bend-entry-45m-overlay.bmp",
+      "metadata_json": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/bend-entry-45m/bend-entry-45m-metadata.json",
+      "captured_snapshot": {
+        "active_module": "straight",
+        "scene_phase": "idle",
+        "reference_mode": "centerline",
+        "scene_evidence": {
+          "width_expand_ratio": 1.35611045361,
+          "cross_bilateral_open_score_m": 0,
+          "cross_bilateral_open": false,
+          "cross_candidate": false,
+          "zebra_candidate": false,
+          "circle_left_candidate": false,
+          "circle_right_candidate": false,
+          "left_open_score": 0.20605880022,
+          "right_open_score": 0,
+          "left_contract_score": 0,
+          "right_contract_score": 0.282196640968,
+          "left_boundary_heading_abs_rad": 0.0891387760639,
+          "right_boundary_heading_abs_rad": 0.0671005100012,
+          "circle_left_opposite_straight": false,
+          "circle_right_opposite_straight": false
+        },
+        "raw_turn_output": 0,
+        "applied_turn_output": 0
+      }
+    },
+    {
+      "name": "cross-entry-drivable-span",
+      "scene": "cross",
+      "note": "cross entry final drivable-span BEV geometry board capture",
+      "source_evidence": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-drivable-span-final-20260426T141342Z",
+      "source_raw": "/home/madejuele/projects/2K0300/new/verification/bev-board-cross-entry-drivable-span-final-20260426T141342Z/steering-media/frames/frame-000787.raw",
+      "raw": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/cross-entry-drivable-span/cross-entry-drivable-span.raw",
+      "raw_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/cross-entry-drivable-span/cross-entry-drivable-span.png",
+      "overlay_png": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/cross-entry-drivable-span/cross-entry-drivable-span-overlay.png",
+      "probe_summary": "module=straight scene=idle reference_mode=centerline cross_candidate=true width_expand_ratio=2.79889 cross_bilateral_open_score_m=0.392583 left_open_score=0.392583 right_open_score=0.45979 near_lateral_error=0.00959348 far_heading_error=-0.00221833 preview_curvature=0 visible_range_m=4.5 track_confidence=0.85 compatibility_ref_col=166 projector_id=bev_projector_straight_center_45m_v3\nwrote_overlay=/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/cross-entry-drivable-span/cross-entry-drivable-span-overlay.bmp",
+      "metadata_json": "/home/madejuele/projects/2K0300/new/verification/test-images/board-baseline-20260426/cross-entry-drivable-span/cross-entry-drivable-span-metadata.json",
+      "captured_snapshot": {
+        "active_module": "cross",
+        "scene_phase": "cross_hold",
+        "reference_mode": "hold_last",
+        "scene_evidence": {
+          "width_expand_ratio": 2.79888820648,
+          "cross_bilateral_open_score_m": 0.392583042383,
+          "cross_bilateral_open": true,
+          "cross_candidate": true,
+          "zebra_candidate": false,
+          "circle_left_candidate": false,
+          "circle_right_candidate": false,
+          "left_open_score": 0.392583042383,
+          "right_open_score": 0.459790468216,
+          "left_contract_score": 0.00327156484127,
+          "right_contract_score": 0.0010183006525,
+          "left_boundary_heading_abs_rad": 0.000779079739004,
+          "right_boundary_heading_abs_rad": 0.000679848017171,
+          "circle_left_opposite_straight": true,
+          "circle_right_opposite_straight": true
+        },
+        "raw_turn_output": 0,
+        "applied_turn_output": 0
+      }
+    }
+  ]
+}

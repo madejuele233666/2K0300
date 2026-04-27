@@ -1,0 +1,119 @@
+{
+  "schema": "bev-authority-baseline-v1",
+  "projector_id": "bev_projector_straight_center_45m_v3",
+  "projector_calibration": {
+    "projector_hash": "bev-projector-straight-center-45m-20260426",
+    "source_points": [
+      { "row_px": 220.0, "col_px": 21.5 },
+      { "row_px": 220.0, "col_px": 296.0 },
+      { "row_px": 68.0, "col_px": 114.0 },
+      { "row_px": 68.0, "col_px": 211.0 }
+    ],
+    "target_points": [
+      { "forward_m": 0.45, "lateral_m": -0.21 },
+      { "forward_m": 0.45, "lateral_m": 0.21 },
+      { "forward_m": 4.5, "lateral_m": -0.21 },
+      { "forward_m": 4.5, "lateral_m": 0.21 }
+    ]
+  },
+  "contract_semantics": {
+    "active_modules": "Sequence-level FSM ownership observed across the confirmation window.",
+    "primary_candidates": "BEV scene evidence on the selected primary snapshot for the sample. Candidate traces printed by the verifier are diagnostic only unless promoted into this manifest."
+  },
+  "parameter_contract": {
+    "cross_bilateral_open_min_m": 0.12,
+    "rationale": "Data-backed BEV scene gate. Authority circle bilateral-open leakage stayed below 0.093 m, authority cross samples stayed above 0.340 m, and the board cross-entry evidence stayed above 0.351 m. The 0.12 m gate preserves the conservative synthetic cross selftest while separating circle from true bilateral cross openings."
+  },
+  "samples": [
+    {
+      "file": "bend-1.raw",
+      "label": "bend",
+      "authority_role": "positive_ownership",
+      "require_valid_track": true,
+      "require_active_modules": ["bend"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["ordinary_bend_veto"],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+    },
+    {
+      "file": "bend-2.raw",
+      "label": "bend",
+      "authority_role": "positive_ownership",
+      "require_valid_track": true,
+      "require_active_modules": ["bend"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["ordinary_bend_veto"],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+    },
+    {
+      "file": "bend-3.raw",
+      "label": "bend",
+      "authority_role": "positive_ownership",
+      "require_valid_track": true,
+      "require_active_modules": ["bend"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["ordinary_bend_veto"],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+    },
+    {
+      "file": "circle-1.raw",
+      "label": "circle",
+      "authority_role": "positive_ownership",
+      "require_valid_track": true,
+      "require_active_modules": ["circle"],
+      "forbid_active_modules": ["cross", "bend"],
+      "require_primary_candidates": ["circle_left_candidate"],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+    },
+    {
+      "file": "circle-2.raw",
+      "label": "circle",
+      "authority_role": "positive_ownership",
+      "require_valid_track": true,
+      "require_active_modules": ["circle"],
+      "forbid_active_modules": ["cross", "bend"],
+      "require_primary_candidates": ["circle_right_candidate"],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+    },
+    {
+      "file": "circle-3.raw",
+      "label": "circle",
+      "authority_role": "negative_safety",
+      "require_valid_track": true,
+      "require_active_modules": [],
+      "forbid_active_modules": ["cross", "bend"],
+      "require_primary_candidates": [],
+      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+    },
+    {
+      "file": "cross-1.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": false,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle", "bend"],
+      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
+      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+    },
+    {
+      "file": "cross-2.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": false,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle", "bend"],
+      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
+      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+    },
+    {
+      "file": "cross-3.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": false,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle", "bend"],
+      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
+      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+    }
+  ]
+}

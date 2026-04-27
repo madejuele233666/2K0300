@@ -80,19 +80,13 @@ set(NEW_SRCS
     ../code/legacy/wheel_pid.cpp
     ../code/legacy/attitude_logic.cpp
     ../code/legacy/camera_logic.cpp
-    ../code/legacy/steering_bottom_tracker.cpp
+    ../code/legacy/steering_bev_projector.cpp
+    ../code/legacy/steering_bev_geometry.cpp
+    ../code/legacy/steering_observation_assembly.cpp
+    ../code/legacy/steering_scene_fsm.cpp
+    ../code/legacy/steering_reference_policy.cpp
+    ../code/legacy/steering_control_error_model.cpp
     ../code/legacy/steering_gyro_continuity.cpp
-    ../code/legacy/steering_scene_common.cpp
-    ../code/legacy/steering_scene_orchestrator.cpp
-    ../code/legacy/steering_scene_straight.cpp
-    ../code/legacy/steering_scene_bend.cpp
-    ../code/legacy/steering_scene_circle_entry.cpp
-    ../code/legacy/steering_scene_circle_interior.cpp
-    ../code/legacy/steering_scene_circle_exit.cpp
-    ../code/legacy/steering_scene_zebra.cpp
-    ../code/legacy/steering_scene_cross.cpp
-    ../code/legacy/steering_scene_special_wide.cpp
-    ../code/legacy/steering_scene_roadblock_stub.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/perception_frontend.cpp
     ../code/runtime/motion_supervisor.cpp
@@ -191,23 +185,35 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         scene_classifier_selftest
         ../verification/tests/scene_classifier_selftest.cpp
-        ../code/legacy/camera_logic.cpp
-        ../code/legacy/steering_bottom_tracker.cpp
-        ../code/legacy/steering_gyro_continuity.cpp
-        ../code/legacy/steering_scene_common.cpp
-        ../code/legacy/steering_scene_orchestrator.cpp
-        ../code/legacy/steering_scene_straight.cpp
-        ../code/legacy/steering_scene_bend.cpp
-        ../code/legacy/steering_scene_circle_entry.cpp
-        ../code/legacy/steering_scene_circle_interior.cpp
-        ../code/legacy/steering_scene_circle_exit.cpp
-        ../code/legacy/steering_scene_zebra.cpp
-        ../code/legacy/steering_scene_cross.cpp
-        ../code/legacy/steering_scene_special_wide.cpp
-        ../code/legacy/steering_scene_roadblock_stub.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_geometry.cpp
+        ../code/legacy/steering_observation_assembly.cpp
+        ../code/legacy/steering_scene_fsm.cpp
+        ../code/legacy/steering_reference_policy.cpp
+        ../code/legacy/steering_control_error_model.cpp
+        ../code/legacy/pid_control.cpp
+        ../code/legacy/fuzzy_pid_ucas.cpp
     )
     target_link_libraries(
         scene_classifier_selftest
+        pthread
+        m
+    )
+
+    add_executable(
+        scene_overlay_probe
+        ../user/scene_overlay_probe.cpp
+        ../code/legacy/camera_logic.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_geometry.cpp
+        ../code/legacy/steering_observation_assembly.cpp
+        ../code/legacy/steering_scene_fsm.cpp
+        ../code/legacy/steering_reference_policy.cpp
+        ../code/legacy/steering_control_error_model.cpp
+        ../code/legacy/steering_gyro_continuity.cpp
+    )
+    target_link_libraries(
+        scene_overlay_probe
         pthread
         m
     )

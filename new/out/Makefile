@@ -249,29 +249,77 @@ home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/pid_control.cpp.s
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.o: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.o
 
 # target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.o
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.i: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.i
 
 # target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.i
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s: home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.s: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.s
 
 # target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.cpp.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.o: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.i: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.s: home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.cpp.s
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o: home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o
+
+# target to build an object file
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.o
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.i: home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.i
+
+# target to preprocess a source file
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.i
+
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.s: home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.s
+
+# target to generate assembly for a file
+home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o: home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o
@@ -297,269 +345,77 @@ home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.cpp.s
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.o: home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.o
 
 # target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.o
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.i: home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.i
 
 # target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.i
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.s: home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.s
 
 # target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.cpp.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.cpp.s
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.o: home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.o
 
 # target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.o
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.i: home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.i
 
 # target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.i
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.s: home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.s
 
 # target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.cpp.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.cpp.s
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.o
 
 # target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.o
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.o
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.i
 
 # target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.i
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.i
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.i
 
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.s
 
 # target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.cpp.s
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.o: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.o
-
-# target to build an object file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.o
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.i: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.i
-
-# target to preprocess a source file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.i
-
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.s: home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.s
-
-# target to generate assembly for a file
-home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
-.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.cpp.s
+home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/new.dir/build.make CMakeFiles/new.dir/home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
+.PHONY : home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.cpp.s
 
 home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o: home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.cpp.o
 .PHONY : home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o
@@ -1833,45 +1689,27 @@ help:
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/pid_control.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bottom_tracker.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_geometry.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_bev_projector.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_control_error_model.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_gyro_continuity.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_bend.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_entry.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_exit.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_circle_interior.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_common.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_cross.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_orchestrator.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_roadblock_stub.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_special_wide.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_straight.s"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.o"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.i"
-	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_zebra.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_observation_assembly.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_reference_policy.s"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.o"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.i"
+	@echo "... home/madejuele/projects/2K0300/new/code/legacy/steering_scene_fsm.s"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.o"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.i"
 	@echo "... home/madejuele/projects/2K0300/new/code/legacy/wheel_pid.s"

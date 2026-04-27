@@ -1,0 +1,55 @@
+{
+  "timestamp_utc": "2026-04-26T15:24:17Z",
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z",
+  "duration_s": 16.0,
+  "interrupted": false,
+  "assistant_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8888,
+    "csv_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/assistant_control.csv",
+    "connected": true,
+    "connection_address": "10.100.170.226:51900",
+    "ack_frames": 0,
+    "state_frames": 0,
+    "telemetry_frames": 0,
+    "unknown_frames": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": null,
+    "last_host_receive_monotonic_ms": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/assistant_summary.json"
+  },
+  "board_summary": {
+    "board_ip": "10.100.170.226",
+    "board_user": "root",
+    "remote_log": "/home/root/new_runtime_left_offset_v4.log",
+    "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/board_runtime.log",
+    "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/board_steering_snapshot.jsonl",
+    "snapshot_count": 17,
+    "receiver_error": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/board_summary.json"
+  },
+  "media_summary": {
+    "listen_host": "10.100.170.115",
+    "listen_port": 8890,
+    "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/steering-media",
+    "connected": true,
+    "connection_address": "10.100.170.226:50870",
+    "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/steering-media/config_snapshot.json",
+    "metadata_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/steering-media/frame_metadata.jsonl",
+    "frame_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/steering-media/frames",
+    "frame_count": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": 146946673,
+    "last_host_receive_monotonic_ms": 146946673,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-left-offset-v4-20260426T152342Z/steering-media/summary.json"
+  },
+  "steering_media_alignment": {
+    "timestamp_utc": "2026-04-26T15:24:17Z",
+    "board_snapshot_count": 17,
+    "media_frame_count": 0,
+    "alignment_basis": "frame_id exact match, fallback nearest capture_time_ms within 200ms",
+    "fallback_capture_time_window_ms": 200,
+    "alignment_available": false,
+    "alignment_count": 0
+  }
+}

@@ -174,18 +174,12 @@ ls2k::port::RuntimeParameters BuildParams() {
 }
 
 void ExpectCleanBaseline(const ls2k::runtime::RuntimeState& state) {
-    Expect(state.steering_state.highest_line == 0, "highest_line baseline must be zero");
-    Expect(state.steering_state.farthest_line == 0, "farthest_line baseline must be zero");
-    Expect(state.steering_state.steering_reference_col == 160,
-           "steering_reference_col baseline must be 160");
     Expect(state.steering_state.active_module == "straight", "active_module baseline must be straight");
     Expect(state.steering_state.scene_phase == "idle", "scene_phase baseline must be idle");
     Expect(state.steering_state.scene_override_source == "none",
            "scene_override_source baseline must be none");
     Expect(state.steering_state.roadblock_interface_state == "supported_not_implemented",
            "roadblock interface baseline must be supported_not_implemented");
-    Expect(state.steering_state.last_special_scene_correction == "none",
-           "last_special_scene_correction baseline must be none");
     Expect(!state.steering_state.roadblock_active, "roadblock baseline must be inactive");
     ExpectNear(state.steering_state.controller_memory.w_target_last, 0.0F, 0.0001F,
                "w_target_last baseline must be zero");
@@ -204,14 +198,10 @@ void TestStopResetsRuntimeOwnedSteeringState() {
 
     Expect(loop.Start(params), "control loop should start in the test rig");
 
-    rig.state.steering_state.highest_line = 77;
-    rig.state.steering_state.farthest_line = 65;
-    rig.state.steering_state.steering_reference_col = 109;
     rig.state.steering_state.active_module = "bend";
     rig.state.steering_state.scene_phase = "tracking";
     rig.state.steering_state.scene_override_source = "scene_module";
     rig.state.steering_state.roadblock_interface_state = "unexpected";
-    rig.state.steering_state.last_special_scene_correction = "bend_bias";
     rig.state.steering_state.roadblock_active = true;
     rig.state.steering_state.controller_memory.w_target_last = 123.0F;
     rig.state.steering_state.controller_memory.camera_error_last = 45.0F;
@@ -271,13 +261,13 @@ void TestRestartFirstTickIsZeroAndNextTickRecomputesFromZeroMemory() {
     rig.state.perception.capture_time_ms = now_ms;
     rig.state.perception.publish_time_ms = now_ms;
     rig.state.perception.lateral_error = 10.0F;
-    rig.state.perception.highest_line = 30;
-    rig.state.perception.farthest_line = 50;
-    rig.state.perception.steering_reference_col = 170;
+    rig.state.perception.near_lateral_error = 10.0F;
+    rig.state.perception.control_model.valid = true;
+    rig.state.perception.control_model.curvature_command = 0.01F;
+    rig.state.perception.control_model.steering_gain_scale = 1.0;
     rig.state.perception.active_module = "bend";
     rig.state.perception.scene_phase = "tracking";
     rig.state.perception.scene_override_source = "lane_geometry";
-    rig.state.perception.last_special_scene_correction = "bend_bias";
     rig.state.imu.capture_time_ms = now_ms;
     rig.state.encoder.capture_time_ms = now_ms;
     rig.state.motion_intent.start_requested = true;
@@ -298,17 +288,17 @@ void TestRestartFirstTickIsZeroAndNextTickRecomputesFromZeroMemory() {
 
     Expect(rig.state.control_debug_snapshot.motion_phase == ls2k::runtime::MotionPhase::kSpinup,
            "second post-reset tick should enter SPINUP once the gate confirms");
-    Expect(rig.state.control_debug_snapshot.raw_turn_output == 27,
+    Expect(rig.state.control_debug_snapshot.raw_turn_output == 65,
            "post-reset restart tick must recompute raw turn from zero memory");
-    Expect(rig.state.control_debug_snapshot.applied_turn_output == 27,
+    Expect(rig.state.control_debug_snapshot.applied_turn_output == 65,
            "post-reset restart tick must recompute applied turn from zero memory");
-    ExpectNear(rig.state.steering_state.controller_memory.w_target_last, 27.0F, 0.0001F,
+    ExpectNear(rig.state.steering_state.controller_memory.w_target_last, 64.8F, 0.0001F,
                "w_target_last must be recomputed from zero memory");
-    ExpectNear(rig.state.steering_state.controller_memory.camera_error_last, 10.0F, 0.0001F,
+    ExpectNear(rig.state.steering_state.controller_memory.camera_error_last, 0.01F, 0.0001F,
                "camera_error_last must reflect the new frame only");
-    ExpectNear(rig.state.steering_state.controller_memory.gyro_error_last, 27.0F, 0.0001F,
+    ExpectNear(rig.state.steering_state.controller_memory.gyro_error_last, 64.8F, 0.0001F,
                "gyro_error_last must reflect the new frame only");
-    ExpectNear(rig.state.steering_state.controller_memory.gyro_i_accumulator, 27.0F, 0.0001F,
+    ExpectNear(rig.state.steering_state.controller_memory.gyro_i_accumulator, 64.8F, 0.0001F,
                "gyro accumulator must restart from zero memory");
     Expect(rig.state.control_debug_snapshot.steering.active_module == "bend",
            "post-reset restart tick must use the new frame's module");

@@ -62,6 +62,17 @@ log_error() {
     echo "[ERROR] $1" >&2
 }
 
+env_truthy() {
+    case "${1:-}" in
+        1|true|TRUE|yes|YES|on|ON)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 resolve_python() {
     if [[ -x "${VENV_PYTHON}" ]]; then
         printf '%s\n' "${VENV_PYTHON}"
@@ -105,6 +116,7 @@ Common env overrides:
   BOARD_PATH=/home/root
   LS2K_PARAMS_PATH=/abs/path/to/default_params.json
   LS2K_PROFILE_PATH=/abs/path/to/hardware_profile.json
+  LS2K_AUTO_START=1 requires CONFIRM_POWERED_START=1 for normal remote starts
 EOF
 }
 
@@ -525,10 +537,15 @@ remote_usage() {
     cat <<'EOF'
 Usage:
   ./debug.sh remote start [normal|smoke]
-  ./debug.sh remote stop
+  ./debug.sh remote stop [now|controlled]
   ./debug.sh remote restart [normal|smoke]
   ./debug.sh remote status
   ./debug.sh remote logs
+
+Notes:
+  normal starts are no-motion by default.
+  LS2K_AUTO_START=1 on normal mode requires CONFIRM_POWERED_START=1.
+  controlled stop sends SIGINT first and falls back to immediate stop after LS2K_CONTROLLED_STOP_TIMEOUT_S.
 EOF
 }
 
@@ -553,6 +570,13 @@ remote_start() {
             exit 1
             ;;
     esac
+
+    if [[ "${mode}" == "normal" ]] && env_truthy "${LS2K_AUTO_START:-0}" &&
+        [[ "${CONFIRM_POWERED_START:-0}" != "1" ]]; then
+        log_error "normal remote start with LS2K_AUTO_START=1 requires CONFIRM_POWERED_START=1"
+        log_error "use no-motion startup first, or run: CONFIRM_POWERED_START=1 LS2K_AUTO_START=1 ./debug.sh remote restart normal"
+        exit 1
+    fi
 
     require_remote_file "${BOARD_BIN}" "runtime binary"
     require_remote_file "${REMOTE_PARAMS}" "params file"
@@ -626,24 +650,87 @@ EOF
 }
 
 remote_stop() {
+    local stop_mode="${1:-now}"
+    local remote_stop_mode=""
+    local stop_timeout_s="${LS2K_CONTROLLED_STOP_TIMEOUT_S:-5}"
+
+    if ! [[ "${stop_timeout_s}" =~ ^[0-9]+$ ]]; then
+        log_error "LS2K_CONTROLLED_STOP_TIMEOUT_S must be a non-negative integer, got: ${stop_timeout_s}"
+        exit 1
+    fi
+
+    case "${stop_mode}" in
+        now|immediate|hard|force)
+            remote_stop_mode="now"
+            ;;
+        controlled|graceful)
+            remote_stop_mode="controlled"
+            ;;
+        *)
+            log_error "unknown remote stop mode: ${stop_mode}"
+            remote_usage >&2
+            exit 1
+            ;;
+    esac
+
     run_ssh \
-        "REMOTE_BIN='${BOARD_BIN}' REMOTE_PIDFILE='${REMOTE_PIDFILE}' bash -s" <<'EOF'
+        "REMOTE_BIN='${BOARD_BIN}' REMOTE_PIDFILE='${REMOTE_PIDFILE}' REMOTE_STOP_MODE='${remote_stop_mode}' STOP_TIMEOUT_S='${stop_timeout_s}' bash -s" <<'EOF'
 set -euo pipefail
+
+stop_one_pid() {
+    local runtime_pid="$1"
+    local stopped=0
+
+    if [[ "${REMOTE_STOP_MODE}" == "controlled" ]]; then
+        kill -INT "${runtime_pid}" 2>/dev/null || true
+        local deadline
+        deadline=$(( $(date +%s) + STOP_TIMEOUT_S ))
+        while kill -0 "${runtime_pid}" 2>/dev/null; do
+            if (( $(date +%s) >= deadline )); then
+                break
+            fi
+            sleep 1
+        done
+        if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+            echo "runtime_stopped_controlled pid=${runtime_pid}"
+            return 0
+        fi
+        echo "controlled_stop_timeout pid=${runtime_pid}; escalating_to_now"
+    fi
+
+    kill "${runtime_pid}" 2>/dev/null || true
+    sleep 1
+    if kill -0 "${runtime_pid}" 2>/dev/null; then
+        kill -KILL "${runtime_pid}" 2>/dev/null || true
+        sleep 1
+    fi
+    if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+        stopped=1
+    fi
+
+    if [[ "${stopped}" -eq 1 ]]; then
+        echo "runtime_stopped_now pid=${runtime_pid}"
+        return 0
+    fi
+    echo "runtime_stop_failed pid=${runtime_pid}" >&2
+    return 1
+}
 
 stopped=0
 if [[ -f "${REMOTE_PIDFILE}" ]]; then
     runtime_pid="$(cat "${REMOTE_PIDFILE}" 2>/dev/null || true)"
     if [[ -n "${runtime_pid}" ]] && kill -0 "${runtime_pid}" 2>/dev/null; then
-        kill "${runtime_pid}" 2>/dev/null || true
-        sleep 1
+        stop_one_pid "${runtime_pid}"
         stopped=1
     fi
     rm -f "${REMOTE_PIDFILE}"
 fi
 
-if pkill -f "^${REMOTE_BIN}$" 2>/dev/null; then
+pids="$(pgrep -f "^${REMOTE_BIN}$" 2>/dev/null || true)"
+for runtime_pid in ${pids}; do
+    stop_one_pid "${runtime_pid}"
     stopped=1
-fi
+done
 
 if [[ "${stopped}" -eq 1 ]]; then
     echo "runtime_stopped"
@@ -684,18 +771,18 @@ remote_logs() {
 
 remote_command() {
     local action="${1:-status}"
-    local mode="${2:-normal}"
+    local arg="${2:-}"
 
     case "${action}" in
         start)
-            remote_start "${mode}"
+            remote_start "${arg:-normal}"
             ;;
         stop)
-            remote_stop
+            remote_stop "${arg:-now}"
             ;;
         restart)
-            remote_stop
-            remote_start "${mode}"
+            remote_stop now
+            remote_start "${arg:-normal}"
             ;;
         status)
             remote_status

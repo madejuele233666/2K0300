@@ -113,22 +113,36 @@ void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
     snapshot.steering.valid = true;
     snapshot.steering.frame_id = 7;
     snapshot.steering.capture_time_ms = 88;
+    snapshot.steering.near_lateral_error = -0.21;
+    snapshot.steering.far_heading_error = 0.08;
+    snapshot.steering.preview_curvature = -0.03;
+    snapshot.steering.lookahead_distance_m = 1.4;
+    snapshot.steering.lookahead_lateral_error = -0.08;
+    snapshot.steering.lookahead_heading_error = 0.04;
+    snapshot.steering.reference_curvature = -0.01;
+    snapshot.steering.curvature_command = -0.09;
+    snapshot.steering.visible_range_m = 1.85;
+    snapshot.steering.reference_mode = "centerline";
     snapshot.steering.lateral_error = -1.25;
-    snapshot.steering.highest_line = 42;
-    snapshot.steering.farthest_line = 38;
-    snapshot.steering.steering_reference_col = 157;
     snapshot.steering.threshold = 91;
     snapshot.steering.threshold_veto = true;
     snapshot.steering.active_module = "bend";
     snapshot.steering.scene_phase = "tracking";
     snapshot.steering.scene_override_source = "lane_geometry";
-    snapshot.steering.last_special_scene_correction = "bend_bias";
+    snapshot.steering.scene_width_expand_ratio = 1.35;
+    snapshot.steering.scene_cross_bilateral_open_score_m = 0.01;
+    snapshot.steering.scene_cross_bilateral_open = false;
+    snapshot.steering.scene_cross_candidate = false;
+    snapshot.steering.scene_circle_left_candidate = false;
+    snapshot.steering.scene_circle_right_candidate = false;
+    snapshot.steering.scene_left_open_score = 0.21;
+    snapshot.steering.scene_right_open_score = 0.0;
+    snapshot.steering.scene_left_boundary_heading_abs_rad = 0.12;
+    snapshot.steering.scene_right_boundary_heading_abs_rad = 0.28;
     snapshot.steering.circle_direction = "left";
     snapshot.steering.circle_reference_mode = "inner_offset";
     snapshot.steering.circle_heading_delta_deg = 48.5;
-    snapshot.steering.circle_fallback_reason = "none";
     snapshot.steering.circle_entry_signal_active = false;
-    snapshot.steering.circle_entry_release_reason = "entry_signal_lost";
 
     reporter.MaybeEmit(snapshot, diagnostics);
 
@@ -142,12 +156,20 @@ void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
             "vetoed steering snapshot must still be exportable");
     Require(Contains(diagnostics.events[1].message, "active_module=bend"),
             "steering snapshot must expose active_module");
-    Require(Contains(diagnostics.events[1].message, "farthest_line=38"),
-            "steering snapshot must expose farthest_line");
+    Require(Contains(diagnostics.events[1].message, "near_lateral_error=-0.21"),
+            "steering snapshot must expose BEV near_lateral_error");
+    Require(Contains(diagnostics.events[1].message, "reference_mode=centerline"),
+            "steering snapshot must expose reference_mode");
+    Require(Contains(diagnostics.events[1].message, "curvature_command=-0.09"),
+            "steering snapshot must expose BEV curvature command");
+    Require(!Contains(diagnostics.events[1].message, "compatibility."),
+            "steering snapshot must not expose deprecated compatibility fields");
     Require(Contains(diagnostics.events[1].message, "circle_reference_mode=inner_offset"),
             "steering snapshot must expose circle reference mode");
-    Require(Contains(diagnostics.events[1].message, "circle_entry_release_reason=entry_signal_lost"),
-            "steering snapshot must expose circle entry release reason");
+    Require(Contains(diagnostics.events[1].message, "scene_evidence.cross_bilateral_open_score_m=0.01"),
+            "steering snapshot must expose BEV cross evidence");
+    Require(Contains(diagnostics.events[1].message, "scene_evidence.right_boundary_heading_abs_rad=0.28"),
+            "steering snapshot must expose BEV boundary heading evidence");
 }
 
 void TestEnvelopeValidation() {
@@ -164,8 +186,12 @@ void TestEnvelopeValidation() {
     config.param_snapshot.p_mode = 3;
     config.param_snapshot.speed_base = 77.0;
     config.param_snapshot.control_period_ms = 5;
-    config.param_snapshot.circle_exit.exit_complete_deg = 300.0;
-    config.param_snapshot.circle_fallback.fixsteer_bias_scale = 0.55;
+    config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
+    config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
+    config.param_snapshot.bev_scene_fsm.cross_bilateral_open_min_m = 0.06F;
+    config.param_snapshot.bev_scene_fsm.circle_release_cycles = 4;
+    config.param_snapshot.bev_control_model.low_visible_range_m = 0.95F;
+    config.param_snapshot.bev_control_model.min_gain_scale = 0.3F;
 
     std::vector<std::uint8_t> encoded;
     std::string error;
@@ -190,10 +216,28 @@ void TestEnvelopeValidation() {
             "config snapshot must include gyro P");
     Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.75"),
             "config snapshot must include gyro I");
-    Require(Contains(header_json, "\"CIRCLE_EXIT\""),
-            "config snapshot must include decoupled circle exit group");
-    Require(Contains(header_json, "\"FIXSTEER_BIAS_SCALE\":0.55"),
-            "config snapshot must include circle fallback settings");
+    Require(!Contains(header_json, "\"SCENE_WIDE_CLASSIFIER\""),
+            "config snapshot must not include deprecated pixel scene classifier settings");
+    Require(!Contains(header_json, "\"CIRCLE_ENTRY\"") && !Contains(header_json, "\"CIRCLE_EXIT\""),
+            "config snapshot must not include deprecated pixel circle settings");
+    Require(Contains(header_json, "\"BEV_PROJECTOR\""),
+            "config snapshot must include BEV projector group");
+    Require(Contains(header_json, "\"PROJECTOR_HASH\":\"unit-test-projector-hash\""),
+            "config snapshot must include projector hash");
+    Require(Contains(header_json, "\"BEV_GEOMETRY\""),
+            "config snapshot must include BEV geometry group");
+    Require(Contains(header_json, "\"SEARCH_LATERAL_LIMIT_M\":0.72000002861"),
+            "config snapshot must include BEV geometry values");
+    Require(Contains(header_json, "\"BEV_SCENE_FSM\""),
+            "config snapshot must include BEV scene FSM group");
+    Require(Contains(header_json, "\"CROSS_BILATERAL_OPEN_MIN_M\":0.0599999986589"),
+            "config snapshot must include BEV scene cross bilateral-open threshold");
+    Require(Contains(header_json, "\"CIRCLE_RELEASE_CYCLES\":4"),
+            "config snapshot must include BEV scene release cycles");
+    Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
+            "config snapshot must include BEV control model group");
+    Require(Contains(header_json, "\"LOW_VISIBLE_RANGE_M\":0.949999988079"),
+            "config snapshot must include BEV control low visible range");
 
     Require(!ls2k::platform::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size() - 1, header_json, payload, error),
@@ -279,6 +323,8 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
                                                         error),
             "queued image frame should decode");
     Require(Contains(header_json, "\"frame_id\":2"), "latest queued frame must win");
+    Require(Contains(header_json, "\"scene_evidence\""),
+            "image frame snapshot must include BEV scene evidence");
     Require(payload.size() == ls2k::platform::SteeringMediaImagePayloadBytes(320, 240),
             "flushed image payload must remain intact");
 }
@@ -304,8 +350,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.P_Mode = 3;
     params.Speed_base = 77.0;
     params.control_period_ms = 5;
-    params.circle_exit.exit_complete_deg = 300.0;
-    params.circle_fallback.fixsteer_bias_scale = 0.55;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -316,16 +360,22 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
-        state.control_debug_snapshot.steering.active_module = "circle_entry";
-        state.control_debug_snapshot.steering.scene_phase = "repairing";
-        state.control_debug_snapshot.steering.farthest_line = 55;
-        state.control_debug_snapshot.steering.steering_reference_col = 148;
+        state.control_debug_snapshot.steering.near_lateral_error = -0.125;
+        state.control_debug_snapshot.steering.far_heading_error = 0.075;
+        state.control_debug_snapshot.steering.preview_curvature = -0.02;
+        state.control_debug_snapshot.steering.lookahead_distance_m = 1.4;
+        state.control_debug_snapshot.steering.lookahead_lateral_error = -0.09;
+        state.control_debug_snapshot.steering.lookahead_heading_error = 0.04;
+        state.control_debug_snapshot.steering.reference_curvature = -0.015;
+        state.control_debug_snapshot.steering.curvature_command = -0.10;
+        state.control_debug_snapshot.steering.visible_range_m = 1.9;
+        state.control_debug_snapshot.steering.active_module = "circle";
+        state.control_debug_snapshot.steering.scene_phase = "circle_entry";
+        state.control_debug_snapshot.steering.reference_mode = "inner_offset";
         state.control_debug_snapshot.steering.circle_direction = "left";
         state.control_debug_snapshot.steering.circle_reference_mode = "inner_offset";
         state.control_debug_snapshot.steering.circle_heading_delta_deg = 52.0;
-        state.control_debug_snapshot.steering.circle_fallback_reason = "none";
         state.control_debug_snapshot.steering.circle_entry_signal_active = true;
-        state.control_debug_snapshot.steering.circle_entry_release_reason = "none";
         state.latest_camera_capture.has_frame = true;
         state.latest_camera_capture.frame_id = 41;
         state.latest_camera_capture.capture_time_ms = 1234;
@@ -361,8 +411,16 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must export gyro P");
     Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.5"),
             "service config snapshot must export gyro I");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY\""),
-            "service config snapshot must expose decoupled circle entry group");
+    Require(!Contains(header_json, "\"SCENE_WIDE_CLASSIFIER\""),
+            "service config snapshot must not expose deprecated pixel scene classifier settings");
+    Require(!Contains(header_json, "\"CIRCLE_ENTRY\"") && !Contains(header_json, "\"CIRCLE_EXIT\""),
+            "service config snapshot must not expose deprecated pixel circle settings");
+    Require(Contains(header_json, "\"BEV_PROJECTOR\""),
+            "service config snapshot must expose BEV projector settings");
+    Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
+            "service config snapshot must expose BEV control settings");
+    Require(Contains(header_json, "\"CURVATURE_TO_W_TARGET_GAIN\""),
+            "service config snapshot must expose curvature control gain");
 
     Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
@@ -372,12 +430,18 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame should decode");
     Require(Contains(header_json, "\"type\":\"image_frame\""),
             "second emitted frame must be image_frame");
-    Require(Contains(header_json, "\"active_module\":\"circle_entry\""),
+    Require(Contains(header_json, "\"active_module\":\"circle\""),
             "image frame must include active_module in steering snapshot");
-    Require(Contains(header_json, "\"scene_phase\":\"repairing\""),
+    Require(Contains(header_json, "\"scene_phase\":\"circle_entry\""),
             "image frame must include scene_phase in steering snapshot");
-    Require(Contains(header_json, "\"farthest_line\":55"),
-            "image frame must include farthest_line in steering snapshot");
+    Require(Contains(header_json, "\"near_lateral_error\":-0.125"),
+            "image frame must include BEV primary steering fields");
+    Require(Contains(header_json, "\"reference_mode\":\"inner_offset\""),
+            "image frame must include BEV reference mode");
+    Require(Contains(header_json, "\"curvature_command\":-0.1"),
+            "image frame must include BEV curvature command");
+    Require(!Contains(header_json, "\"compatibility\""),
+            "image frame must not include deprecated compatibility group");
     Require(Contains(header_json, "\"circle_direction\":\"left\""),
             "image frame must include circle direction");
     Require(Contains(header_json, "\"circle_reference_mode\":\"inner_offset\""),

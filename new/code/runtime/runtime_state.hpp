@@ -15,6 +15,45 @@
 
 namespace ls2k::runtime {
 
+inline void ResetSteeringTrackMemory(port::LegacySteeringState& steering_state) {
+    steering_state.last_bev_track = {};
+    steering_state.bev_track_memory = {};
+    steering_state.lane_geometry_recent = {};
+    steering_state.lane_geometry_previous = {};
+    steering_state.track_history = {};
+    steering_state.gyro_continuity = {};
+}
+
+inline void ResetSteeringSceneMemory(port::LegacySteeringState& steering_state) {
+    steering_state.active_module = "straight";
+    steering_state.scene_phase = "idle";
+    steering_state.scene_override_source = "none";
+    steering_state.roadblock_active = false;
+    steering_state.roadblock_interface_state = "supported_not_implemented";
+    steering_state.scene_debug_candidate = "none";
+    steering_state.scene_debug_candidate_streak = 0;
+    steering_state.scene_cross_candidate_score_last = 0.0F;
+    steering_state.scene_circle_left_candidate_score_last = 0.0F;
+    steering_state.scene_circle_right_candidate_score_last = 0.0F;
+    steering_state.scene_fsm = {};
+}
+
+inline void ResetSteeringReferenceMemory(port::LegacySteeringState& steering_state) {
+    steering_state.reference_policy = {};
+}
+
+inline void ResetSteeringControllerMemory(port::LegacySteeringState& steering_state) {
+    steering_state.drive_cycle_count = 0;
+    steering_state.controller_memory = {};
+}
+
+inline void ResetSteeringRuntimeState(port::LegacySteeringState& steering_state) {
+    ResetSteeringTrackMemory(steering_state);
+    ResetSteeringSceneMemory(steering_state);
+    ResetSteeringReferenceMemory(steering_state);
+    ResetSteeringControllerMemory(steering_state);
+}
+
 struct CameraCaptureHistory {
     static constexpr std::size_t kCapacity = 8;
 

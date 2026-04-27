@@ -48,58 +48,14 @@ void RememberCameraCapture(RuntimeState& state, const port::CameraCapture& captu
 }
 
 void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analysis, RuntimeState& state) {
-    const port::PerceptionResult& perception = analysis.perception;
-    state.steering_state.highest_line = perception.highest_line;
-    state.steering_state.farthest_line = perception.farthest_line;
-    state.steering_state.steering_reference_col = perception.steering_reference_col;
-    state.steering_state.active_module = perception.active_module;
-    state.steering_state.scene_phase = perception.scene_phase;
-    state.steering_state.scene_override_source = perception.scene_override_source;
-    state.steering_state.roadblock_interface_state = perception.roadblock_interface_state;
-    state.steering_state.last_special_scene_correction = perception.last_special_scene_correction;
-    state.steering_state.roadblock_active = perception.roadblock_active;
-    state.steering_state.special_wide_candidate = analysis.special_wide_candidate;
-    state.steering_state.special_wide_candidate_streak = analysis.special_wide_candidate_streak;
-    state.steering_state.special_wide_cross_score_last = analysis.special_wide_cross_score_last;
-    state.steering_state.special_wide_circle_left_score_last =
-        analysis.special_wide_circle_left_score_last;
-    state.steering_state.special_wide_circle_right_score_last =
-        analysis.special_wide_circle_right_score_last;
     if (analysis.steering_state_update_valid) {
-        state.steering_state.circle_active_direction =
-            analysis.steering_state_update.circle_active_direction;
-        state.steering_state.circle_entry_state = analysis.steering_state_update.circle_entry_state;
-        state.steering_state.circle_exit_state = analysis.steering_state_update.circle_exit_state;
-        state.steering_state.circle_reference_mode =
-            analysis.steering_state_update.circle_reference_mode;
-        state.steering_state.circle_heading_delta_deg =
-            analysis.steering_state_update.circle_heading_delta_deg;
-        state.steering_state.circle_heading_baseline_deg =
-            analysis.steering_state_update.circle_heading_baseline_deg;
-        state.steering_state.circle_last_imu_capture_time_ms =
-            analysis.steering_state_update.circle_last_imu_capture_time_ms;
-        state.steering_state.circle_fixsteer_cycles =
-            analysis.steering_state_update.circle_fixsteer_cycles;
-        state.steering_state.circle_handover_cycles =
-            analysis.steering_state_update.circle_handover_cycles;
-        state.steering_state.circle_fallback_reason =
-            analysis.steering_state_update.circle_fallback_reason;
-        state.steering_state.circle_entry_settle_cycles =
-            analysis.steering_state_update.circle_entry_settle_cycles;
-        state.steering_state.circle_entry_loss_cycles =
-            analysis.steering_state_update.circle_entry_loss_cycles;
-        state.steering_state.circle_entry_release_reason =
-            analysis.steering_state_update.circle_entry_release_reason;
-        state.steering_state.circle_opposite_edge_confirm_cycles =
-            analysis.steering_state_update.circle_opposite_edge_confirm_cycles;
-        state.steering_state.circle_release_cycles =
-            analysis.steering_state_update.circle_release_cycles;
-        state.steering_state.circle_last_stable_reference_col =
-            analysis.steering_state_update.circle_last_stable_reference_col;
+        state.steering_state = analysis.steering_state_update;
+        return;
     }
-    state.steering_state.lane_geometry_previous = state.steering_state.lane_geometry_recent;
-    state.steering_state.lane_geometry_recent = analysis.lane_geometry_snapshot;
-    state.steering_state.track_history = analysis.track_history_snapshot;
+
+    state.steering_state.active_module = analysis.perception.active_module;
+    state.steering_state.scene_phase = analysis.perception.scene_phase;
+    state.steering_state.last_bev_track = analysis.track_estimate;
     state.steering_state.gyro_continuity = analysis.gyro_continuity_state;
 }
 

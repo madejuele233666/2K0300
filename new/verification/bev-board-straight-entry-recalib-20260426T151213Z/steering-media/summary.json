@@ -1,0 +1,14 @@
+{
+  "listen_host": "10.100.170.115",
+  "listen_port": 8890,
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-entry-recalib-20260426T151213Z/steering-media",
+  "connected": true,
+  "connection_address": "10.100.170.226:50846",
+  "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-entry-recalib-20260426T151213Z/steering-media/config_snapshot.json",
+  "metadata_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-entry-recalib-20260426T151213Z/steering-media/frame_metadata.jsonl",
+  "frame_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-straight-entry-recalib-20260426T151213Z/steering-media/frames",
+  "frame_count": 1,
+  "receiver_error": null,
+  "first_host_receive_monotonic_ms": 146234779,
+  "last_host_receive_monotonic_ms": 146240928
+}

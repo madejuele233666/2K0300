@@ -64,17 +64,48 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
     steering_message << "phase=" << ToString(snapshot.motion_phase)
                      << " frame_id=" << snapshot.steering.frame_id
                      << " capture_time_ms=" << snapshot.steering.capture_time_ms
-                     << " lateral_error=" << snapshot.steering.lateral_error
-                     << " heading_error=" << snapshot.steering.heading_error
-                     << " curvature=" << snapshot.steering.curvature
+                     << " near_lateral_error=" << snapshot.steering.near_lateral_error
+                     << " far_heading_error=" << snapshot.steering.far_heading_error
+                     << " preview_curvature=" << snapshot.steering.preview_curvature
+                     << " lookahead_distance_m=" << snapshot.steering.lookahead_distance_m
+                     << " lookahead_lateral_error=" << snapshot.steering.lookahead_lateral_error
+                     << " lookahead_heading_error=" << snapshot.steering.lookahead_heading_error
+                     << " reference_curvature=" << snapshot.steering.reference_curvature
+                     << " curvature_command=" << snapshot.steering.curvature_command
+                     << " yaw_rate_target=" << snapshot.steering.yaw_rate_target
+                     << " visible_range_m=" << snapshot.steering.visible_range_m
+                     << " scene_evidence.width_expand_ratio="
+                     << snapshot.steering.scene_width_expand_ratio
+                     << " scene_evidence.cross_bilateral_open_score_m="
+                     << snapshot.steering.scene_cross_bilateral_open_score_m
+                     << " scene_evidence.cross_bilateral_open="
+                     << BoolToken(snapshot.steering.scene_cross_bilateral_open)
+                     << " scene_evidence.cross_candidate="
+                     << BoolToken(snapshot.steering.scene_cross_candidate)
+                     << " scene_evidence.zebra_candidate="
+                     << BoolToken(snapshot.steering.scene_zebra_candidate)
+                     << " scene_evidence.circle_left_candidate="
+                     << BoolToken(snapshot.steering.scene_circle_left_candidate)
+                     << " scene_evidence.circle_right_candidate="
+                     << BoolToken(snapshot.steering.scene_circle_right_candidate)
+                     << " scene_evidence.left_open_score="
+                     << snapshot.steering.scene_left_open_score
+                     << " scene_evidence.right_open_score="
+                     << snapshot.steering.scene_right_open_score
+                     << " scene_evidence.left_contract_score="
+                     << snapshot.steering.scene_left_contract_score
+                     << " scene_evidence.right_contract_score="
+                     << snapshot.steering.scene_right_contract_score
+                     << " scene_evidence.left_boundary_heading_abs_rad="
+                     << snapshot.steering.scene_left_boundary_heading_abs_rad
+                     << " scene_evidence.right_boundary_heading_abs_rad="
+                     << snapshot.steering.scene_right_boundary_heading_abs_rad
+                     << " scene_evidence.circle_left_opposite_straight="
+                     << BoolToken(snapshot.steering.scene_circle_left_opposite_straight)
+                     << " scene_evidence.circle_right_opposite_straight="
+                     << BoolToken(snapshot.steering.scene_circle_right_opposite_straight)
                      << " track_confidence=" << snapshot.steering.track_confidence
-                     << " highest_line=" << snapshot.steering.highest_line
-                     << " farthest_line=" << snapshot.steering.farthest_line
-                     << " steering_reference_col=" << snapshot.steering.steering_reference_col
                      << " track_valid=" << BoolToken(snapshot.steering.track_valid)
-                     << " track_seed_col=" << snapshot.steering.track_seed_col
-                     << " track_seed_score=" << snapshot.steering.track_seed_score
-                     << " track_sign=" << snapshot.steering.track_sign
                      << " sign_flip_blocked=" << BoolToken(snapshot.steering.sign_flip_blocked)
                      << " imu_grace_active=" << BoolToken(snapshot.steering.imu_grace_active)
                      << " gyro_heading_delta_deg=" << snapshot.steering.gyro_heading_delta_deg
@@ -83,19 +114,14 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " threshold_veto=" << BoolToken(snapshot.steering.threshold_veto)
                      << " active_module=" << snapshot.steering.active_module
                      << " scene_phase=" << snapshot.steering.scene_phase
+                     << " reference_mode=" << snapshot.steering.reference_mode
                      << " scene_override_source=" << snapshot.steering.scene_override_source
-                     << " track_source=" << snapshot.steering.track_source
                      << " circle_direction=" << snapshot.steering.circle_direction
                      << " circle_reference_mode=" << snapshot.steering.circle_reference_mode
                      << " circle_heading_delta_deg=" << snapshot.steering.circle_heading_delta_deg
-                     << " circle_fallback_reason=" << snapshot.steering.circle_fallback_reason
                      << " circle_entry_signal_active="
                      << BoolToken(snapshot.steering.circle_entry_signal_active)
-                     << " circle_entry_release_reason="
-                     << snapshot.steering.circle_entry_release_reason
                      << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
-                     << " last_special_scene_correction="
-                     << snapshot.steering.last_special_scene_correction
                      << " roadblock_active=" << BoolToken(snapshot.steering.roadblock_active)
                      << " resolved_fuzzy_p=" << snapshot.steering.resolved_fuzzy_p
                      << " camera_p_term=" << snapshot.steering.camera_p_term

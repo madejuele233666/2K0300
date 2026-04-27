@@ -55,16 +55,22 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
     snapshot.steering.frame_id = 88;
     snapshot.steering.capture_time_ms = 77;
     snapshot.steering.lateral_error = 12.5;
-    snapshot.steering.highest_line = 40;
-    snapshot.steering.farthest_line = 66;
-    snapshot.steering.steering_reference_col = 158;
     snapshot.steering.threshold = 101;
     snapshot.steering.threshold_veto = false;
     snapshot.steering.active_module = "bend";
     snapshot.steering.scene_phase = "tracking";
     snapshot.steering.scene_override_source = "lane_geometry";
+    snapshot.steering.scene_width_expand_ratio = 1.32;
+    snapshot.steering.scene_cross_bilateral_open_score_m = 0.01;
+    snapshot.steering.scene_cross_bilateral_open = false;
+    snapshot.steering.scene_cross_candidate = false;
+    snapshot.steering.scene_circle_left_candidate = false;
+    snapshot.steering.scene_circle_right_candidate = false;
+    snapshot.steering.scene_left_open_score = 0.20;
+    snapshot.steering.scene_right_open_score = 0.0;
+    snapshot.steering.scene_left_boundary_heading_abs_rad = 0.10;
+    snapshot.steering.scene_right_boundary_heading_abs_rad = 0.28;
     snapshot.steering.roadblock_interface_state = "supported_not_implemented";
-    snapshot.steering.last_special_scene_correction = "bend_bias";
     snapshot.steering.roadblock_active = false;
     snapshot.steering.resolved_fuzzy_p = 22.0;
     snapshot.steering.camera_p_term = 11.0;
@@ -77,7 +83,12 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
     snapshot.steering.raw_turn_output = 123;
     snapshot.steering.applied_turn_output = 117;
     snapshot.steering.circle_entry_signal_active = false;
-    snapshot.steering.circle_entry_release_reason = "entry_signal_lost";
+    snapshot.steering.lookahead_distance_m = 1.4;
+    snapshot.steering.lookahead_lateral_error = 0.03;
+    snapshot.steering.lookahead_heading_error = 0.02;
+    snapshot.steering.reference_curvature = 0.01;
+    snapshot.steering.curvature_command = 0.04;
+    snapshot.steering.yaw_rate_target = 0.0;
 
     RecordingDiagnostics diagnostics;
     reporter.MaybeEmit(snapshot, diagnostics);
@@ -86,16 +97,24 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
     const auto* steering_event = FindEvent(diagnostics, "control.steering_snapshot");
     Expect(control_event != nullptr, "assistant-disabled path must still emit control.snapshot");
     Expect(steering_event != nullptr, "assistant-disabled path must still emit control.steering_snapshot");
-    Expect(steering_event->message.find("farthest_line=66") != std::string::npos,
-           "steering snapshot must keep farthest_line for assistant-disabled review");
-    Expect(steering_event->message.find("steering_reference_col=158") != std::string::npos,
-           "steering snapshot must keep steering_reference_col for assistant-disabled review");
+    Expect(steering_event->message.find("compatibility.") == std::string::npos,
+           "steering snapshot must not export deprecated compatibility fields");
+    Expect(steering_event->message.find("curvature_command=0.04") != std::string::npos,
+           "steering snapshot must expose BEV curvature command");
+    Expect(steering_event->message.find("lookahead_distance_m=1.4") != std::string::npos,
+           "steering snapshot must expose BEV lookahead distance");
     Expect(steering_event->message.find("active_module=bend") != std::string::npos,
            "steering snapshot must keep active_module for assistant-disabled review");
     Expect(steering_event->message.find("scene_phase=tracking") != std::string::npos,
            "steering snapshot must keep scene_phase for assistant-disabled review");
     Expect(steering_event->message.find("scene_override_source=lane_geometry") != std::string::npos,
            "steering snapshot must keep scene_override_source for assistant-disabled review");
+    Expect(steering_event->message.find("scene_evidence.cross_bilateral_open_score_m=0.01") !=
+               std::string::npos,
+           "steering snapshot must expose BEV cross evidence for assistant-disabled review");
+    Expect(steering_event->message.find("scene_evidence.right_boundary_heading_abs_rad=0.28") !=
+               std::string::npos,
+           "steering snapshot must expose BEV boundary heading evidence for assistant-disabled review");
     Expect(steering_event->message.find("roadblock_interface_state=supported_not_implemented") !=
                std::string::npos,
            "steering snapshot must disclose the roadblock stub state");
@@ -103,9 +122,6 @@ void TestSteeringSnapshotRemainsUsefulWhenAssistantDisabled() {
            "steering snapshot must keep raw_turn_output for assistant-disabled review");
     Expect(steering_event->message.find("applied_turn_output=117") != std::string::npos,
            "steering snapshot must keep applied_turn_output for assistant-disabled review");
-    Expect(steering_event->message.find("circle_entry_release_reason=entry_signal_lost") !=
-               std::string::npos,
-           "steering snapshot must expose circle entry release diagnostics");
 }
 
 }  // namespace

@@ -1,13 +1,17 @@
-#include <cstdint>
+#include <algorithm>
 #include <cmath>
-#include <fstream>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
-#include "legacy/camera_logic.hpp"
-#include "legacy/steering_bottom_tracker.hpp"
-#include "legacy/steering_scene_orchestrator.hpp"
+#include "legacy/pid_control.hpp"
+#include "legacy/steering_bev_geometry.hpp"
+#include "legacy/steering_bev_projector.hpp"
+#include "legacy/steering_control_error_model.hpp"
+#include "legacy/steering_observation_assembly.hpp"
+#include "legacy/steering_reference_policy.hpp"
+#include "legacy/steering_scene_fsm.hpp"
 
 namespace {
 
@@ -21,640 +25,774 @@ void Expect(bool condition, const std::string& message) {
     }
 }
 
-struct FixtureAnalysis {
-    ls2k::legacy::SteeringAnalysisResult analysis{};
-    ls2k::legacy::LaneMetrics metrics{};
-};
-
-struct RawFixture {
-    const char* label = "";
-    const char* path = "";
-};
-
-std::string DescribeAnalysis(const FixtureAnalysis& analysis) {
-    const ls2k::legacy::LaneMetrics& metrics = analysis.metrics;
-    return "module=" + analysis.analysis.perception.active_module + " scene=" +
-           analysis.analysis.perception.scene_phase +
-           " candidate=" + analysis.analysis.special_wide_candidate +
-           " streak=" + std::to_string(analysis.analysis.special_wide_candidate_streak) +
-           " cross=" + std::to_string(analysis.analysis.special_wide_cross_score_last) +
-           " circle_l=" + std::to_string(analysis.analysis.special_wide_circle_left_score_last) +
-           " circle_r=" + std::to_string(analysis.analysis.special_wide_circle_right_score_last) +
-           " upper_span=" + std::to_string(metrics.upper_full_span_ratio) +
-           " upper_span_consec=" + std::to_string(metrics.upper_full_span_consecutive_rows_max) +
-           " left_curve=" + std::to_string(metrics.left_curvature) +
-           " right_curve=" + std::to_string(metrics.right_curvature) +
-           " bend_same_sign=" + std::to_string(metrics.same_direction_bend_sign) +
-           " bend_extrap=" + std::to_string(metrics.bend_used_current_frame_extrapolation ? 1 : 0) +
-           " bend_hist=" + std::to_string(metrics.bend_used_history_fallback ? 1 : 0) +
-           " left_touch=" + std::to_string(metrics.left_upper_border_touch_ratio) +
-           " right_touch=" + std::to_string(metrics.right_upper_border_touch_ratio) +
-           " left_visible=" + std::to_string(metrics.left_visible_confident ? 1 : 0) +
-           " right_visible=" + std::to_string(metrics.right_visible_confident ? 1 : 0);
+bool NearlyEqual(float left, float right, float tolerance = 1e-4F) {
+    return std::fabs(left - right) <= tolerance;
 }
 
-ls2k::port::LegacyCameraFrame ReadRawFrame(const char* path) {
-    ls2k::port::LegacyCameraFrame frame{};
-    frame.width = ls2k::port::kCompiledCameraFrameWidth;
-    frame.height = ls2k::port::kCompiledCameraFrameHeight;
-
-    std::ifstream input(path, std::ios::binary);
-    if (!input.is_open()) {
-        throw std::runtime_error(std::string("failed to open raw frame: ") + path);
-    }
-    input.read(reinterpret_cast<char*>(frame.gray.data()),
-               static_cast<std::streamsize>(frame.width * frame.height));
-    Expect(static_cast<int>(input.gcount()) == frame.width * frame.height,
-           std::string("raw frame size must match compiled geometry for ") + path);
-    return frame;
-}
-
-ls2k::port::RuntimeParameters MakeSceneParams() {
+ls2k::port::RuntimeParameters MakeParams() {
     ls2k::port::RuntimeParameters params{};
-    params.see_max = 24.0;
-    params.emergency_threshold = 40;
+    params.Speed_base = 77.0;
+    params.bev_geometry.nominal_lane_width_m = 0.42F;
+    params.bev_scene_fsm.bend_severity_confirm = 0.20F;
+    params.bev_scene_fsm.cross_confirm_cycles = 2;
+    params.bev_scene_fsm.cross_hold_cycles = 3;
+    params.bev_scene_fsm.circle_confirm_cycles = 2;
+    params.bev_scene_fsm.circle_release_cycles = 3;
+    params.bev_scene_fsm.release_track_confidence_min = 0.55F;
+    params.bev_control_model.low_confidence_threshold = 0.35;
+    params.bev_control_model.steering_suppression_confidence = 0.12;
+    params.bev_control_model.low_visible_range_m = 0.80;
+    params.bev_control_model.min_gain_scale = 0.25;
+    params.bev_control_model.min_speed_limit_scale = 0.35;
     return params;
 }
 
-void ApplyAnalysisToState(const ls2k::legacy::SteeringAnalysisResult& analysis,
-                          ls2k::port::LegacySteeringState& state) {
-    const ls2k::port::PerceptionResult& perception = analysis.perception;
-    state.highest_line = perception.highest_line;
-    state.farthest_line = perception.farthest_line;
-    state.steering_reference_col = perception.steering_reference_col;
-    state.active_module = perception.active_module;
-    state.scene_phase = perception.scene_phase;
-    state.scene_override_source = perception.scene_override_source;
-    state.roadblock_interface_state = perception.roadblock_interface_state;
-    state.last_special_scene_correction = perception.last_special_scene_correction;
-    state.roadblock_active = perception.roadblock_active;
-    state.special_wide_candidate = analysis.special_wide_candidate;
-    state.special_wide_candidate_streak = analysis.special_wide_candidate_streak;
-    state.special_wide_cross_score_last = analysis.special_wide_cross_score_last;
-    state.special_wide_circle_left_score_last = analysis.special_wide_circle_left_score_last;
-    state.special_wide_circle_right_score_last = analysis.special_wide_circle_right_score_last;
-    if (analysis.steering_state_update_valid) {
-        state.circle_active_direction = analysis.steering_state_update.circle_active_direction;
-        state.circle_entry_state = analysis.steering_state_update.circle_entry_state;
-        state.circle_exit_state = analysis.steering_state_update.circle_exit_state;
-        state.circle_reference_mode = analysis.steering_state_update.circle_reference_mode;
-        state.circle_heading_delta_deg = analysis.steering_state_update.circle_heading_delta_deg;
-        state.circle_heading_baseline_deg = analysis.steering_state_update.circle_heading_baseline_deg;
-        state.circle_last_imu_capture_time_ms =
-            analysis.steering_state_update.circle_last_imu_capture_time_ms;
-        state.circle_fixsteer_cycles = analysis.steering_state_update.circle_fixsteer_cycles;
-        state.circle_handover_cycles = analysis.steering_state_update.circle_handover_cycles;
-        state.circle_fallback_reason = analysis.steering_state_update.circle_fallback_reason;
-        state.circle_entry_settle_cycles = analysis.steering_state_update.circle_entry_settle_cycles;
-        state.circle_entry_loss_cycles = analysis.steering_state_update.circle_entry_loss_cycles;
-        state.circle_entry_release_reason =
-            analysis.steering_state_update.circle_entry_release_reason;
-        state.circle_opposite_edge_confirm_cycles =
-            analysis.steering_state_update.circle_opposite_edge_confirm_cycles;
-        state.circle_release_cycles = analysis.steering_state_update.circle_release_cycles;
-        state.circle_last_stable_reference_col =
-            analysis.steering_state_update.circle_last_stable_reference_col;
-    }
-    state.lane_geometry_previous = state.lane_geometry_recent;
-    state.lane_geometry_recent = analysis.lane_geometry_snapshot;
-    state.track_history = analysis.track_history_snapshot;
-    state.gyro_continuity = analysis.gyro_continuity_state;
-}
+ls2k::port::BEVTrackEstimate MakeTrack(const ls2k::port::RuntimeParameters& params,
+                                       float center_bias_m = 0.04F,
+                                       float heading_slope = 0.03F,
+                                       float lane_width_m = 0.60F,
+                                       float visible_range_m = 2.30F,
+                                       float confidence = 0.90F) {
+    ls2k::port::BEVTrackEstimate track{};
+    track.valid = true;
+    track.calibration_valid = true;
+    track.continuity_valid = true;
+    track.visible_range_m = visible_range_m;
+    track.track_confidence = confidence;
+    track.source = "unit_test";
+    track.fallback_mode = "none";
 
-FixtureAnalysis AnalyzeRawFixture(const RawFixture& fixture,
-                                  const ls2k::port::RuntimeParameters& params,
-                                  ls2k::port::LegacySteeringState state) {
-    const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(fixture.path);
-    FixtureAnalysis result{};
-    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, {}, false, 1, 1);
-    result.metrics = ls2k::legacy::ExtractLaneMetrics(
-        frame, result.analysis.perception.threshold, params, state, {}, 1);
-    ApplyAnalysisToState(result.analysis, state);
-    return result;
-}
-
-ls2k::port::LegacySteeringState MakePrimedWideState(const char* candidate) {
-    ls2k::port::LegacySteeringState state{};
-    state.active_module = "special_wide";
-    state.special_wide_candidate = candidate;
-    state.special_wide_candidate_streak = 1;
-    return state;
-}
-
-void ExpectConfirmedModule(const RawFixture& fixture,
-                           const char* candidate,
-                           const char* expected_module) {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, MakePrimedWideState(candidate));
-    Expect(analysis.analysis.perception.active_module == expected_module,
-           std::string(fixture.label) + " must confirm " + expected_module + "; " +
-               DescribeAnalysis(analysis));
-}
-
-void ExpectNotConfirmedModule(const RawFixture& fixture,
-                              const char* candidate,
-                              const char* forbidden_module) {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, MakePrimedWideState(candidate));
-    Expect(analysis.analysis.perception.active_module != forbidden_module,
-           std::string(fixture.label) + " must not confirm " + forbidden_module + "; " +
-               DescribeAnalysis(analysis));
-}
-
-void ExpectNeutralBend(const RawFixture& fixture) {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, ls2k::port::LegacySteeringState{});
-    Expect(analysis.analysis.perception.active_module == "bend",
-           std::string(fixture.label) + " must enter bend on neutral entry; " + DescribeAnalysis(analysis));
-    Expect(analysis.analysis.special_wide_candidate == "none",
-           std::string(fixture.label) + " must not nominate a wide candidate; " +
-               DescribeAnalysis(analysis));
-}
-
-void ExpectNeutralSpecialWide(const RawFixture& fixture, const char* expected_candidate) {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    const FixtureAnalysis analysis = AnalyzeRawFixture(fixture, params, ls2k::port::LegacySteeringState{});
-    Expect(analysis.analysis.perception.active_module == "special_wide",
-           std::string(fixture.label) + " must enter special_wide on neutral entry; " +
-               DescribeAnalysis(analysis));
-    Expect(analysis.analysis.special_wide_candidate == expected_candidate,
-           std::string(fixture.label) + " must nominate " + expected_candidate + "; " +
-               DescribeAnalysis(analysis));
-}
-
-FixtureAnalysis AnalyzeRawFramePath(const std::string& path,
-                                    const ls2k::port::RuntimeParameters& params,
-                                    ls2k::port::LegacySteeringState state,
-                                    uint64_t frame_id) {
-    const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(path.c_str());
-    FixtureAnalysis result{};
-    result.analysis = ls2k::legacy::AnalyzeFrame(frame, params, state, {}, false, frame_id, frame_id);
-    result.metrics =
-        ls2k::legacy::ExtractLaneMetrics(frame, result.analysis.perception.threshold, params, state, {}, frame_id);
-    return result;
-}
-
-FixtureAnalysis AnalyzeSequentialFrames(const std::string& directory, const std::vector<int>& frames) {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-    ls2k::port::LegacySteeringState state{};
-    FixtureAnalysis current{};
-    for (int frame : frames) {
-        const std::string path = directory + "/frame-" +
-                                 (frame < 100000 ? std::string(6 - std::to_string(frame).size(), '0') : "") +
-                                 std::to_string(frame) + ".raw";
-        current = AnalyzeRawFramePath(path, params, state, static_cast<uint64_t>(frame));
-        ApplyAnalysisToState(current.analysis, state);
-    }
-    return current;
-}
-
-ls2k::port::LegacyCameraFrame MakeSyntheticLaneFrame(bool left_truncated, bool left_only_one_visible_row) {
-    ls2k::port::LegacyCameraFrame frame{};
-    frame.width = ls2k::port::kCompiledCameraFrameWidth;
-    frame.height = ls2k::port::kCompiledCameraFrameHeight;
-    for (int row = 80; row <= 184; ++row) {
-        int left = 44 + (184 - row) / 5;
-        if (left_truncated) {
-            left = row == 184 ? 20 : 0;
-            if (!left_only_one_visible_row && row >= 156) {
-                left = 18 + (184 - row) / 8;
-            }
+    const float origin_forward = params.bev_geometry.forward_samples_m[0];
+    for (std::size_t index = 0; index < ls2k::port::kBevTrackSampleCount; ++index) {
+        const float forward = params.bev_geometry.forward_samples_m[index];
+        if (forward > visible_range_m + 1e-4F) {
+            continue;
         }
-        const int right = 250 - (184 - row) / 7;
-        for (int col = std::max(0, left); col <= std::min(frame.width - 1, right); ++col) {
-            frame.gray[static_cast<std::size_t>(row) * frame.width + col] = 255;
+
+        const float center_lateral = center_bias_m + heading_slope * (forward - origin_forward);
+        const float half_width = lane_width_m * 0.5F;
+        const float sample_confidence = confidence;
+
+        track.sampled_left_boundary[index].valid = true;
+        track.sampled_left_boundary[index].point.forward_m = forward;
+        track.sampled_left_boundary[index].point.lateral_m = center_lateral - half_width;
+        track.sampled_left_boundary[index].confidence = sample_confidence;
+
+        track.sampled_centerline[index].valid = true;
+        track.sampled_centerline[index].point.forward_m = forward;
+        track.sampled_centerline[index].point.lateral_m = center_lateral;
+        track.sampled_centerline[index].confidence = sample_confidence;
+
+        track.sampled_right_boundary[index].valid = true;
+        track.sampled_right_boundary[index].point.forward_m = forward;
+        track.sampled_right_boundary[index].point.lateral_m = center_lateral + half_width;
+        track.sampled_right_boundary[index].confidence = sample_confidence;
+
+        track.sampled_drivable_left_boundary[index] = track.sampled_left_boundary[index];
+        track.sampled_drivable_right_boundary[index] = track.sampled_right_boundary[index];
+        track.lane_width_profile_m[index] = lane_width_m;
+        track.drivable_width_profile_m[index] = lane_width_m;
+    }
+
+    const int near_index = std::clamp(
+        params.bev_control_model.near_sample_index, 0, static_cast<int>(ls2k::port::kBevTrackSampleCount) - 1);
+    const int far_index = std::clamp(
+        params.bev_control_model.far_sample_index, near_index, static_cast<int>(ls2k::port::kBevTrackSampleCount) - 1);
+
+    if (track.sampled_centerline[near_index].valid) {
+        track.near_lateral_error = track.sampled_centerline[near_index].point.lateral_m;
+    }
+    if (track.sampled_centerline[near_index].valid && track.sampled_centerline[far_index].valid) {
+        const float delta_forward =
+            track.sampled_centerline[far_index].point.forward_m -
+            track.sampled_centerline[near_index].point.forward_m;
+        if (std::fabs(delta_forward) > 1e-4F) {
+            track.far_heading_error = std::atan2(
+                track.sampled_centerline[far_index].point.lateral_m -
+                    track.sampled_centerline[near_index].point.lateral_m,
+                delta_forward);
         }
     }
-    return frame;
+
+    return track;
 }
 
-ls2k::port::LegacySteeringState MakeHistoryPrimedState() {
-    ls2k::port::LegacySteeringState state{};
-    state.steering_reference_col = 160;
-    state.lane_geometry_recent.valid = true;
-    state.lane_geometry_previous.valid = true;
-    state.lane_geometry_recent.left_visible_anchors[0] = {true, 100, 28};
-    state.lane_geometry_recent.left_visible_anchors[1] = {true, 132, 34};
-    state.lane_geometry_recent.left_visible_anchors[2] = {true, 168, 42};
-    state.lane_geometry_recent.right_visible_anchors[0] = {true, 100, 244};
-    state.lane_geometry_recent.right_visible_anchors[1] = {true, 132, 238};
-    state.lane_geometry_recent.right_visible_anchors[2] = {true, 168, 232};
-    state.lane_geometry_previous = state.lane_geometry_recent;
-    state.track_history.valid = true;
-    state.track_history.center_anchors[0] = {true, 100, 136};
-    state.track_history.center_anchors[1] = {true, 132, 136};
-    state.track_history.center_anchors[2] = {true, 168, 137};
-    state.track_history.lane_width_px = 200.0F;
-    state.track_history.heading_px_per_row = -0.12F;
-    state.track_history.curvature_px_per_row2 = 0.0F;
-    state.track_history.turn_sign = -1;
-    state.track_history.track_confidence = 0.8F;
-    return state;
+ls2k::port::BEVSceneObservation MakeObservation(const ls2k::port::BEVTrackEstimate& track) {
+    ls2k::port::BEVSceneObservation observation{};
+    observation.valid = track.valid;
+    observation.track = track;
+    observation.vehicle.frame_id = 1;
+    observation.vehicle.capture_time_ms = 1;
+    return observation;
 }
 
-ls2k::legacy::SteeringAnalysisResult RunSyntheticScene(const ls2k::legacy::LaneMetrics& metrics,
-                                                       const ls2k::port::LegacySteeringState& prior_state) {
-    ls2k::port::RuntimeParameters params = MakeSceneParams();
-    const ls2k::port::ImuSample imu{};
-    ls2k::port::LegacyCameraFrame frame{};
-    frame.width = ls2k::port::kCompiledCameraFrameWidth;
-    frame.height = ls2k::port::kCompiledCameraFrameHeight;
-    const ls2k::legacy::SteeringSceneContext context{frame, params, prior_state, imu, 1, metrics};
-    return ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 1);
+ls2k::port::BEVTrackEstimate MakeOpeningTrack(const ls2k::port::RuntimeParameters& params,
+                                              float left_open_m,
+                                              float right_open_m) {
+    ls2k::port::BEVTrackEstimate track{};
+    track.valid = true;
+    track.calibration_valid = true;
+    track.continuity_valid = true;
+    track.visible_range_m = params.bev_geometry.forward_samples_m.back();
+    track.track_confidence = 0.90F;
+    track.source = "unit_test";
+    track.fallback_mode = "none";
+
+    const float half_width = params.bev_geometry.nominal_lane_width_m * 0.5F;
+    const float denominator = static_cast<float>(ls2k::port::kBevTrackSampleCount - 1U);
+    for (std::size_t index = 0; index < ls2k::port::kBevTrackSampleCount; ++index) {
+        const float ratio = denominator > 0.0F ? static_cast<float>(index) / denominator : 0.0F;
+        const float forward = params.bev_geometry.forward_samples_m[index];
+        const float left_lateral = -half_width - left_open_m * ratio;
+        const float right_lateral = half_width + right_open_m * ratio;
+        const float center_lateral = (left_lateral + right_lateral) * 0.5F;
+
+        track.sampled_left_boundary[index] = {true, {forward, left_lateral}, 0.9F};
+        track.sampled_centerline[index] = {true, {forward, center_lateral}, 0.9F};
+        track.sampled_right_boundary[index] = {true, {forward, right_lateral}, 0.9F};
+        track.sampled_drivable_left_boundary[index] = track.sampled_left_boundary[index];
+        track.sampled_drivable_right_boundary[index] = track.sampled_right_boundary[index];
+        track.lane_width_profile_m[index] = right_lateral - left_lateral;
+        track.drivable_width_profile_m[index] = right_lateral - left_lateral;
+    }
+
+    return track;
 }
 
-ls2k::legacy::SteeringAnalysisResult RunSyntheticSceneWithInputs(
-    const ls2k::legacy::LaneMetrics& metrics,
-    const ls2k::port::LegacySteeringState& prior_state,
+ls2k::legacy::ObservationAssemblyResult AssembleSyntheticObservation(
     const ls2k::port::RuntimeParameters& params,
-    const ls2k::port::ImuSample& imu,
-    uint64_t capture_time_ms) {
+    const ls2k::port::BEVTrackEstimate& track) {
+    ls2k::legacy::BEVProjector projector;
+    Expect(projector.Configure(params.bev_projector), "default BEV projector calibration must configure");
+
     ls2k::port::LegacyCameraFrame frame{};
     frame.width = ls2k::port::kCompiledCameraFrameWidth;
     frame.height = ls2k::port::kCompiledCameraFrameHeight;
-    const ls2k::legacy::SteeringSceneContext context{frame, params, prior_state, imu, capture_time_ms, metrics};
-    return ls2k::legacy::OrchestrateSteeringScenes(context, false, capture_time_ms, capture_time_ms);
+    frame.gray.fill(0U);
+
+    return ls2k::legacy::AssembleObservation(frame, 100, params, {}, {}, false, 1, 1, track, projector);
 }
 
-void TestRepresentativeWideSamples() {
-    const RawFixture circle_1{"circle-1",
-                              "new/verification/static-circle-entry-20260425T053113Z/"
-                              "steering-media/frames/frame-000001.raw"};
-    const RawFixture circle_2{"circle-2",
-                              "new/verification/static-circle-entry-20260425T054335Z/"
-                              "steering-media/frames/frame-000003.raw"};
-    const RawFixture circle_3{"circle-3",
-                              "new/verification/static-circle-entry-20260425T055605Z/"
-                              "steering-media/frames/frame-004602.raw"};
-    const RawFixture cross_1{"cross-1",
-                             "new/verification/static-cross-20260425T061249Z/"
-                             "steering-media/frames/frame-056387.raw"};
-    const RawFixture cross_2{"cross-2",
-                             "new/verification/static-cross-20260425T061406Z/"
-                             "steering-media/frames/frame-059950.raw"};
-    const RawFixture cross_3{"cross-3",
-                             "new/verification/static-cross-20260425T061514Z/"
-                             "steering-media/frames/frame-063602.raw"};
-    const RawFixture bend_1{"bend-1",
-                            "new/verification/static-bend-entry-20260425T072933Z-boardtest/"
-                            "steering-media/frames/frame-017752.raw"};
-    const RawFixture bend_2{"bend-2",
-                            "new/verification/static-bend-entry-20260425T073459Z-boardtest/"
-                            "steering-media/frames/frame-034614.raw"};
-    const RawFixture bend_3{"bend-3",
-                            "new/verification/static-bend-entry-20260425T073835Z-boardtest/"
-                            "steering-media/frames/frame-045284.raw"};
-
-    ExpectNeutralSpecialWide(circle_1, "circle_entry");
-    ExpectNeutralSpecialWide(circle_2, "circle_entry");
-    ExpectNeutralSpecialWide(cross_1, "cross");
-    ExpectNeutralSpecialWide(cross_2, "cross");
-
-    ExpectConfirmedModule(circle_1, "circle_entry", "circle_entry");
-    ExpectConfirmedModule(circle_2, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(circle_3, "cross", "cross");
-
-    ExpectConfirmedModule(cross_1, "cross", "cross");
-    ExpectConfirmedModule(cross_2, "cross", "cross");
-    ExpectNotConfirmedModule(cross_3, "circle_entry", "circle_entry");
-
-    ExpectNeutralBend(bend_1);
-    ExpectNeutralBend(bend_2);
-    ExpectNeutralBend(bend_3);
-
-    ExpectNotConfirmedModule(circle_1, "cross", "cross");
-    ExpectNotConfirmedModule(circle_2, "cross", "cross");
-    ExpectNotConfirmedModule(cross_1, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(cross_2, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(bend_1, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(bend_2, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(bend_3, "circle_entry", "circle_entry");
-    ExpectNotConfirmedModule(bend_1, "cross", "cross");
-    ExpectNotConfirmedModule(bend_2, "cross", "cross");
-    ExpectNotConfirmedModule(bend_3, "cross", "cross");
-}
-
-void TestSyntheticSceneRegression() {
-    ls2k::legacy::LaneMetrics straight_metrics{};
-    straight_metrics.threshold = 120;
-    straight_metrics.valid_row_count = 14;
-    straight_metrics.lower_valid_row_count = 4;
-    straight_metrics.middle_valid_row_count = 4;
-    straight_metrics.upper_valid_row_count = 4;
-    straight_metrics.steering_reference_col = 160;
-    straight_metrics.lateral_error = 0.0F;
-    Expect(RunSyntheticScene(straight_metrics, {}).perception.active_module == "straight",
-           "baseline straight regression must stay straight");
-
-    ls2k::legacy::LaneMetrics bend_metrics = straight_metrics;
-    bend_metrics.bend_severity = 1.0F;
-    Expect(RunSyntheticScene(bend_metrics, {}).perception.active_module == "bend",
-           "baseline bend regression must stay bend");
-
-    ls2k::legacy::LaneMetrics ambiguous_bend_metrics = straight_metrics;
-    ambiguous_bend_metrics.valid_row_count = 18;
-    ambiguous_bend_metrics.lower_valid_row_count = 6;
-    ambiguous_bend_metrics.middle_valid_row_count = 6;
-    ambiguous_bend_metrics.upper_valid_row_count = 4;
-    ambiguous_bend_metrics.lower_width_median = 176;
-    ambiguous_bend_metrics.left_edge.circle_curve = true;
-    ambiguous_bend_metrics.left_edge.bend_curve = true;
-    ambiguous_bend_metrics.right_visible_confident = true;
-    ambiguous_bend_metrics.left_curvature = 10.0F;
-    ambiguous_bend_metrics.right_curvature = 1.0F;
-    ambiguous_bend_metrics.left_open = 20.0F;
-    ambiguous_bend_metrics.right_contract = 10.0F;
-    ambiguous_bend_metrics.track_valid = true;
-    ambiguous_bend_metrics.track_confidence = 0.8F;
-    ambiguous_bend_metrics.heading_error = -0.45F;
-    ambiguous_bend_metrics.curvature = -0.12F;
-    ambiguous_bend_metrics.track_sign = -1;
-    ambiguous_bend_metrics.same_direction_bend_sign = -1;
-    ambiguous_bend_metrics.bend_severity = 2.3F;
-    const ls2k::legacy::SteeringAnalysisResult ambiguous_bend_analysis =
-        RunSyntheticScene(ambiguous_bend_metrics, {});
-    Expect(ambiguous_bend_analysis.perception.active_module == "bend",
-           "weak circle proof must lose to ordinary bend evidence");
-
-    ls2k::legacy::LaneMetrics zebra_metrics = straight_metrics;
-    zebra_metrics.zebra_candidate = true;
-    Expect(RunSyntheticScene(zebra_metrics, {}).perception.active_module == "zebra",
-           "baseline zebra regression must stay zebra");
-
-    ls2k::legacy::LaneMetrics interior_metrics = straight_metrics;
-    interior_metrics.bend_severity = 1.2F;
-    ls2k::port::LegacySteeringState prior_circle_entry{};
-    prior_circle_entry.active_module = "circle_interior";
-    prior_circle_entry.circle_active_direction = "left";
-    prior_circle_entry.circle_entry_state = "idle";
-    Expect(RunSyntheticScene(interior_metrics, prior_circle_entry).perception.active_module ==
-               "circle_interior",
-           "baseline circle_interior regression must stay circle_interior");
-
-    ls2k::legacy::LaneMetrics exit_metrics = straight_metrics;
-    exit_metrics.right_curvature = 0.0F;
-    exit_metrics.circle_left_opposite_straight_confidence = 1.0F;
-    exit_metrics.circle_left_opposite_straight_rows = 3;
-    ls2k::port::LegacySteeringState prior_circle_interior{};
-    prior_circle_interior.active_module = "circle_interior";
-    prior_circle_interior.circle_active_direction = "left";
-    prior_circle_interior.circle_entry_state = "idle";
-    prior_circle_interior.circle_heading_delta_deg = 190.0F;
-    prior_circle_interior.circle_last_imu_capture_time_ms = 1;
-    const ls2k::legacy::SteeringAnalysisResult exit_analysis =
-        RunSyntheticScene(exit_metrics, prior_circle_interior);
-    Expect(exit_analysis.perception.active_module == "circle_exit",
-           "baseline circle_exit regression must stay circle_exit");
-    Expect(exit_analysis.perception.scene_phase == "exit_handover",
-           "circle exit must begin with exit_handover");
-
-    ls2k::legacy::LaneMetrics fallback_metrics = exit_metrics;
-    fallback_metrics.circle_left_opposite_straight_confidence = 0.0F;
-    fallback_metrics.circle_left_opposite_straight_rows = 0;
-    ls2k::port::LegacySteeringState prior_fallback{};
-    prior_fallback.active_module = "circle_exit";
-    prior_fallback.circle_active_direction = "left";
-    prior_fallback.circle_entry_state = "idle";
-    prior_fallback.circle_exit_state = "tracking";
-    prior_fallback.circle_heading_delta_deg = 250.0F;
-    prior_fallback.circle_last_imu_capture_time_ms = 1;
-    prior_fallback.circle_handover_cycles = 4;
-    prior_fallback.circle_last_stable_reference_col = 150;
-    prior_fallback.circle_opposite_edge_confirm_cycles = 1;
-    const ls2k::legacy::SteeringAnalysisResult fallback_analysis =
-        RunSyntheticScene(fallback_metrics, prior_fallback);
-    Expect(fallback_analysis.perception.scene_phase == "exit_fallback",
-           "missing opposite edge must fall back after exit tracking");
-    Expect(fallback_analysis.perception.circle_fallback_reason == "opposite_edge_unstable",
-           "fallback path must expose opposite_edge_unstable reason");
-}
-
-void TestCircleEntryReleaseAndHeadingTracker() {
-    ls2k::port::RuntimeParameters params = MakeSceneParams();
-    params.circle_entry.release_loss_cycles = 2;
-
-    ls2k::legacy::LaneMetrics lost_entry_metrics{};
-    lost_entry_metrics.threshold = 120;
-    lost_entry_metrics.valid_row_count = 12;
-    lost_entry_metrics.lower_valid_row_count = 4;
-    lost_entry_metrics.middle_valid_row_count = 4;
-    lost_entry_metrics.upper_valid_row_count = 4;
-    lost_entry_metrics.steering_reference_col = 163;
-    lost_entry_metrics.lateral_error = -3.0F;
-    lost_entry_metrics.bend_severity = 1.1F;
-
-    ls2k::port::LegacySteeringState prior{};
-    prior.active_module = "circle_entry";
-    prior.circle_active_direction = "left";
-    prior.circle_entry_state = "repairing";
-    prior.circle_last_stable_reference_col = 150;
-
-    const ls2k::legacy::SteeringAnalysisResult first_loss =
-        RunSyntheticSceneWithInputs(lost_entry_metrics, prior, params, {}, 10);
-    Expect(first_loss.perception.active_module == "circle_entry",
-           "entry release must not trigger before the configured loss cycle budget");
-    Expect(!first_loss.perception.circle_entry_signal_active,
-           "lost entry frame must expose inactive entry signal");
-    Expect(first_loss.steering_state_update.circle_entry_loss_cycles == 1,
-           "first lost frame must increment circle_entry_loss_cycles");
-    Expect(first_loss.perception.circle_entry_release_reason == "entry_signal_lost",
-           "first lost frame must expose entry_signal_lost release reason");
-
-    prior.circle_entry_loss_cycles = first_loss.steering_state_update.circle_entry_loss_cycles;
-    prior.circle_entry_release_reason = first_loss.steering_state_update.circle_entry_release_reason;
-    const ls2k::legacy::SteeringAnalysisResult second_loss =
-        RunSyntheticSceneWithInputs(lost_entry_metrics, prior, params, {}, 20);
-    Expect(second_loss.perception.active_module == "bend",
-           "entry release must fall back to the ordinary bend scene after finite loss cycles");
-    Expect(second_loss.perception.circle_entry_release_reason == "entry_signal_lost",
-           "released frame must retain the entry release reason");
-
-    const ls2k::legacy::CircleHeadingIntegrationResult integrated =
-        ls2k::legacy::IntegrateCircleHeadingDeltaDeg(0.0F, 1000, ls2k::port::ImuSample{true, 0, 0, 0, 0, 0, 1.0F, 0}, 2000, false);
-    Expect(std::fabs(integrated.heading_delta_deg - 57.2958F) < 0.2F,
-           "circle heading tracker must convert rad/s IMU input into degrees");
-    Expect(integrated.capture_time_ms == 2000, "heading tracker must advance the capture timestamp");
-
-    const ls2k::legacy::CircleHeadingIntegrationResult frozen =
-        ls2k::legacy::IntegrateCircleHeadingDeltaDeg(12.0F, 2000, {}, 2100, false);
-    Expect(std::fabs(frozen.heading_delta_deg - 12.0F) < 1e-6F,
-           "invalid IMU must freeze the integrated circle heading delta");
-    Expect(frozen.imu_invalid, "invalid IMU must be reported by the shared heading tracker");
-}
-
-void TestCircleEntryReleaseDecoupling() {
-    ls2k::legacy::LaneMetrics lost_entry_metrics{};
-    lost_entry_metrics.threshold = 120;
-    lost_entry_metrics.valid_row_count = 12;
-    lost_entry_metrics.lower_valid_row_count = 4;
-    lost_entry_metrics.middle_valid_row_count = 4;
-    lost_entry_metrics.upper_valid_row_count = 4;
-    lost_entry_metrics.steering_reference_col = 160;
-    lost_entry_metrics.lateral_error = 0.0F;
-    lost_entry_metrics.bend_severity = 1.0F;
-
-    ls2k::port::LegacySteeringState prior{};
-    prior.active_module = "circle_entry";
-    prior.circle_active_direction = "left";
-    prior.circle_entry_state = "repairing";
-
-    ls2k::port::RuntimeParameters base_params = MakeSceneParams();
-    base_params.circle_entry.release_loss_cycles = 1;
-
-    ls2k::port::RuntimeParameters exit_variant = base_params;
-    exit_variant.circle_exit.exit_complete_deg = 999.0;
-    exit_variant.circle_exit.handover_ramp_cycles = 99;
-    const ls2k::legacy::SteeringAnalysisResult exit_tuned =
-        RunSyntheticSceneWithInputs(lost_entry_metrics, prior, exit_variant, {}, 10);
-
-    ls2k::port::RuntimeParameters fallback_variant = base_params;
-    fallback_variant.circle_fallback.fixsteer_bias_scale = 0.05;
-    const ls2k::legacy::SteeringAnalysisResult fallback_tuned =
-        RunSyntheticSceneWithInputs(lost_entry_metrics, prior, fallback_variant, {}, 10);
-
-    ls2k::port::RuntimeParameters classifier_variant = base_params;
-    classifier_variant.scene_wide_classifier.enter_confirm_cycles = 9;
-    classifier_variant.scene_wide_classifier.exit_confirm_cycles = 9;
-    const ls2k::legacy::SteeringAnalysisResult classifier_tuned =
-        RunSyntheticSceneWithInputs(lost_entry_metrics, prior, classifier_variant, {}, 10);
-
-    Expect(exit_tuned.perception.active_module == "bend",
-           "entry release must not depend on circle exit parameters");
-    Expect(fallback_tuned.perception.active_module == "bend",
-           "entry release must not depend on circle fallback parameters");
-    Expect(classifier_tuned.perception.active_module == "bend",
-           "entry release must not depend on wide-classifier confirm cycles");
-}
-
-void TestGeometryRegression() {
-    const ls2k::port::RuntimeParameters params = MakeSceneParams();
-
-    {
-        ls2k::legacy::LaneMetrics metrics{};
-        metrics.valid_row_count = 24;
-        metrics.lower_valid_row_count = 8;
-        metrics.upper_valid_row_count = 8;
-        metrics.left_edge.circle_curve = true;
-        metrics.left_edge.bend_curve = true;
-        metrics.left_curvature = -24.0F;
-        metrics.right_edge.strict_straight = false;
-        metrics.right_visible_confident = false;
-        metrics.right_upper_border_touch_ratio = 1.0F;
-        ls2k::port::LegacyCameraFrame frame{};
-        frame.width = ls2k::port::kCompiledCameraFrameWidth;
-        frame.height = ls2k::port::kCompiledCameraFrameHeight;
-        const ls2k::port::ImuSample imu{};
-        const ls2k::legacy::SteeringSceneContext context{frame, params, {}, imu, 1, metrics};
-        Expect(!ls2k::legacy::HasCircleLeftEntryStructure(context),
-               "border_truncated opposite edge must not satisfy circle proof");
+void PaintWhiteRun(ls2k::port::LegacyCameraFrame& frame, int row, int left_col, int right_col) {
+    if (row < 0 || row >= frame.height) {
+        return;
     }
-
-    {
-        const ls2k::port::LegacyCameraFrame visible_frame = MakeSyntheticLaneFrame(false, false);
-        const ls2k::legacy::LaneMetrics metrics =
-            ls2k::legacy::ExtractLaneMetrics(visible_frame, 128, params, MakeHistoryPrimedState(), {}, 1);
-        Expect(!metrics.bend_used_history_fallback,
-               "history fallback must stay disabled when current frame anchors are sufficient");
+    left_col = std::clamp(left_col, 0, std::max(0, frame.width - 1));
+    right_col = std::clamp(right_col, 0, std::max(0, frame.width - 1));
+    if (left_col > right_col) {
+        return;
     }
-
-    {
-        const ls2k::port::LegacyCameraFrame truncated_frame = MakeSyntheticLaneFrame(true, true);
-        const ls2k::port::LegacySteeringState prior_state = MakeHistoryPrimedState();
-        const ls2k::legacy::LaneMetrics metrics =
-            ls2k::legacy::ExtractLaneMetrics(truncated_frame, 128, params, prior_state, {}, 1);
-        ls2k::port::LegacyCameraFrame frame{};
-        frame.width = ls2k::port::kCompiledCameraFrameWidth;
-        frame.height = ls2k::port::kCompiledCameraFrameHeight;
-        const ls2k::port::ImuSample imu{};
-        const ls2k::legacy::SteeringSceneContext context{frame, params, prior_state, imu, 1, metrics};
-        const ls2k::legacy::SteeringAnalysisResult analysis =
-            ls2k::legacy::OrchestrateSteeringScenes(context, false, 1, 1);
-        Expect(metrics.bend_used_history_fallback,
-               "history fallback must engage only when current anchors are insufficient");
-        Expect(!ls2k::legacy::HasCircleLeftEntryStructure(context) &&
-                   !ls2k::legacy::HasCircleRightEntryStructure(context),
-               "history fallback must not promote circle proofs");
-        Expect(!ls2k::legacy::HasCrossUpperFullSpanStructure(context),
-               "history fallback must not promote cross proofs");
-        Expect(analysis.perception.active_module == "bend",
-               "history fallback must only influence bend classification");
+    for (int col = left_col; col <= right_col; ++col) {
+        frame.gray[static_cast<std::size_t>(row) * static_cast<std::size_t>(frame.width) +
+                   static_cast<std::size_t>(col)] = 220U;
     }
 }
 
-void TestBottomTrackRegressionFrames() {
-    const std::string base =
-        "new/verification/steering-debug-20260425T092518Z/steering-media/frames";
-
-    const FixtureAnalysis frame_274 = AnalyzeSequentialFrames(base, {274});
-    Expect(frame_274.analysis.perception.active_module == "bend",
-           "frame-000274 must stay on bend; " + DescribeAnalysis(frame_274));
-    Expect(frame_274.analysis.perception.track_sign <= 0,
-           "frame-000274 must not flip to right-turn sign; " + DescribeAnalysis(frame_274));
-    Expect(frame_274.analysis.perception.track_source != "history_guarded",
-           "frame-000274 must stay on current-frame track evidence; " + DescribeAnalysis(frame_274));
-    Expect(!frame_274.analysis.perception.sign_flip_blocked ||
-               frame_274.analysis.perception.steering_reference_col <= 190,
-           "frame-000274 must not jump steering reference into the wrong right-side region; " +
-               DescribeAnalysis(frame_274));
-
-    const FixtureAnalysis frame_296 = AnalyzeSequentialFrames(base, {274, 279, 284, 290, 296});
-    Expect(frame_296.analysis.perception.active_module == "bend",
-           "frame-000296 must stay on bend; " + DescribeAnalysis(frame_296));
-    Expect(frame_296.analysis.perception.track_sign <= 0,
-           "frame-000296 must not flip to right-turn sign; " + DescribeAnalysis(frame_296));
-    Expect(frame_296.analysis.perception.track_source != "history_guarded",
-           "frame-000296 must stay on current-frame track evidence; " + DescribeAnalysis(frame_296));
-    Expect(!frame_296.analysis.perception.sign_flip_blocked ||
-               frame_296.analysis.perception.steering_reference_col <= 190,
-           "frame-000296 must not jump steering reference into the wrong right-side region; " +
-               DescribeAnalysis(frame_296));
+ls2k::port::BEVSceneObservation MakeCircleLeftObservation(
+    const ls2k::port::BEVTrackEstimate& track,
+    const ls2k::port::RuntimeParameters& params) {
+    ls2k::port::BEVSceneObservation observation = MakeObservation(track);
+    observation.circle_left_candidate = true;
+    observation.left_open_score = params.bev_scene_fsm.circle_open_score_min + 0.12F;
+    observation.left_opposite_straight_confidence = 0.98F;
+    observation.ordinary_bend_veto = false;
+    return observation;
 }
 
-void TestTrackSignContinuityRegression() {
-    ls2k::port::TrackHistorySnapshot history{};
-    history.valid = true;
-    history.turn_sign = 0;
-    history.last_nonzero_turn_sign = -1;
-    history.zero_turn_sign_frames = 2;
-    Expect(ls2k::legacy::EffectivePriorTurnSign(history) == -1,
-           "short zero-sign gap must preserve the prior non-zero turn sign");
+bool PathsMatch(
+    const std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& left,
+    const std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& right,
+    float tolerance = 1e-4F) {
+    for (std::size_t index = 0; index < left.size(); ++index) {
+        if (left[index].valid != right[index].valid) {
+            return false;
+        }
+        if (!left[index].valid) {
+            continue;
+        }
+        if (!NearlyEqual(left[index].point.forward_m, right[index].point.forward_m, tolerance) ||
+            !NearlyEqual(left[index].point.lateral_m, right[index].point.lateral_m, tolerance)) {
+            return false;
+        }
+    }
+    return true;
+}
 
-    history.zero_turn_sign_frames = 4;
-    Expect(ls2k::legacy::EffectivePriorTurnSign(history) == 0,
-           "long zero-sign gap must expire the preserved turn sign");
+ls2k::port::ReferencePolicyState MakeHeldReference(const ls2k::port::BEVTrackEstimate& track,
+                                                   float lateral_shift_m) {
+    ls2k::port::ReferencePolicyState state{};
+    state.valid = true;
+    state.mode = ls2k::port::ReferenceMode::kHoldLast;
+    for (std::size_t index = 0; index < track.sampled_centerline.size(); ++index) {
+        state.last_reference[index] = track.sampled_centerline[index];
+        if (state.last_reference[index].valid) {
+            state.last_reference[index].point.lateral_m += lateral_shift_m;
+        }
+    }
+    return state;
+}
 
-    ls2k::legacy::LaneMetrics metrics{};
-    metrics.track_valid = true;
-    metrics.track_sign = 0;
-    ls2k::port::LegacySteeringState prior{};
-    prior.track_history.valid = true;
-    prior.track_history.last_nonzero_turn_sign = -1;
-    prior.track_history.zero_turn_sign_frames = 2;
-    const ls2k::port::TrackHistorySnapshot carried =
-        ls2k::legacy::BuildTrackHistorySnapshot(metrics, prior);
-    Expect(carried.last_nonzero_turn_sign == -1 && carried.zero_turn_sign_frames == 3,
-           "track history must carry the prior turn sign through a short zero-sign reconstruction gap");
+ls2k::legacy::SceneFsmResult PrimeCircleInterior(const ls2k::port::BEVSceneObservation& observation,
+                                                 const ls2k::port::RuntimeParameters& params) {
+    const ls2k::legacy::SceneFsmResult first = ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    const ls2k::legacy::SceneFsmResult second =
+        ls2k::legacy::UpdateSceneFsm(observation, params, first.state);
+    const ls2k::legacy::SceneFsmResult third =
+        ls2k::legacy::UpdateSceneFsm(observation, params, second.state);
+    return ls2k::legacy::UpdateSceneFsm(observation, params, third.state);
+}
+
+void TestOrdinaryBendVeto() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params);
+    ls2k::port::BEVSceneObservation observation = MakeObservation(track);
+    observation.ordinary_bend_veto = true;
+    observation.bend_severity = params.bev_scene_fsm.bend_severity_confirm + 0.15F;
+
+    const ls2k::legacy::SceneFsmResult result =
+        ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    Expect(result.state.active_scene == ls2k::port::SpecialSceneKind::kBend,
+           "ordinary bend veto must own the scene when no stronger special scene is confirmed");
+    Expect(result.active_module == "bend", "bend veto must surface active_module=bend");
+    Expect(result.scene_phase == "bend_veto", "bend veto must surface scene_phase=bend_veto");
+}
+
+void TestCrossWhitelist() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params);
+    ls2k::port::BEVSceneObservation observation = MakeObservation(track);
+    observation.cross_candidate = true;
+    observation.width_expand_ratio = params.bev_scene_fsm.cross_expand_ratio_min + 0.30F;
+    observation.ordinary_bend_veto = true;
+    observation.bend_severity = params.bev_scene_fsm.bend_severity_confirm + 0.05F;
+
+    const ls2k::legacy::SceneFsmResult first =
+        ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    Expect(first.state.active_scene == ls2k::port::SpecialSceneKind::kOrdinary,
+           "cross candidate must wait for confirm cycles before owning the scene");
+
+    const ls2k::legacy::SceneFsmResult second =
+        ls2k::legacy::UpdateSceneFsm(observation, params, first.state);
+    Expect(second.state.active_scene == ls2k::port::SpecialSceneKind::kCross,
+           "cross candidate must beat ordinary bend veto after confirm");
+    Expect(second.active_module == "cross", "confirmed cross must expose active_module=cross");
+}
+
+void TestCrossRequiresBilateralOpeningEvidence() {
+    ls2k::port::RuntimeParameters params = MakeParams();
+    params.bev_scene_fsm.cross_bilateral_open_min_m = 0.04F;
+
+    const ls2k::port::BEVTrackEstimate bend_like_track =
+        MakeOpeningTrack(params, 0.18F, 0.0F);
+    const ls2k::legacy::ObservationAssemblyResult bend_like =
+        AssembleSyntheticObservation(params, bend_like_track);
+
+    Expect(bend_like.observation.width_expand_ratio >= params.bev_scene_fsm.cross_expand_ratio_min,
+           "one-sided bend-like opening must still exercise width expansion");
+    Expect(bend_like.observation.cross_bilateral_open_score_m <
+               params.bev_scene_fsm.cross_bilateral_open_min_m,
+           "one-sided bend-like opening must expose insufficient bilateral opening evidence");
+    Expect(!bend_like.observation.cross_bilateral_open,
+           "one-sided bend-like opening must not satisfy bilateral opening evidence");
+    Expect(bend_like.observation.left_open_score >= params.bev_scene_fsm.cross_bilateral_open_min_m,
+           "one-sided bend-like opening must expose the opening side");
+    Expect(bend_like.observation.right_open_score < params.bev_scene_fsm.cross_bilateral_open_min_m,
+           "one-sided bend-like opening must not invent an opposite-side opening");
+    Expect(!bend_like.observation.cross_candidate,
+           "BEV cross candidate must require bilateral opening evidence, not width expansion alone");
+
+    const ls2k::port::BEVTrackEstimate cross_like_track =
+        MakeOpeningTrack(params, 0.07F, 0.07F);
+    const ls2k::legacy::ObservationAssemblyResult cross_like =
+        AssembleSyntheticObservation(params, cross_like_track);
+
+    Expect(cross_like.observation.cross_bilateral_open_score_m >=
+               params.bev_scene_fsm.cross_bilateral_open_min_m,
+           "symmetric BEV opening must expose enough bilateral opening evidence");
+    Expect(cross_like.observation.cross_bilateral_open,
+           "symmetric BEV opening must satisfy bilateral opening evidence");
+    Expect(cross_like.observation.cross_candidate,
+           "symmetric BEV opening must remain eligible for cross confirmation");
+}
+
+void TestCircleConfirmedAndLatchedProgression() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params, 0.05F, 0.02F, 0.60F);
+    const ls2k::port::BEVSceneObservation observation = MakeCircleLeftObservation(track, params);
+
+    const ls2k::legacy::SceneFsmResult first = ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    const ls2k::legacy::SceneFsmResult second =
+        ls2k::legacy::UpdateSceneFsm(observation, params, first.state);
+    Expect(second.state.active_scene == ls2k::port::SpecialSceneKind::kCircleLeft,
+           "circle must confirm after the configured candidate streak");
+    Expect(second.scene_phase == "circle_entry", "confirmed circle must begin in entry phase");
+
+    const ls2k::legacy::ReferencePolicyResult entry_reference =
+        ls2k::legacy::ResolveReferencePolicy(track, observation, second.state, {}, params);
+    Expect(entry_reference.reference_path.mode == ls2k::port::ReferenceMode::kInnerOffset,
+           "circle entry must switch the reference policy to inner_offset");
+    Expect(!PathsMatch(entry_reference.reference_path.sampled_path, track.sampled_centerline),
+           "circle reference path must differ from the ordinary centerline");
+
+    const ls2k::legacy::SceneFsmResult third =
+        ls2k::legacy::UpdateSceneFsm(observation, params, second.state);
+    const ls2k::legacy::SceneFsmResult fourth =
+        ls2k::legacy::UpdateSceneFsm(observation, params, third.state);
+    Expect(fourth.state.phase == ls2k::port::SpecialScenePhase::kInterior,
+           "confirmed circle must latch into interior progression");
+
+    ls2k::port::BEVSceneObservation lost_signal = observation;
+    lost_signal.circle_left_candidate = false;
+    lost_signal.left_open_score = 0.0F;
+    lost_signal.left_opposite_straight_confidence = 0.0F;
+    const ls2k::legacy::SceneFsmResult lost_once =
+        ls2k::legacy::UpdateSceneFsm(lost_signal, params, fourth.state);
+    Expect(lost_once.state.active_scene == ls2k::port::SpecialSceneKind::kCircleLeft &&
+               lost_once.state.latched,
+           "circle must stay latched after one lost candidate frame");
+}
+
+void TestCircleCandidateBeatsOrdinaryBendVeto() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params, 0.04F, 0.02F, 0.60F);
+    ls2k::port::BEVSceneObservation observation = MakeObservation(track);
+    observation.circle_right_candidate = true;
+    observation.right_open_score = params.bev_scene_fsm.circle_open_score_min + 0.02F;
+    observation.right_opposite_straight_confidence = 0.20F;
+    observation.ordinary_bend_veto = true;
+    observation.bend_severity = observation.right_open_score + 0.50F;
+
+    const ls2k::legacy::SceneFsmResult first =
+        ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    const ls2k::legacy::SceneFsmResult second =
+        ls2k::legacy::UpdateSceneFsm(observation, params, first.state);
+
+    Expect(second.state.active_scene == ls2k::port::SpecialSceneKind::kCircleRight,
+           "confirmed circle candidate must beat ordinary bend veto ownership");
+    Expect(second.active_module == "circle",
+           "circle candidate must not be downgraded to bend by bend severity score");
+}
+
+void TestCircleRejectsCurvedOppositeBoundary() {
+    ls2k::port::RuntimeParameters params = MakeParams();
+    params.bev_scene_fsm.circle_opposite_heading_abs_max = 0.05F;
+
+    const ls2k::port::BEVTrackEstimate bend_like_track =
+        MakeOpeningTrack(params, 0.22F, -0.28F);
+    const ls2k::legacy::ObservationAssemblyResult bend_like =
+        AssembleSyntheticObservation(params, bend_like_track);
+
+    Expect(bend_like.observation.left_open_score >= params.bev_scene_fsm.circle_open_score_min,
+           "bend-like sample must exercise one-sided circle-open evidence");
+    Expect(bend_like.observation.right_boundary_heading_abs_rad >
+               params.bev_scene_fsm.circle_opposite_heading_abs_max,
+           "bend-like sample must expose a curved opposite boundary");
+    Expect(!bend_like.observation.circle_left_opposite_straight,
+           "bend-like sample must not satisfy opposite-straight evidence");
+    Expect(!bend_like.observation.circle_left_candidate,
+           "circle-left candidate must reject one-sided openings when the opposite boundary is not straight");
+
+    const ls2k::port::BEVTrackEstimate circle_like_track =
+        MakeOpeningTrack(params, 0.22F, 0.0F);
+    const ls2k::legacy::ObservationAssemblyResult circle_like =
+        AssembleSyntheticObservation(params, circle_like_track);
+
+    Expect(circle_like.observation.right_boundary_heading_abs_rad <=
+               params.bev_scene_fsm.circle_opposite_heading_abs_max,
+           "circle-like sample must expose a straight opposite boundary");
+    Expect(circle_like.observation.circle_left_opposite_straight,
+           "circle-like sample must satisfy opposite-straight evidence");
+    Expect(circle_like.observation.circle_left_candidate,
+           "circle-left candidate must remain eligible when one side opens and the opposite boundary is straight");
+}
+
+void TestCircleReleaseConditions() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params, 0.05F, 0.02F, 0.60F);
+    const ls2k::port::BEVSceneObservation circle_observation = MakeCircleLeftObservation(track, params);
+    ls2k::legacy::SceneFsmResult state = PrimeCircleInterior(circle_observation, params);
+
+    ls2k::port::BEVSceneObservation lost_signal = circle_observation;
+    lost_signal.circle_left_candidate = false;
+    lost_signal.left_open_score = 0.0F;
+    lost_signal.left_opposite_straight_confidence = 0.0F;
+
+    for (int cycle = 0; cycle < params.bev_scene_fsm.circle_release_cycles; ++cycle) {
+        state = ls2k::legacy::UpdateSceneFsm(lost_signal, params, state.state);
+    }
+
+    Expect(state.state.phase == ls2k::port::SpecialScenePhase::kExit,
+           "circle must progress into exit after finite release cycles");
+    Expect(state.scene_phase == "circle_exit", "circle exit must surface scene_phase=circle_exit");
+
+    ls2k::port::BEVSceneObservation recovered = lost_signal;
+    recovered.track.track_confidence = params.bev_scene_fsm.release_track_confidence_min + 0.10F;
+    const ls2k::legacy::SceneFsmResult cleared =
+        ls2k::legacy::UpdateSceneFsm(recovered, params, state.state);
+    Expect(cleared.state.active_scene == ls2k::port::SpecialSceneKind::kOrdinary,
+           "recovered ordinary track must release the latched circle state");
+    Expect(cleared.scene_phase == "idle", "released circle must return to idle scene phase");
+}
+
+void TestLowConfidenceDegradation() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::legacy::BEVProjector projector;
+    Expect(projector.Configure(params.bev_projector), "default BEV projector calibration must configure");
+
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
+
+    const ls2k::port::BEVTrackEstimate track =
+        MakeTrack(params, 0.02F, 0.01F, 0.60F, 0.55F, 0.30F);
+    const ls2k::legacy::ObservationAssemblyResult assembly = ls2k::legacy::AssembleObservation(
+        frame, 96, params, {}, {}, false, 7, 9, track, projector);
+
+    Expect(assembly.constraints.low_confidence_degraded,
+           "short visible range must degrade control constraints");
+    Expect(assembly.constraints.speed_limit_scale < 1.0,
+           "low confidence degradation must reduce speed limit scale");
+    Expect(assembly.constraints.turn_limit_scale < 1.0,
+           "low confidence degradation must reduce turn limit scale");
+    Expect(assembly.constraints.primary_reason == "short_visible_range",
+           "short visible range must be the primary degrade reason");
+
+    const ls2k::legacy::ReferencePolicyResult ordinary_reference =
+        ls2k::legacy::ResolveReferencePolicy(track, assembly.observation, {}, {}, params);
+
+    ls2k::port::ControlErrorModelInput input{};
+    input.track = track;
+    input.reference_path = ordinary_reference.reference_path;
+    input.vehicle = assembly.vehicle;
+    input.constraints = assembly.constraints;
+
+    const ls2k::port::ControlErrorModelOutput control =
+        ls2k::legacy::ComputeControlErrorModel(input, params);
+    Expect(control.degraded, "control error model must preserve degraded low-confidence status");
+    Expect(!control.steering_suppressed,
+           "degraded low visibility alone must not force full steering suppression");
+    Expect(control.degrade_reason == "short_visible_range",
+           "control error model must surface the low-visibility degrade reason");
+}
+
+void TestLookaheadCurvatureControlModel() {
+    ls2k::port::RuntimeParameters params = MakeParams();
+    params.bev_control_model.lookahead_visible_range_ratio = 0.35;
+    params.bev_control_model.lookahead_min_m = 1.20;
+    params.bev_control_model.lookahead_max_m = 2.00;
+    params.bev_control_model.pure_pursuit_gain = 1.0;
+    params.bev_control_model.heading_curvature_gain = 0.35;
+    params.bev_control_model.curvature_feedforward_gain = 0.20;
+    params.bev_control_model.curvature_command_limit = 0.12;
+
+    const ls2k::port::BEVTrackEstimate right_offset_track =
+        MakeTrack(params, 0.05F, 0.0F, 0.60F, 4.50F, 0.90F);
+    const ls2k::port::BEVSceneObservation ordinary_observation =
+        MakeObservation(right_offset_track);
+    const ls2k::legacy::ReferencePolicyResult right_reference =
+        ls2k::legacy::ResolveReferencePolicy(right_offset_track, ordinary_observation, {}, {}, params);
+
+    ls2k::port::ControlErrorModelInput input{};
+    input.track = right_offset_track;
+    input.reference_path = right_reference.reference_path;
+    const ls2k::port::ControlErrorModelOutput right_control =
+        ls2k::legacy::ComputeControlErrorModel(input, params);
+    Expect(right_control.valid, "right-offset reference path must produce a valid control command");
+    Expect(right_control.lookahead_distance_m > 1.19F && right_control.lookahead_distance_m < 2.01F,
+           "lookahead distance must be clamped inside the configured range");
+    Expect(right_control.curvature_command > 0.0F,
+           "right-side BEV offset must produce positive curvature command");
+
+    ls2k::port::BEVTrackEstimate left_offset_track = right_offset_track;
+    for (ls2k::port::BEVPathSample& sample : left_offset_track.sampled_centerline) {
+        if (sample.valid) {
+            sample.point.lateral_m *= -1.0F;
+        }
+    }
+    const ls2k::port::BEVSceneObservation left_observation =
+        MakeObservation(left_offset_track);
+    const ls2k::legacy::ReferencePolicyResult left_reference =
+        ls2k::legacy::ResolveReferencePolicy(left_offset_track, left_observation, {}, {}, params);
+    input.track = left_offset_track;
+    input.reference_path = left_reference.reference_path;
+    const ls2k::port::ControlErrorModelOutput left_control =
+        ls2k::legacy::ComputeControlErrorModel(input, params);
+    Expect(left_control.curvature_command < 0.0F,
+           "left-side BEV offset must produce negative curvature command");
+
+    ls2k::port::BEVTrackEstimate short_visible_track =
+        MakeTrack(params, 0.05F, 0.0F, 0.60F, 1.25F, 0.90F);
+    input.track = short_visible_track;
+    input.reference_path = ls2k::legacy::ResolveReferencePolicy(
+                               short_visible_track, MakeObservation(short_visible_track), {}, {}, params)
+                               .reference_path;
+    const ls2k::port::ControlErrorModelOutput short_visible_control =
+        ls2k::legacy::ComputeControlErrorModel(input, params);
+    Expect(NearlyEqual(short_visible_control.lookahead_distance_m, 1.20F, 1e-4F),
+           "short visible range must clamp lookahead to LOOKAHEAD_MIN_M");
+
+    params.bev_control_model.lookahead_visible_range_ratio = 1.0;
+    input.track = right_offset_track;
+    input.reference_path = right_reference.reference_path;
+    const ls2k::port::ControlErrorModelOutput long_visible_control =
+        ls2k::legacy::ComputeControlErrorModel(input, params);
+    Expect(NearlyEqual(long_visible_control.lookahead_distance_m, 2.00F, 1e-4F),
+           "long visible range must clamp lookahead to LOOKAHEAD_MAX_M");
+}
+
+void TestCrossEntranceDrivableSpanFeedsSceneEvidence() {
+    ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::legacy::BEVProjector projector;
+    Expect(projector.Configure(params.bev_projector), "default BEV projector calibration must configure");
+
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
+    frame.gray.fill(0U);
+
+    for (std::size_t index = 0; index < params.bev_geometry.forward_samples_m.size(); ++index) {
+        const float forward = params.bev_geometry.forward_samples_m[index];
+        ls2k::port::ImagePoint center_image{};
+        ls2k::port::ImagePoint left_image{};
+        ls2k::port::ImagePoint right_image{};
+        if (!projector.ProjectVehicleToImage({forward, 0.0F}, center_image) ||
+            !projector.ProjectVehicleToImage(
+                {forward, -params.bev_geometry.nominal_lane_width_m * 0.5F}, left_image) ||
+            !projector.ProjectVehicleToImage(
+                {forward, params.bev_geometry.nominal_lane_width_m * 0.5F}, right_image)) {
+            continue;
+        }
+
+        const int row = std::clamp(static_cast<int>(std::lround(center_image.row_px)),
+                                   0,
+                                   std::max(0, frame.height - 1));
+        if (index >= 3U && index <= 5U) {
+            PaintWhiteRun(frame, row, 0, frame.width - 1);
+            continue;
+        }
+
+        const int left_col = std::clamp(static_cast<int>(std::lround(left_image.col_px)),
+                                        0,
+                                        std::max(0, frame.width - 1));
+        const int right_col = std::clamp(static_cast<int>(std::lround(right_image.col_px)),
+                                         0,
+                                         std::max(0, frame.width - 1));
+        PaintWhiteRun(frame, row, left_col, right_col);
+    }
+
+    const ls2k::port::BEVTrackEstimate track =
+        ls2k::legacy::ComputeBevTrackEstimate(frame, 100, params, {}, projector);
+    const ls2k::legacy::ObservationAssemblyResult assembly = ls2k::legacy::AssembleObservation(
+        frame, 100, params, {}, {}, false, 11, 13, track, projector);
+
+    Expect(track.valid, "cross-entrance synthetic frame must retain an ordinary BEV track");
+
+    bool saw_overwide_drivable_span = false;
+    for (std::size_t index = 0; index < track.drivable_width_profile_m.size(); ++index) {
+        if (track.drivable_width_profile_m[index] <= params.bev_geometry.max_lane_width_m) {
+            continue;
+        }
+        saw_overwide_drivable_span = true;
+        Expect(!track.sampled_left_boundary[index].valid && !track.sampled_right_boundary[index].valid,
+               "overwide drivable span must not be reauthored as lane boundaries");
+    }
+    Expect(saw_overwide_drivable_span,
+           "cross-entrance geometry must retain overwide drivable span evidence");
+    Expect(assembly.observation.width_expand_ratio >= params.bev_scene_fsm.cross_expand_ratio_min,
+           "cross-entrance drivable span must feed width expansion evidence");
+    Expect(assembly.observation.cross_bilateral_open_score_m >=
+               params.bev_scene_fsm.cross_bilateral_open_min_m,
+           "cross-entrance drivable span must feed bilateral opening evidence");
+    Expect(assembly.observation.cross_candidate,
+           "cross-entrance scene observation must become eligible for cross confirmation");
+    Expect(!assembly.observation.circle_left_candidate && !assembly.observation.circle_right_candidate,
+           "bilateral cross opening must not also surface circle candidates");
+}
+
+void TestBorderTruncatedBoundaryDoesNotBecomeBevEdge() {
+    ls2k::port::RuntimeParameters params = MakeParams();
+    params.bev_geometry.image_border_truncation_margin_px = 2;
+    ls2k::legacy::BEVProjector projector;
+    Expect(projector.Configure(params.bev_projector), "default BEV projector calibration must configure");
+
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = ls2k::port::kCompiledCameraFrameWidth;
+    frame.height = ls2k::port::kCompiledCameraFrameHeight;
+    frame.gray.fill(0U);
+
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        ls2k::port::ImagePoint center_image{};
+        ls2k::port::ImagePoint left_image{};
+        if (!projector.ProjectVehicleToImage({forward, 0.0F}, center_image) ||
+            !projector.ProjectVehicleToImage(
+                {forward, -params.bev_geometry.nominal_lane_width_m * 0.5F}, left_image)) {
+            continue;
+        }
+        const int row = std::clamp(static_cast<int>(std::lround(center_image.row_px)),
+                                   0,
+                                   std::max(0, frame.height - 1));
+        const int left_col = std::clamp(static_cast<int>(std::lround(left_image.col_px)),
+                                        0,
+                                        std::max(0, frame.width - 1));
+        PaintWhiteRun(frame, row, left_col, frame.width - 1);
+    }
+
+    const ls2k::port::BEVTrackEstimate track =
+        ls2k::legacy::ComputeBevTrackEstimate(frame, 100, params, {}, projector);
+
+    Expect(track.valid, "single visible edge with a truncated opposite side must still produce a BEV track");
+    Expect(track.fallback_mode == "single_edge_reconstruction",
+           "single-edge centerline reconstruction must be visible in the BEV track fallback mode");
+
+    int checked_samples = 0;
+    for (std::size_t index = 0; index < track.sampled_centerline.size(); ++index) {
+        if (!track.sampled_centerline[index].valid) {
+            continue;
+        }
+        ++checked_samples;
+        Expect(track.sampled_left_boundary[index].valid,
+               "the observed non-border boundary must remain authoritative");
+        Expect(!track.sampled_right_boundary[index].valid,
+               "an image-border truncation must not be exported as a BEV right boundary");
+        Expect(track.sampled_centerline[index].confidence < 1.0F,
+               "single-edge reconstructed centerline must be lower confidence than dual-edge geometry");
+    }
+    Expect(checked_samples >= 3,
+           "border-truncated synthetic frame must exercise multiple valid BEV geometry samples");
+}
+
+void TestResetStateIsolation() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params, 0.07F, 0.01F, 0.60F);
+    const ls2k::port::BEVSceneObservation observation = MakeObservation(track);
+
+    ls2k::port::SpecialSceneFsmState cross_state{};
+    cross_state.active_scene = ls2k::port::SpecialSceneKind::kCross;
+    cross_state.phase = ls2k::port::SpecialScenePhase::kHold;
+
+    const ls2k::port::ReferencePolicyState held_reference = MakeHeldReference(track, 0.18F);
+    const ls2k::legacy::ReferencePolicyResult held =
+        ls2k::legacy::ResolveReferencePolicy(track, observation, cross_state, held_reference, params);
+    Expect(held.reference_path.mode == ls2k::port::ReferenceMode::kHoldLast,
+           "cross hold must reuse the carried reference path");
+    Expect(!PathsMatch(held.reference_path.sampled_path, track.sampled_centerline),
+           "held reference path must differ from the ordinary centerline");
+
+    const ls2k::legacy::SceneFsmResult reset_scene =
+        ls2k::legacy::UpdateSceneFsm(observation, params, {});
+    const ls2k::legacy::ReferencePolicyResult reset_reference =
+        ls2k::legacy::ResolveReferencePolicy(track, observation, reset_scene.state, {}, params);
+    Expect(reset_scene.state.active_scene == ls2k::port::SpecialSceneKind::kOrdinary,
+           "reset state must clear prior scene latches");
+    Expect(reset_reference.reference_path.mode == ls2k::port::ReferenceMode::kCenterline,
+           "reset state must clear held reference policy memory");
+    Expect(PathsMatch(reset_reference.reference_path.sampled_path, track.sampled_centerline),
+           "ordinary reset reference must rebuild directly from the centerline");
+}
+
+void TestSceneOnlyAffectsControllerThroughReferenceOrConstraints() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::BEVTrackEstimate track = MakeTrack(params, 0.04F, 0.03F, 0.60F);
+    const ls2k::port::BEVSceneObservation ordinary_observation = MakeObservation(track);
+
+    const ls2k::legacy::ReferencePolicyResult ordinary_reference =
+        ls2k::legacy::ResolveReferencePolicy(track, ordinary_observation, {}, {}, params);
+
+    ls2k::port::ControlErrorModelInput ordinary_input{};
+    ordinary_input.track = track;
+    ordinary_input.reference_path = ordinary_reference.reference_path;
+
+    const ls2k::port::ControlErrorModelOutput ordinary_control =
+        ls2k::legacy::ComputeControlErrorModel(ordinary_input, params);
+    Expect(ordinary_control.valid, "ordinary centerline reference must produce valid control errors");
+
+    ls2k::port::PerceptionResult ordinary_perception{};
+    ordinary_perception.visible_range_m = ordinary_control.visible_range_m;
+    ordinary_perception.active_module = "straight";
+    ordinary_perception.scene_phase = "idle";
+    ordinary_perception.reference_mode = "centerline";
+    ordinary_perception.control_model = ordinary_control;
+
+    ls2k::port::PerceptionResult bend_perception = ordinary_perception;
+    bend_perception.active_module = "bend";
+    bend_perception.scene_phase = "bend_veto";
+
+    ls2k::legacy::LegacyPidControl ordinary_pid;
+    ordinary_pid.Configure(params);
+    ls2k::legacy::LegacyPidControl bend_pid;
+    bend_pid.Configure(params);
+
+    ls2k::port::LegacySteeringControllerMemory ordinary_memory{};
+    ls2k::port::LegacySteeringControllerMemory bend_memory{};
+
+    const ls2k::legacy::CameraTurnComputation ordinary_turn =
+        ordinary_pid.ComputeTurnTarget(ordinary_perception, params.Speed_base, ordinary_memory);
+    const ls2k::legacy::CameraTurnComputation bend_turn =
+        bend_pid.ComputeTurnTarget(bend_perception, params.Speed_base, bend_memory);
+
+    Expect(NearlyEqual(ordinary_turn.w_target, bend_turn.w_target, 1e-6F),
+           "scene labels alone must not directly perturb controller output");
+    Expect(NearlyEqual(ordinary_turn.camera_p_term, bend_turn.camera_p_term, 1e-6F),
+           "scene labels alone must not directly perturb controller camera terms");
+
+    const ls2k::port::BEVSceneObservation circle_observation =
+        MakeCircleLeftObservation(track, params);
+    const ls2k::legacy::SceneFsmResult first_circle =
+        ls2k::legacy::UpdateSceneFsm(circle_observation, params, {});
+    const ls2k::legacy::SceneFsmResult confirmed_circle =
+        ls2k::legacy::UpdateSceneFsm(circle_observation, params, first_circle.state);
+    const ls2k::legacy::ReferencePolicyResult circle_reference = ls2k::legacy::ResolveReferencePolicy(
+        track, circle_observation, confirmed_circle.state, {}, params);
+
+    ls2k::port::ControlErrorModelInput circle_input = ordinary_input;
+    circle_input.reference_path = circle_reference.reference_path;
+    const ls2k::port::ControlErrorModelOutput circle_control =
+        ls2k::legacy::ComputeControlErrorModel(circle_input, params);
+
+    ls2k::port::PerceptionResult circle_perception = ordinary_perception;
+    circle_perception.visible_range_m = circle_control.visible_range_m;
+    circle_perception.active_module = "circle";
+    circle_perception.scene_phase = "circle_entry";
+    circle_perception.reference_mode = "inner_offset";
+    circle_perception.control_model = circle_control;
+
+    ls2k::legacy::LegacyPidControl circle_pid;
+    circle_pid.Configure(params);
+    ls2k::port::LegacySteeringControllerMemory circle_memory{};
+    const ls2k::legacy::CameraTurnComputation circle_turn =
+        circle_pid.ComputeTurnTarget(circle_perception, params.Speed_base, circle_memory);
+
+    Expect(!NearlyEqual(circle_control.curvature_command, ordinary_control.curvature_command, 1e-3F),
+           "scene influence must appear through reference policy curvature changes");
+    Expect(!NearlyEqual(circle_turn.w_target, ordinary_turn.w_target, 1e-3F),
+           "controller output must change only after the reference path changes");
 }
 
 }  // namespace
 
 int main() {
     try {
-        TestRepresentativeWideSamples();
-        TestSyntheticSceneRegression();
-        TestCircleEntryReleaseAndHeadingTracker();
-        TestCircleEntryReleaseDecoupling();
-        TestGeometryRegression();
-        TestBottomTrackRegressionFrames();
-        TestTrackSignContinuityRegression();
+        TestOrdinaryBendVeto();
+        TestCrossWhitelist();
+        TestCrossRequiresBilateralOpeningEvidence();
+        TestCircleConfirmedAndLatchedProgression();
+        TestCircleCandidateBeatsOrdinaryBendVeto();
+        TestCircleRejectsCurvedOppositeBoundary();
+        TestCircleReleaseConditions();
+        TestLowConfidenceDegradation();
+        TestLookaheadCurvatureControlModel();
+        TestCrossEntranceDrivableSpanFeedsSceneEvidence();
+        TestBorderTruncatedBoundaryDoesNotBecomeBevEdge();
+        TestResetStateIsolation();
+        TestSceneOnlyAffectsControllerThroughReferenceOrConstraints();
     } catch (const TestFailure& failure) {
         std::cerr << "scene_classifier_selftest failed: " << failure.message << "\n";
-        return 1;
+        return EXIT_FAILURE;
     } catch (const std::exception& error) {
         std::cerr << "scene_classifier_selftest unexpected exception: " << error.what() << "\n";
-        return 1;
+        return EXIT_FAILURE;
     }
 
     std::cout << "scene_classifier_selftest passed\n";
-    return 0;
+    return EXIT_SUCCESS;
 }

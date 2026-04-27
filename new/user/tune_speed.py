@@ -116,6 +116,20 @@ class CsvRecorder:
         "right_pwm_command",
         "raw_turn_output",
         "applied_turn_output",
+        "active_module",
+        "scene_phase",
+        "reference_mode",
+        "near_lateral_error",
+        "far_heading_error",
+        "preview_curvature",
+        "lookahead_distance_m",
+        "lookahead_lateral_error",
+        "lookahead_heading_error",
+        "reference_curvature",
+        "curvature_command",
+        "yaw_rate_target",
+        "visible_range_m",
+        "track_confidence",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -373,6 +387,20 @@ class AssistantSession:
             "right_pwm_command": frame.get("right_pwm_command", ""),
             "raw_turn_output": frame.get("raw_turn_output", ""),
             "applied_turn_output": frame.get("applied_turn_output", ""),
+            "active_module": frame.get("active_module", ""),
+            "scene_phase": frame.get("scene_phase", ""),
+            "reference_mode": frame.get("reference_mode", ""),
+            "near_lateral_error": frame.get("near_lateral_error", ""),
+            "far_heading_error": frame.get("far_heading_error", ""),
+            "preview_curvature": frame.get("preview_curvature", ""),
+            "lookahead_distance_m": frame.get("lookahead_distance_m", ""),
+            "lookahead_lateral_error": frame.get("lookahead_lateral_error", ""),
+            "lookahead_heading_error": frame.get("lookahead_heading_error", ""),
+            "reference_curvature": frame.get("reference_curvature", ""),
+            "curvature_command": frame.get("curvature_command", ""),
+            "yaw_rate_target": frame.get("yaw_rate_target", ""),
+            "visible_range_m": frame.get("visible_range_m", ""),
+            "track_confidence": frame.get("track_confidence", ""),
         }
         if frame_type != "telemetry" or self._capture_telemetry:
             self._csv.write(row)
@@ -410,7 +438,11 @@ class AssistantSession:
                 self._csv.flush()
                 log(
                     "[telemetry] "
-                    f"phase={frame.get('motion_phase')} left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
+                    f"phase={frame.get('motion_phase')} module={frame.get('active_module')} "
+                    f"scene={frame.get('scene_phase')} ref={frame.get('reference_mode')} "
+                    f"lookahead_m={frame.get('lookahead_distance_m')} "
+                    f"curvature_command={frame.get('curvature_command')} "
+                    f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"override={frame.get('target_speed_override_value')!r} raw_turn={frame.get('raw_turn_output')} "
                     f"applied_turn={frame.get('applied_turn_output')}"

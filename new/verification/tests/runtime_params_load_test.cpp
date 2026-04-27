@@ -125,70 +125,82 @@ std::string ValidRuntimeParamsJson() {
     "INTEGRAL_LIMIT": 2200.0,
     "MEASUREMENT_FILTER_ALPHA": 0.4
   },
-  "SCENE_WIDE_CLASSIFIER": {
-    "LOWER_ROW_START": 156,
-    "LOWER_ROW_END": 184,
-    "MIDDLE_ROW_START": 120,
-    "MIDDLE_ROW_END": 148,
-    "UPPER_ROW_START": 80,
-    "UPPER_ROW_END": 112,
-    "ROW_STEP": 4,
-    "EDGE_MARGIN_PX": 12,
-    "UPPER_FULL_SPAN_WIDTH_RATIO": 0.95,
-    "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO": 0.38,
-    "SPECIAL_WIDE_VALID_ROWS_MIN": 10,
-    "EDGE_MOTION_MIN_PX": 8,
-    "EDGE_CURVATURE_MIN_PX": 6,
-    "OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX": 5,
-    "OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO": 0.45,
-    "CIRCLE_OPEN_MIN_PX": 24,
-    "CIRCLE_CONTRACT_MIN_PX": 14,
-    "CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN": 3,
-    "CROSS_UPPER_FULL_SPAN_MIN_RATIO": 0.45,
-    "TO_CROSS_MARGIN": 0.2,
-    "TO_CIRCLE_MARGIN": 0.2,
-    "TO_CIRCLE_OVER_BEND_MARGIN": 2.0,
-    "ENTER_CONFIRM_CYCLES": 2,
-    "EXIT_CONFIRM_CYCLES": 2,
-    "CROSS_WEIGHT_FULL_SPAN": 1.25,
-    "CROSS_WEIGHT_BOTH_OPEN": 0.4,
-    "CIRCLE_CURVE_WEIGHT": 1.2,
-    "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT": 1.0,
-    "CIRCLE_WEIGHT_OPEN": 0.25,
-    "CIRCLE_WEIGHT_CONTRACT": 0.2
+  "BEV_PROJECTOR": {
+    "VALID": 1,
+    "PROJECTOR_ID": "bev_projector_default_v1",
+    "PROJECTOR_HASH": "bev-projector-default-20260426",
+    "DEBUG_GRID_WIDTH": 160,
+    "DEBUG_GRID_HEIGHT": 128,
+    "SOURCE_ROW_0": 220.0,
+    "SOURCE_COL_0": 72.0,
+    "SOURCE_ROW_1": 220.0,
+    "SOURCE_COL_1": 248.0,
+    "SOURCE_ROW_2": 148.0,
+    "SOURCE_COL_2": 122.0,
+    "SOURCE_ROW_3": 148.0,
+    "SOURCE_COL_3": 198.0,
+    "TARGET_FORWARD_0": 0.45,
+    "TARGET_LATERAL_0": -0.23,
+    "TARGET_FORWARD_1": 0.45,
+    "TARGET_LATERAL_1": 0.23,
+    "TARGET_FORWARD_2": 2.25,
+    "TARGET_LATERAL_2": -0.36,
+    "TARGET_FORWARD_3": 2.25,
+    "TARGET_LATERAL_3": 0.36
   },
-  "CIRCLE_SCENE": {
-    "ACTIVE_VALID_ROWS_MIN": 8,
-    "MINIMUM_TRACK_CONFIDENCE": 0.35
+  "BEV_GEOMETRY": {
+    "FORWARD_SAMPLE_0": 0.30,
+    "FORWARD_SAMPLE_1": 0.55,
+    "FORWARD_SAMPLE_2": 0.80,
+    "FORWARD_SAMPLE_3": 1.10,
+    "FORWARD_SAMPLE_4": 1.40,
+    "FORWARD_SAMPLE_5": 1.70,
+    "FORWARD_SAMPLE_6": 2.00,
+    "FORWARD_SAMPLE_7": 2.30,
+    "SEARCH_LATERAL_LIMIT_M": 0.65,
+    "LATERAL_STEP_M": 0.02,
+    "NOMINAL_LANE_WIDTH_M": 0.42,
+    "MIN_LANE_WIDTH_M": 0.20,
+    "MAX_LANE_WIDTH_M": 0.75,
+    "MIN_VISIBLE_RANGE_M": 0.80,
+    "MIN_TRACK_CONFIDENCE": 0.25,
+    "CONTINUITY_BREAK_THRESHOLD_M": 0.28,
+    "SAMPLE_ROW_STEP_PX": 4,
+    "IMAGE_BORDER_TRUNCATION_MARGIN_PX": 3
   },
-  "CIRCLE_ENTRY": {
-    "ENTRY_INNER_OFFSET_NEAR_PX": 48,
-    "ENTRY_INNER_OFFSET_FAR_PX": 28,
-    "ENTRY_REPAIR_OVER_DEG": 45.0,
-    "ENTRY_SETTLE_CONFIRM_CYCLES": 3,
-    "ENTRY_RELEASE_LOSS_CYCLES": 2
+  "BEV_SCENE_FSM": {
+    "BEND_SEVERITY_CONFIRM": 0.20,
+    "CROSS_EXPAND_RATIO_MIN": 1.18,
+    "CROSS_BILATERAL_OPEN_MIN_M": 0.05,
+    "CROSS_CONFIRM_CYCLES": 2,
+    "CROSS_HOLD_CYCLES": 2,
+    "ZEBRA_TRANSITION_DENSITY_MIN": 7.0,
+    "ZEBRA_HOLD_CYCLES": 2,
+    "CIRCLE_OPEN_SCORE_MIN": 0.18,
+    "CIRCLE_CONTRACT_SCORE_MIN": 0.12,
+    "CIRCLE_OPPOSITE_HEADING_ABS_MAX": 0.22,
+    "CIRCLE_CONFIRM_CYCLES": 2,
+    "CIRCLE_RELEASE_CYCLES": 3,
+    "RELEASE_TRACK_CONFIDENCE_MIN": 0.55
   },
-  "CIRCLE_INTERIOR": {
-    "INTERIOR_INNER_OFFSET_PX": 40,
-    "INTERIOR_BLEND_ENABLE": 1,
-    "INTERIOR_BLEND_MIN_CONFIDENCE": 0.55
-  },
-  "CIRCLE_EXIT": {
-    "EXIT_OUTER_OFFSET_NEAR_PX": 34,
-    "EXIT_OUTER_OFFSET_FAR_PX": 20,
-    "EXIT_HANDOVER_START_DEG": 180.0,
-    "HANDOVER_CONFIRM_CYCLES": 2,
-    "HANDOVER_RAMP_CYCLES": 4,
-    "EXIT_RELEASE_CYCLES": 3,
-    "EXIT_COMPLETE_DEG": 300.0,
-    "EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES": 2,
-    "EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX": 5,
-    "EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS": 3,
-    "EXIT_FIXSTEER_START_DEG": 235.0,
-    "EXIT_FALLBACK_MAX_CYCLES": 6
-  },
-  "CIRCLE_FALLBACK": {
-    "FIXSTEER_BIAS_SCALE": 0.55
+  "BEV_CONTROL_MODEL": {
+    "NEAR_SAMPLE_INDEX": 1,
+    "FAR_SAMPLE_INDEX": 4,
+    "CURVATURE_SAMPLE_INDEX": 5,
+    "LOOKAHEAD_VISIBLE_RANGE_RATIO": 0.35,
+    "LOOKAHEAD_MIN_M": 1.2,
+    "LOOKAHEAD_MAX_M": 2.0,
+    "PURE_PURSUIT_GAIN": 1.0,
+    "HEADING_CURVATURE_GAIN": 0.35,
+    "CURVATURE_FEEDFORWARD_GAIN": 0.20,
+    "CURVATURE_COMMAND_LIMIT": 0.12,
+    "CURVATURE_TO_W_TARGET_GAIN": 12000,
+    "LOW_CONFIDENCE_THRESHOLD": 0.35,
+    "STEERING_SUPPRESSION_CONFIDENCE": 0.12,
+    "LOW_VISIBLE_RANGE_M": 0.80,
+    "MIN_GAIN_SCALE": 0.25,
+    "MIN_SPEED_LIMIT_SCALE": 0.35,
+    "MAX_REFERENCE_BIAS_M": 0.20
   },
   "assistant_tcp": {
     "host": "10.100.170.115",
@@ -217,29 +229,30 @@ void TestLoadSucceedsWithoutRemovedLegacyFields() {
     Expect(params.pid_turn_gyro_camera_d == 0.20, "PID_TURN_GYRO_CAMERA.D must remain required");
     Expect(params.P_Mode == 3, "P_Mode must remain required");
     Expect(params.exp_light == 65, "exp_light must remain required");
-    Expect(params.scene_wide_classifier.enter_confirm_cycles == 2,
-           "SCENE_WIDE_CLASSIFIER block must load independently");
-    Expect(params.scene_wide_classifier.cross_weight_full_span == 1.25,
-           "SCENE_WIDE_CLASSIFIER weights must load without touching legacy fields");
-    Expect(params.scene_wide_classifier.edge_motion_min_px == 8,
-           "SCENE_WIDE_CLASSIFIER geometry thresholds must load correctly");
-    Expect(params.scene_wide_classifier.circle_curve_weight == 1.2,
-           "SCENE_WIDE_CLASSIFIER circle weights must load correctly");
-    Expect(params.scene_wide_classifier.to_circle_over_bend_margin == 2.0,
-           "SCENE_WIDE_CLASSIFIER bend arbitration margin must load correctly");
-    Expect(params.circle_entry.inner_offset_near_px == 48,
-           "CIRCLE_ENTRY group must load independently");
-    Expect(params.circle_entry.release_loss_cycles == 2,
-           "CIRCLE_ENTRY release loss cycles must load independently");
-    Expect(params.circle_exit.exit_complete_deg == 300.0,
-           "CIRCLE_EXIT group must load independently");
-    Expect(params.circle_fallback.fixsteer_bias_scale == 0.55,
-           "CIRCLE_FALLBACK group must load independently");
+    Expect(params.bev_projector.valid, "BEV_PROJECTOR must load validity");
+    Expect(params.bev_projector.projector_hash == "bev-projector-default-20260426",
+           "BEV projector hash must load");
+    Expect(params.bev_projector.target_points[2].forward_m == 2.25F,
+           "BEV projector target points must load");
+    Expect(params.bev_geometry.forward_samples_m[4] == 1.40F,
+           "BEV geometry forward samples must load");
+    Expect(params.bev_geometry.nominal_lane_width_m == 0.42F,
+           "BEV geometry lane width contract must load");
+    Expect(params.bev_geometry.image_border_truncation_margin_px == 3,
+           "BEV geometry border truncation margin must load");
+    Expect(params.bev_scene_fsm.circle_release_cycles == 3,
+           "BEV scene FSM cycles must load");
+    Expect(params.bev_scene_fsm.cross_bilateral_open_min_m == 0.05F,
+           "BEV scene FSM cross bilateral-open threshold must load");
+    Expect(params.bev_control_model.lookahead_visible_range_ratio == 0.35,
+           "BEV control model lookahead ratio must load");
+    Expect(params.bev_control_model.curvature_to_w_target_gain == 12000.0,
+           "BEV control model curvature gain must load");
     Expect(HasDiagnosticCode(diagnostics, "params.loaded"),
            "successful parse must emit params.loaded");
 }
 
-void TestMissingRemovedLegacyFieldsDoesNotFailParsing() {
+void TestMissingRemovedLegacySceneGroupsDoesNotFailParsing() {
     RecordingDiagnostics diagnostics;
     auto store = ls2k::platform::MakeParamStore();
     ls2k::port::RuntimeParameters params{};
@@ -249,8 +262,8 @@ void TestMissingRemovedLegacyFieldsDoesNotFailParsing() {
 
     Expect(ok, "trimmed parameter surface must still load successfully");
     Expect(!params.loaded_from_defaults,
-           "removed legacy keys must not be treated as missing required fields");
-    Expect(!params.parse_failure, "removed legacy keys must not trigger parse failure");
+           "removed legacy scene groups must not be treated as missing required fields");
+    Expect(!params.parse_failure, "removed legacy scene groups must not trigger parse failure");
     Expect(params.left_wheel_pid.p == 84.0, "other required fields must still load unchanged");
     Expect(params.right_wheel_pid.p == 96.0, "other required fields must still load unchanged");
 }
@@ -283,7 +296,7 @@ void TestStillFailsWhenCurrentRequiredFieldIsMissing() {
 int main() {
     try {
         TestLoadSucceedsWithoutRemovedLegacyFields();
-        TestMissingRemovedLegacyFieldsDoesNotFailParsing();
+        TestMissingRemovedLegacySceneGroupsDoesNotFailParsing();
         TestStillFailsWhenCurrentRequiredFieldIsMissing();
     } catch (const TestFailure& failure) {
         std::cerr << "runtime_params_load_test failed: " << failure.message << "\n";

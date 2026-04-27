@@ -17,8 +17,8 @@ WheelSpeedTargets WheelTargetMixer::Compute(double effective_speed_target,
     const double turn_delta = turn_ratio * turn_target_scale_;
 
     WheelSpeedTargets targets{};
-    targets.left = std::max(0.0, effective_speed_target - turn_delta);
-    targets.right = std::max(0.0, effective_speed_target + turn_delta);
+    targets.left = std::max(0.0, effective_speed_target + turn_delta);
+    targets.right = std::max(0.0, effective_speed_target - turn_delta);
     return targets;
 }
 

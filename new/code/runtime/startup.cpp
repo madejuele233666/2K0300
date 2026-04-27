@@ -255,7 +255,10 @@ bool RunStartup(const port::HardwareProfile& profile,
     state.motion_intent = {};
     state.motion_state = {};
     state.last_command = {};
+    state.perception = {};
     state.control_observation = {};
+    state.control_debug_snapshot = {};
+    ResetSteeringRuntimeState(state.steering_state);
     diagnostics.Emit({port::DiagnosticLevel::kInfo,
                       "startup.complete",
                       "startup validated required adapters and applied critical params",

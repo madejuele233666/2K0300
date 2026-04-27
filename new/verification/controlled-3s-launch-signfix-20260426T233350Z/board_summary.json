@@ -1,0 +1,9 @@
+{
+  "board_ip": "10.100.170.226",
+  "board_user": "root",
+  "remote_log": "/home/root/new_controlled_3s_signfix_20260426T233350Z.log",
+  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/controlled-3s-launch-signfix-20260426T233350Z/board_runtime.log",
+  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/controlled-3s-launch-signfix-20260426T233350Z/board_steering_snapshot.jsonl",
+  "snapshot_count": 32,
+  "receiver_error": null
+}

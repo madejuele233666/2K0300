@@ -1,0 +1,2 @@
+runtime_status=stopped
+log=/home/root/new_launch_controlled_100_longer.log

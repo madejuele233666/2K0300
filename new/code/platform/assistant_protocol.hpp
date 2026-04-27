@@ -49,6 +49,18 @@ struct AssistantTelemetryView {
     std::string active_module = "straight";
     std::string scene_phase = "idle";
     std::string scene_override_source = "none";
+    std::string reference_mode = "centerline";
+    double near_lateral_error = 0.0;
+    double far_heading_error = 0.0;
+    double preview_curvature = 0.0;
+    double lookahead_distance_m = 0.0;
+    double lookahead_lateral_error = 0.0;
+    double lookahead_heading_error = 0.0;
+    double reference_curvature = 0.0;
+    double curvature_command = 0.0;
+    double yaw_rate_target = 0.0;
+    double visible_range_m = 0.0;
+    double track_confidence = 0.0;
     bool tuning_mode_enabled = false;
     bool turn_suppressed = false;
     bool target_speed_override_enabled = false;
@@ -62,14 +74,10 @@ struct AssistantTelemetryView {
     int right_pwm_command = 0;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
-    int farthest_line = 0;
-    int steering_reference_col = 160;
     std::string circle_direction = "none";
     std::string circle_reference_mode = "none";
     double circle_heading_delta_deg = 0.0;
-    std::string circle_fallback_reason = "none";
     bool circle_entry_signal_active = false;
-    std::string circle_entry_release_reason = "none";
 };
 
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed);

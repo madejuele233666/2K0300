@@ -216,6 +216,48 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
+void ReadOptionalNestedNumber(const cv::FileNode& root,
+                              const char* parent,
+                              const std::string& child,
+                              double& value,
+                              bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadNumberNode(node, value)) {
+        malformed = true;
+    }
+}
+
+void ReadOptionalNestedNumber(const cv::FileNode& root,
+                              const char* parent,
+                              const char* child,
+                              float& value,
+                              bool& malformed) {
+    double temporary = static_cast<double>(value);
+    ReadOptionalNestedNumber(root, parent, child, temporary, malformed);
+    value = static_cast<float>(temporary);
+}
+
+void ReadOptionalNestedNumber(const cv::FileNode& root,
+                              const char* parent,
+                              const std::string& child,
+                              float& value,
+                              bool& malformed) {
+    double temporary = static_cast<double>(value);
+    ReadOptionalNestedNumber(root, parent, child, temporary, malformed);
+    value = static_cast<float>(temporary);
+}
+
 void ReadOptionalNestedBool(const cv::FileNode& root,
                             const char* parent,
                             const char* child,
@@ -256,6 +298,28 @@ void ReadOptionalNestedInt(const cv::FileNode& root,
         return;
     }
     if (!ReadIntegerValue(node, value)) {
+        malformed = true;
+    }
+}
+
+void ReadOptionalNestedString(const cv::FileNode& root,
+                              const char* parent,
+                              const char* child,
+                              std::string& value,
+                              bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!ReadStringValue(node, value)) {
         malformed = true;
     }
 }
@@ -477,270 +541,255 @@ public:
                                  "I",
                                  parsed.pid_turn_gyro_camera_i,
                                  optional_malformed);
+        ReadOptionalNestedBool(root, "BEV_PROJECTOR", "VALID", parsed.bev_projector.valid, optional_malformed);
         ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "LOWER_ROW_START",
-                              parsed.scene_wide_classifier.lower_row_start,
+                              "BEV_PROJECTOR",
+                              "DEBUG_GRID_WIDTH",
+                              parsed.bev_projector.debug_grid_width,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "LOWER_ROW_END",
-                              parsed.scene_wide_classifier.lower_row_end,
+                              "BEV_PROJECTOR",
+                              "DEBUG_GRID_HEIGHT",
+                              parsed.bev_projector.debug_grid_height,
                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "MIDDLE_ROW_START",
-                              parsed.scene_wide_classifier.middle_row_start,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "MIDDLE_ROW_END",
-                              parsed.scene_wide_classifier.middle_row_end,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "UPPER_ROW_START",
-                              parsed.scene_wide_classifier.upper_row_start,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "UPPER_ROW_END",
-                              parsed.scene_wide_classifier.upper_row_end,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "ROW_STEP",
-                              parsed.scene_wide_classifier.row_step,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "EDGE_MARGIN_PX",
-                              parsed.scene_wide_classifier.edge_margin_px,
-                              optional_malformed);
+        ReadOptionalNestedString(root,
+                                 "BEV_PROJECTOR",
+                                 "PROJECTOR_ID",
+                                 parsed.bev_projector.projector_id,
+                                 optional_malformed);
+        ReadOptionalNestedString(root,
+                                 "BEV_PROJECTOR",
+                                 "PROJECTOR_HASH",
+                                 parsed.bev_projector.projector_hash,
+                                 optional_malformed);
+        for (int index = 0; index < static_cast<int>(port::kBevCalibrationPointCount); ++index) {
+            ReadOptionalNestedNumber(root,
+                                     "BEV_PROJECTOR",
+                                     "SOURCE_ROW_" + std::to_string(index),
+                                     parsed.bev_projector.source_points[static_cast<std::size_t>(index)].row_px,
+                                     optional_malformed);
+            ReadOptionalNestedNumber(root,
+                                     "BEV_PROJECTOR",
+                                     "SOURCE_COL_" + std::to_string(index),
+                                     parsed.bev_projector.source_points[static_cast<std::size_t>(index)].col_px,
+                                     optional_malformed);
+            ReadOptionalNestedNumber(root,
+                                     "BEV_PROJECTOR",
+                                     "TARGET_FORWARD_" + std::to_string(index),
+                                     parsed.bev_projector.target_points[static_cast<std::size_t>(index)].forward_m,
+                                     optional_malformed);
+            ReadOptionalNestedNumber(root,
+                                     "BEV_PROJECTOR",
+                                     "TARGET_LATERAL_" + std::to_string(index),
+                                     parsed.bev_projector.target_points[static_cast<std::size_t>(index)].lateral_m,
+                                     optional_malformed);
+        }
+        for (int index = 0; index < static_cast<int>(port::kBevTrackSampleCount); ++index) {
+            ReadOptionalNestedNumber(root,
+                                     "BEV_GEOMETRY",
+                                     "FORWARD_SAMPLE_" + std::to_string(index),
+                                     parsed.bev_geometry.forward_samples_m[static_cast<std::size_t>(index)],
+                                     optional_malformed);
+        }
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "UPPER_FULL_SPAN_WIDTH_RATIO",
-                                 parsed.scene_wide_classifier.upper_full_span_width_ratio,
+                                 "BEV_GEOMETRY",
+                                 "SEARCH_LATERAL_LIMIT_M",
+                                 parsed.bev_geometry.search_lateral_limit_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "SPECIAL_WIDE_LOWER_WIDTH_MIN_RATIO",
-                                 parsed.scene_wide_classifier.special_wide_lower_width_min_ratio,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "SPECIAL_WIDE_VALID_ROWS_MIN",
-                              parsed.scene_wide_classifier.special_wide_valid_rows_min,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "EDGE_MOTION_MIN_PX",
-                              parsed.scene_wide_classifier.edge_motion_min_px,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "EDGE_CURVATURE_MIN_PX",
-                              parsed.scene_wide_classifier.edge_curvature_min_px,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "OPPOSITE_EDGE_STRAIGHT_MAX_CURVATURE_PX",
-                              parsed.scene_wide_classifier.opposite_edge_straight_max_curvature_px,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "OPPOSITE_EDGE_BORDER_TOUCH_MAX_RATIO",
-                                 parsed.scene_wide_classifier.opposite_edge_border_touch_max_ratio,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "CIRCLE_OPEN_MIN_PX",
-                              parsed.scene_wide_classifier.circle_open_min_px,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "CIRCLE_CONTRACT_MIN_PX",
-                              parsed.scene_wide_classifier.circle_contract_min_px,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "CROSS_UPPER_FULL_SPAN_CONSEC_ROWS_MIN",
-                              parsed.scene_wide_classifier.cross_upper_full_span_consec_rows_min,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CROSS_UPPER_FULL_SPAN_MIN_RATIO",
-                                 parsed.scene_wide_classifier.cross_upper_full_span_min_ratio,
+                                 "BEV_GEOMETRY",
+                                 "LATERAL_STEP_M",
+                                 parsed.bev_geometry.lateral_step_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "TO_CROSS_MARGIN",
-                                 parsed.scene_wide_classifier.to_cross_margin,
+                                 "BEV_GEOMETRY",
+                                 "NOMINAL_LANE_WIDTH_M",
+                                 parsed.bev_geometry.nominal_lane_width_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "TO_CIRCLE_MARGIN",
-                                 parsed.scene_wide_classifier.to_circle_margin,
+                                 "BEV_GEOMETRY",
+                                 "MIN_LANE_WIDTH_M",
+                                 parsed.bev_geometry.min_lane_width_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "TO_CIRCLE_OVER_BEND_MARGIN",
-                                 parsed.scene_wide_classifier.to_circle_over_bend_margin,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "ENTER_CONFIRM_CYCLES",
-                              parsed.scene_wide_classifier.enter_confirm_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "SCENE_WIDE_CLASSIFIER",
-                              "EXIT_CONFIRM_CYCLES",
-                              parsed.scene_wide_classifier.exit_confirm_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CROSS_WEIGHT_FULL_SPAN",
-                                 parsed.scene_wide_classifier.cross_weight_full_span,
+                                 "BEV_GEOMETRY",
+                                 "MAX_LANE_WIDTH_M",
+                                 parsed.bev_geometry.max_lane_width_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CROSS_WEIGHT_BOTH_OPEN",
-                                 parsed.scene_wide_classifier.cross_weight_both_open,
+                                 "BEV_GEOMETRY",
+                                 "MIN_VISIBLE_RANGE_M",
+                                 parsed.bev_geometry.min_visible_range_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CIRCLE_CURVE_WEIGHT",
-                                 parsed.scene_wide_classifier.circle_curve_weight,
+                                 "BEV_GEOMETRY",
+                                 "MIN_TRACK_CONFIDENCE",
+                                 parsed.bev_geometry.min_track_confidence,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CIRCLE_OPPOSITE_STRAIGHT_WEIGHT",
-                                 parsed.scene_wide_classifier.circle_opposite_straight_weight,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CIRCLE_WEIGHT_OPEN",
-                                 parsed.scene_wide_classifier.circle_weight_open,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "SCENE_WIDE_CLASSIFIER",
-                                 "CIRCLE_WEIGHT_CONTRACT",
-                                 parsed.scene_wide_classifier.circle_weight_contract,
+                                 "BEV_GEOMETRY",
+                                 "CONTINUITY_BREAK_THRESHOLD_M",
+                                 parsed.bev_geometry.continuity_break_threshold_m,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_SCENE",
-                              "ACTIVE_VALID_ROWS_MIN",
-                              parsed.circle_scene.active_valid_rows_min,
+                              "BEV_GEOMETRY",
+                              "SAMPLE_ROW_STEP_PX",
+                              parsed.bev_geometry.sample_row_step_px,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_GEOMETRY",
+                              "IMAGE_BORDER_TRUNCATION_MARGIN_PX",
+                              parsed.bev_geometry.image_border_truncation_margin_px,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_SCENE",
-                                 "MINIMUM_TRACK_CONFIDENCE",
-                                 parsed.circle_scene.minimum_track_confidence,
+                                 "BEV_SCENE_FSM",
+                                 "BEND_SEVERITY_CONFIRM",
+                                 parsed.bev_scene_fsm.bend_severity_confirm,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_SCENE_FSM",
+                                 "CROSS_EXPAND_RATIO_MIN",
+                                 parsed.bev_scene_fsm.cross_expand_ratio_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_SCENE_FSM",
+                                 "CROSS_BILATERAL_OPEN_MIN_M",
+                                 parsed.bev_scene_fsm.cross_bilateral_open_min_m,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_ENTRY",
-                              "ENTRY_INNER_OFFSET_NEAR_PX",
-                              parsed.circle_entry.inner_offset_near_px,
+                              "BEV_SCENE_FSM",
+                              "CROSS_CONFIRM_CYCLES",
+                              parsed.bev_scene_fsm.cross_confirm_cycles,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_ENTRY",
-                              "ENTRY_INNER_OFFSET_FAR_PX",
-                              parsed.circle_entry.inner_offset_far_px,
+                              "BEV_SCENE_FSM",
+                              "CROSS_HOLD_CYCLES",
+                              parsed.bev_scene_fsm.cross_hold_cycles,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_ENTRY",
-                                 "ENTRY_REPAIR_OVER_DEG",
-                                 parsed.circle_entry.repair_over_deg,
+                                 "BEV_SCENE_FSM",
+                                 "ZEBRA_TRANSITION_DENSITY_MIN",
+                                 parsed.bev_scene_fsm.zebra_transition_density_min,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_ENTRY",
-                              "ENTRY_SETTLE_CONFIRM_CYCLES",
-                              parsed.circle_entry.settle_confirm_cycles,
+                              "BEV_SCENE_FSM",
+                              "ZEBRA_HOLD_CYCLES",
+                              parsed.bev_scene_fsm.zebra_hold_cycles,
                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_ENTRY",
-                              "ENTRY_RELEASE_LOSS_CYCLES",
-                              parsed.circle_entry.release_loss_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_INTERIOR",
-                              "INTERIOR_INNER_OFFSET_PX",
-                              parsed.circle_interior.inner_offset_px,
-                              optional_malformed);
-        ReadOptionalNestedBool(root,
-                               "CIRCLE_INTERIOR",
-                               "INTERIOR_BLEND_ENABLE",
-                               parsed.circle_interior.blend_enable,
-                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_INTERIOR",
-                                 "INTERIOR_BLEND_MIN_CONFIDENCE",
-                                 parsed.circle_interior.blend_min_confidence,
+                                 "BEV_SCENE_FSM",
+                                 "CIRCLE_OPEN_SCORE_MIN",
+                                 parsed.bev_scene_fsm.circle_open_score_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_SCENE_FSM",
+                                 "CIRCLE_CONTRACT_SCORE_MIN",
+                                 parsed.bev_scene_fsm.circle_contract_score_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_SCENE_FSM",
+                                 "CIRCLE_OPPOSITE_HEADING_ABS_MAX",
+                                 parsed.bev_scene_fsm.circle_opposite_heading_abs_max,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_OUTER_OFFSET_NEAR_PX",
-                              parsed.circle_exit.outer_offset_near_px,
+                              "BEV_SCENE_FSM",
+                              "CIRCLE_CONFIRM_CYCLES",
+                              parsed.bev_scene_fsm.circle_confirm_cycles,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_OUTER_OFFSET_FAR_PX",
-                              parsed.circle_exit.outer_offset_far_px,
+                              "BEV_SCENE_FSM",
+                              "CIRCLE_RELEASE_CYCLES",
+                              parsed.bev_scene_fsm.circle_release_cycles,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_EXIT",
-                                 "EXIT_HANDOVER_START_DEG",
-                                 parsed.circle_exit.handover_start_deg,
+                                 "BEV_SCENE_FSM",
+                                 "RELEASE_TRACK_CONFIDENCE_MIN",
+                                 parsed.bev_scene_fsm.release_track_confidence_min,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "HANDOVER_CONFIRM_CYCLES",
-                              parsed.circle_exit.handover_confirm_cycles,
+                              "BEV_CONTROL_MODEL",
+                              "NEAR_SAMPLE_INDEX",
+                              parsed.bev_control_model.near_sample_index,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "HANDOVER_RAMP_CYCLES",
-                              parsed.circle_exit.handover_ramp_cycles,
+                              "BEV_CONTROL_MODEL",
+                              "FAR_SAMPLE_INDEX",
+                              parsed.bev_control_model.far_sample_index,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_RELEASE_CYCLES",
-                              parsed.circle_exit.exit_release_cycles,
+                              "BEV_CONTROL_MODEL",
+                              "CURVATURE_SAMPLE_INDEX",
+                              parsed.bev_control_model.curvature_sample_index,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_EXIT",
-                                 "EXIT_COMPLETE_DEG",
-                                 parsed.circle_exit.exit_complete_deg,
+                                 "BEV_CONTROL_MODEL",
+                                 "LOOKAHEAD_VISIBLE_RANGE_RATIO",
+                                 parsed.bev_control_model.lookahead_visible_range_ratio,
                                  optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_OPPOSITE_EDGE_STRAIGHT_CONFIRM_CYCLES",
-                              parsed.circle_exit.opposite_edge_straight_confirm_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_OPPOSITE_EDGE_MAX_CURVATURE_PX",
-                              parsed.circle_exit.opposite_edge_max_curvature_px,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_OPPOSITE_EDGE_MIN_VISIBLE_ROWS",
-                              parsed.circle_exit.opposite_edge_min_visible_rows,
-                              optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_EXIT",
-                                 "EXIT_FIXSTEER_START_DEG",
-                                 parsed.circle_exit.fixsteer_start_deg,
+                                 "BEV_CONTROL_MODEL",
+                                 "LOOKAHEAD_MIN_M",
+                                 parsed.bev_control_model.lookahead_min_m,
                                  optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "CIRCLE_EXIT",
-                              "EXIT_FALLBACK_MAX_CYCLES",
-                              parsed.circle_exit.exit_fallback_max_cycles,
-                              optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "CIRCLE_FALLBACK",
-                                 "FIXSTEER_BIAS_SCALE",
-                                 parsed.circle_fallback.fixsteer_bias_scale,
+                                 "BEV_CONTROL_MODEL",
+                                 "LOOKAHEAD_MAX_M",
+                                 parsed.bev_control_model.lookahead_max_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "PURE_PURSUIT_GAIN",
+                                 parsed.bev_control_model.pure_pursuit_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "HEADING_CURVATURE_GAIN",
+                                 parsed.bev_control_model.heading_curvature_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "CURVATURE_FEEDFORWARD_GAIN",
+                                 parsed.bev_control_model.curvature_feedforward_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "CURVATURE_COMMAND_LIMIT",
+                                 parsed.bev_control_model.curvature_command_limit,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "CURVATURE_TO_W_TARGET_GAIN",
+                                 parsed.bev_control_model.curvature_to_w_target_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "LOW_CONFIDENCE_THRESHOLD",
+                                 parsed.bev_control_model.low_confidence_threshold,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "STEERING_SUPPRESSION_CONFIDENCE",
+                                 parsed.bev_control_model.steering_suppression_confidence,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "LOW_VISIBLE_RANGE_M",
+                                 parsed.bev_control_model.low_visible_range_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "MIN_GAIN_SCALE",
+                                 parsed.bev_control_model.min_gain_scale,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "MIN_SPEED_LIMIT_SCALE",
+                                 parsed.bev_control_model.min_speed_limit_scale,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "MAX_REFERENCE_BIAS_M",
+                                 parsed.bev_control_model.max_reference_bias_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",

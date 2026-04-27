@@ -1,0 +1,61 @@
+{
+  "timestamp_utc": "2026-04-26T09:40:39Z",
+  "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z",
+  "duration_s": 5.0,
+  "interrupted": false,
+  "assistant_summary": {
+    "listen_host": "169.254.6.147",
+    "listen_port": 8888,
+    "csv_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/assistant_control.csv",
+    "connected": true,
+    "connection_address": "169.254.148.181:50770",
+    "ack_frames": 0,
+    "state_frames": 0,
+    "telemetry_frames": 0,
+    "unknown_frames": 0,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": null,
+    "last_host_receive_monotonic_ms": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/assistant_summary.json"
+  },
+  "board_summary": {
+    "board_ip": "169.254.148.181",
+    "board_user": "root",
+    "remote_log": "/home/root/new_runtime.log",
+    "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/board_runtime.log",
+    "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/board_steering_snapshot.jsonl",
+    "snapshot_count": 45,
+    "receiver_error": null,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/board_summary.json"
+  },
+  "media_summary": {
+    "listen_host": "169.254.6.147",
+    "listen_port": 8890,
+    "output_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering-media",
+    "connected": true,
+    "connection_address": "169.254.148.181:52902",
+    "config_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering-media/config_snapshot.json",
+    "metadata_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering-media/frame_metadata.jsonl",
+    "frame_dir": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering-media/frames",
+    "frame_count": 32,
+    "receiver_error": null,
+    "first_host_receive_monotonic_ms": 126340432,
+    "last_host_receive_monotonic_ms": 126344383,
+    "summary_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering-media/summary.json"
+  },
+  "steering_media_alignment": {
+    "timestamp_utc": "2026-04-26T09:40:39Z",
+    "board_snapshot_count": 45,
+    "media_frame_count": 32,
+    "alignment_basis": "frame_id exact match, fallback nearest capture_time_ms within 200ms",
+    "fallback_capture_time_window_ms": 200,
+    "alignment_available": true,
+    "alignment_count": 32,
+    "exact_match_count": 7,
+    "fallback_match_count": 25,
+    "fallback_rejected_count": 0,
+    "alignment_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T094034Z/steering_media_alignment.jsonl",
+    "max_capture_time_delta_ms": 55,
+    "mean_capture_time_delta_ms": 24.71875
+  }
+}
