@@ -224,6 +224,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         scene_classifier_selftest
         ../verification/tests/scene_classifier_selftest.cpp
+        ../code/legacy/camera_logic.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_sparse_sampler.cpp
         ../code/legacy/steering_corridor_intervals.cpp
@@ -235,6 +236,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_scene_fsm.cpp
         ../code/legacy/steering_reference_policy.cpp
         ../code/legacy/steering_control_error_model.cpp
+        ../code/legacy/steering_gyro_continuity.cpp
         ../code/legacy/pid_control.cpp
         ../code/legacy/fuzzy_pid_ucas.cpp
     )

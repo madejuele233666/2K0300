@@ -78,22 +78,22 @@ port::SpecialSceneKind PickTopologyCandidate(const port::TopologyEvidence& evide
     port::SpecialSceneKind best = port::SpecialSceneKind::kOrdinary;
     float best_score = params.bev_topology_evidence.ordinary_release_score;
     if (evidence.cross_score >= params.bev_topology_evidence.cross_enter_score &&
-        evidence.cross_score > best_score) {
+        evidence.cross_score >= best_score) {
         best = port::SpecialSceneKind::kCross;
         best_score = evidence.cross_score;
     }
     if (evidence.zebra_score >= params.bev_topology_evidence.zebra_enter_score &&
-        evidence.zebra_score > best_score) {
+        evidence.zebra_score >= best_score) {
         best = port::SpecialSceneKind::kZebra;
         best_score = evidence.zebra_score;
     }
     if (evidence.left_circle_score >= params.bev_topology_evidence.circle_enter_score &&
-        evidence.left_circle_score > best_score) {
+        evidence.left_circle_score >= best_score) {
         best = port::SpecialSceneKind::kCircleLeft;
         best_score = evidence.left_circle_score;
     }
     if (evidence.right_circle_score >= params.bev_topology_evidence.circle_enter_score &&
-        evidence.right_circle_score > best_score) {
+        evidence.right_circle_score >= best_score) {
         best = port::SpecialSceneKind::kCircleRight;
     }
     return best;

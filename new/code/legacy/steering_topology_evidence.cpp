@@ -111,7 +111,7 @@ float ZebraStripeScore(const CorridorIntervalSet& intervals,
     }
     const float transition_score = Clamp01(static_cast<float>(transitions) / 3.0F);
     const float density_score = Clamp01(static_cast<float>(wide_layers) / 4.0F);
-    return Clamp01(transition_score * density_score * (1.0F - invalid_edge_penalty));
+    return Clamp01(transition_score * density_score * (1.0F - 0.25F * invalid_edge_penalty));
 }
 
 }  // namespace
