@@ -81,6 +81,11 @@ set(NEW_SRCS
     ../code/legacy/attitude_logic.cpp
     ../code/legacy/camera_logic.cpp
     ../code/legacy/steering_bev_projector.cpp
+    ../code/legacy/steering_bev_sparse_sampler.cpp
+    ../code/legacy/steering_corridor_intervals.cpp
+    ../code/legacy/steering_corridor_graph.cpp
+    ../code/legacy/steering_topology_hypotheses.cpp
+    ../code/legacy/steering_topology_evidence.cpp
     ../code/legacy/steering_bev_geometry.cpp
     ../code/legacy/steering_observation_assembly.cpp
     ../code/legacy/steering_scene_fsm.cpp
@@ -183,9 +188,48 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
+        bev_sparse_sampler_test
+        ../verification/tests/bev_sparse_sampler_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_sparse_sampler.cpp
+    )
+    target_link_libraries(
+        bev_sparse_sampler_test
+        pthread
+        m
+    )
+
+    add_executable(
+        corridor_interval_test
+        ../verification/tests/corridor_interval_test.cpp
+        ../code/legacy/steering_corridor_intervals.cpp
+    )
+    target_link_libraries(
+        corridor_interval_test
+        pthread
+        m
+    )
+
+    add_executable(
+        corridor_graph_test
+        ../verification/tests/corridor_graph_test.cpp
+        ../code/legacy/steering_corridor_graph.cpp
+    )
+    target_link_libraries(
+        corridor_graph_test
+        pthread
+        m
+    )
+
+    add_executable(
         scene_classifier_selftest
         ../verification/tests/scene_classifier_selftest.cpp
         ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_corridor_intervals.cpp
+        ../code/legacy/steering_corridor_graph.cpp
+        ../code/legacy/steering_topology_hypotheses.cpp
+        ../code/legacy/steering_topology_evidence.cpp
         ../code/legacy/steering_bev_geometry.cpp
         ../code/legacy/steering_observation_assembly.cpp
         ../code/legacy/steering_scene_fsm.cpp
@@ -205,6 +249,11 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../user/scene_overlay_probe.cpp
         ../code/legacy/camera_logic.cpp
         ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_corridor_intervals.cpp
+        ../code/legacy/steering_corridor_graph.cpp
+        ../code/legacy/steering_topology_hypotheses.cpp
+        ../code/legacy/steering_topology_evidence.cpp
         ../code/legacy/steering_bev_geometry.cpp
         ../code/legacy/steering_observation_assembly.cpp
         ../code/legacy/steering_scene_fsm.cpp

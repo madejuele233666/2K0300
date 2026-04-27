@@ -28,6 +28,10 @@ struct SteeringMediaParamSnapshotView {
     port::BEVGeometryParameters bev_geometry{};
     port::BEVSceneFsmParameters bev_scene_fsm{};
     port::BEVControlModelParameters bev_control_model{};
+    port::BEVTopologySamplerParameters bev_topology_sampler{};
+    port::BEVCorridorGraphParameters bev_corridor_graph{};
+    port::BEVTopologyEvidenceParameters bev_topology_evidence{};
+    port::BEVReferencePolicyParameters bev_reference_policy{};
 };
 
 struct SteeringMediaSnapshotView {

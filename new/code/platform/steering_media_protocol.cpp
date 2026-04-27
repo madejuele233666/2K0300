@@ -296,6 +296,72 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"IMAGE_BORDER_TRUNCATION_MARGIN_PX\":"
            << snapshot.param_snapshot.bev_geometry.image_border_truncation_margin_px;
     header << "}";
+    header << ",\"BEV_TOPOLOGY_SAMPLER\":{";
+    header << "\"FORWARD_SAMPLES_M\":[";
+    for (std::size_t index = 0; index < port::kBevTrackSampleCount; ++index) {
+        if (index > 0) {
+            header << ",";
+        }
+        AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.forward_samples_m[index]);
+    }
+    header << "]";
+    header << ",\"LATERAL_MIN_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.lateral_min_m);
+    header << ",\"LATERAL_MAX_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.lateral_max_m);
+    header << ",\"LATERAL_STEP_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.lateral_step_m);
+    header << ",\"SAMPLE_PATCH_RADIUS_PX\":"
+           << snapshot.param_snapshot.bev_topology_sampler.sample_patch_radius_px;
+    header << ",\"DRIVABLE_CONFIDENCE_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.drivable_confidence_min);
+    header << ",\"UNKNOWN_CONFIDENCE_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_sampler.unknown_confidence_min);
+    header << "}";
+    header << ",\"BEV_CORRIDOR_GRAPH\":{";
+    header << "\"NOMINAL_LANE_WIDTH_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.nominal_lane_width_m);
+    header << ",\"MIN_INTERVAL_WIDTH_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.min_interval_width_m);
+    header << ",\"MAX_INTERVAL_WIDTH_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.max_interval_width_m);
+    header << ",\"MAX_CENTER_JUMP_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.max_center_jump_m);
+    header << ",\"MAX_WIDTH_CHANGE_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.max_width_change_m);
+    header << ",\"MAX_CURVATURE_ABS\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.max_curvature_abs);
+    header << ",\"PRIOR_CARRY_CONFIDENCE_SCALE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_corridor_graph.prior_carry_confidence_scale);
+    header << "}";
+    header << ",\"BEV_TOPOLOGY_EVIDENCE\":{";
+    header << "\"CROSS_ENTER_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.cross_enter_score);
+    header << ",\"CROSS_RELEASE_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.cross_release_score);
+    header << ",\"CIRCLE_ENTER_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.circle_enter_score);
+    header << ",\"CIRCLE_RELEASE_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.circle_release_score);
+    header << ",\"ZEBRA_ENTER_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.zebra_enter_score);
+    header << ",\"ZEBRA_RELEASE_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.zebra_release_score);
+    header << ",\"ORDINARY_RELEASE_SCORE\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.ordinary_release_score);
+    header << ",\"EVIDENCE_DECAY\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_topology_evidence.evidence_decay);
+    header << "}";
+    header << ",\"BEV_REFERENCE_POLICY\":{";
+    header << "\"HOLD_LAST_MAX_CYCLES\":"
+           << snapshot.param_snapshot.bev_reference_policy.hold_last_max_cycles;
+    header << ",\"BLEND_MIN_CYCLES\":"
+           << snapshot.param_snapshot.bev_reference_policy.blend_min_cycles;
+    header << ",\"ARC_FOLLOW_CONFIDENCE_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_reference_policy.arc_follow_confidence_min);
+    header << ",\"STABLE_BOUNDARY_CONFIDENCE_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_reference_policy.stable_boundary_confidence_min);
+    header << "}";
     header << ",\"BEV_SCENE_FSM\":{";
     header << "\"BEND_SEVERITY_CONFIRM\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_scene_fsm.bend_severity_confirm);

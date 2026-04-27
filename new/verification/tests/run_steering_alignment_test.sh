@@ -12,6 +12,11 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   "${REPO_ROOT}/new/verification/tests/steering_alignment_test.cpp" \
   "${REPO_ROOT}/new/code/legacy/camera_logic.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_sparse_sampler.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_corridor_intervals.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_corridor_graph.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_topology_hypotheses.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_topology_evidence.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_geometry.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_observation_assembly.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_scene_fsm.cpp" \

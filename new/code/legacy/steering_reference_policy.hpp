@@ -18,6 +18,11 @@ ReferencePolicyResult ResolveReferencePolicy(const port::BEVTrackEstimate& track
                                              const port::SpecialSceneFsmState& scene_state,
                                              const port::ReferencePolicyState& prior_state,
                                              const port::RuntimeParameters& params);
+ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypotheses,
+                                             const port::TopologyEvidence& evidence,
+                                             const port::SpecialSceneFsmState& scene_state,
+                                             const port::ReferencePolicyState& prior_state,
+                                             const port::RuntimeParameters& params);
 const char* ToString(port::ReferenceMode mode);
 
 }  // namespace ls2k::legacy

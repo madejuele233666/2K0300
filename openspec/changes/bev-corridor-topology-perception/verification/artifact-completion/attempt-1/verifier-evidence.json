@@ -1,0 +1,62 @@
+{
+  "change": "bev-corridor-topology-perception",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer-inline-v3-docs-first-20260427t1355340800",
+  "start_at": "2026-04-27T13:55:34+08:00",
+  "end_at": "2026-04-27T13:55:34+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Artifact-completion docs-first review of the bev-corridor-topology-perception proposal, design, tasks, and delta specs, with selected reference checks against verification contracts, config rules, and the active bev-steering-perception-refactor artifacts."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Reviewed all declared primary surfaces and the contract/context files needed to evaluate docs-first completeness, correctness, and coherence."
+  },
+  "reviewed_paths": [
+    "openspec/changes/bev-corridor-topology-perception/proposal.md",
+    "openspec/changes/bev-corridor-topology-perception/design.md",
+    "openspec/changes/bev-corridor-topology-perception/tasks.md",
+    "openspec/changes/bev-corridor-topology-perception/specs/bev-corridor-topology-perception/spec.md",
+    "openspec/changes/bev-corridor-topology-perception/specs/bev-topology-scene-reference-control/spec.md",
+    "openspec/changes/bev-corridor-topology-perception/specs/steering-tuning-media-observability/spec.md",
+    "openspec/config.yaml",
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json",
+    "openspec/changes/bev-steering-perception-refactor/proposal.md",
+    "openspec/changes/bev-steering-perception-refactor/design.md",
+    "openspec/changes/bev-steering-perception-refactor/tasks.md",
+    "openspec/changes/bev-steering-perception-refactor/specs/bev-steering-geometry/spec.md",
+    "openspec/changes/bev-steering-perception-refactor/specs/bev-special-scene-fsm/spec.md",
+    "openspec/changes/bev-steering-perception-refactor/specs/bev-steering-control-model/spec.md",
+    "openspec/changes/bev-steering-perception-refactor/specs/steering-tuning-media-observability/spec.md"
+  ],
+  "skipped_paths": [],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": [],
+  "contracts": [
+    "openspec/schemas/ai-enforced-workflow/verification-sequence.md#verify-sequence/default",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json",
+    "openspec/schemas/modules/verification-cycle/contracts/verification-cycle-agent-table-v1.json"
+  ],
+  "result": {
+    "verdict": "block",
+    "finding_ids": [
+      "F001-checkpoint-plan-mismatch",
+      "F002-task-granularity-violates-config-rule"
+    ]
+  },
+  "residual_risks": [
+    "Source/runtime alignment remains for later source-first checkpoints; this docs-first review only established that the artifact bundle is not yet implementation-ready."
+  ]
+}

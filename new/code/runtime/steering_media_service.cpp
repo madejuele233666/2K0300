@@ -63,6 +63,10 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.bev_geometry = params_.bev_geometry;
     snapshot.param_snapshot.bev_scene_fsm = params_.bev_scene_fsm;
     snapshot.param_snapshot.bev_control_model = params_.bev_control_model;
+    snapshot.param_snapshot.bev_topology_sampler = params_.bev_topology_sampler;
+    snapshot.param_snapshot.bev_corridor_graph = params_.bev_corridor_graph;
+    snapshot.param_snapshot.bev_topology_evidence = params_.bev_topology_evidence;
+    snapshot.param_snapshot.bev_reference_policy = params_.bev_reference_policy;
     return snapshot;
 }
 

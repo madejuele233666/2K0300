@@ -168,6 +168,40 @@ std::string ValidRuntimeParamsJson() {
     "SAMPLE_ROW_STEP_PX": 4,
     "IMAGE_BORDER_TRUNCATION_MARGIN_PX": 3
   },
+  "BEV_TOPOLOGY_SAMPLER": {
+    "FORWARD_SAMPLES_M": [0.30, 0.45, 0.60, 0.80, 1.05, 1.35, 1.70, 2.10, 2.60, 3.20, 3.85, 4.50],
+    "LATERAL_MIN_M": -0.80,
+    "LATERAL_MAX_M": 0.80,
+    "LATERAL_STEP_M": 0.02,
+    "SAMPLE_PATCH_RADIUS_PX": 1,
+    "DRIVABLE_CONFIDENCE_MIN": 0.55,
+    "UNKNOWN_CONFIDENCE_MIN": 0.25
+  },
+  "BEV_CORRIDOR_GRAPH": {
+    "NOMINAL_LANE_WIDTH_M": 0.42,
+    "MIN_INTERVAL_WIDTH_M": 0.16,
+    "MAX_INTERVAL_WIDTH_M": 1.20,
+    "MAX_CENTER_JUMP_M": 0.28,
+    "MAX_WIDTH_CHANGE_M": 0.35,
+    "MAX_CURVATURE_ABS": 0.90,
+    "PRIOR_CARRY_CONFIDENCE_SCALE": 0.25
+  },
+  "BEV_TOPOLOGY_EVIDENCE": {
+    "CROSS_ENTER_SCORE": 1.0,
+    "CROSS_RELEASE_SCORE": 0.45,
+    "CIRCLE_ENTER_SCORE": 1.0,
+    "CIRCLE_RELEASE_SCORE": 0.45,
+    "ZEBRA_ENTER_SCORE": 1.0,
+    "ZEBRA_RELEASE_SCORE": 0.45,
+    "ORDINARY_RELEASE_SCORE": 0.75,
+    "EVIDENCE_DECAY": 0.65
+  },
+  "BEV_REFERENCE_POLICY": {
+    "HOLD_LAST_MAX_CYCLES": 8,
+    "BLEND_MIN_CYCLES": 3,
+    "ARC_FOLLOW_CONFIDENCE_MIN": 0.55,
+    "STABLE_BOUNDARY_CONFIDENCE_MIN": 0.55
+  },
   "BEV_SCENE_FSM": {
     "BEND_SEVERITY_CONFIRM": 0.20,
     "CROSS_EXPAND_RATIO_MIN": 1.18,
@@ -240,6 +274,20 @@ void TestLoadSucceedsWithoutRemovedLegacyFields() {
            "BEV geometry lane width contract must load");
     Expect(params.bev_geometry.image_border_truncation_margin_px == 3,
            "BEV geometry border truncation margin must load");
+    Expect(params.bev_topology_sampler.forward_samples_m[11] == 4.50F,
+           "BEV topology sampler forward sample array must load");
+    Expect(params.bev_topology_sampler.lateral_min_m == -0.80F,
+           "BEV topology sampler lateral minimum must load");
+    Expect(params.bev_topology_sampler.drivable_confidence_min == 0.55F,
+           "BEV topology sampler drivable confidence must load");
+    Expect(params.bev_corridor_graph.max_center_jump_m == 0.28F,
+           "BEV corridor graph center jump limit must load");
+    Expect(params.bev_corridor_graph.nominal_lane_width_m == 0.42F,
+           "BEV corridor graph nominal width must load");
+    Expect(params.bev_topology_evidence.evidence_decay == 0.65F,
+           "BEV topology evidence decay must load");
+    Expect(params.bev_reference_policy.hold_last_max_cycles == 8,
+           "BEV reference policy hold cycles must load");
     Expect(params.bev_scene_fsm.circle_release_cycles == 3,
            "BEV scene FSM cycles must load");
     Expect(params.bev_scene_fsm.cross_bilateral_open_min_m == 0.05F,

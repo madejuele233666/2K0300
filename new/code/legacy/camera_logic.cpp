@@ -5,12 +5,16 @@
 #include <cmath>
 #include <cstddef>
 
-#include "legacy/steering_bev_geometry.hpp"
+#include "legacy/steering_bev_sparse_sampler.hpp"
 #include "legacy/steering_control_error_model.hpp"
+#include "legacy/steering_corridor_graph.hpp"
+#include "legacy/steering_corridor_intervals.hpp"
 #include "legacy/steering_gyro_continuity.hpp"
 #include "legacy/steering_observation_assembly.hpp"
 #include "legacy/steering_reference_policy.hpp"
 #include "legacy/steering_scene_fsm.hpp"
+#include "legacy/steering_topology_evidence.hpp"
+#include "legacy/steering_topology_hypotheses.hpp"
 
 namespace ls2k::legacy {
 namespace {
@@ -179,8 +183,17 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
 
     BEVProjector projector{};
     (void)projector.Configure(params.bev_projector);
-    const port::BEVTrackEstimate track =
-        ComputeBevTrackEstimate(frame, threshold, params, prior_state, projector);
+    const BEVSparseSampleGrid samples = SparseMetricSample(frame, threshold, params, projector);
+    const CorridorIntervalSet intervals = ExtractCorridorIntervals(samples, params);
+    const CorridorGraph graph = BuildCorridorGraph(intervals, params, prior_state);
+    port::BEVTrackEstimate track =
+        BuildBEVTrackEstimateFromCorridorGraph(intervals, graph, params);
+    track.calibration_valid = projector.Valid();
+    if (!projector.Valid() || frame.width <= 0 || frame.height <= 0) {
+        track.valid = false;
+        track.fallback_mode = "projector_invalid";
+        track.source = "bev_corridor_topology";
+    }
     const ObservationAssemblyResult assembled =
         AssembleObservation(frame,
                             threshold,
@@ -192,11 +205,44 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                             capture_time_ms,
                             track,
                             projector);
-    const SceneFsmResult scene = UpdateSceneFsm(assembled.observation, params, prior_state.scene_fsm);
+    const port::RoadHypotheses hypotheses =
+        GenerateRoadHypotheses(graph, intervals, prior_state, params);
+    const port::TopologyEvidence topology_evidence =
+        ScoreTopologyEvidence(hypotheses,
+                              intervals,
+                              assembled.vehicle,
+                              params,
+                              prior_state.topology_evidence_accumulator);
+    const port::TopologyEvidenceAccumulator topology_accumulator =
+        UpdateTopologyEvidenceAccumulator(topology_evidence,
+                                          params,
+                                          prior_state.topology_evidence_accumulator);
+    const SceneFsmResult scene =
+        UpdateTopologySceneFsm(topology_evidence, params, prior_state.scene_fsm);
     const ReferencePolicyResult reference =
-        ResolveReferencePolicy(track, assembled.observation, scene.state, prior_state.reference_policy, params);
+        ResolveReferencePolicy(hypotheses,
+                               topology_evidence,
+                               scene.state,
+                               prior_state.reference_policy,
+                               params);
+    port::ControlConstraintSet constraints = assembled.constraints;
+    if (scene.state.active_scene == port::SpecialSceneKind::kZebra) {
+        constraints.low_confidence_degraded = true;
+        constraints.primary_reason = "zebra_hold";
+        constraints.speed_limit_scale =
+            std::min(constraints.speed_limit_scale, params.bev_control_model.min_speed_limit_scale);
+        constraints.turn_limit_scale =
+            std::min(constraints.turn_limit_scale, params.bev_control_model.min_speed_limit_scale);
+    }
+    if (topology_evidence.lost_score > 0.65F) {
+        constraints.low_confidence_degraded = true;
+        constraints.primary_reason = "topology_lost";
+        if (prior_state.lost_prediction_cycles >= params.bev_reference_policy.hold_last_max_cycles) {
+            constraints.steering_suppressed = true;
+        }
+    }
     const port::ControlErrorModelOutput control_output =
-        ComputeControlErrorModel({track, reference.reference_path, assembled.vehicle, assembled.constraints}, params);
+        ComputeControlErrorModel({track, reference.reference_path, assembled.vehicle, constraints}, params);
     const GyroContinuityConstraint continuity =
         ComputeGyroContinuityConstraint(prior_state, imu, capture_time_ms);
 
@@ -234,27 +280,27 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.preview_curvature = control_output.preview_curvature;
     perception.visible_range_m = control_output.visible_range_m;
     perception.bev_track = track;
+    perception.road_hypotheses = hypotheses;
+    perception.topology_evidence = topology_evidence;
     perception.scene_observation = assembled.observation;
-    perception.control_constraints = assembled.constraints;
+    perception.control_constraints = constraints;
     perception.control_model = control_output;
     perception.roadblock_active = false;
     perception.roadblock_interface_state = "supported_not_implemented";
 
     analysis.perception = perception;
     analysis.track_estimate = track;
+    analysis.road_hypotheses = hypotheses;
+    analysis.topology_evidence = topology_evidence;
     analysis.scene_observation = assembled.observation;
     analysis.reference_path = reference.reference_path;
-    analysis.control_constraints = assembled.constraints;
+    analysis.control_constraints = constraints;
     analysis.control_output = control_output;
     analysis.scene_debug_candidate = scene.state.debug_candidate;
     analysis.scene_debug_candidate_streak = scene.state.candidate_streak;
-    analysis.scene_cross_candidate_score_last = assembled.observation.cross_candidate
-                                                    ? assembled.observation.width_expand_ratio
-                                                    : 0.0F;
-    analysis.scene_circle_left_candidate_score_last =
-        assembled.observation.left_open_score + assembled.observation.left_opposite_straight_confidence;
-    analysis.scene_circle_right_candidate_score_last =
-        assembled.observation.right_open_score + assembled.observation.right_opposite_straight_confidence;
+    analysis.scene_cross_candidate_score_last = topology_evidence.cross_score;
+    analysis.scene_circle_left_candidate_score_last = topology_evidence.left_circle_score;
+    analysis.scene_circle_right_candidate_score_last = topology_evidence.right_circle_score;
     analysis.gyro_continuity_state = continuity.next_state;
     analysis.lane_geometry_snapshot = BuildLaneHistorySnapshot(track, projector, frame.width, frame.height);
     analysis.track_history_snapshot =
@@ -273,6 +319,11 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     analysis.steering_state_update.scene_circle_right_candidate_score_last =
         analysis.scene_circle_right_candidate_score_last;
     analysis.steering_state_update.last_bev_track = track;
+    analysis.steering_state_update.last_road_hypotheses = hypotheses;
+    analysis.steering_state_update.last_topology_evidence = topology_evidence;
+    analysis.steering_state_update.topology_evidence_accumulator = topology_accumulator;
+    analysis.steering_state_update.lost_prediction_cycles =
+        topology_evidence.lost_score > 0.65F ? prior_state.lost_prediction_cycles + 1 : 0;
     analysis.steering_state_update.bev_track_memory.has_previous_track = track.valid;
     if (track.valid) {
         analysis.steering_state_update.bev_track_memory.previous_track = track;

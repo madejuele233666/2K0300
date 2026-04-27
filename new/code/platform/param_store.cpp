@@ -1,5 +1,7 @@
 #include "port/platform_adapter.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -256,6 +258,38 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     double temporary = static_cast<double>(value);
     ReadOptionalNestedNumber(root, parent, child, temporary, malformed);
     value = static_cast<float>(temporary);
+}
+
+template <std::size_t N>
+void ReadOptionalNestedFloatArray(const cv::FileNode& root,
+                                  const char* parent,
+                                  const char* child,
+                                  std::array<float, N>& values,
+                                  bool& malformed) {
+    const cv::FileNode parent_node = root[parent];
+    if (parent_node.empty()) {
+        return;
+    }
+    if (!parent_node.isMap()) {
+        malformed = true;
+        return;
+    }
+    const cv::FileNode node = parent_node[child];
+    if (node.empty()) {
+        return;
+    }
+    if (!node.isSeq() || node.size() != N) {
+        malformed = true;
+        return;
+    }
+    for (std::size_t index = 0; index < N; ++index) {
+        double value = 0.0;
+        if (!ReadNumberNode(node[static_cast<int>(index)], value)) {
+            malformed = true;
+            return;
+        }
+        values[index] = static_cast<float>(value);
+    }
 }
 
 void ReadOptionalNestedBool(const cv::FileNode& root,
@@ -641,6 +675,144 @@ public:
                               "IMAGE_BORDER_TRUNCATION_MARGIN_PX",
                               parsed.bev_geometry.image_border_truncation_margin_px,
                               optional_malformed);
+        parsed.bev_corridor_graph.nominal_lane_width_m = parsed.bev_geometry.nominal_lane_width_m;
+        ReadOptionalNestedFloatArray(root,
+                                     "BEV_TOPOLOGY_SAMPLER",
+                                     "FORWARD_SAMPLES_M",
+                                     parsed.bev_topology_sampler.forward_samples_m,
+                                     optional_malformed);
+        for (int index = 0; index < static_cast<int>(port::kBevTrackSampleCount); ++index) {
+            ReadOptionalNestedNumber(root,
+                                     "BEV_TOPOLOGY_SAMPLER",
+                                     "FORWARD_SAMPLE_" + std::to_string(index),
+                                     parsed.bev_topology_sampler.forward_samples_m[static_cast<std::size_t>(index)],
+                                     optional_malformed);
+        }
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "LATERAL_MIN_M",
+                                 parsed.bev_topology_sampler.lateral_min_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "LATERAL_MAX_M",
+                                 parsed.bev_topology_sampler.lateral_max_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "LATERAL_STEP_M",
+                                 parsed.bev_topology_sampler.lateral_step_m,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_TOPOLOGY_SAMPLER",
+                              "SAMPLE_PATCH_RADIUS_PX",
+                              parsed.bev_topology_sampler.sample_patch_radius_px,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "DRIVABLE_CONFIDENCE_MIN",
+                                 parsed.bev_topology_sampler.drivable_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "UNKNOWN_CONFIDENCE_MIN",
+                                 parsed.bev_topology_sampler.unknown_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "NOMINAL_LANE_WIDTH_M",
+                                 parsed.bev_corridor_graph.nominal_lane_width_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "MIN_INTERVAL_WIDTH_M",
+                                 parsed.bev_corridor_graph.min_interval_width_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "MAX_INTERVAL_WIDTH_M",
+                                 parsed.bev_corridor_graph.max_interval_width_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "MAX_CENTER_JUMP_M",
+                                 parsed.bev_corridor_graph.max_center_jump_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "MAX_WIDTH_CHANGE_M",
+                                 parsed.bev_corridor_graph.max_width_change_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "MAX_CURVATURE_ABS",
+                                 parsed.bev_corridor_graph.max_curvature_abs,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CORRIDOR_GRAPH",
+                                 "PRIOR_CARRY_CONFIDENCE_SCALE",
+                                 parsed.bev_corridor_graph.prior_carry_confidence_scale,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "CROSS_ENTER_SCORE",
+                                 parsed.bev_topology_evidence.cross_enter_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "CROSS_RELEASE_SCORE",
+                                 parsed.bev_topology_evidence.cross_release_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "CIRCLE_ENTER_SCORE",
+                                 parsed.bev_topology_evidence.circle_enter_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "CIRCLE_RELEASE_SCORE",
+                                 parsed.bev_topology_evidence.circle_release_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "ZEBRA_ENTER_SCORE",
+                                 parsed.bev_topology_evidence.zebra_enter_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "ZEBRA_RELEASE_SCORE",
+                                 parsed.bev_topology_evidence.zebra_release_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "ORDINARY_RELEASE_SCORE",
+                                 parsed.bev_topology_evidence.ordinary_release_score,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_TOPOLOGY_EVIDENCE",
+                                 "EVIDENCE_DECAY",
+                                 parsed.bev_topology_evidence.evidence_decay,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_REFERENCE_POLICY",
+                              "HOLD_LAST_MAX_CYCLES",
+                              parsed.bev_reference_policy.hold_last_max_cycles,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_REFERENCE_POLICY",
+                              "BLEND_MIN_CYCLES",
+                              parsed.bev_reference_policy.blend_min_cycles,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_REFERENCE_POLICY",
+                                 "ARC_FOLLOW_CONFIDENCE_MIN",
+                                 parsed.bev_reference_policy.arc_follow_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_REFERENCE_POLICY",
+                                 "STABLE_BOUNDARY_CONFIDENCE_MIN",
+                                 parsed.bev_reference_policy.stable_boundary_confidence_min,
+                                 optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_SCENE_FSM",
                                  "BEND_SEVERITY_CONFIRM",

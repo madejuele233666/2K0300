@@ -52,7 +52,7 @@ struct BEVPoint {
 };
 
 constexpr std::size_t kBevCalibrationPointCount = 4;
-constexpr std::size_t kBevTrackSampleCount = 8;
+constexpr std::size_t kBevTrackSampleCount = 12;
 
 enum class SpecialSceneKind {
     kOrdinary,
@@ -79,13 +79,99 @@ enum class ReferenceMode {
     kInnerOffset,
     kOuterOffset,
     kBlend,
-    kHoldLast
+    kHoldLast,
+    kEntryHeadingExtension,
+    kStableBoundaryOffset,
+    kArcFollow,
+    kBlendToExit,
+    kLostPrediction
 };
 
 struct BEVPathSample {
     bool valid = false;
     BEVPoint point{};
     float confidence = 0.0F;
+};
+
+enum class BEVSampleClass {
+    kInvalidOutsideImage,
+    kUnknownLowConfidence,
+    kBackground,
+    kDrivable
+};
+
+struct BEVSample {
+    BEVPoint point{};
+    ImagePoint image{};
+    BEVSampleClass sample_class = BEVSampleClass::kInvalidOutsideImage;
+    float raw_intensity = 0.0F;
+    float confidence = 0.0F;
+    bool valid_image_projection = false;
+};
+
+struct CorridorInterval {
+    float forward_m = 0.0F;
+    float lateral_min_m = 0.0F;
+    float lateral_max_m = 0.0F;
+    float lateral_center_m = 0.0F;
+    float width_m = 0.0F;
+    bool left_edge_valid = false;
+    bool right_edge_valid = false;
+    float left_opening_score = 0.0F;
+    float right_opening_score = 0.0F;
+    float valid_sample_ratio = 0.0F;
+    float confidence = 0.0F;
+};
+
+struct CorridorGraphEdge {
+    int from_layer = -1;
+    int from_interval = -1;
+    int to_layer = -1;
+    int to_interval = -1;
+    float overlap_score = 0.0F;
+    float center_jump_cost = 0.0F;
+    float width_change_cost = 0.0F;
+    float curvature_cost = 0.0F;
+    float confidence = 0.0F;
+};
+
+struct PathCandidate {
+    bool valid = false;
+    ReferenceMode mode = ReferenceMode::kCenterline;
+    std::array<BEVPathSample, kBevTrackSampleCount> sampled_path{};
+    float confidence = 0.0F;
+    float mean_width_m = 0.0F;
+    float width_stability = 0.0F;
+    float curvature = 0.0F;
+    float curvature_consistency = 0.0F;
+    float start_forward_m = 0.0F;
+    float end_forward_m = 0.0F;
+};
+
+struct RoadHypotheses {
+    PathCandidate ordinary{};
+    PathCandidate left_arc{};
+    PathCandidate right_arc{};
+    PathCandidate forward_exit{};
+    PathCandidate left_branch{};
+    PathCandidate right_branch{};
+    PathCandidate zebra_hold{};
+};
+
+struct TopologyEvidence {
+    float ordinary_score = 0.0F;
+    float bend_curvature_abs = 0.0F;
+    float bend_veto_score = 0.0F;
+    float cross_score = 0.0F;
+    float left_circle_score = 0.0F;
+    float right_circle_score = 0.0F;
+    float zebra_score = 0.0F;
+    float lost_score = 0.0F;
+    float bilateral_opening_sync = 0.0F;
+    float forward_reacquire_score = 0.0F;
+    float left_opening_score = 0.0F;
+    float right_opening_score = 0.0F;
+    float invalid_edge_penalty = 0.0F;
 };
 
 struct BEVProjectorCalibration {
@@ -108,7 +194,7 @@ struct BEVProjectorCalibration {
 
 struct BEVGeometryParameters {
     std::array<float, kBevTrackSampleCount> forward_samples_m{
-        {0.30F, 0.55F, 0.80F, 1.20F, 1.80F, 2.60F, 3.50F, 4.50F}};
+        {0.30F, 0.45F, 0.60F, 0.80F, 1.05F, 1.35F, 1.70F, 2.10F, 2.60F, 3.20F, 3.85F, 4.50F}};
     float search_lateral_limit_m = 0.65F;
     float lateral_step_m = 0.02F;
     float nominal_lane_width_m = 0.42F;
@@ -157,6 +243,45 @@ struct BEVControlModelParameters {
     double max_reference_bias_m = 0.20;
 };
 
+struct BEVTopologySamplerParameters {
+    std::array<float, kBevTrackSampleCount> forward_samples_m{
+        {0.30F, 0.45F, 0.60F, 0.80F, 1.05F, 1.35F, 1.70F, 2.10F, 2.60F, 3.20F, 3.85F, 4.50F}};
+    float lateral_min_m = -0.80F;
+    float lateral_max_m = 0.80F;
+    float lateral_step_m = 0.02F;
+    int sample_patch_radius_px = 1;
+    float drivable_confidence_min = 0.55F;
+    float unknown_confidence_min = 0.25F;
+};
+
+struct BEVCorridorGraphParameters {
+    float nominal_lane_width_m = 0.42F;
+    float min_interval_width_m = 0.16F;
+    float max_interval_width_m = 1.20F;
+    float max_center_jump_m = 0.28F;
+    float max_width_change_m = 0.35F;
+    float max_curvature_abs = 0.90F;
+    float prior_carry_confidence_scale = 0.25F;
+};
+
+struct BEVTopologyEvidenceParameters {
+    float cross_enter_score = 1.0F;
+    float cross_release_score = 0.45F;
+    float circle_enter_score = 1.0F;
+    float circle_release_score = 0.45F;
+    float zebra_enter_score = 1.0F;
+    float zebra_release_score = 0.45F;
+    float ordinary_release_score = 0.75F;
+    float evidence_decay = 0.65F;
+};
+
+struct BEVReferencePolicyParameters {
+    int hold_last_max_cycles = 8;
+    int blend_min_cycles = 3;
+    float arc_follow_confidence_min = 0.55F;
+    float stable_boundary_confidence_min = 0.55F;
+};
+
 struct BEVTrackEstimate {
     bool valid = false;
     bool calibration_valid = false;
@@ -187,6 +312,11 @@ struct VehicleContext {
     int drive_cycle_count = 0;
     uint64_t frame_id = 0;
     uint64_t capture_time_ms = 0;
+};
+
+struct TopologyEvidenceAccumulator {
+    TopologyEvidence value{};
+    int update_cycles = 0;
 };
 
 struct ControlConstraintSet {
@@ -286,6 +416,7 @@ struct ReferencePolicyState {
     ReferenceMode mode = ReferenceMode::kCenterline;
     float carry_bias_m = 0.0F;
     int hold_cycles = 0;
+    int lost_prediction_cycles = 0;
     std::array<BEVPathSample, kBevTrackSampleCount> last_reference{};
 };
 
@@ -325,6 +456,8 @@ struct PerceptionResult {
     float visible_range_m = 0.0F;
     std::string reference_mode = "centerline";
     BEVTrackEstimate bev_track{};
+    RoadHypotheses road_hypotheses{};
+    TopologyEvidence topology_evidence{};
     BEVSceneObservation scene_observation{};
     ControlConstraintSet control_constraints{};
     ControlErrorModelOutput control_model{};
@@ -395,6 +528,10 @@ struct LegacySteeringState {
     BEVTrackMemory bev_track_memory{};
     SpecialSceneFsmState scene_fsm{};
     ReferencePolicyState reference_policy{};
+    RoadHypotheses last_road_hypotheses{};
+    TopologyEvidence last_topology_evidence{};
+    TopologyEvidenceAccumulator topology_evidence_accumulator{};
+    int lost_prediction_cycles = 0;
     LegacySteeringControllerMemory controller_memory{};
 };
 
@@ -490,6 +627,10 @@ struct RuntimeParameters {
     BEVGeometryParameters bev_geometry{};
     BEVSceneFsmParameters bev_scene_fsm{};
     BEVControlModelParameters bev_control_model{};
+    BEVTopologySamplerParameters bev_topology_sampler{};
+    BEVCorridorGraphParameters bev_corridor_graph{};
+    BEVTopologyEvidenceParameters bev_topology_evidence{};
+    BEVReferencePolicyParameters bev_reference_policy{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

@@ -10,6 +10,8 @@ namespace ls2k::legacy {
 struct SteeringAnalysisResult {
     port::PerceptionResult perception{};
     port::BEVTrackEstimate track_estimate{};
+    port::RoadHypotheses road_hypotheses{};
+    port::TopologyEvidence topology_evidence{};
     port::BEVSceneObservation scene_observation{};
     port::BEVReferencePath reference_path{};
     port::ControlConstraintSet control_constraints{};

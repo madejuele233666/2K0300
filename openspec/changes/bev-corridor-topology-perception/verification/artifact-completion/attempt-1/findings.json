@@ -1,0 +1,39 @@
+{
+  "change": "bev-corridor-topology-perception",
+  "template_id": "verify-reviewer-inline-v3",
+  "review_goal": "implementation_correctness",
+  "review_phase": "docs_first",
+  "findings_contract": "shared-findings-v1",
+  "status": "block",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001-checkpoint-plan-mismatch",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "artifact": "design.md,tasks.md",
+      "location": "openspec/changes/bev-corridor-topology-perception/design.md:436-458; openspec/changes/bev-corridor-topology-perception/tasks.md:60-108",
+      "title": "Design and tasks disagree on the source-first checkpoint plan",
+      "problem": "The design's Independent Verification Plan defines four source-first checkpoints, with checkpoint 1 already covering typed contracts, sampler, interval extraction, parameter loading, CMake targets, and sampler/interval tests. The task list instead splits typed contracts/params into checkpoint-1, sampler/interval extraction into checkpoint-2, shifts later scopes by one checkpoint number, and adds a final checkpoint-5 that the design never defines. That leaves the artifact bundle with two different authoritative checkpoint maps for the same verification workflow.",
+      "evidence": "design.md lines 436-458 define only checkpoints 1-4 and place sampler/interval work inside checkpoint 1. tasks.md lines 60-108 define checkpoints 1-5, move sampler/interval review to checkpoint-2, and introduce checkpoint-5 for final closure.",
+      "description": "The docs-first bundle is not self-consistent about which verification artifact paths and scope names the source-first workflow should use.",
+      "recommendation": "Normalize the checkpoint plan so design.md and tasks.md describe the same checkpoint count, numbering, scope split, and artifact paths before implementation starts.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "F002-task-granularity-violates-config-rule",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "artifact": "tasks.md",
+      "location": "openspec/config.yaml:38-41; openspec/changes/bev-corridor-topology-perception/tasks.md:85-107",
+      "title": "Multiple tasks are too broad for the workflow's required task granularity",
+      "problem": "The repository task rules require tasks to be independently verifiable chunks and to keep individual tasks under two hours of estimated work, but several tasks bundle large multi-file, multi-concern implementation waves into one checkbox. Examples include task 5.2 spanning the whole topology-evidence feature set, task 6.3 spanning protocol and runtime service changes, task 6.4 spanning all host tooling and overlay changes, and task 6.10 spanning the entire final source-first verification run.",
+      "evidence": "config.yaml lines 38-41 require independently verifiable chunks and tasks under 2 hours. tasks.md lines 85-107 contain several broad tasks that cover multiple modules, tools, and verification surfaces in one step rather than decomposed checkpoints.",
+      "description": "As written, the task plan does not meet the STRICT workflow's task-shaping rule, which weakens progress tracking and makes checkpoint ownership ambiguous during implementation.",
+      "recommendation": "Split the broad tasks into smaller, independently verifiable units aligned to single module groups or single verification surfaces, while keeping the existing checkpoint guardrails.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

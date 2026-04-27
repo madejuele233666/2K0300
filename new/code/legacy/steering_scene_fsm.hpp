@@ -17,6 +17,9 @@ struct SceneFsmResult {
 SceneFsmResult UpdateSceneFsm(const port::BEVSceneObservation& observation,
                               const port::RuntimeParameters& params,
                               const port::SpecialSceneFsmState& prior_state);
+SceneFsmResult UpdateTopologySceneFsm(const port::TopologyEvidence& evidence,
+                                      const port::RuntimeParameters& params,
+                                      const port::SpecialSceneFsmState& prior_state);
 const char* ToString(port::SpecialSceneKind kind);
 const char* ToString(port::SpecialScenePhase phase);
 

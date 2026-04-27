@@ -124,7 +124,7 @@
 
 当前普通 `straight / bend` 主几何已经走 BEV sparse geometry + reference path 链路，底部连通追踪字段不再作为运行时或协议真相。也就是说：
 
-- `default_params.json` 里控制主参数集中在 `BEV_PROJECTOR / BEV_GEOMETRY / BEV_SCENE_FSM / BEV_CONTROL_MODEL`。
+- `default_params.json` 里控制主参数集中在 `BEV_PROJECTOR / BEV_GEOMETRY / BEV_TOPOLOGY_SAMPLER / BEV_CORRIDOR_GRAPH / BEV_TOPOLOGY_EVIDENCE / BEV_REFERENCE_POLICY / BEV_CONTROL_MODEL`。`BEV_SCENE_FSM` 仍保留为兼容配置面，但不应继续作为 topology formal authority。
 - `near_lateral_error / far_heading_error / preview_curvature` 仅是过渡期 BEV 调试派生量，不再参与控制混合，后续稳定后继续清除。
 - 普通弯道参考线不对时，优先排查 BEV projector、BEV geometry 和 reference path 证据，不是先改 `circle / cross` 门槛。
 
@@ -154,7 +154,46 @@
 
 这是当前算法假设的编译期兼容分辨率。除非同步改适配层和验证，否则不要改。
 
-### 2.8 `BEV_SCENE_FSM`
+### 2.8 `BEV_TOPOLOGY_*`
+
+`bev-corridor-topology-perception` 引入四组 topology 参数。它们是新的正式几何/拓扑权威面，必须随 `config_snapshot` 一起保留。
+
+- `BEV_TOPOLOGY_SAMPLER`
+  - `FORWARD_SAMPLES_M`
+    - 稀疏 BEV 前向采样距离。当前覆盖 `0.30m` 到 `4.50m`，共 12 层。
+  - `LATERAL_MIN_M / LATERAL_MAX_M / LATERAL_STEP_M`
+    - 每个前向层的横向采样范围和步长。invalid outside image 不能计为 opening。
+  - `SAMPLE_PATCH_RADIUS_PX`
+    - 采样原图 patch 半径，只影响 sample confidence，不产生 scene 语义。
+  - `DRIVABLE_CONFIDENCE_MIN / UNKNOWN_CONFIDENCE_MIN`
+    - 四类样本分类阈值。低于 unknown 门槛的是 unknown，不能当 background；投影出图的是 invalid，不能当 opening。
+- `BEV_CORRIDOR_GRAPH`
+  - `NOMINAL_LANE_WIDTH_M`
+    - 默认复用 `BEV_GEOMETRY.NOMINAL_LANE_WIDTH_M`。
+  - `MIN_INTERVAL_WIDTH_M / MAX_INTERVAL_WIDTH_M`
+    - corridor interval 接受宽度范围。
+  - `MAX_CENTER_JUMP_M / MAX_WIDTH_CHANGE_M / MAX_CURVATURE_ABS`
+    - ordinary chain DAG/DP 的连续性约束。
+  - `PRIOR_CARRY_CONFIDENCE_SCALE`
+    - 历史 carry 只能降置信使用，不能制造高置信 geometry。
+- `BEV_TOPOLOGY_EVIDENCE`
+  - `*_ENTER_SCORE / *_RELEASE_SCORE`
+    - cross/circle/zebra 进入和释放 hysteresis 分数。
+  - `ORDINARY_RELEASE_SCORE`
+    - 回 ordinary 的最低拓扑分数。
+  - `EVIDENCE_DECAY`
+    - evidence accumulator 的衰减。
+- `BEV_REFERENCE_POLICY`
+  - `HOLD_LAST_MAX_CYCLES`
+    - cross/zebra/lost 可保持上一次 reference 的最大周期。
+  - `BLEND_MIN_CYCLES`
+    - 出环/重捕获 blend 的最小周期。
+  - `ARC_FOLLOW_CONFIDENCE_MIN / STABLE_BOUNDARY_CONFIDENCE_MIN`
+    - circle arc-follow 和 stable-boundary-offset 的最低置信度。
+
+调参顺序固定为：先看 sparse samples 是否分类正确，再看 intervals/graph ordinary chain，最后才调 evidence/FSM/reference。不要用 `width_expand_ratio / open_score / bottom_transition_density` 重新建立场景真相。
+
+### 2.9 `BEV_SCENE_FSM`
 
 特殊场景现在只由 BEV sparse geometry 生成候选，再由 FSM 管理 candidate / confirm / progress / release。旧 `SCENE_WIDE_CLASSIFIER`、`CIRCLE_ENTRY`、`CIRCLE_EXIT`、`CIRCLE_FALLBACK` 像素参数已经从正式参数面删除。
 

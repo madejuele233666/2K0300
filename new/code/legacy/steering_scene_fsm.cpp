@@ -56,6 +56,49 @@ std::string ResolveCircleDirection(port::SpecialSceneKind scene) {
                : (scene == port::SpecialSceneKind::kCircleRight ? "right" : "none");
 }
 
+float TopologyCandidateScore(port::SpecialSceneKind scene, const port::TopologyEvidence& evidence) {
+    switch (scene) {
+        case port::SpecialSceneKind::kCross:
+            return evidence.cross_score;
+        case port::SpecialSceneKind::kZebra:
+            return evidence.zebra_score;
+        case port::SpecialSceneKind::kCircleLeft:
+            return evidence.left_circle_score;
+        case port::SpecialSceneKind::kCircleRight:
+            return evidence.right_circle_score;
+        case port::SpecialSceneKind::kOrdinary:
+        case port::SpecialSceneKind::kBend:
+        default:
+            return evidence.ordinary_score;
+    }
+}
+
+port::SpecialSceneKind PickTopologyCandidate(const port::TopologyEvidence& evidence,
+                                             const port::RuntimeParameters& params) {
+    port::SpecialSceneKind best = port::SpecialSceneKind::kOrdinary;
+    float best_score = params.bev_topology_evidence.ordinary_release_score;
+    if (evidence.cross_score >= params.bev_topology_evidence.cross_enter_score &&
+        evidence.cross_score > best_score) {
+        best = port::SpecialSceneKind::kCross;
+        best_score = evidence.cross_score;
+    }
+    if (evidence.zebra_score >= params.bev_topology_evidence.zebra_enter_score &&
+        evidence.zebra_score > best_score) {
+        best = port::SpecialSceneKind::kZebra;
+        best_score = evidence.zebra_score;
+    }
+    if (evidence.left_circle_score >= params.bev_topology_evidence.circle_enter_score &&
+        evidence.left_circle_score > best_score) {
+        best = port::SpecialSceneKind::kCircleLeft;
+        best_score = evidence.left_circle_score;
+    }
+    if (evidence.right_circle_score >= params.bev_topology_evidence.circle_enter_score &&
+        evidence.right_circle_score > best_score) {
+        best = port::SpecialSceneKind::kCircleRight;
+    }
+    return best;
+}
+
 }  // namespace
 
 SceneFsmResult UpdateSceneFsm(const port::BEVSceneObservation& observation,
@@ -178,6 +221,148 @@ SceneFsmResult UpdateSceneFsm(const port::BEVSceneObservation& observation,
         default:
             result.active_module = "straight";
             result.scene_phase = "idle";
+            break;
+    }
+
+    return result;
+}
+
+SceneFsmResult UpdateTopologySceneFsm(const port::TopologyEvidence& evidence,
+                                      const port::RuntimeParameters& params,
+                                      const port::SpecialSceneFsmState& prior_state) {
+    SceneFsmResult result{};
+    result.state = prior_state;
+
+    const port::SpecialSceneKind candidate = PickTopologyCandidate(evidence, params);
+    const float candidate_score = TopologyCandidateScore(candidate, evidence);
+    result.state.debug_candidate =
+        evidence.lost_score > 0.65F ? "lost" : (candidate == port::SpecialSceneKind::kOrdinary ? "none" : ToString(candidate));
+    result.state.debug_candidate_score =
+        evidence.lost_score > 0.65F ? evidence.lost_score : candidate_score;
+
+    if (candidate == result.state.candidate_scene) {
+        ++result.state.candidate_streak;
+    } else {
+        result.state.candidate_scene = candidate;
+        result.state.candidate_streak = candidate == port::SpecialSceneKind::kOrdinary ? 0 : 1;
+    }
+
+    if (result.state.active_scene == port::SpecialSceneKind::kCircleLeft ||
+        result.state.active_scene == port::SpecialSceneKind::kCircleRight) {
+        result.state.latched = true;
+        result.state.circle_direction = ResolveCircleDirection(result.state.active_scene);
+        const float direction_score = result.state.active_scene == port::SpecialSceneKind::kCircleLeft
+                                          ? evidence.left_circle_score
+                                          : evidence.right_circle_score;
+        if (result.state.phase == port::SpecialScenePhase::kEntry) {
+            ++result.state.progress_cycles;
+            if (result.state.progress_cycles >= 2) {
+                result.state.phase = port::SpecialScenePhase::kInterior;
+                result.state.progress_cycles = 0;
+            }
+        } else if (result.state.phase == port::SpecialScenePhase::kInterior) {
+            if (direction_score < params.bev_topology_evidence.circle_release_score) {
+                ++result.state.release_cycles;
+                if (result.state.release_cycles >= params.bev_scene_fsm.circle_release_cycles) {
+                    result.state.phase = port::SpecialScenePhase::kExit;
+                    result.state.progress_cycles = 0;
+                }
+            } else {
+                result.state.release_cycles = 0;
+            }
+        } else if (result.state.phase == port::SpecialScenePhase::kExit) {
+            ++result.state.progress_cycles;
+            if (evidence.ordinary_score >= params.bev_topology_evidence.ordinary_release_score ||
+                result.state.progress_cycles >= params.bev_scene_fsm.circle_release_cycles) {
+                result.state = {};
+            }
+        }
+    } else if (result.state.active_scene == port::SpecialSceneKind::kCross) {
+        if (result.state.phase == port::SpecialScenePhase::kEntry) {
+            ++result.state.progress_cycles;
+            result.state.phase = port::SpecialScenePhase::kHold;
+        } else if (result.state.phase == port::SpecialScenePhase::kHold) {
+            ++result.state.progress_cycles;
+            if (evidence.cross_score < params.bev_topology_evidence.cross_release_score ||
+                result.state.progress_cycles >= params.bev_scene_fsm.cross_hold_cycles) {
+                result.state.phase = port::SpecialScenePhase::kExit;
+                result.state.progress_cycles = 0;
+            }
+        } else if (result.state.phase == port::SpecialScenePhase::kExit) {
+            ++result.state.progress_cycles;
+            if (evidence.ordinary_score >= params.bev_topology_evidence.ordinary_release_score ||
+                result.state.progress_cycles >= params.bev_reference_policy.blend_min_cycles) {
+                result.state = {};
+            }
+        }
+    } else if (result.state.active_scene == port::SpecialSceneKind::kZebra) {
+        ++result.state.progress_cycles;
+        if (evidence.zebra_score < params.bev_topology_evidence.zebra_release_score ||
+            result.state.progress_cycles >= params.bev_scene_fsm.zebra_hold_cycles) {
+            result.state = {};
+        }
+    } else {
+        const int required_cycles =
+            candidate == port::SpecialSceneKind::kCross
+                ? params.bev_scene_fsm.cross_confirm_cycles
+                : (candidate == port::SpecialSceneKind::kCircleLeft || candidate == port::SpecialSceneKind::kCircleRight
+                       ? params.bev_scene_fsm.circle_confirm_cycles
+                       : 1);
+        if (candidate != port::SpecialSceneKind::kOrdinary &&
+            result.state.candidate_streak >= required_cycles) {
+            result.state.active_scene = candidate;
+            result.state.progress_cycles = 0;
+            result.state.release_cycles = 0;
+            result.state.latched = candidate == port::SpecialSceneKind::kCircleLeft ||
+                                   candidate == port::SpecialSceneKind::kCircleRight;
+            result.state.circle_direction = ResolveCircleDirection(candidate);
+            result.state.circle_entry_signal_active = result.state.latched;
+            result.state.phase =
+                candidate == port::SpecialSceneKind::kCross ? port::SpecialScenePhase::kEntry
+                                                            : port::SpecialScenePhase::kEntry;
+            if (candidate == port::SpecialSceneKind::kZebra) {
+                result.state.phase = port::SpecialScenePhase::kHold;
+            }
+        } else {
+            result.state.active_scene = port::SpecialSceneKind::kOrdinary;
+            result.state.phase =
+                evidence.lost_score > 0.65F ? port::SpecialScenePhase::kHold : port::SpecialScenePhase::kIdle;
+        }
+    }
+
+    switch (result.state.active_scene) {
+        case port::SpecialSceneKind::kCross:
+            result.active_module = "cross";
+            result.scene_override_source = "topology_evidence";
+            result.scene_phase = result.state.phase == port::SpecialScenePhase::kEntry
+                                     ? "cross_approach"
+                                     : (result.state.phase == port::SpecialScenePhase::kExit
+                                            ? "cross_reacquire"
+                                            : "cross_hold");
+            break;
+        case port::SpecialSceneKind::kZebra:
+            result.active_module = "zebra";
+            result.scene_phase = "zebra_hold";
+            result.scene_override_source = "topology_evidence";
+            break;
+        case port::SpecialSceneKind::kCircleLeft:
+        case port::SpecialSceneKind::kCircleRight:
+            result.active_module = "circle";
+            result.scene_override_source = "topology_evidence";
+            result.scene_phase = result.state.phase == port::SpecialScenePhase::kEntry
+                                     ? "circle_entry"
+                                     : (result.state.phase == port::SpecialScenePhase::kInterior
+                                            ? "circle_interior"
+                                            : "circle_exit");
+            break;
+        case port::SpecialSceneKind::kOrdinary:
+        case port::SpecialSceneKind::kBend:
+        default:
+            result.active_module = "straight";
+            result.scene_phase =
+                evidence.lost_score > 0.65F ? "lost_prediction" : "idle";
+            result.scene_override_source =
+                evidence.lost_score > 0.65F ? "topology_evidence" : "none";
             break;
     }
 

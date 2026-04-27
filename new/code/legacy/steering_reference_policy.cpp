@@ -88,6 +88,80 @@ ReferencePolicyResult ResolveReferencePolicy(const port::BEVTrackEstimate& track
     return result;
 }
 
+ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypotheses,
+                                             const port::TopologyEvidence& evidence,
+                                             const port::SpecialSceneFsmState& scene_state,
+                                             const port::ReferencePolicyState& prior_state,
+                                             const port::RuntimeParameters& params) {
+    (void)evidence;
+    ReferencePolicyResult result{};
+    result.state = prior_state;
+    result.reference_path.valid = hypotheses.ordinary.valid;
+    result.reference_path.mode = port::ReferenceMode::kCenterline;
+    result.reference_path.sampled_path = hypotheses.ordinary.sampled_path;
+
+    if ((scene_state.active_scene == port::SpecialSceneKind::kCross ||
+         scene_state.active_scene == port::SpecialSceneKind::kZebra) &&
+        prior_state.valid && scene_state.phase != port::SpecialScenePhase::kExit) {
+        result.reference_path.mode = port::ReferenceMode::kHoldLast;
+        result.reference_path.valid = true;
+        result.reference_path.sampled_path = prior_state.last_reference;
+    } else if (scene_state.active_scene == port::SpecialSceneKind::kCross &&
+               scene_state.phase == port::SpecialScenePhase::kExit &&
+               hypotheses.forward_exit.valid) {
+        result.reference_path.mode = port::ReferenceMode::kBlendToExit;
+        result.reference_path.valid = true;
+        result.reference_path.sampled_path = hypotheses.forward_exit.sampled_path;
+    } else if (scene_state.active_scene == port::SpecialSceneKind::kCircleLeft) {
+        const bool can_follow_arc =
+            hypotheses.left_arc.valid &&
+            hypotheses.left_arc.confidence >= params.bev_reference_policy.arc_follow_confidence_min;
+        result.reference_path.mode =
+            scene_state.phase == port::SpecialScenePhase::kExit ? port::ReferenceMode::kBlendToExit
+                                                                : port::ReferenceMode::kArcFollow;
+        if (can_follow_arc) {
+            result.reference_path.valid = true;
+            result.reference_path.sampled_path =
+                scene_state.phase == port::SpecialScenePhase::kExit && hypotheses.forward_exit.valid
+                    ? hypotheses.forward_exit.sampled_path
+                    : hypotheses.left_arc.sampled_path;
+        }
+    } else if (scene_state.active_scene == port::SpecialSceneKind::kCircleRight) {
+        const bool can_follow_arc =
+            hypotheses.right_arc.valid &&
+            hypotheses.right_arc.confidence >= params.bev_reference_policy.arc_follow_confidence_min;
+        result.reference_path.mode =
+            scene_state.phase == port::SpecialScenePhase::kExit ? port::ReferenceMode::kBlendToExit
+                                                                : port::ReferenceMode::kArcFollow;
+        if (can_follow_arc) {
+            result.reference_path.valid = true;
+            result.reference_path.sampled_path =
+                scene_state.phase == port::SpecialScenePhase::kExit && hypotheses.forward_exit.valid
+                    ? hypotheses.forward_exit.sampled_path
+                    : hypotheses.right_arc.sampled_path;
+        }
+    } else if (!hypotheses.ordinary.valid && prior_state.valid &&
+               prior_state.lost_prediction_cycles < params.bev_reference_policy.hold_last_max_cycles) {
+        result.reference_path.mode = port::ReferenceMode::kLostPrediction;
+        result.reference_path.valid = true;
+        result.reference_path.sampled_path = prior_state.last_reference;
+        result.state.lost_prediction_cycles = prior_state.lost_prediction_cycles + 1;
+    } else {
+        result.state.lost_prediction_cycles = 0;
+    }
+
+    result.reference_mode = ToString(result.reference_path.mode);
+    result.state.valid = result.reference_path.valid;
+    result.state.mode = result.reference_path.mode;
+    result.state.last_reference = result.reference_path.sampled_path;
+    if (result.reference_path.mode == port::ReferenceMode::kHoldLast) {
+        result.state.hold_cycles = prior_state.hold_cycles + 1;
+    } else {
+        result.state.hold_cycles = 0;
+    }
+    return result;
+}
+
 const char* ToString(port::ReferenceMode mode) {
     switch (mode) {
         case port::ReferenceMode::kInnerOffset:
@@ -98,6 +172,16 @@ const char* ToString(port::ReferenceMode mode) {
             return "blend";
         case port::ReferenceMode::kHoldLast:
             return "hold_last";
+        case port::ReferenceMode::kEntryHeadingExtension:
+            return "entry_heading_extension";
+        case port::ReferenceMode::kStableBoundaryOffset:
+            return "stable_boundary_offset";
+        case port::ReferenceMode::kArcFollow:
+            return "arc_follow";
+        case port::ReferenceMode::kBlendToExit:
+            return "blend_to_exit";
+        case port::ReferenceMode::kLostPrediction:
+            return "lost_prediction";
         case port::ReferenceMode::kCenterline:
         default:
             return "centerline";
