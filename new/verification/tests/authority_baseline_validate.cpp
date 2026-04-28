@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -12,8 +14,11 @@
 #include <vector>
 
 #include "legacy/camera_logic.hpp"
+#include "legacy/steering_bev_projector.hpp"
 
 namespace {
+
+constexpr int kMinBoundaryEvidenceImageMarginPx = 12;
 
 struct TestFailure {
     std::string message;
@@ -353,6 +358,14 @@ std::string ReadOptionalStringField(const JsonValue::Object& object,
     return value == nullptr ? fallback : RequireString(*value, context + "." + key);
 }
 
+bool ReadOptionalBoolField(const JsonValue::Object& object,
+                           const std::string& key,
+                           bool fallback,
+                           const std::string& context) {
+    const JsonValue* value = FindMember(object, key);
+    return value == nullptr ? fallback : RequireBool(*value, context + "." + key);
+}
+
 std::vector<std::string> ReadStringArrayField(const JsonValue::Object& object,
                                               const std::string& key,
                                               const std::string& context) {
@@ -428,6 +441,7 @@ struct SampleContract {
     std::string label{};
     std::string authority_role{};
     bool require_valid_track = false;
+    bool forbid_valid_track = false;
     std::vector<std::string> require_active_modules{};
     std::vector<std::string> forbid_active_modules{};
     std::vector<std::string> require_primary_candidates{};
@@ -482,6 +496,8 @@ Manifest LoadManifest(const std::filesystem::path& dataset_dir) {
             RequireString(RequireMember(object, "authority_role", context), context + ".authority_role");
         sample.require_valid_track =
             RequireBool(RequireMember(object, "require_valid_track", context), context + ".require_valid_track");
+        sample.forbid_valid_track =
+            ReadOptionalBoolField(object, "forbid_valid_track", false, context);
         sample.require_active_modules = ReadStringArrayField(object, "require_active_modules", context);
         sample.forbid_active_modules = ReadStringArrayField(object, "forbid_active_modules", context);
         sample.require_primary_candidates =
@@ -518,14 +534,9 @@ struct SequenceResult {
     bool have_best_valid = false;
     bool saw_valid_track = false;
     bool saw_straight = false;
-    bool saw_bend = false;
     bool saw_cross = false;
     bool saw_circle = false;
-    bool saw_ordinary_bend_veto = false;
-    bool saw_cross_candidate = false;
-    bool saw_cross_bilateral_open = false;
-    bool saw_circle_left_candidate = false;
-    bool saw_circle_right_candidate = false;
+    bool saw_lost_prediction = false;
 };
 
 SequenceResult AnalyzeWithConfirm(const ls2k::port::LegacyCameraFrame& frame,
@@ -537,20 +548,12 @@ SequenceResult AnalyzeWithConfirm(const ls2k::port::LegacyCameraFrame& frame,
             ls2k::legacy::AnalyzeFrame(frame, params, state, {}, false, static_cast<std::uint64_t>(cycle + 1), 1);
         Expect(sequence.final.steering_state_update_valid, "AnalyzeFrame must return a state update");
 
-        const ls2k::port::BEVSceneObservation& observation = sequence.final.scene_observation;
         sequence.saw_straight = sequence.saw_straight || sequence.final.perception.active_module == "straight";
-        sequence.saw_bend = sequence.saw_bend || sequence.final.perception.active_module == "bend";
         sequence.saw_cross = sequence.saw_cross || sequence.final.perception.active_module == "cross";
         sequence.saw_circle = sequence.saw_circle || sequence.final.perception.active_module == "circle";
+        sequence.saw_lost_prediction =
+            sequence.saw_lost_prediction || sequence.final.perception.scene_phase == "lost_prediction";
         sequence.saw_valid_track = sequence.saw_valid_track || sequence.final.track_estimate.valid;
-        sequence.saw_ordinary_bend_veto = sequence.saw_ordinary_bend_veto || observation.ordinary_bend_veto;
-        sequence.saw_cross_candidate = sequence.saw_cross_candidate || observation.cross_candidate;
-        sequence.saw_cross_bilateral_open =
-            sequence.saw_cross_bilateral_open || observation.cross_bilateral_open;
-        sequence.saw_circle_left_candidate =
-            sequence.saw_circle_left_candidate || observation.circle_left_candidate;
-        sequence.saw_circle_right_candidate =
-            sequence.saw_circle_right_candidate || observation.circle_right_candidate;
 
         if (sequence.final.track_estimate.valid) {
             sequence.best_valid = sequence.final;
@@ -565,36 +568,114 @@ bool SawActiveModule(const SequenceResult& sequence, const std::string& module) 
     if (module == "straight") {
         return sequence.saw_straight;
     }
-    if (module == "bend") {
-        return sequence.saw_bend;
-    }
     if (module == "cross") {
         return sequence.saw_cross;
     }
     if (module == "circle") {
         return sequence.saw_circle;
     }
+    if (module == "lost_prediction") {
+        return sequence.saw_lost_prediction;
+    }
     throw TestFailure{"unsupported active_module contract: " + module};
 }
 
-bool PrimaryCandidate(const ls2k::port::BEVSceneObservation& observation,
+bool PrimaryCandidate(const ls2k::legacy::SteeringAnalysisResult& result,
+                      const ls2k::port::RuntimeParameters& params,
                       const std::string& candidate) {
-    if (candidate == "ordinary_bend_veto") {
-        return observation.ordinary_bend_veto;
+    const ls2k::port::TopologyEvidence& evidence = result.topology_evidence;
+    if (candidate == "topology_track") {
+        return result.track_estimate.valid && result.track_estimate.source == "bev_corridor_topology";
     }
-    if (candidate == "cross_candidate") {
-        return observation.cross_candidate;
+    if (candidate == "ordinary_topology") {
+        return evidence.ordinary_score > 0.0F;
     }
-    if (candidate == "cross_bilateral_open") {
-        return observation.cross_bilateral_open;
+    if (candidate == "bend_veto_topology") {
+        return evidence.bend_veto_score > 0.20F;
     }
-    if (candidate == "circle_left_candidate") {
-        return observation.circle_left_candidate;
+    if (candidate == "cross_topology") {
+        return evidence.cross_score >= params.bev_topology_evidence.cross_enter_score;
     }
-    if (candidate == "circle_right_candidate") {
-        return observation.circle_right_candidate;
+    if (candidate == "circle_left_topology") {
+        return evidence.left_circle_score >= params.bev_topology_evidence.circle_enter_score;
     }
-    throw TestFailure{"unsupported primary candidate contract: " + candidate};
+    if (candidate == "circle_right_topology") {
+        return evidence.right_circle_score >= params.bev_topology_evidence.circle_enter_score;
+    }
+    if (candidate == "lost_topology") {
+        return evidence.lost_score > 0.60F;
+    }
+    throw TestFailure{"unsupported topology candidate contract: " + candidate};
+}
+
+bool HasNearbyBoundarySupport(
+    const std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& path,
+    std::size_t layer,
+    const ls2k::port::RuntimeParameters& params) {
+    if (layer >= path.size() || !path[layer].valid) {
+        return false;
+    }
+    constexpr std::size_t kMaxLayerGap = 2U;
+    const float jump_limit = std::max(0.04F, params.bev_corridor_graph.max_center_jump_m * 0.55F);
+    for (std::size_t gap = 1U; gap <= kMaxLayerGap; ++gap) {
+        if (layer >= gap && path[layer - gap].valid) {
+            const float lateral_jump =
+                std::abs(path[layer].point.lateral_m - path[layer - gap].point.lateral_m);
+            if (lateral_jump <= jump_limit * static_cast<float>(gap)) {
+                return true;
+            }
+        }
+        if (layer + gap < path.size() && path[layer + gap].valid) {
+            const float lateral_jump =
+                std::abs(path[layer].point.lateral_m - path[layer + gap].point.lateral_m);
+            if (lateral_jump <= jump_limit * static_cast<float>(gap)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ValidateObservedBoundaryContinuity(
+    const std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& path,
+    const ls2k::port::RuntimeParameters& params,
+    const std::filesystem::path& frame_path,
+    const std::string& side) {
+    for (std::size_t layer = 0; layer < path.size(); ++layer) {
+        if (!path[layer].valid) {
+            continue;
+        }
+        Expect(HasNearbyBoundarySupport(path, layer, params),
+               frame_path.string() + " must not publish isolated " + side +
+                   " observed boundary at layer " + std::to_string(layer));
+    }
+}
+
+void ValidateObservedBoundaryAwayFromImageBorder(
+    const std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& path,
+    const ls2k::legacy::BEVProjector& projector,
+    const ls2k::port::RuntimeParameters& params,
+    const std::filesystem::path& frame_path,
+    const std::string& side) {
+    const int margin = std::max(0,
+                                std::max(kMinBoundaryEvidenceImageMarginPx,
+                                         params.bev_geometry.image_border_truncation_margin_px) +
+                                    params.bev_topology_sampler.sample_patch_radius_px);
+    for (std::size_t layer = 0; layer < path.size(); ++layer) {
+        if (!path[layer].valid) {
+            continue;
+        }
+        ls2k::port::ImagePoint image{};
+        Expect(projector.ProjectVehicleToImage(path[layer].point, image),
+               frame_path.string() + " " + side + " boundary at layer " +
+                   std::to_string(layer) + " must project back to the image");
+        Expect(image.row_px > static_cast<float>(margin) &&
+                   image.col_px > static_cast<float>(margin) &&
+                   image.row_px < static_cast<float>(ls2k::port::kCompiledCameraFrameHeight - 1 - margin) &&
+                   image.col_px < static_cast<float>(ls2k::port::kCompiledCameraFrameWidth - 1 - margin),
+               frame_path.string() + " must not publish " + side +
+                   " observed boundary near the camera image edge at layer " + std::to_string(layer));
+    }
 }
 
 std::string Join(const std::vector<std::string>& values) {
@@ -619,34 +700,36 @@ void ValidateOne(const std::filesystem::path& dataset_dir,
     if (manifest.has_projector_calibration) {
         params.bev_projector = manifest.projector_calibration;
     }
+    ls2k::legacy::BEVProjector projector{};
+    Expect(projector.Configure(params.bev_projector), "authority validator projector must configure");
 
     const std::filesystem::path path = dataset_dir / contract.file;
     const ls2k::port::LegacyCameraFrame frame = ReadRawFrame(path);
     const SequenceResult sequence = AnalyzeWithConfirm(frame, params);
     const ls2k::legacy::SteeringAnalysisResult& result =
         sequence.have_best_valid ? sequence.best_valid : sequence.final;
-    const ls2k::port::BEVSceneObservation& observation = result.scene_observation;
     const ls2k::port::ControlErrorModelOutput& control = result.control_output;
+    const ls2k::port::TopologyEvidence& evidence = result.topology_evidence;
 
     std::cout << contract.file
               << " label=" << contract.label
               << " role=" << contract.authority_role
               << " active_module=" << result.perception.active_module
               << " scene_phase=" << result.perception.scene_phase
+              << " topology_source=" << result.track_estimate.source
               << " saw_valid_track=" << (sequence.saw_valid_track ? "true" : "false")
-              << " saw_bend=" << (sequence.saw_bend ? "true" : "false")
               << " saw_cross=" << (sequence.saw_cross ? "true" : "false")
               << " saw_circle=" << (sequence.saw_circle ? "true" : "false")
+              << " saw_lost_prediction=" << (sequence.saw_lost_prediction ? "true" : "false")
               << " debug_candidate=" << result.scene_debug_candidate
               << " debug_candidate_streak=" << result.scene_debug_candidate_streak
-              << " saw_cross_candidate=" << (sequence.saw_cross_candidate ? "true" : "false")
-              << " saw_circle_left_candidate=" << (sequence.saw_circle_left_candidate ? "true" : "false")
-              << " saw_circle_right_candidate=" << (sequence.saw_circle_right_candidate ? "true" : "false")
-              << " saw_ordinary_bend_veto=" << (sequence.saw_ordinary_bend_veto ? "true" : "false")
-              << " width_expand_ratio=" << observation.width_expand_ratio
-              << " cross_bilateral_open_score_m=" << observation.cross_bilateral_open_score_m
-              << " left_open_score=" << observation.left_open_score
-              << " right_open_score=" << observation.right_open_score
+              << " ordinary_score=" << evidence.ordinary_score
+              << " bend_veto_score=" << evidence.bend_veto_score
+              << " cross_score=" << evidence.cross_score
+              << " left_circle_score=" << evidence.left_circle_score
+              << " right_circle_score=" << evidence.right_circle_score
+              << " zebra_score=" << evidence.zebra_score
+              << " lost_score=" << evidence.lost_score
               << " control_valid=" << (control.valid ? "true" : "false")
               << " lookahead_distance_m=" << control.lookahead_distance_m
               << " lookahead_lateral_error=" << control.lookahead_lateral_error
@@ -664,6 +747,13 @@ void ValidateOne(const std::filesystem::path& dataset_dir,
     if (contract.require_valid_track) {
         Expect(sequence.saw_valid_track, path.string() + " must produce a valid BEV track");
     }
+    if (contract.forbid_valid_track) {
+        Expect(!sequence.saw_valid_track, path.string() + " must not produce a valid BEV track");
+    }
+    if (sequence.saw_valid_track) {
+        Expect(result.track_estimate.source == "bev_corridor_topology",
+               path.string() + " valid track must be sourced from corridor topology");
+    }
 
     for (const std::string& module : contract.require_active_modules) {
         Expect(SawActiveModule(sequence, module), path.string() + " must observe active_module " + module);
@@ -672,13 +762,31 @@ void ValidateOne(const std::filesystem::path& dataset_dir,
         Expect(!SawActiveModule(sequence, module), path.string() + " must not observe active_module " + module);
     }
     for (const std::string& candidate : contract.require_primary_candidates) {
-        Expect(PrimaryCandidate(observation, candidate),
-               path.string() + " primary observation must expose candidate " + candidate);
+        Expect(PrimaryCandidate(result, params, candidate),
+               path.string() + " primary topology evidence must expose candidate " + candidate);
     }
     for (const std::string& candidate : contract.forbid_primary_candidates) {
-        Expect(!PrimaryCandidate(observation, candidate),
-               path.string() + " primary observation must not expose candidate " + candidate);
+        Expect(!PrimaryCandidate(result, params, candidate),
+               path.string() + " primary topology evidence must not expose candidate " + candidate);
     }
+    ValidateObservedBoundaryContinuity(result.track_estimate.sampled_left_boundary,
+                                       params,
+                                       path,
+                                       "left");
+    ValidateObservedBoundaryContinuity(result.track_estimate.sampled_right_boundary,
+                                       params,
+                                       path,
+                                       "right");
+    ValidateObservedBoundaryAwayFromImageBorder(result.track_estimate.sampled_left_boundary,
+                                                projector,
+                                                params,
+                                                path,
+                                                "left");
+    ValidateObservedBoundaryAwayFromImageBorder(result.track_estimate.sampled_right_boundary,
+                                                projector,
+                                                params,
+                                                path,
+                                                "right");
 }
 
 void CheckManifestCoversRawFiles(const std::filesystem::path& dataset_dir,

@@ -6,6 +6,7 @@
 #include <cstddef>
 
 #include "legacy/steering_bev_sparse_sampler.hpp"
+#include "legacy/steering_bev_geometry.hpp"
 #include "legacy/steering_control_error_model.hpp"
 #include "legacy/steering_corridor_graph.hpp"
 #include "legacy/steering_corridor_intervals.hpp"
@@ -118,6 +119,101 @@ int TrackTurnSign(const port::BEVTrackEstimate& track) {
     return 0;
 }
 
+float ReferenceHeading(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                       std::size_t near_index,
+                       std::size_t far_index) {
+    if (near_index >= path.size() || far_index >= path.size() || far_index <= near_index ||
+        !path[near_index].valid || !path[far_index].valid) {
+        return 0.0F;
+    }
+    const float ds = path[far_index].point.forward_m - path[near_index].point.forward_m;
+    if (std::abs(ds) < 1e-4F) {
+        return 0.0F;
+    }
+    return std::atan2(path[far_index].point.lateral_m - path[near_index].point.lateral_m, ds);
+}
+
+float ReferenceCurvature(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                         std::size_t near_index,
+                         std::size_t curvature_index) {
+    if (near_index == 0U || near_index >= path.size() || curvature_index >= path.size() ||
+        curvature_index <= near_index || !path[0].valid || !path[near_index].valid ||
+        !path[curvature_index].valid) {
+        return 0.0F;
+    }
+    const float ds1 = std::max(1e-4F, path[near_index].point.forward_m - path[0].point.forward_m);
+    const float ds2 =
+        std::max(1e-4F, path[curvature_index].point.forward_m - path[near_index].point.forward_m);
+    const float slope1 = (path[near_index].point.lateral_m - path[0].point.lateral_m) / ds1;
+    const float slope2 = (path[curvature_index].point.lateral_m - path[near_index].point.lateral_m) / ds2;
+    return (slope2 - slope1) /
+           std::max(1e-4F, path[curvature_index].point.forward_m - path[0].point.forward_m);
+}
+
+bool ReferenceModeCanSupportControl(port::ReferenceMode mode) {
+    return mode == port::ReferenceMode::kHoldLast ||
+           mode == port::ReferenceMode::kEntryHeadingExtension ||
+           mode == port::ReferenceMode::kArcFollow ||
+           mode == port::ReferenceMode::kBlendToExit ||
+           mode == port::ReferenceMode::kLostPrediction ||
+           mode == port::ReferenceMode::kStableBoundaryOffset ||
+           mode == port::ReferenceMode::kBlend;
+}
+
+port::BEVTrackEstimate BuildReferenceSupportTrack(const port::BEVTrackEstimate& observed_track,
+                                                  const port::BEVReferencePath& reference,
+                                                  const port::RuntimeParameters& params) {
+    if (observed_track.valid || !reference.valid || !ReferenceModeCanSupportControl(reference.mode)) {
+        return observed_track;
+    }
+    port::BEVTrackEstimate support = observed_track;
+    support.valid = observed_track.calibration_valid;
+    support.continuity_valid = support.valid;
+    support.source = "bev_corridor_topology";
+    support.fallback_mode = support.valid ? "reference_policy_support" : observed_track.fallback_mode;
+    if (!support.valid) {
+        return support;
+    }
+
+    float confidence_sum = 0.0F;
+    int valid_count = 0;
+    for (std::size_t index = 0; index < reference.sampled_path.size(); ++index) {
+        const port::BEVPathSample& sample = reference.sampled_path[index];
+        if (!sample.valid) {
+            continue;
+        }
+        support.sampled_centerline[index] = sample;
+        support.visible_range_m = std::max(support.visible_range_m, sample.point.forward_m);
+        confidence_sum += sample.confidence;
+        ++valid_count;
+    }
+    if (valid_count < 2) {
+        support.valid = false;
+        support.continuity_valid = false;
+        support.fallback_mode = "reference_policy_support_short";
+        return support;
+    }
+    const float mode_scale =
+        reference.mode == port::ReferenceMode::kLostPrediction ? 0.55F : 0.75F;
+    support.track_confidence =
+        std::clamp((confidence_sum / static_cast<float>(valid_count)) * mode_scale, 0.0F, 1.0F);
+    const std::size_t near_index =
+        std::min<std::size_t>(static_cast<std::size_t>(std::max(0, params.bev_control_model.near_sample_index)),
+                              port::kBevTrackSampleCount - 1U);
+    const std::size_t far_index =
+        std::min<std::size_t>(static_cast<std::size_t>(std::max(0, params.bev_control_model.far_sample_index)),
+                              port::kBevTrackSampleCount - 1U);
+    const std::size_t curvature_index =
+        std::min<std::size_t>(static_cast<std::size_t>(std::max(0, params.bev_control_model.curvature_sample_index)),
+                              port::kBevTrackSampleCount - 1U);
+    if (support.sampled_centerline[near_index].valid) {
+        support.near_lateral_error = support.sampled_centerline[near_index].point.lateral_m;
+    }
+    support.far_heading_error = ReferenceHeading(support.sampled_centerline, near_index, far_index);
+    support.preview_curvature = ReferenceCurvature(support.sampled_centerline, near_index, curvature_index);
+    return support;
+}
+
 port::TrackHistorySnapshot BuildTrackHistorySnapshot(const port::BEVTrackEstimate& track,
                                                      const BEVProjector& projector,
                                                      int frame_width,
@@ -183,12 +279,11 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
 
     BEVProjector projector{};
     (void)projector.Configure(params.bev_projector);
-    const BEVSparseSampleGrid samples = SparseMetricSample(frame, threshold, params, projector);
-    const CorridorIntervalSet intervals = ExtractCorridorIntervals(samples, params);
-    const CorridorGraph graph = BuildCorridorGraph(intervals, params, prior_state);
-    port::BEVTrackEstimate track =
-        BuildBEVTrackEstimateFromCorridorGraph(intervals, graph, params);
-    track.calibration_valid = projector.Valid();
+    const BEVTopologyPipelineResult topology =
+        RunBEVTopologyPipeline(frame, threshold, params, prior_state, projector);
+    const CorridorIntervalSet& intervals = topology.corridor_intervals;
+    const CorridorGraph& graph = topology.corridor_graph;
+    port::BEVTrackEstimate track = topology.track_estimate;
     if (!projector.Valid() || frame.width <= 0 || frame.height <= 0) {
         track.valid = false;
         track.fallback_mode = "projector_invalid";
@@ -225,7 +320,35 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                scene.state,
                                prior_state.reference_policy,
                                params);
+    const port::BEVTrackEstimate control_track =
+        BuildReferenceSupportTrack(track, reference.reference_path, params);
     port::ControlConstraintSet constraints = assembled.constraints;
+    if (!track.valid && control_track.valid) {
+        constraints.fail_safe_veto = false;
+        constraints.steering_suppressed = false;
+        constraints.primary_reason = "reference_policy_support";
+        constraints.low_confidence_degraded =
+            control_track.track_confidence < static_cast<float>(params.bev_control_model.low_confidence_threshold) ||
+            control_track.visible_range_m < static_cast<float>(params.bev_control_model.low_visible_range_m);
+        if (constraints.low_confidence_degraded) {
+            const float confidence_scale =
+                std::clamp(control_track.track_confidence /
+                               static_cast<float>(std::max(1e-4, params.bev_control_model.low_confidence_threshold)),
+                           static_cast<float>(params.bev_control_model.min_gain_scale),
+                           1.0F);
+            const float visible_scale =
+                std::clamp(control_track.visible_range_m /
+                               static_cast<float>(std::max(1e-4, params.bev_control_model.low_visible_range_m)),
+                           static_cast<float>(params.bev_control_model.min_speed_limit_scale),
+                           1.0F);
+            constraints.steering_gain_scale = std::min(constraints.steering_gain_scale,
+                                                       static_cast<double>(confidence_scale));
+            constraints.speed_limit_scale = std::min(constraints.speed_limit_scale,
+                                                     static_cast<double>(visible_scale));
+            constraints.turn_limit_scale = std::min(constraints.turn_limit_scale,
+                                                    static_cast<double>(std::min(confidence_scale, visible_scale)));
+        }
+    }
     if (scene.state.active_scene == port::SpecialSceneKind::kZebra) {
         constraints.low_confidence_degraded = true;
         constraints.primary_reason = "zebra_hold";
@@ -242,7 +365,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
         }
     }
     const port::ControlErrorModelOutput control_output =
-        ComputeControlErrorModel({track, reference.reference_path, assembled.vehicle, constraints}, params);
+        ComputeControlErrorModel({control_track, reference.reference_path, assembled.vehicle, constraints}, params);
     const GyroContinuityConstraint continuity =
         ComputeGyroContinuityConstraint(prior_state, imu, capture_time_ms);
 
@@ -252,7 +375,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.low_voltage_veto = low_voltage_emergency;
     perception.threshold = threshold;
     perception.threshold_veto = false;
-    perception.geometry_veto = !track.valid;
+    perception.geometry_veto = !control_track.valid;
     perception.emergency_veto = low_voltage_emergency || control_output.steering_suppressed;
     perception.frame_id = frame_id;
     perception.capture_time_ms = capture_time_ms;
@@ -265,8 +388,8 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
         CircleReferenceModeForCompatibility(reference.reference_mode, scene.state.circle_direction);
     perception.circle_heading_delta_deg = continuity.next_state.heading_delta_deg_150ms;
     perception.circle_entry_signal_active = scene.state.circle_entry_signal_active;
-    perception.track_confidence = track.track_confidence;
-    perception.track_valid = track.valid;
+    perception.track_confidence = control_track.track_confidence;
+    perception.track_valid = control_track.valid;
     perception.sign_flip_blocked = false;
     perception.imu_grace_active = continuity.imu_grace_active;
     perception.gyro_heading_delta_deg = continuity.heading_delta_deg;
@@ -279,7 +402,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.far_heading_error = control_output.far_heading_error;
     perception.preview_curvature = control_output.preview_curvature;
     perception.visible_range_m = control_output.visible_range_m;
-    perception.bev_track = track;
+    perception.bev_track = control_track;
     perception.road_hypotheses = hypotheses;
     perception.topology_evidence = topology_evidence;
     perception.scene_observation = assembled.observation;
@@ -289,7 +412,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.roadblock_interface_state = "supported_not_implemented";
 
     analysis.perception = perception;
-    analysis.track_estimate = track;
+    analysis.track_estimate = control_track;
     analysis.road_hypotheses = hypotheses;
     analysis.topology_evidence = topology_evidence;
     analysis.scene_observation = assembled.observation;
@@ -302,9 +425,9 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     analysis.scene_circle_left_candidate_score_last = topology_evidence.left_circle_score;
     analysis.scene_circle_right_candidate_score_last = topology_evidence.right_circle_score;
     analysis.gyro_continuity_state = continuity.next_state;
-    analysis.lane_geometry_snapshot = BuildLaneHistorySnapshot(track, projector, frame.width, frame.height);
+    analysis.lane_geometry_snapshot = BuildLaneHistorySnapshot(control_track, projector, frame.width, frame.height);
     analysis.track_history_snapshot =
-        BuildTrackHistorySnapshot(track, projector, frame.width, frame.height, prior_state);
+        BuildTrackHistorySnapshot(control_track, projector, frame.width, frame.height, prior_state);
 
     analysis.steering_state_update = prior_state;
     analysis.steering_state_update.active_module = scene.active_module;
@@ -318,15 +441,15 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
         analysis.scene_circle_left_candidate_score_last;
     analysis.steering_state_update.scene_circle_right_candidate_score_last =
         analysis.scene_circle_right_candidate_score_last;
-    analysis.steering_state_update.last_bev_track = track;
+    analysis.steering_state_update.last_bev_track = control_track;
     analysis.steering_state_update.last_road_hypotheses = hypotheses;
     analysis.steering_state_update.last_topology_evidence = topology_evidence;
     analysis.steering_state_update.topology_evidence_accumulator = topology_accumulator;
     analysis.steering_state_update.lost_prediction_cycles =
         topology_evidence.lost_score > 0.65F ? prior_state.lost_prediction_cycles + 1 : 0;
-    analysis.steering_state_update.bev_track_memory.has_previous_track = track.valid;
-    if (track.valid) {
-        analysis.steering_state_update.bev_track_memory.previous_track = track;
+    analysis.steering_state_update.bev_track_memory.has_previous_track = control_track.valid;
+    if (control_track.valid) {
+        analysis.steering_state_update.bev_track_memory.previous_track = control_track;
         analysis.steering_state_update.bev_track_memory.carry_cycles = 0;
     } else {
         ++analysis.steering_state_update.bev_track_memory.carry_cycles;

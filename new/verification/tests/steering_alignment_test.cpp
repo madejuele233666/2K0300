@@ -5,6 +5,7 @@
 #include <string>
 
 #include "legacy/camera_logic.hpp"
+#include "legacy/steering_bev_projector.hpp"
 #include "port/control_types.hpp"
 
 namespace {
@@ -42,6 +43,26 @@ void FillLane(LegacyCameraFrame& frame, int left_base, int right_base, int drift
     }
 }
 
+void FillBevLane(LegacyCameraFrame& frame, const RuntimeParameters& params) {
+    ls2k::legacy::BEVProjector projector{};
+    Expect(projector.Configure(params.bev_projector), "default projector must configure");
+    const float half_width = params.bev_geometry.nominal_lane_width_m * 0.5F;
+    const float forward_min = params.bev_topology_sampler.forward_samples_m.front();
+    const float forward_max = params.bev_topology_sampler.forward_samples_m.back();
+    for (int row = 0; row < frame.height; ++row) {
+        for (int col = 0; col < frame.width; ++col) {
+            ls2k::port::BEVPoint point{};
+            if (!projector.ProjectImageToVehicle({static_cast<float>(row), static_cast<float>(col)}, point)) {
+                continue;
+            }
+            if (point.forward_m >= forward_min && point.forward_m <= forward_max &&
+                std::abs(point.lateral_m) <= half_width) {
+                frame.gray[static_cast<std::size_t>(row) * frame.width + static_cast<std::size_t>(col)] = 255U;
+            }
+        }
+    }
+}
+
 PerceptionResult Analyze(const LegacyCameraFrame& frame, const LegacySteeringState& prior_state) {
     RuntimeParameters params{};
     params.camera_frame_width = 320;
@@ -74,7 +95,8 @@ void TestDefaultRuntimeOwnedStateBaseline() {
 
 void TestStraightSceneOn320x240Input() {
     LegacyCameraFrame frame = MakeBlankFrame();
-    FillLane(frame, 100, 220);
+    RuntimeParameters params{};
+    FillBevLane(frame, params);
     const PerceptionResult result = Analyze(frame, {});
 
     Expect(result.active_module == "straight", "straight frame must stay on straight module");
@@ -134,7 +156,8 @@ void TestFormalModulesDoNotExposeSpecialWide() {
            "formal BEV scene ownership must not expose special_wide");
     Expect(result.perception_tag == "bev_first",
            "formal scene ownership must flow through the BEV-first AnalyzeFrame path");
-    Expect(result.scene_override_source == "none" || result.scene_override_source == "scene_fsm",
+    Expect(result.scene_override_source == "none" || result.scene_override_source == "scene_fsm" ||
+               result.scene_override_source == "topology_evidence",
            "scene override source must come from the BEV FSM boundary");
 }
 

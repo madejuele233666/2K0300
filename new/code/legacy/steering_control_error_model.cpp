@@ -86,8 +86,9 @@ bool InterpolateReferenceAt(const std::array<port::BEVPathSample, port::kBevTrac
 float HeadingAtReference(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
                          float forward_m,
                          const port::BEVPathSample& lookahead) {
-    const float before_m = std::max(0.0F, forward_m - 0.35F);
-    const float after_m = forward_m + 0.35F;
+    const float heading_window_m = std::max(0.02F, forward_m * 0.25F);
+    const float before_m = std::max(0.0F, forward_m - heading_window_m);
+    const float after_m = forward_m + heading_window_m;
     port::BEVPathSample before{};
     port::BEVPathSample after{};
     if (InterpolateReferenceAt(path, before_m, before) && InterpolateReferenceAt(path, after_m, after)) {

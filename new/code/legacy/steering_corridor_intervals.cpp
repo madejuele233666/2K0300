@@ -10,16 +10,58 @@ bool IsDrivable(const port::BEVSample& sample) {
     return sample.sample_class == port::BEVSampleClass::kDrivable;
 }
 
-bool IsBackground(const port::BEVSample& sample) {
-    return sample.sample_class == port::BEVSampleClass::kBackground;
-}
-
 bool IsInvalid(const port::BEVSample& sample) {
     return sample.sample_class == port::BEVSampleClass::kInvalidOutsideImage;
 }
 
 bool IsUnknown(const port::BEVSample& sample) {
     return sample.sample_class == port::BEVSampleClass::kUnknownLowConfidence;
+}
+
+bool IsTrustedBackground(const port::BEVSample& sample,
+                         const port::BEVTopologySamplerParameters& sampler_params) {
+    return sample.valid_image_projection &&
+           sample.sample_class == port::BEVSampleClass::kBackground &&
+           !sample.near_image_border &&
+           sample.confidence >= sampler_params.unknown_confidence_min;
+}
+
+port::BEVBoundaryEvidenceKind ClassifyBoundaryEvidence(
+    const std::vector<port::BEVSample>& samples,
+    std::size_t drivable_edge_index,
+    bool left_edge,
+    const port::BEVTopologySamplerParameters& sampler_params) {
+    const port::BEVSample& drivable_edge = samples[drivable_edge_index];
+    if (left_edge && drivable_edge_index == 0U) {
+        return port::BEVBoundaryEvidenceKind::kSearchWindowEdge;
+    }
+    if (!left_edge && drivable_edge_index + 1U >= samples.size()) {
+        return port::BEVBoundaryEvidenceKind::kSearchWindowEdge;
+    }
+    if (drivable_edge.near_image_border) {
+        return port::BEVBoundaryEvidenceKind::kImageBorder;
+    }
+
+    const std::size_t adjacent_index = left_edge ? drivable_edge_index - 1U
+                                                 : drivable_edge_index + 1U;
+    const port::BEVSample& adjacent = samples[adjacent_index];
+    if (adjacent.near_image_border) {
+        return port::BEVBoundaryEvidenceKind::kImageBorder;
+    }
+    if (IsInvalid(adjacent)) {
+        return port::BEVBoundaryEvidenceKind::kInvalidOutsideImage;
+    }
+    if (IsUnknown(adjacent)) {
+        return port::BEVBoundaryEvidenceKind::kUnknownLowConfidence;
+    }
+    if (IsTrustedBackground(adjacent, sampler_params)) {
+        return port::BEVBoundaryEvidenceKind::kObservedDrivableBackground;
+    }
+    return port::BEVBoundaryEvidenceKind::kNonBackgroundAdjacent;
+}
+
+bool IsObservedBoundary(port::BEVBoundaryEvidenceKind evidence) {
+    return evidence == port::BEVBoundaryEvidenceKind::kObservedDrivableBackground;
 }
 
 float EdgeOpeningScore(const std::vector<port::BEVSample>& samples,
@@ -46,7 +88,8 @@ float EdgeOpeningScore(const std::vector<port::BEVSample>& samples,
 port::CorridorInterval MakeInterval(const std::vector<port::BEVSample>& samples,
                                     std::size_t start,
                                     std::size_t end,
-                                    float step_m) {
+                                    float step_m,
+                                    const port::BEVTopologySamplerParameters& sampler_params) {
     port::CorridorInterval interval{};
     interval.forward_m = samples[start].point.forward_m;
     interval.lateral_min_m = samples[start].point.lateral_m - step_m * 0.5F;
@@ -56,8 +99,12 @@ port::CorridorInterval MakeInterval(const std::vector<port::BEVSample>& samples,
     }
     interval.width_m = std::max(0.0F, interval.lateral_max_m - interval.lateral_min_m);
     interval.lateral_center_m = (interval.lateral_min_m + interval.lateral_max_m) * 0.5F;
-    interval.left_edge_valid = start > 0 && IsBackground(samples[start - 1]);
-    interval.right_edge_valid = end + 1 < samples.size() && IsBackground(samples[end + 1]);
+    interval.left_boundary_evidence =
+        ClassifyBoundaryEvidence(samples, start, true, sampler_params);
+    interval.right_boundary_evidence =
+        ClassifyBoundaryEvidence(samples, end, false, sampler_params);
+    interval.left_edge_valid = IsObservedBoundary(interval.left_boundary_evidence);
+    interval.right_edge_valid = IsObservedBoundary(interval.right_boundary_evidence);
     interval.left_opening_score = EdgeOpeningScore(samples, start, true, step_m);
     interval.right_opening_score = EdgeOpeningScore(samples, end, false, step_m);
 
@@ -117,7 +164,8 @@ CorridorIntervalSet ExtractCorridorIntervals(const BEVSparseSampleGrid& samples,
                 ++index;
             }
             const std::size_t end = index;
-            interval_layer.intervals.push_back(MakeInterval(sample_layer.samples, start, end, step_m));
+            interval_layer.intervals.push_back(
+                MakeInterval(sample_layer.samples, start, end, step_m, params.bev_topology_sampler));
             any_interval = true;
             ++index;
         }

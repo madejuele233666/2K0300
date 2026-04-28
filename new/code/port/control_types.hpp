@@ -105,8 +105,22 @@ struct BEVSample {
     ImagePoint image{};
     BEVSampleClass sample_class = BEVSampleClass::kInvalidOutsideImage;
     float raw_intensity = 0.0F;
+    float patch_min_intensity = 0.0F;
+    float patch_max_intensity = 0.0F;
+    float patch_purity = 0.0F;
     float confidence = 0.0F;
     bool valid_image_projection = false;
+    bool near_image_border = false;
+};
+
+enum class BEVBoundaryEvidenceKind {
+    kNone,
+    kObservedDrivableBackground,
+    kSearchWindowEdge,
+    kInvalidOutsideImage,
+    kUnknownLowConfidence,
+    kImageBorder,
+    kNonBackgroundAdjacent
 };
 
 struct CorridorInterval {
@@ -117,6 +131,8 @@ struct CorridorInterval {
     float width_m = 0.0F;
     bool left_edge_valid = false;
     bool right_edge_valid = false;
+    BEVBoundaryEvidenceKind left_boundary_evidence = BEVBoundaryEvidenceKind::kNone;
+    BEVBoundaryEvidenceKind right_boundary_evidence = BEVBoundaryEvidenceKind::kNone;
     float left_opening_score = 0.0F;
     float right_opening_score = 0.0F;
     float valid_sample_ratio = 0.0F;
@@ -182,25 +198,36 @@ struct BEVProjectorCalibration {
          ImagePoint{68.0F, 108.0F},
          ImagePoint{68.0F, 220.0F}}};
     std::array<BEVPoint, kBevCalibrationPointCount> target_points{
-        {BEVPoint{0.45F, -0.21F},
-         BEVPoint{0.45F, 0.21F},
-         BEVPoint{4.50F, -0.21F},
-         BEVPoint{4.50F, 0.21F}}};
+        {BEVPoint{0.061F, -0.21F},
+         BEVPoint{0.061F, 0.21F},
+         BEVPoint{0.610F, -0.21F},
+         BEVPoint{0.610F, 0.21F}}};
     int debug_grid_width = 160;
     int debug_grid_height = 128;
-    std::string projector_id = "bev_projector_straight_entry_fixed_camera_v4";
-    std::string projector_hash = "bev-projector-straight-entry-fixed-camera-20260426T151213Z";
+    std::string projector_id = "bev_projector_true_bev_manual_forward_scale_v5";
+    std::string projector_hash = "bev-projector-true-bev-manual-forward-scale-20260428";
 };
 
 struct BEVGeometryParameters {
     std::array<float, kBevTrackSampleCount> forward_samples_m{
-        {0.30F, 0.45F, 0.60F, 0.80F, 1.05F, 1.35F, 1.70F, 2.10F, 2.60F, 3.20F, 3.85F, 4.50F}};
+        {0.040667F,
+         0.061F,
+         0.081333F,
+         0.108444F,
+         0.142333F,
+         0.183F,
+         0.230444F,
+         0.284667F,
+         0.352444F,
+         0.433778F,
+         0.521889F,
+         0.610F}};
     float search_lateral_limit_m = 0.65F;
     float lateral_step_m = 0.02F;
     float nominal_lane_width_m = 0.42F;
     float min_lane_width_m = 0.20F;
     float max_lane_width_m = 0.75F;
-    float min_visible_range_m = 0.80F;
+    float min_visible_range_m = 0.108444F;
     float min_track_confidence = 0.25F;
     float continuity_break_threshold_m = 0.28F;
     int sample_row_step_px = 4;
@@ -228,8 +255,8 @@ struct BEVControlModelParameters {
     int far_sample_index = 4;
     int curvature_sample_index = 5;
     double lookahead_visible_range_ratio = 0.35;
-    double lookahead_min_m = 1.20;
-    double lookahead_max_m = 2.00;
+    double lookahead_min_m = 0.162667;
+    double lookahead_max_m = 0.271111;
     double pure_pursuit_gain = 1.0;
     double heading_curvature_gain = 0.35;
     double curvature_feedforward_gain = 0.20;
@@ -237,7 +264,7 @@ struct BEVControlModelParameters {
     double curvature_to_w_target_gain = 12000.0;
     double low_confidence_threshold = 0.35;
     double steering_suppression_confidence = 0.12;
-    double low_visible_range_m = 0.80;
+    double low_visible_range_m = 0.108444;
     double min_gain_scale = 0.25;
     double min_speed_limit_scale = 0.35;
     double max_reference_bias_m = 0.20;
@@ -245,7 +272,18 @@ struct BEVControlModelParameters {
 
 struct BEVTopologySamplerParameters {
     std::array<float, kBevTrackSampleCount> forward_samples_m{
-        {0.30F, 0.45F, 0.60F, 0.80F, 1.05F, 1.35F, 1.70F, 2.10F, 2.60F, 3.20F, 3.85F, 4.50F}};
+        {0.040667F,
+         0.061F,
+         0.081333F,
+         0.108444F,
+         0.142333F,
+         0.183F,
+         0.230444F,
+         0.284667F,
+         0.352444F,
+         0.433778F,
+         0.521889F,
+         0.610F}};
     float lateral_min_m = -0.80F;
     float lateral_max_m = 0.80F;
     float lateral_step_m = 0.02F;
@@ -265,7 +303,7 @@ struct BEVCorridorGraphParameters {
 };
 
 struct BEVTopologyEvidenceParameters {
-    float cross_enter_score = 1.0F;
+    float cross_enter_score = 0.70F;
     float cross_release_score = 0.45F;
     float circle_enter_score = 1.0F;
     float circle_release_score = 0.45F;

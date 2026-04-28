@@ -2,6 +2,7 @@
 #define LS2K_LEGACY_STEERING_CORRIDOR_GRAPH_HPP
 
 #include <array>
+#include <string>
 #include <vector>
 
 #include "legacy/steering_corridor_intervals.hpp"
@@ -9,9 +10,18 @@
 
 namespace ls2k::legacy {
 
+enum class BoundaryAnchorSide : int {
+    kNone = 0,
+    kLeft = -1,
+    kRight = 1
+};
+
 struct CorridorGraph {
     bool valid = false;
+    std::string fallback_mode = "none";
     std::array<int, port::kBevTrackSampleCount> ordinary_interval_indices{};
+    std::array<BoundaryAnchorSide, port::kBevTrackSampleCount> ordinary_center_anchor_side{};
+    std::array<port::BEVPathSample, port::kBevTrackSampleCount> ordinary_raw_centerline{};
     std::vector<port::CorridorGraphEdge> edges{};
     port::PathCandidate ordinary{};
 };

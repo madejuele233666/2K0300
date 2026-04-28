@@ -1,8 +1,8 @@
 {
   "schema": "bev-authority-baseline-v1",
-  "projector_id": "bev_projector_straight_center_45m_v3",
+  "projector_id": "bev_projector_true_bev_manual_forward_scale_v5",
   "projector_calibration": {
-    "projector_hash": "bev-projector-straight-center-45m-20260426",
+    "projector_hash": "bev-projector-true-bev-manual-forward-scale-20260428",
     "source_points": [
       { "row_px": 220.0, "col_px": 21.5 },
       { "row_px": 220.0, "col_px": 296.0 },
@@ -10,15 +10,15 @@
       { "row_px": 68.0, "col_px": 211.0 }
     ],
     "target_points": [
-      { "forward_m": 0.45, "lateral_m": -0.21 },
-      { "forward_m": 0.45, "lateral_m": 0.21 },
-      { "forward_m": 4.5, "lateral_m": -0.21 },
-      { "forward_m": 4.5, "lateral_m": 0.21 }
+      { "forward_m": 0.061, "lateral_m": -0.21 },
+      { "forward_m": 0.061, "lateral_m": 0.21 },
+      { "forward_m": 0.61, "lateral_m": -0.21 },
+      { "forward_m": 0.61, "lateral_m": 0.21 }
     ]
   },
   "contract_semantics": {
-    "active_modules": "Sequence-level FSM ownership observed across the confirmation window.",
-    "primary_candidates": "BEV scene evidence on the selected primary snapshot for the sample. Candidate traces printed by the verifier are diagnostic only unless promoted into this manifest."
+    "active_modules": "Sequence-level topology FSM ownership observed across the confirmation window; lost_prediction is accepted as a scene_phase sentinel.",
+    "primary_candidates": "Topology-derived evidence on the selected primary snapshot. Legacy observation candidate fields are intentionally not part of this contract."
   },
   "parameter_contract": {
     "cross_bilateral_open_min_m": 0.12,
@@ -28,62 +28,65 @@
     {
       "file": "bend-1.raw",
       "label": "bend",
-      "authority_role": "positive_ownership",
+      "authority_role": "topology_track_ordinary_safety",
       "require_valid_track": true,
-      "require_active_modules": ["bend"],
+      "require_active_modules": ["straight"],
       "forbid_active_modules": ["cross", "circle"],
-      "require_primary_candidates": ["ordinary_bend_veto"],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "bend-2.raw",
       "label": "bend",
-      "authority_role": "positive_ownership",
+      "authority_role": "topology_track_ordinary_safety",
       "require_valid_track": true,
-      "require_active_modules": ["bend"],
+      "require_active_modules": ["straight"],
       "forbid_active_modules": ["cross", "circle"],
-      "require_primary_candidates": ["ordinary_bend_veto"],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "bend-3.raw",
       "label": "bend",
-      "authority_role": "positive_ownership",
+      "authority_role": "topology_track_ordinary_safety",
       "require_valid_track": true,
-      "require_active_modules": ["bend"],
+      "require_active_modules": ["straight"],
       "forbid_active_modules": ["cross", "circle"],
-      "require_primary_candidates": ["ordinary_bend_veto"],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open", "circle_left_candidate", "circle_right_candidate"]
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "circle-1.raw",
-      "label": "circle",
-      "authority_role": "positive_ownership",
-      "require_valid_track": true,
-      "require_active_modules": ["circle"],
-      "forbid_active_modules": ["cross", "bend"],
-      "require_primary_candidates": ["circle_left_candidate"],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+      "label": "legacy_circle_raw",
+      "authority_role": "topology_negative_safety",
+      "require_valid_track": false,
+      "forbid_valid_track": true,
+      "require_active_modules": ["straight", "lost_prediction"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["lost_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "circle-2.raw",
-      "label": "circle",
-      "authority_role": "positive_ownership",
-      "require_valid_track": true,
-      "require_active_modules": ["circle"],
-      "forbid_active_modules": ["cross", "bend"],
-      "require_primary_candidates": ["circle_right_candidate"],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+      "label": "legacy_circle_raw",
+      "authority_role": "topology_negative_safety",
+      "require_valid_track": false,
+      "forbid_valid_track": true,
+      "require_active_modules": ["straight", "lost_prediction"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["lost_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "circle-3.raw",
-      "label": "circle",
-      "authority_role": "negative_safety",
-      "require_valid_track": true,
-      "require_active_modules": [],
-      "forbid_active_modules": ["cross", "bend"],
-      "require_primary_candidates": [],
-      "forbid_primary_candidates": ["cross_candidate", "cross_bilateral_open"]
+      "label": "legacy_circle_raw",
+      "authority_role": "topology_negative_safety",
+      "require_valid_track": false,
+      "forbid_valid_track": true,
+      "require_active_modules": ["straight", "lost_prediction"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["lost_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
     },
     {
       "file": "cross-1.raw",
@@ -91,29 +94,31 @@
       "authority_role": "positive_scene_evidence",
       "require_valid_track": false,
       "require_active_modules": ["cross"],
-      "forbid_active_modules": ["circle", "bend"],
-      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
-      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
     },
     {
       "file": "cross-2.raw",
       "label": "cross",
       "authority_role": "positive_scene_evidence",
       "require_valid_track": false,
+      "forbid_valid_track": true,
       "require_active_modules": ["cross"],
-      "forbid_active_modules": ["circle", "bend"],
-      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
-      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
     },
     {
       "file": "cross-3.raw",
       "label": "cross",
       "authority_role": "positive_scene_evidence",
       "require_valid_track": false,
+      "forbid_valid_track": true,
       "require_active_modules": ["cross"],
-      "forbid_active_modules": ["circle", "bend"],
-      "require_primary_candidates": ["cross_candidate", "cross_bilateral_open"],
-      "forbid_primary_candidates": ["circle_left_candidate", "circle_right_candidate"]
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
     }
   ]
 }

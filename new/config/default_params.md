@@ -160,7 +160,7 @@
 
 - `BEV_TOPOLOGY_SAMPLER`
   - `FORWARD_SAMPLES_M`
-    - 稀疏 BEV 前向采样距离。当前覆盖 `0.30m` 到 `4.50m`，共 12 层。
+    - 稀疏 BEV 前向采样距离。当前覆盖修正后的 `0.040667m` 到 `0.610m`，共 12 层。
   - `LATERAL_MIN_M / LATERAL_MAX_M / LATERAL_STEP_M`
     - 每个前向层的横向采样范围和步长。invalid outside image 不能计为 opening。
   - `SAMPLE_PATCH_RADIUS_PX`
@@ -179,6 +179,7 @@
 - `BEV_TOPOLOGY_EVIDENCE`
   - `*_ENTER_SCORE / *_RELEASE_SCORE`
     - cross/circle/zebra 进入和释放 hysteresis 分数。
+    - `CROSS_ENTER_SCORE` 默认低于 1.0，因为 `cross_score` 是连续拓扑证据强度，不是 bool 确认位。
   - `ORDINARY_RELEASE_SCORE`
     - 回 ordinary 的最低拓扑分数。
   - `EVIDENCE_DECAY`

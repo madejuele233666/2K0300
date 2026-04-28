@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -69,6 +70,23 @@ ls2k::legacy::BEVProjector MakeProjector(const ls2k::port::RuntimeParameters& pa
     return projector;
 }
 
+const ls2k::port::BEVSample& ClosestSample(const ls2k::legacy::BEVSparseSampleGrid& samples,
+                                           std::size_t layer_index,
+                                           float lateral_m) {
+    const auto& layer = samples.layers[layer_index];
+    const ls2k::port::BEVSample* best = nullptr;
+    float best_distance = std::numeric_limits<float>::infinity();
+    for (const auto& sample : layer.samples) {
+        const float distance = std::abs(sample.point.lateral_m - lateral_m);
+        if (distance < best_distance) {
+            best = &sample;
+            best_distance = distance;
+        }
+    }
+    Expect(best != nullptr, "sparse sample layer must not be empty");
+    return *best;
+}
+
 void TestSparseSamplerClassifiesDrivableAndInvalid() {
     ls2k::port::RuntimeParameters params{};
     ls2k::legacy::BEVProjector projector = MakeProjector(params);
@@ -93,8 +111,28 @@ void TestSparseSamplerClassifiesDrivableAndInvalid() {
     }
     Expect(drivable_count > 0, "drawn BEV stripe must classify as drivable");
     Expect(invalid_count > 0, "wide lateral sampling must expose invalid outside-image samples");
-    Expect(std::abs(samples.layers.back().forward_m - 4.50F) < 1e-4F,
-           "sparse sampler must cover the configured 4.5m forward layer");
+    Expect(std::abs(samples.layers.back().forward_m - 0.610F) < 1e-4F,
+           "sparse sampler must cover the configured corrected far forward layer");
+}
+
+void TestModerateForegroundClassifiesDrivable() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::BEVProjector projector = MakeProjector(params);
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+    DrawVehicleStripe(frame, projector, params, -0.18F, 0.18F, 160U);
+
+    const ls2k::legacy::BEVSparseSampleGrid samples =
+        ls2k::legacy::SparseMetricSample(frame, 107, params, projector);
+
+    int drivable_count = 0;
+    for (const auto& layer : samples.layers) {
+        for (const auto& sample : layer.samples) {
+            if (sample.sample_class == ls2k::port::BEVSampleClass::kDrivable) {
+                ++drivable_count;
+            }
+        }
+    }
+    Expect(drivable_count > 0, "moderately bright foreground must clear the drivable confidence gate");
 }
 
 void TestProjectorLateralSignIsStable() {
@@ -102,8 +140,8 @@ void TestProjectorLateralSignIsStable() {
     ls2k::legacy::BEVProjector projector = MakeProjector(params);
     ls2k::port::ImagePoint left{};
     ls2k::port::ImagePoint right{};
-    Expect(projector.ProjectVehicleToImage({1.0F, -0.20F}, left), "left point must project");
-    Expect(projector.ProjectVehicleToImage({1.0F, 0.20F}, right), "right point must project");
+    Expect(projector.ProjectVehicleToImage({0.183F, -0.20F}, left), "left point must project");
+    Expect(projector.ProjectVehicleToImage({0.183F, 0.20F}, right), "right point must project");
     Expect(left.col_px < right.col_px, "negative lateral must project left of positive lateral");
 }
 
@@ -126,13 +164,70 @@ void TestLowConfidenceBecomesUnknown() {
     Expect(unknown_count > 0, "near-threshold valid samples must classify as unknown low confidence");
 }
 
+void TestBrightNeighborDoesNotPromoteDarkCenter() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::BEVProjector projector = MakeProjector(params);
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+
+    constexpr std::size_t kLayer = 5U;
+    constexpr float kLateral = 0.0F;
+    ls2k::port::ImagePoint image{};
+    Expect(projector.ProjectVehicleToImage({params.bev_topology_sampler.forward_samples_m[kLayer], kLateral},
+                                           image),
+           "dark-center regression sample must project into the image");
+    const int row = static_cast<int>(std::lround(image.row_px));
+    const int col = static_cast<int>(std::lround(image.col_px));
+    SetPixel(frame, row, col, 30U);
+    SetPixel(frame, row, col + 1, 206U);
+    SetPixel(frame, row + 1, col, 144U);
+
+    const ls2k::legacy::BEVSparseSampleGrid samples =
+        ls2k::legacy::SparseMetricSample(frame, 100, params, projector);
+    const ls2k::port::BEVSample& sample = ClosestSample(samples, kLayer, kLateral);
+
+    Expect(std::abs(sample.raw_intensity - 30.0F) < 1e-4F,
+           "sparse sample decision intensity must be the center pixel, not the patch maximum");
+    Expect(sample.sample_class != ls2k::port::BEVSampleClass::kDrivable,
+           "bright neighboring pixels must not promote a dark center sample to drivable");
+}
+
+void TestDarkNeighborDoesNotHideBrightCenter() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::BEVProjector projector = MakeProjector(params);
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+
+    constexpr std::size_t kLayer = 5U;
+    constexpr float kLateral = 0.0F;
+    ls2k::port::ImagePoint image{};
+    Expect(projector.ProjectVehicleToImage({params.bev_topology_sampler.forward_samples_m[kLayer], kLateral},
+                                           image),
+           "bright-center regression sample must project into the image");
+    const int row = static_cast<int>(std::lround(image.row_px));
+    const int col = static_cast<int>(std::lround(image.col_px));
+    DrawPatch(frame, image.row_px, image.col_px, 180U);
+    SetPixel(frame, row, col + 1, 20U);
+    SetPixel(frame, row + 1, col, 33U);
+
+    const ls2k::legacy::BEVSparseSampleGrid samples =
+        ls2k::legacy::SparseMetricSample(frame, 100, params, projector);
+    const ls2k::port::BEVSample& sample = ClosestSample(samples, kLayer, kLateral);
+
+    Expect(std::abs(sample.raw_intensity - 180.0F) < 1e-4F,
+           "bright-center regression must still decide from the center pixel");
+    Expect(sample.sample_class == ls2k::port::BEVSampleClass::kDrivable,
+           "dark neighboring pixels must not hide a high-confidence bright center sample");
+}
+
 }  // namespace
 
 int main() {
     try {
         TestSparseSamplerClassifiesDrivableAndInvalid();
+        TestModerateForegroundClassifiesDrivable();
         TestProjectorLateralSignIsStable();
         TestLowConfidenceBecomesUnknown();
+        TestBrightNeighborDoesNotPromoteDarkCenter();
+        TestDarkNeighborDoesNotHideBrightCenter();
     } catch (const TestFailure& failure) {
         std::cerr << "bev_sparse_sampler_test failed: " << failure.message << "\n";
         return 1;

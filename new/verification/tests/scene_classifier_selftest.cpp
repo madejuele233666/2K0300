@@ -12,6 +12,7 @@
 #include "legacy/steering_reference_policy.hpp"
 #include "legacy/steering_scene_fsm.hpp"
 #include "legacy/steering_topology_evidence.hpp"
+#include "legacy/steering_topology_hypotheses.hpp"
 
 namespace {
 
@@ -52,7 +53,7 @@ ls2k::port::RuntimeParameters MakeParams() {
     params.bev_reference_policy.arc_follow_confidence_min = 0.55F;
     params.bev_control_model.low_confidence_threshold = 0.35;
     params.bev_control_model.steering_suppression_confidence = 0.12;
-    params.bev_control_model.low_visible_range_m = 0.80;
+    params.bev_control_model.low_visible_range_m = 0.108444;
     params.bev_control_model.min_gain_scale = 0.25;
     params.bev_control_model.min_speed_limit_scale = 0.35;
     return params;
@@ -154,6 +155,30 @@ ls2k::legacy::CorridorIntervalSet MakeOpeningIntervals(
             MakeInterval(params, index, -half_width - left_open_m * ratio, half_width + right_open_m * ratio));
     }
     return intervals;
+}
+
+void SetIntervalEdgeValidity(ls2k::legacy::CorridorIntervalSet& intervals,
+                             bool left_edge_valid,
+                             bool right_edge_valid) {
+    for (ls2k::legacy::CorridorIntervalLayer& layer : intervals.layers) {
+        for (ls2k::port::CorridorInterval& interval : layer.intervals) {
+            interval.left_edge_valid = left_edge_valid;
+            interval.right_edge_valid = right_edge_valid;
+        }
+    }
+}
+
+void SetLayerEdgeValidity(ls2k::legacy::CorridorIntervalSet& intervals,
+                          std::size_t layer_index,
+                          bool left_edge_valid,
+                          bool right_edge_valid) {
+    if (layer_index >= intervals.layers.size()) {
+        return;
+    }
+    for (ls2k::port::CorridorInterval& interval : intervals.layers[layer_index].intervals) {
+        interval.left_edge_valid = left_edge_valid;
+        interval.right_edge_valid = right_edge_valid;
+    }
 }
 
 ls2k::legacy::CorridorIntervalSet MakeZebraIntervals(
@@ -270,6 +295,12 @@ void PaintWhiteRun(ls2k::port::LegacyCameraFrame& frame, int row, int left_col, 
     }
 }
 
+void PaintWhiteBand(ls2k::port::LegacyCameraFrame& frame, int center_row, int left_col, int right_col) {
+    for (int row = center_row - 1; row <= center_row + 1; ++row) {
+        PaintWhiteRun(frame, row, left_col, right_col);
+    }
+}
+
 ls2k::port::LegacyCameraFrame MakeZebraFrame(const ls2k::port::RuntimeParameters& params) {
     ls2k::legacy::BEVProjector projector;
     Expect(projector.Configure(params.bev_projector), "default BEV projector calibration must configure");
@@ -287,7 +318,7 @@ ls2k::port::LegacyCameraFrame MakeZebraFrame(const ls2k::port::RuntimeParameters
         const int row = std::clamp(static_cast<int>(std::lround(image.row_px)),
                                    0,
                                    std::max(0, frame.height - 1));
-        PaintWhiteRun(frame, row, 0, frame.width - 1);
+        PaintWhiteBand(frame, row, 0, frame.width - 1);
     }
     return frame;
 }
@@ -330,13 +361,28 @@ void TestCrossRequiresBilateralOpeningAndReacquires() {
     ls2k::port::RoadHypotheses hypotheses = MakeHypotheses(params);
     const ls2k::port::TopologyEvidence one_sided =
         ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.26F, 0.0F), params);
-    Expect(one_sided.cross_score < params.bev_topology_evidence.cross_enter_score,
+    Expect(one_sided.cross_score == 0.0F,
            "cross evidence must reject one-sided opening");
+
+    const float below_cross_opening = params.bev_scene_fsm.cross_bilateral_open_min_m * 0.5F;
+    const ls2k::port::TopologyEvidence below_gate =
+        ScoreEvidence(hypotheses, MakeOpeningIntervals(params, below_cross_opening, below_cross_opening), params);
+    Expect(below_gate.cross_score == 0.0F,
+           "cross evidence must reject bilateral opening below the configured metric gate");
+
+    ls2k::port::RoadHypotheses weak_reacquire = hypotheses;
+    weak_reacquire.forward_exit.confidence = 0.40F;
+    const ls2k::port::TopologyEvidence weak_forward =
+        ScoreEvidence(weak_reacquire, MakeOpeningIntervals(params, 0.26F, 0.26F), params);
+    Expect(weak_forward.forward_reacquire_score == 0.0F,
+           "test must exercise cross evidence before ordinary forward reacquire");
+    Expect(weak_forward.cross_score >= params.bev_topology_evidence.cross_enter_score,
+           "bilateral opening must still confirm cross scene before a usable exit reference exists");
 
     const ls2k::port::TopologyEvidence cross =
         ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.26F, 0.26F), params);
     Expect(cross.cross_score >= params.bev_topology_evidence.cross_enter_score,
-           "bilateral opening with forward reacquire must enter cross evidence");
+           "bilateral opening with forward reacquire must remain cross evidence");
 
     const ls2k::legacy::SceneFsmResult first =
         ls2k::legacy::UpdateTopologySceneFsm(cross, params, {});
@@ -361,6 +407,120 @@ void TestCrossRequiresBilateralOpeningAndReacquires() {
         ls2k::legacy::UpdateTopologySceneFsm(ordinary, params, reacquire.state);
     Expect(released.state.active_scene == ls2k::port::SpecialSceneKind::kOrdinary,
            "ordinary reacquire must release cross state");
+}
+
+void TestCrossEntryHeadingExtensionRequiresPriorOrOrdinaryReference() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::PathCandidate entry_path = MakePath(params, 0.02F, 0.18F, 0.20F);
+    const ls2k::port::ReferencePolicyState held = MakeHeldReference(entry_path, 0.0F);
+    ls2k::port::RoadHypotheses no_graph_hypotheses{};
+    ls2k::port::TopologyEvidence cross{};
+    cross.cross_score = 1.0F;
+    ls2k::port::SpecialSceneFsmState cross_entry{};
+    cross_entry.active_scene = ls2k::port::SpecialSceneKind::kCross;
+    cross_entry.phase = ls2k::port::SpecialScenePhase::kEntry;
+
+    const ls2k::legacy::ReferencePolicyResult extension =
+        ls2k::legacy::ResolveReferencePolicy(no_graph_hypotheses, cross, cross_entry, held, params);
+    Expect(extension.reference_path.valid,
+           "cross entry must be able to extend a confirmed entrance reference when ordinary graph is absent");
+    Expect(extension.reference_path.mode == ls2k::port::ReferenceMode::kEntryHeadingExtension,
+           "cross entry must use entry-heading extension instead of publishing fake observed boundaries");
+    Expect(extension.reference_path.sampled_path[params.bev_control_model.curvature_sample_index].valid,
+           "entry-heading extension must cover the control curvature sample");
+
+    const ls2k::legacy::ReferencePolicyResult no_reference =
+        ls2k::legacy::ResolveReferencePolicy(no_graph_hypotheses, cross, cross_entry, {}, params);
+    Expect(!no_reference.reference_path.valid,
+           "cross must not invent a controllable reference without prior entrance or ordinary topology");
+}
+
+void TestShortOrdinaryRangeWeakensTopologyEvidence() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::port::RoadHypotheses hypotheses = MakeHypotheses(params);
+    hypotheses.ordinary.end_forward_m = params.bev_geometry.forward_samples_m[7];
+    hypotheses.forward_exit = hypotheses.ordinary;
+
+    const ls2k::port::TopologyEvidence evidence =
+        ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.0F, 0.0F), params);
+
+    Expect(evidence.ordinary_score < 0.35F,
+           "short ordinary coverage must not look like strong topology safety evidence");
+    Expect(evidence.lost_score > 0.65F,
+           "short ordinary coverage must raise lost topology evidence");
+}
+
+void TestSubthresholdSpecialEvidenceDoesNotHideLostTopology() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::port::RoadHypotheses hypotheses = MakeHypotheses(params);
+    hypotheses.ordinary.confidence = 0.32F;
+    hypotheses.forward_exit = hypotheses.ordinary;
+
+    const ls2k::port::TopologyEvidence evidence =
+        ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.12F, 0.0F), params);
+
+    Expect(evidence.left_circle_score > 0.0F &&
+               evidence.left_circle_score < params.bev_topology_evidence.circle_enter_score,
+           "test must exercise a visible but unconfirmed circle-like topology signal");
+    Expect(evidence.lost_score > 0.65F,
+           "subthreshold special-scene evidence must not mask lost topology");
+}
+
+void TestCurvatureVetoedCircleOpeningStillRaisesLostTopology() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::port::RoadHypotheses hypotheses =
+        MakeHypotheses(params, params.bev_corridor_graph.max_curvature_abs * 0.65F);
+    hypotheses.ordinary.confidence = 0.58F;
+    hypotheses.forward_exit = hypotheses.ordinary;
+
+    const ls2k::port::TopologyEvidence evidence =
+        ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.26F, 0.0F), params);
+
+    Expect(evidence.left_circle_score > 0.0F &&
+               evidence.left_circle_score < params.bev_topology_evidence.circle_enter_score,
+           "curvature-vetoed circle-like opening must remain below formal circle entry");
+    Expect(evidence.ordinary_score < params.bev_topology_evidence.ordinary_release_score,
+           "fixture must exercise unresolved ordinary topology");
+    Expect(evidence.lost_score > 0.65F,
+           "curvature-vetoed circle-like opening must still raise lost topology pressure");
+}
+
+void TestUnobservedEdgesRaiseLostTopology() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::RoadHypotheses hypotheses = MakeHypotheses(params);
+    ls2k::legacy::CorridorIntervalSet intervals = MakeOpeningIntervals(params, 0.0F, 0.0F);
+    SetIntervalEdgeValidity(intervals, false, false);
+
+    const ls2k::port::TopologyEvidence evidence =
+        ScoreEvidence(hypotheses, intervals, params);
+
+    Expect(evidence.ordinary_score > 0.0F,
+           "edge-clipped support may still expose weak ordinary topology evidence");
+    Expect(evidence.lost_score > 0.65F,
+           "edge-clipped support must still raise lost topology safety evidence");
+}
+
+void TestSingleSidedNearAnchorStraightTrackWeakensOrdinaryEvidence() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::RoadHypotheses hypotheses = MakeHypotheses(params);
+    const ls2k::port::TopologyEvidence bilateral =
+        ScoreEvidence(hypotheses, MakeOpeningIntervals(params, 0.12F, 0.0F), params);
+    ls2k::legacy::CorridorIntervalSet intervals = MakeOpeningIntervals(params, 0.12F, 0.0F);
+    SetLayerEdgeValidity(intervals,
+                         static_cast<std::size_t>(params.bev_control_model.near_sample_index),
+                         true,
+                         false);
+
+    const ls2k::port::TopologyEvidence evidence =
+        ScoreEvidence(hypotheses, intervals, params);
+
+    Expect(evidence.left_circle_score > 0.0F &&
+               evidence.left_circle_score < params.bev_topology_evidence.circle_enter_score,
+           "single-sided near-anchor fixture must remain an unresolved circle-like topology");
+    Expect(evidence.ordinary_score < bilateral.ordinary_score,
+           "single-sided near anchor must weaken ordinary topology trust versus bilateral support");
+    Expect(evidence.lost_score > bilateral.lost_score,
+           "single-sided near anchor must increase lost topology pressure versus bilateral support");
 }
 
 void TestCircleProgressionAndDirectionLatch() {
@@ -410,6 +570,98 @@ void TestCircleProgressionAndDirectionLatch() {
         ls2k::legacy::UpdateTopologySceneFsm(ordinary, params, exit.state);
     Expect(released.state.active_scene == ls2k::port::SpecialSceneKind::kOrdinary,
            "ordinary reacquire must release circle state");
+}
+
+void TestCircleInteriorUsesStableBoundaryOffsetWithoutOrdinaryGraph() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::legacy::CorridorGraph graph{};
+    const ls2k::legacy::CorridorIntervalSet intervals = MakeOpeningIntervals(params, 0.26F, 0.0F);
+    const ls2k::port::RoadHypotheses hypotheses =
+        ls2k::legacy::GenerateRoadHypotheses(graph, intervals, {}, params);
+    Expect(!hypotheses.ordinary.valid,
+           "fixture must not rely on an ordinary graph path");
+    Expect(hypotheses.left_arc.valid,
+           "observed boundary continuity must produce a circle interior reference candidate");
+    Expect(hypotheses.left_arc.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
+           "boundary-derived circle hypothesis must preserve stable-boundary offset semantics");
+
+    ls2k::port::TopologyEvidence left_circle{};
+    left_circle.left_circle_score = 1.0F;
+    ls2k::port::SpecialSceneFsmState circle_state{};
+    circle_state.active_scene = ls2k::port::SpecialSceneKind::kCircleLeft;
+    circle_state.phase = ls2k::port::SpecialScenePhase::kInterior;
+
+    const ls2k::legacy::ReferencePolicyResult reference =
+        ls2k::legacy::ResolveReferencePolicy(hypotheses, left_circle, circle_state, {}, params);
+    Expect(reference.reference_path.valid,
+           "circle interior must be controllable from stable observed boundary offset without ordinary graph");
+    Expect(reference.reference_path.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
+           "circle interior must keep stable-boundary offset distinct from arc-follow");
+
+    const ls2k::legacy::ReferencePolicyResult no_boundary =
+        ls2k::legacy::ResolveReferencePolicy({}, left_circle, circle_state, {}, params);
+    Expect(!no_boundary.reference_path.valid,
+           "circle must not invent a reference when no arc, stable boundary, exit, or prior prediction exists");
+}
+
+void TestArcHypothesesUseBevNormalOffset() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::legacy::CorridorGraph graph{};
+    graph.valid = true;
+    graph.ordinary = MakePath(params, 0.0F, 0.60F, 0.0F);
+
+    ls2k::legacy::CorridorIntervalSet intervals{};
+    const ls2k::port::RoadHypotheses hypotheses =
+        ls2k::legacy::GenerateRoadHypotheses(graph, intervals, {}, params);
+
+    constexpr std::size_t kLayer = 5U;
+    const float offset = -params.bev_corridor_graph.nominal_lane_width_m * 0.5F;
+    const float tangent_length = std::sqrt(1.0F + 0.60F * 0.60F);
+    const ls2k::port::BEVPathSample& base = graph.ordinary.sampled_path[kLayer];
+    const ls2k::port::BEVPathSample& left_arc = hypotheses.left_arc.sampled_path[kLayer];
+    const float expected_lateral = base.point.lateral_m + tangent_length * offset;
+    const float lateral_only = base.point.lateral_m + offset;
+
+    Expect(hypotheses.left_arc.valid, "left arc hypothesis must remain valid");
+    Expect(NearlyEqual(left_arc.point.forward_m, base.point.forward_m),
+           "arc-follow reference must be normalized back onto the configured forward layer");
+    Expect(NearlyEqual(left_arc.point.lateral_m, expected_lateral),
+           "arc-follow reference must preserve the BEV-normal offset curve after normalization");
+    Expect(std::abs(left_arc.point.lateral_m - lateral_only) > 0.02F,
+           "arc-follow reference must not collapse to lateral-only shifting on a sloped path");
+}
+
+void TestExitAndBoundaryArcHypothesesDoNotRequireOrdinaryGraph() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    ls2k::legacy::CorridorGraph graph{};
+    ls2k::legacy::CorridorIntervalSet intervals{};
+    intervals.valid = true;
+    for (std::size_t index = 5U; index < intervals.layers.size(); ++index) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[index];
+        const float center = 0.04F + static_cast<float>(index - 5U) * 0.025F;
+        intervals.layers[index].forward_m = forward;
+        intervals.layers[index].intervals.push_back(
+            MakeInterval(params,
+                         index,
+                         center - params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                         center + params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                         0.86F));
+    }
+
+    const ls2k::port::RoadHypotheses hypotheses =
+        ls2k::legacy::GenerateRoadHypotheses(graph, intervals, {}, params);
+
+    Expect(!hypotheses.ordinary.valid,
+           "fixture must not depend on a valid ordinary graph");
+    Expect(hypotheses.forward_exit.valid,
+           "far observed corridor intervals must produce a forward-exit hypothesis");
+    Expect(hypotheses.left_arc.valid && hypotheses.right_arc.valid,
+           "continuous observed boundaries must produce circle reference hypotheses even without ordinary control anchor");
+    Expect(hypotheses.left_arc.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset &&
+               hypotheses.right_arc.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
+           "boundary-only hypotheses must be labelled as stable-boundary offset");
+    Expect(hypotheses.forward_exit.sampled_path[5].valid,
+           "forward-exit hypothesis must preserve far-layer evidence instead of backfilling a fake near anchor");
 }
 
 void TestZebraHoldAndConstraintsUseTopologyPath() {
@@ -474,6 +726,36 @@ void TestLostPredictionExpires() {
         ls2k::legacy::ResolveReferencePolicy({}, lost, scene.state, prior, params);
     Expect(!expired.reference_path.valid,
            "lost prediction must expire after configured hold cycles");
+}
+
+void TestRuntimeLostPredictionReferenceCanSupportControlBeforeExpiry() {
+    const ls2k::port::RuntimeParameters params = MakeParams();
+    const ls2k::port::PathCandidate last_path = MakePath(params, 0.04F);
+    ls2k::port::LegacySteeringState prior{};
+    prior.reference_policy = MakeHeldReference(last_path, 0.0F);
+
+    ls2k::port::LegacyCameraFrame blank{};
+    blank.width = ls2k::port::kCompiledCameraFrameWidth;
+    blank.height = ls2k::port::kCompiledCameraFrameHeight;
+    blank.gray.fill(0U);
+
+    const ls2k::legacy::SteeringAnalysisResult prediction =
+        ls2k::legacy::AnalyzeFrame(blank, params, prior, {}, false, 31, 55);
+    Expect(prediction.reference_path.mode == ls2k::port::ReferenceMode::kLostPrediction,
+           "runtime lost frame must use reference-policy prediction while it is fresh");
+    Expect(prediction.control_output.valid,
+           "fresh lost prediction must provide a reference-support track to the control model");
+    Expect(!prediction.control_output.steering_suppressed,
+           "fresh lost prediction must not be suppressed before the configured hold expiry");
+
+    prior.reference_policy.lost_prediction_cycles = params.bev_reference_policy.hold_last_max_cycles;
+    prior.lost_prediction_cycles = params.bev_reference_policy.hold_last_max_cycles;
+    const ls2k::legacy::SteeringAnalysisResult expired =
+        ls2k::legacy::AnalyzeFrame(blank, params, prior, {}, false, 32, 60);
+    Expect(!expired.reference_path.valid,
+           "runtime lost prediction must stop carrying reference after hold expiry");
+    Expect(expired.control_output.steering_suppressed,
+           "expired lost prediction must suppress steering through the standard control output");
 }
 
 void TestSceneOnlyAffectsControllerThroughReferenceOrConstraints() {
@@ -548,9 +830,19 @@ int main() {
         TestBendRemainsOrdinaryTopology();
         TestLargeBendVetoesCircleMisclassification();
         TestCrossRequiresBilateralOpeningAndReacquires();
+        TestCrossEntryHeadingExtensionRequiresPriorOrOrdinaryReference();
+        TestShortOrdinaryRangeWeakensTopologyEvidence();
+        TestSubthresholdSpecialEvidenceDoesNotHideLostTopology();
+        TestCurvatureVetoedCircleOpeningStillRaisesLostTopology();
+        TestUnobservedEdgesRaiseLostTopology();
+        TestSingleSidedNearAnchorStraightTrackWeakensOrdinaryEvidence();
         TestCircleProgressionAndDirectionLatch();
+        TestCircleInteriorUsesStableBoundaryOffsetWithoutOrdinaryGraph();
+        TestArcHypothesesUseBevNormalOffset();
+        TestExitAndBoundaryArcHypothesesDoNotRequireOrdinaryGraph();
         TestZebraHoldAndConstraintsUseTopologyPath();
         TestLostPredictionExpires();
+        TestRuntimeLostPredictionReferenceCanSupportControlBeforeExpiry();
         TestSceneOnlyAffectsControllerThroughReferenceOrConstraints();
     } catch (const TestFailure& failure) {
         std::cerr << "scene_classifier_selftest failed: " << failure.message << "\n";
