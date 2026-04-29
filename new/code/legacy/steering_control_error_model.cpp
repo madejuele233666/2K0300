@@ -175,6 +175,66 @@ float CurvatureAroundLookahead(const std::array<port::BEVPathSample, port::kBevT
     return PathCurvatureFromThreeSamples(start, mid, end);
 }
 
+bool HeadingBetweenForwards(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                            float near_forward_m,
+                            float far_forward_m,
+                            float& heading) {
+    port::BEVPathSample near_sample{};
+    port::BEVPathSample far_sample{};
+    if (!InterpolateReferenceAt(path, near_forward_m, near_sample) ||
+        !InterpolateReferenceAt(path, far_forward_m, far_sample)) {
+        return false;
+    }
+    const float ds = far_sample.point.forward_m - near_sample.point.forward_m;
+    if (std::abs(ds) < 1.0e-4F) {
+        return false;
+    }
+    heading = std::atan2(far_sample.point.lateral_m - near_sample.point.lateral_m, ds);
+    return true;
+}
+
+bool CurvatureBetweenForwards(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                              float start_forward_m,
+                              float mid_forward_m,
+                              float end_forward_m,
+                              float& curvature) {
+    port::BEVPathSample start{};
+    port::BEVPathSample mid{};
+    port::BEVPathSample end{};
+    if (!InterpolateReferenceAt(path, start_forward_m, start) ||
+        !InterpolateReferenceAt(path, mid_forward_m, mid) ||
+        !InterpolateReferenceAt(path, end_forward_m, end)) {
+        return false;
+    }
+    curvature = PathCurvatureFromThreeSamples(start, mid, end);
+    return true;
+}
+
+float TrustedErrorWeight(float forward_m,
+                         float trusted_confidence,
+                         const port::RuntimeParameters& params) {
+    const float tau = std::max(0.05F, params.bev_path_policy.reference_compatibility_tau_m);
+    return std::clamp(trusted_confidence, 0.0F, 1.0F) *
+           std::exp(-std::max(0.0F, forward_m) / tau);
+}
+
+float BlendScalar(float raw, float trusted, float weight) {
+    return raw * (1.0F - weight) + trusted * weight;
+}
+
+float ShortestAngleDelta(float from, float to) {
+    constexpr float kPi = 3.1415926535F;
+    float delta = std::fmod(to - from + kPi, 2.0F * kPi);
+    if (delta < 0.0F) {
+        delta += 2.0F * kPi;
+    }
+    return delta - kPi;
+}
+
+float BlendAngle(float raw, float trusted, float weight) {
+    return raw + ShortestAngleDelta(raw, trusted) * weight;
+}
+
 // 将值限幅到 [-limit, +limit] 范围
 float ClampMagnitude(float value, double limit) {
     const float abs_limit = static_cast<float>(std::max(0.0, limit));
@@ -220,12 +280,22 @@ port::ControlErrorModelOutput ComputeControlErrorModel(const port::ControlErrorM
         return output;
     }
 
+    const float near_forward_m =
+        params.bev_topology_sampler.forward_samples_m[static_cast<std::size_t>(near_index)];
+    const float far_forward_m =
+        params.bev_topology_sampler.forward_samples_m[static_cast<std::size_t>(far_index)];
+    const float curvature_forward_m =
+        params.bev_topology_sampler.forward_samples_m[static_cast<std::size_t>(curvature_index)];
+
     if (input.reference_path.sampled_path[near_index].valid) {
         output.near_lateral_error = input.reference_path.sampled_path[near_index].point.lateral_m;
     }
     output.far_heading_error = HeadingFromReference(input.reference_path.sampled_path, near_index, far_index);
     output.preview_curvature =
         CurvatureFromReference(input.reference_path.sampled_path, near_index, curvature_index);
+    output.raw_near_lateral_error = output.near_lateral_error;
+    output.raw_far_heading_error = output.far_heading_error;
+    output.raw_preview_curvature = output.preview_curvature;
 
     // 步骤 3：计算自适应前视距离
     const double min_lookahead = std::max(0.0, std::min(model.lookahead_min_m, model.lookahead_max_m));
@@ -252,6 +322,89 @@ port::ControlErrorModelOutput ComputeControlErrorModel(const port::ControlErrorM
     output.lookahead_heading_error =
         HeadingAtReference(input.reference_path.sampled_path, lookahead_m, lookahead);
     output.reference_curvature = CurvatureAroundLookahead(input.reference_path.sampled_path, lookahead_m);
+    output.raw_lookahead_lateral_error = output.lookahead_lateral_error;
+    output.raw_lookahead_heading_error = output.lookahead_heading_error;
+    output.raw_reference_curvature = output.reference_curvature;
+
+    if (input.trusted_error_reference.valid &&
+        input.trusted_error_confidence > 0.0F &&
+        ComputeReferenceForwardRange(input.trusted_error_reference.sampled_path).valid) {
+        port::BEVPathSample trusted_near{};
+        if (input.reference_path.sampled_path[near_index].valid &&
+            InterpolateReferenceAt(input.trusted_error_reference.sampled_path, near_forward_m, trusted_near)) {
+            output.trusted_error_weight_near =
+                TrustedErrorWeight(near_forward_m, input.trusted_error_confidence, params);
+            output.near_lateral_error =
+                BlendScalar(output.raw_near_lateral_error,
+                            trusted_near.point.lateral_m,
+                            output.trusted_error_weight_near);
+        }
+
+        float trusted_far_heading = 0.0F;
+        if (HeadingBetweenForwards(input.trusted_error_reference.sampled_path,
+                                   near_forward_m,
+                                   far_forward_m,
+                                   trusted_far_heading)) {
+            output.trusted_error_weight_far =
+                TrustedErrorWeight(far_forward_m, input.trusted_error_confidence, params);
+            output.far_heading_error =
+                BlendAngle(output.raw_far_heading_error,
+                           trusted_far_heading,
+                           output.trusted_error_weight_far);
+        }
+
+        port::BEVPathSample trusted_lookahead{};
+        if (InterpolateReferenceAt(input.trusted_error_reference.sampled_path, lookahead_m, trusted_lookahead)) {
+            output.trusted_error_weight_lookahead =
+                TrustedErrorWeight(lookahead_m, input.trusted_error_confidence, params);
+            output.lookahead_lateral_error =
+                BlendScalar(output.raw_lookahead_lateral_error,
+                            trusted_lookahead.point.lateral_m,
+                            output.trusted_error_weight_lookahead);
+            const float trusted_lookahead_heading =
+                HeadingAtReference(input.trusted_error_reference.sampled_path, lookahead_m, trusted_lookahead);
+            output.lookahead_heading_error =
+                BlendAngle(output.raw_lookahead_heading_error,
+                           trusted_lookahead_heading,
+                           output.trusted_error_weight_lookahead);
+        }
+
+        float trusted_preview_curvature = 0.0F;
+        if (CurvatureBetweenForwards(input.trusted_error_reference.sampled_path,
+                                     params.bev_topology_sampler.forward_samples_m.front(),
+                                     near_forward_m,
+                                     curvature_forward_m,
+                                     trusted_preview_curvature)) {
+            output.trusted_error_weight_curvature =
+                TrustedErrorWeight(curvature_forward_m, input.trusted_error_confidence, params);
+            output.preview_curvature =
+                BlendScalar(output.raw_preview_curvature,
+                            trusted_preview_curvature,
+                            output.trusted_error_weight_curvature);
+        }
+
+        float trusted_reference_curvature = 0.0F;
+        if (CurvatureBetweenForwards(input.trusted_error_reference.sampled_path,
+                                     reference_range.min_forward_m,
+                                     reference_range.min_forward_m +
+                                         (lookahead_m - reference_range.min_forward_m) * 0.5F,
+                                     lookahead_m,
+                                     trusted_reference_curvature)) {
+            const float curvature_weight =
+                TrustedErrorWeight(lookahead_m, input.trusted_error_confidence, params);
+            output.reference_curvature =
+                BlendScalar(output.raw_reference_curvature,
+                            trusted_reference_curvature,
+                            curvature_weight);
+            output.trusted_error_weight_curvature =
+                std::max(output.trusted_error_weight_curvature, curvature_weight);
+        }
+        output.trusted_error_active =
+            output.trusted_error_weight_near > 0.0F ||
+            output.trusted_error_weight_far > 0.0F ||
+            output.trusted_error_weight_lookahead > 0.0F ||
+            output.trusted_error_weight_curvature > 0.0F;
+    }
 
     // 步骤 5：合成曲率命令（纯追踪 + 航向误差 + 曲率前馈）
     const float lateral = output.lookahead_lateral_error;

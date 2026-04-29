@@ -208,10 +208,27 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.steering.near_lateral_error = perception.near_lateral_error;
     debug_snapshot.steering.far_heading_error = perception.far_heading_error;
     debug_snapshot.steering.preview_curvature = perception.preview_curvature;
+    debug_snapshot.steering.raw_near_lateral_error = perception.control_model.raw_near_lateral_error;
+    debug_snapshot.steering.raw_far_heading_error = perception.control_model.raw_far_heading_error;
+    debug_snapshot.steering.raw_preview_curvature = perception.control_model.raw_preview_curvature;
     debug_snapshot.steering.lookahead_distance_m = perception.control_model.lookahead_distance_m;
     debug_snapshot.steering.lookahead_lateral_error = perception.control_model.lookahead_lateral_error;
     debug_snapshot.steering.lookahead_heading_error = perception.control_model.lookahead_heading_error;
     debug_snapshot.steering.reference_curvature = perception.control_model.reference_curvature;
+    debug_snapshot.steering.raw_lookahead_lateral_error =
+        perception.control_model.raw_lookahead_lateral_error;
+    debug_snapshot.steering.raw_lookahead_heading_error =
+        perception.control_model.raw_lookahead_heading_error;
+    debug_snapshot.steering.raw_reference_curvature = perception.control_model.raw_reference_curvature;
+    debug_snapshot.steering.trusted_error_active = perception.control_model.trusted_error_active;
+    debug_snapshot.steering.trusted_error_weight_near =
+        perception.control_model.trusted_error_weight_near;
+    debug_snapshot.steering.trusted_error_weight_far =
+        perception.control_model.trusted_error_weight_far;
+    debug_snapshot.steering.trusted_error_weight_lookahead =
+        perception.control_model.trusted_error_weight_lookahead;
+    debug_snapshot.steering.trusted_error_weight_curvature =
+        perception.control_model.trusted_error_weight_curvature;
     debug_snapshot.steering.curvature_command = perception.control_model.curvature_command;
     debug_snapshot.steering.yaw_rate_target = perception.control_model.yaw_rate_target;
     debug_snapshot.steering.visible_range_m = perception.visible_range_m;

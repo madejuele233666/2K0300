@@ -1,0 +1,133 @@
+{
+  "schema": "bev-authority-baseline-v1",
+  "projector_id": "bev_projector_true_bev_manual_forward_scale_v5",
+  "projector_calibration": {
+    "projector_hash": "bev-projector-true-bev-manual-forward-scale-20260428",
+    "source_points": [
+      { "row_px": 220.0, "col_px": 21.5 },
+      { "row_px": 220.0, "col_px": 296.0 },
+      { "row_px": 68.0, "col_px": 114.0 },
+      { "row_px": 68.0, "col_px": 211.0 }
+    ],
+    "target_points": [
+      { "forward_m": 0.061, "lateral_m": -0.21 },
+      { "forward_m": 0.061, "lateral_m": 0.21 },
+      { "forward_m": 0.61, "lateral_m": -0.21 },
+      { "forward_m": 0.61, "lateral_m": 0.21 }
+    ]
+  },
+  "contract_semantics": {
+    "active_modules": "Sequence-level topology FSM ownership observed across the confirmation window.",
+    "scene_phases": "Sequence-level phase facts such as circle_candidate, circle_interior, cross_hold, and lost_prediction are validated separately from active_module.",
+    "debug_candidates": "Candidate-side scene evidence such as circle_left is validated separately from confirmed active modules.",
+    "primary_candidates": "Topology-derived evidence on the selected primary snapshot. Legacy observation candidate fields are intentionally not part of this contract."
+  },
+  "parameter_contract": {
+    "cross_bilateral_open_min_m": 0.12,
+    "rationale": "Data-backed BEV scene gate. Authority circle bilateral-open leakage stayed below 0.093 m, authority cross samples stayed above 0.340 m, and the board cross-entry evidence stayed above 0.351 m. The 0.12 m gate preserves the conservative synthetic cross selftest while separating circle from true bilateral cross openings."
+  },
+  "samples": [
+    {
+      "file": "bend-1.raw",
+      "label": "bend",
+      "authority_role": "topology_track_ordinary_safety",
+      "require_valid_track": true,
+      "require_active_modules": ["straight"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "bend-2.raw",
+      "label": "bend",
+      "authority_role": "topology_track_ordinary_safety",
+      "require_valid_track": true,
+      "require_active_modules": ["straight"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "bend-3.raw",
+      "label": "bend",
+      "authority_role": "topology_track_ordinary_safety",
+      "require_valid_track": true,
+      "require_active_modules": ["straight"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_primary_candidates": ["topology_track", "ordinary_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "circle-1.raw",
+      "label": "circle",
+      "authority_role": "circle_candidate_left",
+      "sequence_group": "circle-left-entry",
+      "analysis_cycles": 1,
+      "require_valid_track": true,
+      "require_active_modules": ["straight"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_scene_phases": ["circle_candidate"],
+      "require_debug_candidates": ["circle_left"],
+      "require_primary_candidates": ["topology_track", "circle_left_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "circle-2.raw",
+      "label": "circle",
+      "authority_role": "circle_candidate_hold",
+      "sequence_group": "circle-left-entry",
+      "analysis_cycles": 1,
+      "require_valid_track": true,
+      "require_active_modules": ["straight"],
+      "forbid_active_modules": ["cross", "circle"],
+      "require_scene_phases": ["circle_candidate"],
+      "forbid_scene_phases": ["lost_prediction"],
+      "require_debug_candidates": ["circle_left"],
+      "require_primary_candidates": ["topology_track", "lost_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "circle-3.raw",
+      "label": "circle",
+      "authority_role": "circle_confirmed_left",
+      "sequence_group": "circle-left-entry",
+      "analysis_cycles": 1,
+      "require_valid_track": true,
+      "require_active_modules": ["circle"],
+      "forbid_active_modules": ["cross"],
+      "require_scene_phases": ["circle_entry"],
+      "require_primary_candidates": ["topology_track", "circle_left_topology"],
+      "forbid_primary_candidates": ["cross_topology"]
+    },
+    {
+      "file": "cross-1.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": false,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
+    },
+    {
+      "file": "cross-2.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": true,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
+    },
+    {
+      "file": "cross-3.raw",
+      "label": "cross",
+      "authority_role": "positive_scene_evidence",
+      "require_valid_track": true,
+      "require_active_modules": ["cross"],
+      "forbid_active_modules": ["circle"],
+      "require_primary_candidates": ["cross_topology"],
+      "forbid_primary_candidates": ["circle_left_topology", "circle_right_topology"]
+    }
+  ]
+}

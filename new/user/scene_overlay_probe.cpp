@@ -2224,10 +2224,28 @@ int main(int argc, char** argv) {
                   << " near_lateral_error=" << analysis.perception.near_lateral_error
                   << " far_heading_error=" << analysis.perception.far_heading_error
                   << " preview_curvature=" << analysis.perception.preview_curvature
+                  << " raw_near_lateral_error=" << analysis.control_output.raw_near_lateral_error
+                  << " raw_far_heading_error=" << analysis.control_output.raw_far_heading_error
+                  << " raw_preview_curvature=" << analysis.control_output.raw_preview_curvature
                   << " lookahead_distance_m=" << analysis.control_output.lookahead_distance_m
                   << " lookahead_lateral_error=" << analysis.control_output.lookahead_lateral_error
                   << " lookahead_heading_error=" << analysis.control_output.lookahead_heading_error
                   << " reference_curvature=" << analysis.control_output.reference_curvature
+                  << " raw_lookahead_lateral_error="
+                  << analysis.control_output.raw_lookahead_lateral_error
+                  << " raw_lookahead_heading_error="
+                  << analysis.control_output.raw_lookahead_heading_error
+                  << " raw_reference_curvature=" << analysis.control_output.raw_reference_curvature
+                  << " trusted_error_active="
+                  << (analysis.control_output.trusted_error_active ? "true" : "false")
+                  << " trusted_error_weight_near="
+                  << analysis.control_output.trusted_error_weight_near
+                  << " trusted_error_weight_far="
+                  << analysis.control_output.trusted_error_weight_far
+                  << " trusted_error_weight_lookahead="
+                  << analysis.control_output.trusted_error_weight_lookahead
+                  << " trusted_error_weight_curvature="
+                  << analysis.control_output.trusted_error_weight_curvature
                   << " curvature_command=" << analysis.control_output.curvature_command
                   << " yaw_rate_target=" << analysis.control_output.yaw_rate_target
                   << " visible_range_m=" << analysis.perception.visible_range_m

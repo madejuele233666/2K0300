@@ -74,10 +74,28 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " near_lateral_error=" << snapshot.steering.near_lateral_error
                      << " far_heading_error=" << snapshot.steering.far_heading_error
                      << " preview_curvature=" << snapshot.steering.preview_curvature
+                     << " raw_near_lateral_error=" << snapshot.steering.raw_near_lateral_error
+                     << " raw_far_heading_error=" << snapshot.steering.raw_far_heading_error
+                     << " raw_preview_curvature=" << snapshot.steering.raw_preview_curvature
                      << " lookahead_distance_m=" << snapshot.steering.lookahead_distance_m
                      << " lookahead_lateral_error=" << snapshot.steering.lookahead_lateral_error
                      << " lookahead_heading_error=" << snapshot.steering.lookahead_heading_error
                      << " reference_curvature=" << snapshot.steering.reference_curvature
+                     << " raw_lookahead_lateral_error="
+                     << snapshot.steering.raw_lookahead_lateral_error
+                     << " raw_lookahead_heading_error="
+                     << snapshot.steering.raw_lookahead_heading_error
+                     << " raw_reference_curvature=" << snapshot.steering.raw_reference_curvature
+                     << " trusted_error_active="
+                     << BoolToken(snapshot.steering.trusted_error_active)
+                     << " trusted_error_weight_near="
+                     << snapshot.steering.trusted_error_weight_near
+                     << " trusted_error_weight_far="
+                     << snapshot.steering.trusted_error_weight_far
+                     << " trusted_error_weight_lookahead="
+                     << snapshot.steering.trusted_error_weight_lookahead
+                     << " trusted_error_weight_curvature="
+                     << snapshot.steering.trusted_error_weight_curvature
                      << " curvature_command=" << snapshot.steering.curvature_command
                      << " yaw_rate_target=" << snapshot.steering.yaw_rate_target
                      << " visible_range_m=" << snapshot.steering.visible_range_m

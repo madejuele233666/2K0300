@@ -371,6 +371,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.lookahead_lateral_error = -0.09;
         state.control_debug_snapshot.steering.lookahead_heading_error = 0.04;
         state.control_debug_snapshot.steering.reference_curvature = -0.015;
+        state.control_debug_snapshot.steering.raw_lookahead_lateral_error = -0.12;
+        state.control_debug_snapshot.steering.raw_lookahead_heading_error = 0.06;
+        state.control_debug_snapshot.steering.raw_reference_curvature = -0.02;
+        state.control_debug_snapshot.steering.trusted_error_active = true;
+        state.control_debug_snapshot.steering.trusted_error_weight_near = 0.70;
+        state.control_debug_snapshot.steering.trusted_error_weight_lookahead = 0.35;
         state.control_debug_snapshot.steering.curvature_command = -0.10;
         state.control_debug_snapshot.steering.visible_range_m = 1.9;
         state.control_debug_snapshot.steering.active_module = "circle";
@@ -381,7 +387,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.circle_heading_delta_deg = 52.0;
         state.control_debug_snapshot.steering.circle_yaw_accum_deg = 121.0;
         state.control_debug_snapshot.steering.circle_path_phase = "entry";
-        state.control_debug_snapshot.steering.reference_source = "candidate_trusted_blend";
+        state.control_debug_snapshot.steering.reference_source = "circle_inner_follow";
         state.control_debug_snapshot.steering.circle_entry_signal_active = true;
         state.latest_camera_capture.has_frame = true;
         state.latest_camera_capture.frame_id = 41;
@@ -459,8 +465,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include circle gyro progress");
     Require(Contains(header_json, "\"circle_path_phase\":\"entry\""),
             "image frame must include circle path phase");
-    Require(Contains(header_json, "\"reference_source\":\"candidate_trusted_blend\""),
+    Require(Contains(header_json, "\"reference_source\":\"circle_inner_follow\""),
             "image frame must include reference source");
+    Require(Contains(header_json, "\"trusted_error_active\":true"),
+            "image frame must include trusted error activity");
+    Require(Contains(header_json, "\"trusted_error_weight_near\":0.7"),
+            "image frame must include trusted error near weight");
     Require(Contains(header_json, "\"circle_entry_signal_active\":true"),
             "image frame must include circle entry signal activity");
 }

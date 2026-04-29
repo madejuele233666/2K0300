@@ -384,8 +384,15 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
             constraints.steering_suppressed = true;
         }
     }
+    port::ControlErrorModelInput control_input{};
+    control_input.track = control_track;
+    control_input.reference_path = reference.reference_path;
+    control_input.trusted_error_reference = reference.trusted_error_reference;
+    control_input.trusted_error_confidence = reference.trusted_error_confidence;
+    control_input.vehicle = assembled.vehicle;
+    control_input.constraints = constraints;
     const port::ControlErrorModelOutput control_output =
-        ComputeControlErrorModel({control_track, reference.reference_path, assembled.vehicle, constraints}, params);
+        ComputeControlErrorModel(control_input, params);
     const GyroContinuityConstraint continuity =
         ComputeGyroContinuityConstraint(prior_state, imu, capture_time_ms);
 
@@ -408,7 +415,9 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
         CircleReferenceModeForCompatibility(reference.reference_mode, scene.state.circle_direction);
     perception.circle_heading_delta_deg = continuity.next_state.heading_delta_deg_150ms;
     perception.circle_yaw_accum_deg = scene.state.circle_yaw_accum_deg;
-    perception.circle_path_phase = scene.state.circle_path_phase;
+    perception.circle_path_phase = reference.state.circle_reference_phase != "none"
+                                       ? reference.state.circle_reference_phase
+                                       : scene.state.circle_path_phase;
     perception.reference_compatibility_error_m = reference.state.compatibility_error_m;
     perception.reference_source = reference.state.reference_source;
     perception.circle_entry_signal_active = scene.state.circle_entry_signal_active;

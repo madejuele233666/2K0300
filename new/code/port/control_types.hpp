@@ -520,12 +520,23 @@ struct ControlErrorModelOutput {
     float near_lateral_error = 0.0F;  //!< 近端横向误差（米）
     float far_heading_error = 0.0F;   //!< 远端航向误差（弧度）
     float preview_curvature = 0.0F;   //!< 预览曲率（路径弯曲程度）
+    float raw_near_lateral_error = 0.0F; //!< 未经 trusted-error 保护的近端横向误差
+    float raw_far_heading_error = 0.0F;  //!< 未经 trusted-error 保护的远端航向误差
+    float raw_preview_curvature = 0.0F;  //!< 未经 trusted-error 保护的预览曲率
     float visible_range_m = 0.0F;     //!< 可见范围（米）
     float track_confidence = 0.0F;    //!< 跟踪置信度（0-1）
     float lookahead_distance_m = 0.0F; //!< 前视距离（米）
     float lookahead_lateral_error = 0.0F;  //!< 前视横向误差
     float lookahead_heading_error = 0.0F;  //!< 前视航向误差
     float reference_curvature = 0.0F;      //!< 参考曲率
+    float raw_lookahead_lateral_error = 0.0F; //!< 未经 trusted-error 保护的前视横向误差
+    float raw_lookahead_heading_error = 0.0F; //!< 未经 trusted-error 保护的前视航向误差
+    float raw_reference_curvature = 0.0F;     //!< 未经 trusted-error 保护的参考曲率
+    bool trusted_error_active = false;        //!< trusted path 是否参与 error 保护
+    float trusted_error_weight_near = 0.0F;   //!< near error 的 trusted 权重
+    float trusted_error_weight_far = 0.0F;    //!< far heading 的 trusted 权重
+    float trusted_error_weight_lookahead = 0.0F; //!< lookahead error 的 trusted 权重
+    float trusted_error_weight_curvature = 0.0F; //!< curvature error 的 trusted 权重
     float curvature_command = 0.0F;        //!< 曲率控制指令
     float yaw_rate_target = 0.0F;          //!< 偏航角速度目标值
     double steering_gain_scale = 1.0;      //!< 转向增益缩放
@@ -548,6 +559,8 @@ struct BEVReferencePath {
 struct ControlErrorModelInput {
     BEVTrackEstimate track{};            //!< 原始轨迹估计
     BEVReferencePath reference_path{};   //!< 参考路径（已选择的控制路径）
+    BEVReferencePath trusted_error_reference{}; //!< 只用于 error 保护的历史参考路径
+    float trusted_error_confidence = 0.0F; //!< trusted_error_reference 的置信度权重
     VehicleContext vehicle{};            //!< 车辆状态
     ControlConstraintSet constraints{};   //!< 控制约束
 };
@@ -620,6 +633,9 @@ struct ReferencePolicyState {
     std::string reference_source = "none"; //!< 参考路径来源描述
     int hold_cycles = 0;               //!< 保持模式已持续的周期数
     int lost_prediction_cycles = 0;    //!< 丢失预测已持续的周期数
+    std::string circle_reference_phase = "none"; //!< reference policy 实际环岛路径阶段
+    bool circle_inner_latched = false;  //!< 是否已锁存内圆跟随
+    bool circle_exit_latched = false;   //!< 是否已锁存出环路径
     std::array<BEVPathSample, kBevTrackSampleCount> last_reference{}; //!< 最后有效参考路径
 };
 

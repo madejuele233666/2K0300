@@ -15,6 +15,8 @@ namespace ls2k::legacy {
 struct ReferencePolicyResult {
     port::ReferencePolicyState state{};            //!< 策略状态（含历史参考、置信度等）
     port::BEVReferencePath reference_path{};       //!< 最终参考路径
+    port::BEVReferencePath trusted_error_reference{}; //!< 独立的 trusted error 保护参考
+    float trusted_error_confidence = 0.0F;          //!< trusted error 保护权重
     std::string reference_mode = "centerline";     //!< 参考模式字符串
 };
 

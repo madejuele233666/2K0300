@@ -137,6 +137,16 @@ new/verification/**/*.png
 new/verification/test-images/authority-baseline/*-analysis/
 new/verification/test-images/authority-baseline/*-overlays/
 
+# Keep verification source contracts tracked while generated media stays ignored.
+!new/verification/
+!new/verification/tests/
+!new/verification/tests/*.cpp
+!new/verification/tests/*.sh
+!new/verification/test-images/
+!new/verification/test-images/authority-baseline/
+!new/verification/test-images/authority-baseline/manifest.json
+!new/verification/test-images/authority-baseline/*.raw
+
 # Extra guards for generated verification executables if parts of
 # verification are force-added later.
 new/verification/tests/*_test

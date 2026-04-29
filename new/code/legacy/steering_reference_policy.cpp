@@ -94,14 +94,123 @@ port::BEVReferencePath ReferenceFromPrior(const port::ReferencePolicyState& prio
     return reference;
 }
 
-// 构建十字路口出口参考路径 —— 从 cross_band 位置到出口候选的线性过渡
-// 近端从 0 横向偏移开始，在 blend_start_forward 处与出口候选汇合
+struct ReferenceForwardRange {
+    bool valid = false;
+    float min_forward_m = 0.0F;
+    float max_forward_m = 0.0F;
+};
+
+ReferenceForwardRange ComputeReferenceForwardRange(
+    const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path) {
+    ReferenceForwardRange range{};
+    for (const port::BEVPathSample& sample : path) {
+        if (!sample.valid) {
+            continue;
+        }
+        if (!range.valid) {
+            range.valid = true;
+            range.min_forward_m = sample.point.forward_m;
+            range.max_forward_m = sample.point.forward_m;
+        } else {
+            range.min_forward_m = std::min(range.min_forward_m, sample.point.forward_m);
+            range.max_forward_m = std::max(range.max_forward_m, sample.point.forward_m);
+        }
+    }
+    return range;
+}
+
+bool InterpolatePathAt(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                       float forward_m,
+                       port::BEVPathSample& output) {
+    constexpr float kForwardEpsilonM = 1.0e-4F;
+    const ReferenceForwardRange range = ComputeReferenceForwardRange(path);
+    if (!range.valid || forward_m < range.min_forward_m - kForwardEpsilonM ||
+        forward_m > range.max_forward_m + kForwardEpsilonM) {
+        return false;
+    }
+
+    const port::BEVPathSample* previous = nullptr;
+    const port::BEVPathSample* next = nullptr;
+    for (const port::BEVPathSample& sample : path) {
+        if (!sample.valid) {
+            continue;
+        }
+        if (sample.point.forward_m <= forward_m + kForwardEpsilonM) {
+            previous = &sample;
+        }
+        if (sample.point.forward_m >= forward_m - kForwardEpsilonM) {
+            next = &sample;
+            break;
+        }
+    }
+    if (previous == nullptr && next == nullptr) {
+        return false;
+    }
+    if (previous == nullptr) {
+        output = *next;
+        output.point.forward_m = forward_m;
+        return true;
+    }
+    if (next == nullptr) {
+        output = *previous;
+        output.point.forward_m = forward_m;
+        return true;
+    }
+    const float span = next->point.forward_m - previous->point.forward_m;
+    if (std::abs(span) < kForwardEpsilonM) {
+        output = *next;
+        output.point.forward_m = forward_m;
+        return true;
+    }
+    const float t = std::clamp((forward_m - previous->point.forward_m) / span, 0.0F, 1.0F);
+    output.valid = true;
+    output.point.forward_m = forward_m;
+    output.point.lateral_m =
+        previous->point.lateral_m + t * (next->point.lateral_m - previous->point.lateral_m);
+    output.confidence = previous->confidence + t * (next->confidence - previous->confidence);
+    return true;
+}
+
+float PathHeadingAt(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+                    float forward_m) {
+    const ReferenceForwardRange range = ComputeReferenceForwardRange(path);
+    if (!range.valid) {
+        return 0.0F;
+    }
+    const float window = std::max(0.04F, (range.max_forward_m - range.min_forward_m) * 0.18F);
+    const float before_m = std::clamp(forward_m - window, range.min_forward_m, range.max_forward_m);
+    const float after_m = std::clamp(forward_m + window, range.min_forward_m, range.max_forward_m);
+    port::BEVPathSample before{};
+    port::BEVPathSample after{};
+    if (!InterpolatePathAt(path, before_m, before) ||
+        !InterpolatePathAt(path, after_m, after)) {
+        return 0.0F;
+    }
+    const float ds = after.point.forward_m - before.point.forward_m;
+    if (std::abs(ds) < 1.0e-4F) {
+        return 0.0F;
+    }
+    return std::atan2(after.point.lateral_m - before.point.lateral_m, ds);
+}
+
+float AngleDiffAbs(float left, float right) {
+    constexpr float kPi = 3.1415926535F;
+    float diff = std::fmod(left - right + kPi, 2.0F * kPi);
+    if (diff < 0.0F) {
+        diff += 2.0F * kPi;
+    }
+    return std::abs(diff - kPi);
+}
+
+// 构建十字路口出口参考路径 —— 从当前预期路径近端平滑接到出口候选
 port::BEVReferencePath BuildCrossExitReference(const port::PathCandidate& exit_candidate,
+                                               const port::BEVReferencePath& entry_reference,
                                                const port::BEVCrossBandEvidence& cross_band,
                                                const port::RuntimeParameters& params) {
     port::BEVReferencePath reference{};
     reference.mode = port::ReferenceMode::kBlendToExit;
-    if (!exit_candidate.valid || !HasUsableReference(exit_candidate.sampled_path)) {
+    if (!exit_candidate.valid || !HasUsableReference(exit_candidate.sampled_path) ||
+        !entry_reference.valid || !HasUsableReference(entry_reference.sampled_path)) {
         return reference;
     }
 
@@ -118,7 +227,6 @@ port::BEVReferencePath BuildCrossExitReference(const port::PathCandidate& exit_c
     const float blend_start_forward =
         cross_band.present ? std::clamp(cross_band.forward_m, start_forward, first_forward)
                            : start_forward;
-    constexpr float kEntryLateralM = 0.0F;
     int valid_count = 0;
     for (std::size_t index = 0; index < reference.sampled_path.size(); ++index) {
         if (exit_candidate.sampled_path[index].valid) {
@@ -130,6 +238,10 @@ port::BEVReferencePath BuildCrossExitReference(const port::PathCandidate& exit_c
             continue;
         }
         const float forward = params.bev_topology_sampler.forward_samples_m[index];
+        port::BEVPathSample entry_sample{};
+        if (!InterpolatePathAt(entry_reference.sampled_path, forward, entry_sample)) {
+            continue;
+        }
         const float alpha =
             first_forward > blend_start_forward + 1.0e-4F
                 ? std::clamp((forward - blend_start_forward) / (first_forward - blend_start_forward),
@@ -139,87 +251,11 @@ port::BEVReferencePath BuildCrossExitReference(const port::PathCandidate& exit_c
         port::BEVPathSample sample{};
         sample.valid = true;
         sample.point.forward_m = forward;
-        sample.point.lateral_m = kEntryLateralM * (1.0F - alpha) + first_lateral * alpha;
-        sample.confidence = std::clamp(first_exit->confidence * (0.55F + 0.35F * alpha),
+        sample.point.lateral_m = entry_sample.point.lateral_m * (1.0F - alpha) + first_lateral * alpha;
+        sample.confidence = std::clamp(entry_sample.confidence * (1.0F - alpha) +
+                                           first_exit->confidence * alpha,
                                        0.0F,
                                        1.0F);
-        reference.sampled_path[index] = sample;
-        ++valid_count;
-    }
-    reference.valid = valid_count >= 2;
-    return reference;
-}
-
-// 复制基础参考路径（优先用历史状态，fallback 到候选路径）
-bool CopyBaseReference(const port::ReferencePolicyState& prior_state,
-                       const port::PathCandidate& fallback,
-                       std::array<port::BEVPathSample, port::kBevTrackSampleCount>& base) {
-    if (prior_state.valid && HasUsableReference(prior_state.last_reference)) {
-        base = prior_state.last_reference;
-        return true;
-    }
-    if (fallback.valid && HasUsableReference(fallback.sampled_path)) {
-        base = fallback.sampled_path;
-        return true;
-    }
-    return false;
-}
-
-// 构建入口航向外推参考路径 —— 从历史参考的近端航向角外推到所有层
-// 用于十字路口接近阶段，当 exit 候选不可用时的 fallback
-port::BEVReferencePath BuildEntryHeadingExtension(const port::ReferencePolicyState& prior_state,
-                                                  const port::PathCandidate& fallback,
-                                                  const port::RuntimeParameters& params) {
-    port::BEVReferencePath reference{};
-    reference.mode = port::ReferenceMode::kEntryHeadingExtension;
-
-    std::array<port::BEVPathSample, port::kBevTrackSampleCount> base{};
-    if (!CopyBaseReference(prior_state, fallback, base)) {
-        return reference;
-    }
-
-    std::size_t anchor = ClampedSampleIndex(params.bev_control_model.near_sample_index);
-    if (!base[anchor].valid) {
-        for (std::size_t index = 0; index < base.size(); ++index) {
-            if (base[index].valid) {
-                anchor = index;
-                break;
-            }
-        }
-    }
-
-    std::size_t heading_sample = ClampedSampleIndex(params.bev_control_model.far_sample_index);
-    if (heading_sample <= anchor || !base[heading_sample].valid) {
-        heading_sample = anchor;
-        for (std::size_t index = anchor + 1U; index < base.size(); ++index) {
-            if (base[index].valid) {
-                heading_sample = index;
-            }
-        }
-    }
-    if (heading_sample <= anchor || !base[anchor].valid || !base[heading_sample].valid) {
-        return reference;
-    }
-
-    const float ds = base[heading_sample].point.forward_m - base[anchor].point.forward_m;
-    if (std::abs(ds) < 1e-4F) {
-        return reference;
-    }
-    const float slope = (base[heading_sample].point.lateral_m - base[anchor].point.lateral_m) / ds;
-    const float lateral_limit =
-        static_cast<float>(std::max(0.0, params.bev_control_model.max_reference_bias_m));
-    const float confidence = std::clamp(base[anchor].confidence, 0.0F, 1.0F);
-    int valid_count = 0;
-    for (std::size_t index = 0; index < reference.sampled_path.size(); ++index) {
-        const float forward = params.bev_topology_sampler.forward_samples_m[index];
-        port::BEVPathSample sample{};
-        sample.valid = true;
-        sample.point.forward_m = forward;
-        sample.point.lateral_m =
-            std::clamp(base[anchor].point.lateral_m + slope * (forward - base[anchor].point.forward_m),
-                       -lateral_limit,
-                       lateral_limit);
-        sample.confidence = confidence;
         reference.sampled_path[index] = sample;
         ++valid_count;
     }
@@ -259,35 +295,6 @@ bool TrustedReferenceAvailable(const port::ReferencePolicyState& prior_state,
            prior_state.lost_prediction_cycles < params.bev_reference_policy.hold_last_max_cycles;
 }
 
-// 计算候选路径与历史参考的近端加权兼容性误差
-// 权重随前向距离指数衰减（近端差异权重更大）
-float NearWeightedCompatibilityError(const port::PathCandidate& candidate,
-                                     const port::ReferencePolicyState& prior_state,
-                                     const port::RuntimeParameters& params) {
-    if (!candidate.valid || !TrustedReferenceAvailable(prior_state, params)) {
-        return static_cast<float>(params.bev_path_policy.reference_compatibility_max_error_m) + 1.0F;
-    }
-    const float tau = std::max(0.05F, params.bev_path_policy.reference_compatibility_tau_m);
-    float weighted_error = 0.0F;
-    float weight_sum = 0.0F;
-    for (std::size_t index = 0; index < candidate.sampled_path.size(); ++index) {
-        const port::BEVPathSample& candidate_sample = candidate.sampled_path[index];
-        const port::BEVPathSample& trusted_sample = prior_state.last_reference[index];
-        if (!candidate_sample.valid || !trusted_sample.valid) {
-            continue;
-        }
-        const float forward = params.bev_topology_sampler.forward_samples_m[index];
-        const float weight = std::exp(-std::max(0.0F, forward) / tau);
-        weighted_error +=
-            weight * std::abs(candidate_sample.point.lateral_m - trusted_sample.point.lateral_m);
-        weight_sum += weight;
-    }
-    if (weight_sum <= 1.0e-4F) {
-        return static_cast<float>(params.bev_path_policy.reference_compatibility_max_error_m) + 1.0F;
-    }
-    return weighted_error / weight_sum;
-}
-
 // 计算路径的平均置信度
 float AveragePathConfidence(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path) {
     float sum = 0.0F;
@@ -302,84 +309,133 @@ float AveragePathConfidence(const std::array<port::BEVPathSample, port::kBevTrac
     return count > 0 ? std::clamp(sum / static_cast<float>(count), 0.0F, 1.0F) : 0.0F;
 }
 
-// 从候选路径生成参考路径，与可信历史参考混合
-// 流程：
-// 1. 无历史参考 → 检查候选自支撑，直接使用
-// 2. 有历史参考但兼容性超限 → 拒绝
-// 3. 有历史参考且兼容 → 近端偏向候选，远端偏向历史的加权混合
-port::BEVReferencePath ReferenceFromCandidateWithTrusted(
-    const port::PathCandidate& candidate,
-    port::ReferenceMode mode,
-    const port::ReferencePolicyState& prior_state,
-    const port::RuntimeParameters& params,
-    float& compatibility_error_m,
-    std::string& source) {
+port::BEVReferencePath TrustedErrorReferenceFromPrior(const port::ReferencePolicyState& prior_state,
+                                                      const port::RuntimeParameters& params) {
     port::BEVReferencePath reference{};
-    reference.mode = mode;
-    compatibility_error_m = 0.0F;
-    source = "none";
-
-    if (!candidate.valid) {
+    if (!TrustedReferenceAvailable(prior_state, params)) {
         return reference;
     }
+    reference.valid = true;
+    reference.mode = port::ReferenceMode::kHoldLast;
+    reference.sampled_path = prior_state.last_reference;
+    return reference;
+}
 
-    const bool trusted_available = TrustedReferenceAvailable(prior_state, params);
-    if (!trusted_available) {
-        if (!HasNearSelfSupport(candidate, params)) {
-            compatibility_error_m =
-                static_cast<float>(params.bev_path_policy.reference_compatibility_max_error_m) + 1.0F;
-            source = "candidate_far_untrusted";
-            return reference;
-        }
-        reference = ReferenceFromCandidate(candidate, mode);
-        source = "candidate_self_supported";
-        return reference;
+port::BEVReferencePath ExpectedReferenceFromCandidate(const port::PathCandidate& candidate,
+                                                      port::ReferenceMode mode) {
+    return DirectReferenceFromCandidate(candidate, mode);
+}
+
+bool CandidateHasNearSupport(const port::PathCandidate& candidate,
+                             const port::RuntimeParameters& params) {
+    return HasNearSelfSupport(candidate, params);
+}
+
+bool PathsTangentCompatible(const port::PathCandidate& first,
+                            const port::PathCandidate& second,
+                            const port::RuntimeParameters& params) {
+    if (!first.valid || !second.valid) {
+        return false;
     }
-
-    compatibility_error_m = NearWeightedCompatibilityError(candidate, prior_state, params);
-    if (compatibility_error_m >
-        static_cast<float>(params.bev_path_policy.reference_compatibility_max_error_m)) {
-        source = "candidate_incompatible_with_trusted";
-        return reference;
+    const ReferenceForwardRange first_range = ComputeReferenceForwardRange(first.sampled_path);
+    const ReferenceForwardRange second_range = ComputeReferenceForwardRange(second.sampled_path);
+    if (!first_range.valid || !second_range.valid) {
+        return false;
     }
+    const float overlap_min = std::max(first_range.min_forward_m, second_range.min_forward_m);
+    const float overlap_max = std::min(first_range.max_forward_m, second_range.max_forward_m);
+    if (overlap_min > overlap_max + 1.0e-4F) {
+        return false;
+    }
+    const float probe_forward = overlap_min;
+    return AngleDiffAbs(PathHeadingAt(first.sampled_path, probe_forward),
+                        PathHeadingAt(second.sampled_path, probe_forward)) <=
+           params.bev_path_policy.circle_tangent_parallel_abs_max_rad;
+}
 
-    const float tau = std::max(0.05F, params.bev_path_policy.reference_compatibility_tau_m);
-    const float trusted_decay = std::clamp(params.bev_path_policy.trusted_reference_decay, 0.0F, 1.0F);
+bool PathTangentCompatibleWithPrior(const port::PathCandidate& candidate,
+                                    const port::ReferencePolicyState& prior_state,
+                                    const port::RuntimeParameters& params) {
+    if (!candidate.valid || !TrustedReferenceAvailable(prior_state, params)) {
+        return false;
+    }
+    const ReferenceForwardRange candidate_range = ComputeReferenceForwardRange(candidate.sampled_path);
+    const ReferenceForwardRange prior_range = ComputeReferenceForwardRange(prior_state.last_reference);
+    if (!candidate_range.valid || !prior_range.valid) {
+        return false;
+    }
+    const float overlap_min = std::max(candidate_range.min_forward_m, prior_range.min_forward_m);
+    const float overlap_max = std::min(candidate_range.max_forward_m, prior_range.max_forward_m);
+    if (overlap_min > overlap_max + 1.0e-4F) {
+        return false;
+    }
+    const float probe_forward = overlap_min;
+    return AngleDiffAbs(PathHeadingAt(candidate.sampled_path, probe_forward),
+                        PathHeadingAt(prior_state.last_reference, probe_forward)) <=
+           params.bev_path_policy.circle_tangent_parallel_abs_max_rad;
+}
+
+bool InnerCircleSwitchAllowed(const port::PathCandidate& inner,
+                              const port::PathCandidate& outer_guard,
+                              const port::ReferencePolicyState& prior_state,
+                              const port::RuntimeParameters& params) {
+    if (!inner.valid || !CandidateHasNearSupport(inner, params)) {
+        return false;
+    }
+    if (PathsTangentCompatible(inner, outer_guard, params) ||
+        PathTangentCompatibleWithPrior(inner, prior_state, params)) {
+        return true;
+    }
+    const ReferenceForwardRange range = ComputeReferenceForwardRange(inner.sampled_path);
+    if (!range.valid) {
+        return false;
+    }
+    const float late_switch_heading_abs =
+        std::max(0.50F, params.bev_path_policy.circle_tangent_parallel_abs_max_rad * 1.5F);
+    return std::abs(PathHeadingAt(inner.sampled_path, range.min_forward_m)) >= late_switch_heading_abs;
+}
+
+bool CircleExitSwitchAllowed(const port::SpecialSceneFsmState& scene_state,
+                             const port::PathCandidate& inner,
+                             const port::PathCandidate& exit_candidate,
+                             const port::RuntimeParameters& params) {
+    if (scene_state.circle_yaw_accum_deg < params.bev_path_policy.circle_exit_yaw_deg ||
+        !exit_candidate.valid) {
+        return false;
+    }
+    return !inner.valid || PathsTangentCompatible(inner, exit_candidate, params);
+}
+
+void SmoothFinalReferencePath(port::BEVReferencePath& reference,
+                              const port::RuntimeParameters& params) {
+    if (!reference.valid) {
+        return;
+    }
+    const auto original = reference.sampled_path;
+    const float max_adjust =
+        std::max(std::abs(params.bev_topology_sampler.lateral_step_m),
+                 std::abs(params.bev_geometry.lateral_step_m)) *
+        1.5F;
     int valid_count = 0;
-    for (std::size_t index = 0; index < reference.sampled_path.size(); ++index) {
-        const port::BEVPathSample& candidate_sample = candidate.sampled_path[index];
-        const port::BEVPathSample& trusted_sample = prior_state.last_reference[index];
-        if (!candidate_sample.valid && !trusted_sample.valid) {
+    for (std::size_t index = 0; index < original.size(); ++index) {
+        if (!original[index].valid) {
             continue;
         }
-        if (candidate_sample.valid && trusted_sample.valid) {
-            const float forward = params.bev_topology_sampler.forward_samples_m[index];
-            const float near_weight = std::exp(-std::max(0.0F, forward) / tau);
-            const float candidate_alpha = std::clamp(0.25F + 0.55F * (1.0F - near_weight), 0.25F, 0.80F);
-            port::BEVPathSample sample{};
-            sample.valid = true;
-            sample.point.forward_m = candidate_sample.point.forward_m;
-            sample.point.lateral_m =
-                trusted_sample.point.lateral_m * (1.0F - candidate_alpha) +
-                candidate_sample.point.lateral_m * candidate_alpha;
-            sample.confidence = std::clamp(
-                trusted_sample.confidence * trusted_decay * (1.0F - candidate_alpha) +
-                    candidate_sample.confidence * candidate_alpha,
-                0.0F,
-                1.0F);
-            reference.sampled_path[index] = sample;
-        } else if (candidate_sample.valid) {
-            reference.sampled_path[index] = candidate_sample;
-        } else {
-            port::BEVPathSample sample = trusted_sample;
-            sample.confidence = std::clamp(sample.confidence * trusted_decay, 0.0F, 1.0F);
-            reference.sampled_path[index] = sample;
-        }
         ++valid_count;
+        if (index == 0U || index + 1U >= original.size() ||
+            !original[index - 1U].valid || !original[index + 1U].valid) {
+            continue;
+        }
+        const float smoothed =
+            original[index - 1U].point.lateral_m * 0.25F +
+            original[index].point.lateral_m * 0.50F +
+            original[index + 1U].point.lateral_m * 0.25F;
+        reference.sampled_path[index].point.lateral_m =
+            std::clamp(smoothed,
+                       original[index].point.lateral_m - max_adjust,
+                       original[index].point.lateral_m + max_adjust);
     }
     reference.valid = valid_count >= 2;
-    source = reference.valid ? "candidate_trusted_blend" : "candidate_trusted_blend_short";
-    return reference;
 }
 
 // 终态化参考策略结果：设置状态、更新置信度/年龄/保持/丢失计数
@@ -389,12 +445,14 @@ void FinalizeReferencePolicyResult(ReferencePolicyResult& result,
                                    float compatibility_error_m,
                                    const std::string& source) {
     result.reference_mode = ToString(result.reference_path.mode);
-    result.state.valid = result.reference_path.valid;
-    result.state.mode = result.reference_path.mode;
-    result.state.last_reference = result.reference_path.sampled_path;
+    const bool has_current_reference = result.reference_path.valid;
+    result.state.last_reference =
+        has_current_reference ? result.reference_path.sampled_path : prior_state.last_reference;
+    result.state.valid = has_current_reference || HasUsableReference(result.state.last_reference);
+    result.state.mode = has_current_reference ? result.reference_path.mode : prior_state.mode;
     result.state.compatibility_error_m = compatibility_error_m;
     result.state.reference_source = source;
-    if (result.reference_path.valid) {
+    if (has_current_reference) {
         const float confidence = AveragePathConfidence(result.reference_path.sampled_path);
         result.state.trusted_confidence =
             std::max(confidence, prior_state.trusted_confidence * params.bev_path_policy.trusted_reference_decay);
@@ -514,15 +572,15 @@ ReferencePolicyResult ResolveReferencePolicy(const port::BEVTrackEstimate& track
 }
 
 // ========== 新版参考策略解析（基于 RoadHypotheses） ==========
-// 根据场景状态和拓扑证据，从多个候选路径中选择最佳参考：
-// - Ordinary: 使用 ReferenceFromCandidateWithTrusted（与历史参考混合）
-// - Cross Entry/Hold: 十字路口出口路径（BuildCrossExitReference）
-// - Cross Exit: 航向外推或保持上次
+// 根据场景状态和拓扑证据，从多个候选路径中选择最终预期路径：
+// - Ordinary: 使用普通中心趋势，最后仅做局部限幅平滑
+// - Cross: 有出口时从当前预期近端拼接到出口；无出口时只保持 trusted
 // - Zebra: 保持上次（HoldLast），fallback 到 zebra_hold 候选
 // - Circle Candidate: 外侧守卫路径（outer guard）
-// - Circle Entry/Interior: 内侧跟随路径（inner follow）
-// - Circle Exit: 环岛出口（blend to exit）
+// - Circle Entry/Interior: 满足切换门控后锁存内圆跟随
+// - Circle Exit: yaw 和切线兼容后锁存出环路径
 // - Lost: 丢失预测（hold last reference）
+// trusted path 不参与候选几何混合，也不拒绝候选；它只导出给 control error。
 ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypotheses,
                                              const port::TopologyEvidence& evidence,
                                              const port::SpecialSceneFsmState& scene_state,
@@ -530,70 +588,53 @@ ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypothe
                                              const port::RuntimeParameters& params) {
     ReferencePolicyResult result{};
     result.state = prior_state;
+    result.trusted_error_reference = TrustedErrorReferenceFromPrior(prior_state, params);
+    result.trusted_error_confidence =
+        result.trusted_error_reference.valid ? std::clamp(prior_state.trusted_confidence, 0.0F, 1.0F) : 0.0F;
     float compatibility_error_m = 0.0F;
-    std::string reference_source = "ordinary_candidate";
-    // 默认使用 ordinary 候选，与历史参考混合
-    result.reference_path =
-        ReferenceFromCandidateWithTrusted(hypotheses.ordinary,
-                                          port::ReferenceMode::kCenterline,
-                                          prior_state,
-                                          params,
-                                          compatibility_error_m,
-                                          reference_source);
+    std::string reference_source = "ordinary_none";
+    std::string circle_reference_phase = "none";
+    bool circle_inner_latched = false;
+    bool circle_exit_latched = false;
+
+    // 默认使用 ordinary 候选。trusted path 不参与几何混合，也不拒绝候选。
+    result.reference_path = ExpectedReferenceFromCandidate(hypotheses.ordinary, port::ReferenceMode::kCenterline);
+    if (result.reference_path.valid) {
+        reference_source = "ordinary_final_smooth";
+    }
 
     // === 十字路口场景 ===
     if (scene_state.active_scene == port::SpecialSceneKind::kCross) {
         result.reference_path = {};
         reference_source = "cross_none";
-        const port::PathCandidate& exit_candidate =
-            hypotheses.cross_exit.valid ? hypotheses.cross_exit : hypotheses.forward_exit;
-        if (scene_state.phase == port::SpecialScenePhase::kExit) {
+        port::BEVReferencePath entry_reference =
+            ExpectedReferenceFromCandidate(hypotheses.ordinary, port::ReferenceMode::kCenterline);
+        if (!entry_reference.valid && TrustedReferenceAvailable(prior_state, params)) {
+            entry_reference = ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast);
+        }
+        if (hypotheses.cross_exit.valid) {
             result.reference_path =
-                BuildCrossExitReference(exit_candidate, evidence.element_evidence.cross_band, params);
-            reference_source = result.reference_path.valid ? "cross_exit_entry_center_stitch" : reference_source;
-            if (!result.reference_path.valid) {
-                result.reference_path = BuildEntryHeadingExtension(prior_state, hypotheses.ordinary, params);
-                reference_source =
-                    result.reference_path.valid ? "cross_entry_heading_extension" : reference_source;
-            }
-        } else if (scene_state.phase == port::SpecialScenePhase::kEntry ||
-                   scene_state.phase == port::SpecialScenePhase::kHold) {
-            if (hypotheses.cross_exit.valid) {
-                result.reference_path =
-                    BuildCrossExitReference(hypotheses.cross_exit, evidence.element_evidence.cross_band, params);
-                reference_source =
-                    result.reference_path.valid ? "cross_exit_entry_center_stitch" : reference_source;
-            }
-            if (!result.reference_path.valid && scene_state.phase == port::SpecialScenePhase::kEntry) {
-                result.reference_path = BuildEntryHeadingExtension(prior_state, hypotheses.ordinary, params);
-                reference_source =
-                    result.reference_path.valid ? "cross_entry_heading_extension" : reference_source;
-            }
-            if (!result.reference_path.valid) {
-                result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast);
-                reference_source = result.reference_path.valid ? "cross_hold_trusted" : reference_source;
-            }
-        } else {
+                BuildCrossExitReference(hypotheses.cross_exit,
+                                        entry_reference,
+                                        evidence.element_evidence.cross_band,
+                                        params);
+            reference_source = result.reference_path.valid ? "cross_exit_stitch" : reference_source;
+        }
+        if (!result.reference_path.valid && TrustedReferenceAvailable(prior_state, params)) {
             result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast);
             reference_source = result.reference_path.valid ? "cross_hold_trusted" : reference_source;
-            if (!result.reference_path.valid) {
-                result.reference_path = BuildEntryHeadingExtension(prior_state, hypotheses.ordinary, params);
-                reference_source =
-                    result.reference_path.valid ? "cross_entry_heading_extension" : reference_source;
-            }
         }
     // === 斑马线场景 ===
     } else if (scene_state.active_scene == port::SpecialSceneKind::kZebra) {
-        result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast);
+        result.reference_path =
+            TrustedReferenceAvailable(prior_state, params)
+                ? ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast)
+                : port::BEVReferencePath{};
         reference_source = result.reference_path.valid ? "zebra_hold_trusted" : "zebra_none";
         if (!result.reference_path.valid && hypotheses.zebra_hold.valid) {
-            result.reference_path =
-                ReferenceFromCandidateWithTrusted(hypotheses.zebra_hold,
-                                                  port::ReferenceMode::kHoldLast,
-                                                  prior_state,
-                                                  params,
-                                                  compatibility_error_m,
-                                                  reference_source);
+            result.reference_path = ExpectedReferenceFromCandidate(hypotheses.zebra_hold,
+                                                                   port::ReferenceMode::kHoldLast);
+            reference_source = result.reference_path.valid ? "zebra_hold_candidate" : reference_source;
         }
     // === 环岛候选状态（未确认环岛，用外侧守卫） ===
     } else if (IsCircleCandidateState(scene_state)) {
@@ -601,74 +642,121 @@ ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypothe
             scene_state.candidate_scene == port::SpecialSceneKind::kCircleLeft
                 ? hypotheses.circle_outer_guard_left
                 : hypotheses.circle_outer_guard_right;
-        result.reference_path = DirectReferenceFromCandidate(candidate, port::ReferenceMode::kOuterOffset);
+        result.reference_path = ExpectedReferenceFromCandidate(candidate, port::ReferenceMode::kOuterOffset);
         reference_source = result.reference_path.valid ? "circle_candidate_outer_guard" : "circle_candidate_none";
-        if (!result.reference_path.valid) {
-            result.reference_path =
-                ReferenceFromCandidateWithTrusted(hypotheses.ordinary,
-                                                  port::ReferenceMode::kCenterline,
-                                                  prior_state,
-                                                  params,
-                                                  compatibility_error_m,
-                                                  reference_source);
+        circle_reference_phase = "outer_guard_entry";
+        if (!result.reference_path.valid && TrustedReferenceAvailable(prior_state, params)) {
+            result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kHoldLast);
+            reference_source = result.reference_path.valid ? "circle_candidate_hold_trusted" : reference_source;
         }
     // === 左环岛场景（Entry → Interior → Exit） ===
     } else if (scene_state.active_scene == port::SpecialSceneKind::kCircleLeft) {
-        const port::PathCandidate* candidate = &hypotheses.circle_inner_left;
-        port::ReferenceMode mode = candidate->mode == port::ReferenceMode::kStableBoundaryOffset
-                                       ? port::ReferenceMode::kStableBoundaryOffset
-                                       : port::ReferenceMode::kArcFollow;
-        // Entry 阶段内侧无效时用外侧守卫，Exit 阶段用环岛出口
-        if (scene_state.phase == port::SpecialScenePhase::kEntry &&
-            !hypotheses.circle_inner_left.valid) {
-            candidate = &hypotheses.circle_outer_guard_left;
-            mode = port::ReferenceMode::kOuterOffset;
-        } else if (scene_state.phase == port::SpecialScenePhase::kExit) {
-            candidate = hypotheses.circle_exit_left.valid ? &hypotheses.circle_exit_left
-                                                          : &hypotheses.forward_exit;
-            mode = port::ReferenceMode::kBlendToExit;
+        result.reference_path = {};
+        reference_source = "circle_left_none";
+        circle_inner_latched = prior_state.circle_inner_latched;
+        circle_exit_latched = prior_state.circle_exit_latched;
+        const bool exit_allowed =
+            circle_exit_latched ||
+            CircleExitSwitchAllowed(scene_state, hypotheses.circle_inner_left, hypotheses.circle_exit_left, params);
+        if (scene_state.phase == port::SpecialScenePhase::kExit && exit_allowed) {
+            result.reference_path =
+                ExpectedReferenceFromCandidate(hypotheses.circle_exit_left, port::ReferenceMode::kBlendToExit);
+            circle_exit_latched = circle_exit_latched || result.reference_path.valid;
+            circle_inner_latched = true;
+            circle_reference_phase = "exit_guard";
+            reference_source = result.reference_path.valid ? "circle_exit_guard" : "circle_left_exit_none";
+        } else {
+            const bool inner_allowed =
+                circle_inner_latched ||
+                InnerCircleSwitchAllowed(hypotheses.circle_inner_left,
+                                         hypotheses.circle_outer_guard_left,
+                                         prior_state,
+                                         params);
+            if (inner_allowed) {
+                const port::ReferenceMode mode =
+                    hypotheses.circle_inner_left.mode == port::ReferenceMode::kStableBoundaryOffset
+                        ? port::ReferenceMode::kStableBoundaryOffset
+                        : port::ReferenceMode::kArcFollow;
+                result.reference_path = ExpectedReferenceFromCandidate(hypotheses.circle_inner_left, mode);
+                circle_inner_latched = circle_inner_latched || result.reference_path.valid;
+                circle_reference_phase = "inner_follow";
+                reference_source = result.reference_path.valid ? "circle_inner_follow" : "circle_left_inner_none";
+            }
+            if (!result.reference_path.valid && !circle_inner_latched) {
+                result.reference_path =
+                    ExpectedReferenceFromCandidate(hypotheses.circle_outer_guard_left,
+                                                   port::ReferenceMode::kOuterOffset);
+                circle_reference_phase = "outer_guard_entry";
+                reference_source = result.reference_path.valid ? "circle_outer_guard_entry" : reference_source;
+            }
         }
-        result.reference_path = DirectReferenceFromCandidate(*candidate, mode);
-        reference_source = result.reference_path.valid ? "circle_left_direct" : reference_source;
-        if (!result.reference_path.valid && prior_state.valid &&
-            prior_state.lost_prediction_cycles < params.bev_reference_policy.hold_last_max_cycles) {
+        if (!result.reference_path.valid && TrustedReferenceAvailable(prior_state, params)) {
             result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kLostPrediction);
             reference_source = result.reference_path.valid ? "circle_left_lost_prediction" : reference_source;
         }
     // === 右环岛场景（Entry → Interior → Exit） ===
     } else if (scene_state.active_scene == port::SpecialSceneKind::kCircleRight) {
-        const port::PathCandidate* candidate = &hypotheses.circle_inner_right;
-        port::ReferenceMode mode = candidate->mode == port::ReferenceMode::kStableBoundaryOffset
-                                       ? port::ReferenceMode::kStableBoundaryOffset
-                                       : port::ReferenceMode::kArcFollow;
-        if (scene_state.phase == port::SpecialScenePhase::kEntry &&
-            !hypotheses.circle_inner_right.valid) {
-            candidate = &hypotheses.circle_outer_guard_right;
-            mode = port::ReferenceMode::kOuterOffset;
-        } else if (scene_state.phase == port::SpecialScenePhase::kExit) {
-            candidate = hypotheses.circle_exit_right.valid ? &hypotheses.circle_exit_right
-                                                           : &hypotheses.forward_exit;
-            mode = port::ReferenceMode::kBlendToExit;
+        result.reference_path = {};
+        reference_source = "circle_right_none";
+        circle_inner_latched = prior_state.circle_inner_latched;
+        circle_exit_latched = prior_state.circle_exit_latched;
+        const bool exit_allowed =
+            circle_exit_latched ||
+            CircleExitSwitchAllowed(scene_state, hypotheses.circle_inner_right, hypotheses.circle_exit_right, params);
+        if (scene_state.phase == port::SpecialScenePhase::kExit && exit_allowed) {
+            result.reference_path =
+                ExpectedReferenceFromCandidate(hypotheses.circle_exit_right, port::ReferenceMode::kBlendToExit);
+            circle_exit_latched = circle_exit_latched || result.reference_path.valid;
+            circle_inner_latched = true;
+            circle_reference_phase = "exit_guard";
+            reference_source = result.reference_path.valid ? "circle_exit_guard" : "circle_right_exit_none";
+        } else {
+            const bool inner_allowed =
+                circle_inner_latched ||
+                InnerCircleSwitchAllowed(hypotheses.circle_inner_right,
+                                         hypotheses.circle_outer_guard_right,
+                                         prior_state,
+                                         params);
+            if (inner_allowed) {
+                const port::ReferenceMode mode =
+                    hypotheses.circle_inner_right.mode == port::ReferenceMode::kStableBoundaryOffset
+                        ? port::ReferenceMode::kStableBoundaryOffset
+                        : port::ReferenceMode::kArcFollow;
+                result.reference_path = ExpectedReferenceFromCandidate(hypotheses.circle_inner_right, mode);
+                circle_inner_latched = circle_inner_latched || result.reference_path.valid;
+                circle_reference_phase = "inner_follow";
+                reference_source = result.reference_path.valid ? "circle_inner_follow" : "circle_right_inner_none";
+            }
+            if (!result.reference_path.valid && !circle_inner_latched) {
+                result.reference_path =
+                    ExpectedReferenceFromCandidate(hypotheses.circle_outer_guard_right,
+                                                   port::ReferenceMode::kOuterOffset);
+                circle_reference_phase = "outer_guard_entry";
+                reference_source = result.reference_path.valid ? "circle_outer_guard_entry" : reference_source;
+            }
         }
-        result.reference_path = DirectReferenceFromCandidate(*candidate, mode);
-        reference_source = result.reference_path.valid ? "circle_right_direct" : reference_source;
-        if (!result.reference_path.valid && prior_state.valid &&
-            prior_state.lost_prediction_cycles < params.bev_reference_policy.hold_last_max_cycles) {
+        if (!result.reference_path.valid && TrustedReferenceAvailable(prior_state, params)) {
             result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kLostPrediction);
             reference_source = result.reference_path.valid ? "circle_right_lost_prediction" : reference_source;
         }
     // === 丢失预测模式（ordinary 无效且 lost_score 高） ===
-    } else if (!hypotheses.ordinary.valid && evidence.lost_score > 0.65F && prior_state.valid &&
-               prior_state.lost_prediction_cycles < params.bev_reference_policy.hold_last_max_cycles) {
-        result.reference_path.mode = port::ReferenceMode::kLostPrediction;
-        result.reference_path.valid = true;
-        result.reference_path.sampled_path = prior_state.last_reference;
+    } else if (!hypotheses.ordinary.valid && evidence.lost_score > 0.65F &&
+               TrustedReferenceAvailable(prior_state, params)) {
+        result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kLostPrediction);
         reference_source = "lost_prediction_trusted";
     } else if (!result.reference_path.valid && TrustedReferenceAvailable(prior_state, params) &&
                evidence.lost_score > 0.65F) {
         result.reference_path = ReferenceFromPrior(prior_state, port::ReferenceMode::kLostPrediction);
         reference_source = result.reference_path.valid ? "lost_prediction_trusted" : reference_source;
     }
+
+    SmoothFinalReferencePath(result.reference_path, params);
+    if (result.reference_path.valid && reference_source == "ordinary_none") {
+        reference_source = "ordinary_final_smooth";
+    }
+    result.state.circle_reference_phase = circle_reference_phase;
+    result.state.circle_inner_latched = circle_inner_latched;
+    result.state.circle_exit_latched = circle_exit_latched;
 
     FinalizeReferencePolicyResult(result,
                                   prior_state,
