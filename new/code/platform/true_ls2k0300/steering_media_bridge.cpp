@@ -1,3 +1,7 @@
+// 转向媒体桥接实现 —— 基于 TCP 的媒体流通信桥。
+// 管理与上位机的媒体数据传输、连接重连和待发送缓冲刷新。
+// 与辅助桥类似但专用于转向媒体通道，支持发送缓冲排队。
+
 #include "platform/true_ls2k0300/steering_media_bridge.hpp"
 
 #include <cerrno>
@@ -34,17 +38,20 @@ struct SteeringMediaBridgeContext {
 
 SteeringMediaBridgeContext g_bridge{};
 
+// 获取单调时钟当前毫秒数
 std::uint64_t MonotonicNowMs() {
     const auto now = std::chrono::steady_clock::now().time_since_epoch();
     return static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
 }
 
+// 清空待发送缓冲
 void ClearPendingSend() {
     g_bridge.pending_send.clear();
     g_bridge.pending_send_offset = 0;
 }
 
+// 关闭并清理套接字（同时清空待发送缓冲）
 void CloseSocket() {
     if (g_bridge.socket_fd >= 0) {
         close(g_bridge.socket_fd);
@@ -53,6 +60,7 @@ void CloseSocket() {
     ClearPendingSend();
 }
 
+// 状态迁移 —— 标记 state_dirty 供外部轮询时捕获
 void TransitionTo(SteeringMediaBridgeState state, std::string detail) {
     if (g_bridge.state != state || g_bridge.detail != detail) {
         g_bridge.state_dirty = true;
@@ -61,12 +69,14 @@ void TransitionTo(SteeringMediaBridgeState state, std::string detail) {
     g_bridge.detail = std::move(detail);
 }
 
+// 进入回退状态 —— 关闭套接字并设置下次重试时间
 void EnterBackoff(const std::string& detail) {
     CloseSocket();
     g_bridge.next_retry_at_ms = MonotonicNowMs() + kReconnectBackoffMs;
     TransitionTo(SteeringMediaBridgeState::kBackoff, detail);
 }
 
+// 设置套接字为非阻塞模式
 bool EnsureNonBlocking(int socket_fd, std::string& detail) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags < 0) {
@@ -80,6 +90,7 @@ bool EnsureNonBlocking(int socket_fd, std::string& detail) {
     return true;
 }
 
+// 启用 TCP_NODELAY 禁用 Nagle 算法降低延迟
 bool EnableLowLatencySocket(int socket_fd, std::string& detail) {
     const int enabled = 1;
     if (setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &enabled, sizeof(enabled)) < 0) {
@@ -89,12 +100,14 @@ bool EnableLowLatencySocket(int socket_fd, std::string& detail) {
     return true;
 }
 
+// 尝试扩大套接字发送/接收缓冲区（best-effort，忽略失败）
 void TryExpandSocketBuffers(int socket_fd) {
     const int buffer_bytes = kSteeringMediaSocketBufferBytes;
     (void)setsockopt(socket_fd, SOL_SOCKET, SO_SNDBUF, &buffer_bytes, sizeof(buffer_bytes));
     (void)setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &buffer_bytes, sizeof(buffer_bytes));
 }
 
+// 发起 TCP 连接 —— DNS 解析 → 创建非阻塞套接字 → connect（非阻塞）
 bool BeginConnectAttempt() {
     addrinfo hints{};
     hints.ai_family = AF_INET;
@@ -150,6 +163,7 @@ bool BeginConnectAttempt() {
     return false;
 }
 
+// 完成挂起的非阻塞连接 —— 通过 poll + getsockopt(SO_ERROR) 检查连接是否成功
 void FinishPendingConnect() {
     if (g_bridge.socket_fd < 0) {
         EnterBackoff("steering media TCP socket disappeared during connect");
@@ -185,6 +199,7 @@ void FinishPendingConnect() {
                      std::to_string(g_bridge.config.port));
 }
 
+// 健康检查 —— poll 探测就绪套接字是否出现错误或对端关闭
 void CheckReadySocketHealth() {
     if (g_bridge.socket_fd < 0) {
         EnterBackoff("steering media TCP socket disappeared");
@@ -226,6 +241,7 @@ void CheckReadySocketHealth() {
     }
 }
 
+// 等待套接字可写（带超时），用于可靠发送的重试
 bool WaitForSocketWritable(std::uint64_t started_at_ms, std::uint64_t timeout_ms) {
     if (g_bridge.socket_fd < 0) {
         return false;
@@ -259,6 +275,7 @@ bool WaitForSocketWritable(std::uint64_t started_at_ms, std::uint64_t timeout_ms
     }
 }
 
+// 刷新待发送缓冲 —— 循环发送直到耗尽或遇阻塞；wait_for_writable 决定是否等待可写
 SteeringMediaBridgeSendResult FlushPendingSend(bool wait_for_writable, std::string& detail) {
     if (g_bridge.pending_send.empty()) {
         detail.clear();
@@ -312,6 +329,7 @@ SteeringMediaBridgeSendResult FlushPendingSend(bool wait_for_writable, std::stri
 
 }  // namespace
 
+// 初始化转向媒体桥 —— 配置主机/端口，重置全局状态至 kDisconnected
 bool InitializeSteeringMediaBridge(const SteeringMediaBridgeConfig& config, std::string& detail) {
     if (config.host.empty() || config.port <= 0) {
         CloseSocket();
@@ -329,6 +347,7 @@ bool InitializeSteeringMediaBridge(const SteeringMediaBridgeConfig& config, std:
     return true;
 }
 
+// 轮询转向媒体桥状态机 —— 根据当前状态执行连接/刷新/健康检查
 SteeringMediaBridgePollResult PollSteeringMediaBridge() {
     const std::uint64_t now_ms = MonotonicNowMs();
     switch (g_bridge.state) {
@@ -366,10 +385,12 @@ SteeringMediaBridgePollResult PollSteeringMediaBridge() {
     return result;
 }
 
+// 检查转向媒体桥是否处于就绪状态
 bool SteeringMediaBridgeReady() {
     return g_bridge.state == SteeringMediaBridgeState::kReady && g_bridge.socket_fd >= 0;
 }
 
+// 发送转向媒体数据 —— 先刷新待发缓冲，再将新数据加入并尝试发送，拥塞时返回 kBusy
 SteeringMediaBridgeSendResult SendSteeringMediaBytes(const std::uint8_t* data,
                                                      std::size_t length,
                                                      std::string& detail) {

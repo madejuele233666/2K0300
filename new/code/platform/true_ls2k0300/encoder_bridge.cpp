@@ -1,3 +1,5 @@
+// 编码器桥接实现 —— 从字符设备读取左右轮编码器计数值。
+
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <cstdint>
@@ -14,6 +16,7 @@ struct EncoderReadResult {
     int32_t count = 0;
 };
 
+// 从编码器字符设备读取 16 位计数值
 EncoderReadResult ReadEncoderCount(const char* path) {
     EncoderReadResult result{};
     const int fd = open(path, O_RDONLY);
@@ -40,6 +43,7 @@ EncoderReadResult ReadEncoderCount(const char* path) {
 
 }  // namespace
 
+// 初始化编码器 —— 探测左右轮编码器设备可访问性
 BridgeStatus InitializeEncoder() {
     BridgeStatus status{};
     if (!ReadEncoderCount(kLeftEncoderPath).ok) {
@@ -55,6 +59,7 @@ BridgeStatus InitializeEncoder() {
     return status;
 }
 
+// 读取左右编码器计数值
 EncoderCounts ReadEncoderCounts() {
     EncoderCounts counts{};
     const EncoderReadResult left = ReadEncoderCount(kLeftEncoderPath);

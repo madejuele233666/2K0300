@@ -1,5 +1,14 @@
 #include "legacy/steering_observation_assembly.hpp"
 
+// 观测组装实现。
+// 将轨迹估计（BEVTrackEstimate）与车辆上下文融合，生成场景观测和约束。
+// 核心功能：
+// 1. 计算道路展开比（width_expand_ratio）和边界开口评分
+// 2. 提取底部过渡密度（斑马线检测用）
+// 3. 计算边界航向角度和直行置信度
+// 4. 标记各场景候选（cross / circle / zebra）
+// 5. 生成控制约束（fail-safe / 降级 / 增益限速缩放）
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -9,6 +18,8 @@
 namespace ls2k::legacy {
 namespace {
 
+// 统计图像某行的过渡次数（像素从暗到亮或亮到暗）
+// 用于估算底部纹理密度（斑马线/人行横道区域过渡频率高）
 int CountTransitions(const port::LegacyCameraFrame& frame, int row, int threshold) {
     if (row < 0 || row >= frame.height || frame.width <= 1) {
         return 0;
@@ -26,6 +37,8 @@ int CountTransitions(const port::LegacyCameraFrame& frame, int row, int threshol
     return transitions;
 }
 
+// 计算边界轨迹的绝对航向角（弧度）
+// 从第一个有效点到最后一个有效点的 atan2(Δlateral, Δforward)
 float BoundaryHeadingAbsRad(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& boundary) {
     const port::BEVPathSample* first = nullptr;
     const port::BEVPathSample* last = nullptr;
@@ -49,20 +62,23 @@ float BoundaryHeadingAbsRad(const std::array<port::BEVPathSample, port::kBevTrac
     return std::abs(heading);
 }
 
+// 从航向角计算"对侧直行"置信度（航向偏离 0.25 rad 以上时置信度降为 0）
 float StraightConfidenceFromHeading(float heading_abs_rad) {
     return std::clamp(1.0F - heading_abs_rad / 0.25F, 0.0F, 1.0F);
 }
 
+// 跨度度量结构 —— 评估左右边界之间的道路宽度变化
 struct SpanMetrics {
-    bool valid = false;
-    float near_width_m = 0.0F;
-    float max_width_m = 0.0F;
-    float left_open_score = 0.0F;
-    float right_open_score = 0.0F;
-    float left_contract_score = 0.0F;
-    float right_contract_score = 0.0F;
+    bool valid = false;               //!< 度量是否有效
+    float near_width_m = 0.0F;        //!< 近端道路宽度
+    float max_width_m = 0.0F;         //!< 最大道路宽度（用于计算展开比）
+    float left_open_score = 0.0F;     //!< 左侧开口量（道路向左拓宽）
+    float right_open_score = 0.0F;    //!< 右侧开口量（道路向右拓宽）
+    float left_contract_score = 0.0F; //!< 左侧收缩量（道路向左变窄）
+    float right_contract_score = 0.0F;//!< 右侧收缩量（道路向右变窄）
 };
 
+// 计算跨度度量 —— 遍历左右边界对，计算近端/最大宽度及开口/收缩评分
 bool ComputeSpanMetrics(
     const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& left_boundary,
     const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& right_boundary,
@@ -108,6 +124,14 @@ bool ComputeSpanMetrics(
 
 }  // namespace
 
+// ========== 主入口：组装观测 ==========
+// 步骤：
+// 1. 填充车辆上下文（IMU、帧ID、时间）
+// 2. 计算跨度度量（道路展开比、开口/收缩评分）
+// 3. 计算底部过渡密度（斑马线检测）
+// 4. 计算边界航向和直行置信度
+// 5. 标记各场景候选（cross / circle / zebra）
+// 6. 生成控制约束条件（降级、抑制、增益/限速缩放）
 ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& frame,
                                               int threshold,
                                               const port::RuntimeParameters& params,
@@ -120,6 +144,7 @@ ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& fra
                                               const BEVProjector& projector) {
     (void)projector;
     ObservationAssemblyResult result{};
+    // 步骤 1：填充车辆上下文
     result.vehicle.low_voltage_emergency = low_voltage_emergency;
     result.vehicle.imu_valid = imu.valid;
     result.vehicle.gyro_z = imu.gyro_z;
@@ -132,6 +157,7 @@ ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& fra
     result.observation.track = track;
     result.observation.vehicle = result.vehicle;
 
+    // 步骤 2：计算跨度度量（优先用 drivable 边界，fallback 到观测边界）
     SpanMetrics span_metrics{};
     if (!ComputeSpanMetrics(track.sampled_drivable_left_boundary,
                             track.sampled_drivable_right_boundary,
@@ -165,10 +191,12 @@ ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& fra
             near_width > 1e-4F ? std::max(1.0F, max_width / near_width) : 1.0F;
     }
 
+    // 步骤 3：计算底部过渡密度（图像底部第 16 行的像素过渡次数）
     const int reference_row = std::clamp(frame.height - 16, 0, std::max(0, frame.height - 1));
     result.observation.bottom_transition_density =
         static_cast<float>(CountTransitions(frame, reference_row, threshold));
 
+    // 步骤 4：计算边界航向和对侧直行置信度
     result.observation.left_boundary_heading_abs_rad =
         BoundaryHeadingAbsRad(track.sampled_left_boundary);
     result.observation.right_boundary_heading_abs_rad =
@@ -181,6 +209,7 @@ ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& fra
     result.observation.bend_severity = std::abs(track.far_heading_error) * 1.8F +
                                        std::abs(track.preview_curvature) * 1.2F +
                                        std::abs(track.near_lateral_error) * 0.8F;
+    // 步骤 5：计算各场景候选标记
     result.observation.ordinary_bend_veto =
         result.observation.bend_severity >= params.bev_scene_fsm.bend_severity_confirm;
     result.observation.cross_bilateral_open_score_m =
@@ -207,6 +236,7 @@ ObservationAssemblyResult AssembleObservation(const port::LegacyCameraFrame& fra
         result.observation.circle_right_opposite_straight &&
         !result.observation.cross_bilateral_open;
 
+    // 步骤 6：生成控制约束条件
     result.constraints.fail_safe_veto = !track.calibration_valid || !track.valid;
     result.constraints.low_confidence_degraded =
         track.track_confidence < static_cast<float>(params.bev_control_model.low_confidence_threshold) ||

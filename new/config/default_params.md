@@ -124,7 +124,7 @@
 
 当前普通 `straight / bend` 主几何已经走 BEV sparse geometry + reference path 链路，底部连通追踪字段不再作为运行时或协议真相。也就是说：
 
-- `default_params.json` 里控制主参数集中在 `BEV_PROJECTOR / BEV_GEOMETRY / BEV_TOPOLOGY_SAMPLER / BEV_CORRIDOR_GRAPH / BEV_TOPOLOGY_EVIDENCE / BEV_REFERENCE_POLICY / BEV_CONTROL_MODEL`。`BEV_SCENE_FSM` 仍保留为兼容配置面，但不应继续作为 topology formal authority。
+- `default_params.json` 里控制主参数集中在 `BEV_PROJECTOR / BEV_GEOMETRY / BEV_TOPOLOGY_SAMPLER / BEV_CORRIDOR_GRAPH / BEV_TOPOLOGY_EVIDENCE / BEV_REFERENCE_POLICY / BEV_PATH_POLICY / BEV_CONTROL_MODEL`。`BEV_SCENE_FSM` 仍保留为兼容配置面，但不应继续作为 topology formal authority。
 - `near_lateral_error / far_heading_error / preview_curvature` 仅是过渡期 BEV 调试派生量，不再参与控制混合，后续稳定后继续清除。
 - 普通弯道参考线不对时，优先排查 BEV projector、BEV geometry 和 reference path 证据，不是先改 `circle / cross` 门槛。
 
@@ -160,7 +160,7 @@
 
 - `BEV_TOPOLOGY_SAMPLER`
   - `FORWARD_SAMPLES_M`
-    - 稀疏 BEV 前向采样距离。当前覆盖修正后的 `0.040667m` 到 `0.610m`，共 12 层。
+    - 稀疏 BEV 前向采样距离。当前按 BEV 后图像 y 方向均匀分布，覆盖 `0.061m` 到 `1.500m`，共 24 层。
   - `LATERAL_MIN_M / LATERAL_MAX_M / LATERAL_STEP_M`
     - 每个前向层的横向采样范围和步长。invalid outside image 不能计为 opening。
   - `SAMPLE_PATCH_RADIUS_PX`
@@ -191,6 +191,13 @@
     - 出环/重捕获 blend 的最小周期。
   - `ARC_FOLLOW_CONFIDENCE_MIN / STABLE_BOUNDARY_CONFIDENCE_MIN`
     - circle arc-follow 和 stable-boundary-offset 的最低置信度。
+- `BEV_PATH_POLICY`
+  - `CROSS_EXIT_MIN_LAYERS / CROSS_EXIT_AFTER_BAND_MIN_M / CROSS_EXIT_HEADING_ABS_MAX_RAD`
+    - cross band 后方出口路径候选的最少连续层、起算距离和最大航向偏差。
+  - `CIRCLE_INNER_MIN_LAYERS / CIRCLE_TANGENT_PARALLEL_ABS_MAX_RAD / CIRCLE_EXIT_YAW_DEG`
+    - circle 内线候选最少层数、切线兼容阈值和 gyro 主导出环角度。
+  - `REFERENCE_BLEND_CYCLES / TRUSTED_REFERENCE_DECAY / REFERENCE_COMPATIBILITY_TAU_M / REFERENCE_COMPATIBILITY_MAX_ERROR_M`
+    - 可信 reference 的兼容性、衰减和近端加权检查；graph 不再用固定近端锚点硬拒绝远场候选。
 
 调参顺序固定为：先看 sparse samples 是否分类正确，再看 intervals/graph ordinary chain，最后才调 evidence/FSM/reference。不要用 `width_expand_ratio / open_score / bottom_transition_density` 重新建立场景真相。
 

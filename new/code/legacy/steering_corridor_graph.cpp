@@ -6,42 +6,60 @@
 #include <limits>
 
 #include "legacy/steering_bev_geometry.hpp"
+#include "legacy/steering_path_math.hpp"
+
+// 走廊图构建实现。
+// 将每层的走廊间隔组织为图结构，用动态规划搜索最优跨层路径链。
+// 核心流程：
+// 1. LaneObservation：将 CorridorInterval 转化为"车道观测"（含中心、宽度、置信度）
+// 2. BuildChainObservations：对每层选中的间隔，利用法线锚定推理确定车道中心
+// 3. BuildCorridorGraph：Viterbi 式 DP 搜索，最大化累积得分（节点分+跃迁分）
+// 4. FillCandidateSummary：将最优路径链填充为标准化 PathCandidate
+// 5. BuildBEVTrackEstimateFromCorridorGraph：从图输出最终轨迹估计
 
 namespace ls2k::legacy {
 namespace {
 
 constexpr float kNegativeInfinity = -1.0e9F;
 
+// 车道观测结构 —— 将走廊间隔转化为车道级观测结果
+// 包含中心位置、两侧边界是否被观测到、车道宽度、置信度等信息
+// 是边界过滤和法线锚定推理的核心数据类型
 struct LaneObservation {
     bool usable = false;
     bool left_boundary_observed = false;
     bool right_boundary_observed = false;
+    bool normal_anchor_allowed = true;
     float center_forward_m = 0.0F;
     float center_m = 0.0F;
     float lane_width_m = 0.0F;
     float confidence = 0.0F;
 };
 
+// 中心候选点 —— 法线偏移后得到的车道中心位置
 struct CenterCandidate {
-    bool valid = false;
-    float forward_m = 0.0F;
-    float lateral_m = 0.0F;
+    bool valid = false;      //!< 候选是否有效
+    float forward_m = 0.0F;  //!< 前向距离（米）
+    float lateral_m = 0.0F;  //!< 横向位置（米）
 };
 
+// 锚定候选点 —— 包含从哪一侧边界进行法线推理的信息
 struct AnchorCandidate {
-    bool valid = false;
-    BoundaryAnchorSide side = BoundaryAnchorSide::kNone;
-    CenterCandidate center{};
-    int support_rank = 0;
+    bool valid = false;                 //!< 候选是否有效
+    BoundaryAnchorSide side = BoundaryAnchorSide::kNone;  //!< 锚定侧（左/右）
+    CenterCandidate center{};           //!< 推得的中心点
+    int support_rank = 0;              //!< 支撑等级（前后层是否也有有效边界）
 };
 
 using PathSampleArray = std::array<port::BEVPathSample, port::kBevTrackSampleCount>;
 
+// 边界轨迹集合 —— 左右两侧边界的跨层轨迹
 struct BoundaryTraces {
-    PathSampleArray left{};
-    PathSampleArray right{};
+    PathSampleArray left{};   //!< 左侧边界跨层轨迹
+    PathSampleArray right{};  //!< 右侧边界跨层轨迹
 };
 
+// 创建一个路径采样点（辅助函数，带置信度限幅）
 port::BEVPathSample MakePathSample(float forward_m, float lateral_m, float confidence) {
     port::BEVPathSample sample{};
     sample.valid = true;
@@ -51,6 +69,8 @@ port::BEVPathSample MakePathSample(float forward_m, float lateral_m, float confi
     return sample;
 }
 
+// 计算两个走廊间隔的横向重叠得分（重叠宽度 / 较窄间隔宽度）
+// 用于衡量跨层连接时两个间隔是否对齐
 float IntervalOverlapScore(const port::CorridorInterval& a, const port::CorridorInterval& b) {
     const float overlap_min = std::max(a.lateral_min_m, b.lateral_min_m);
     const float overlap_max = std::min(a.lateral_max_m, b.lateral_max_m);
@@ -59,6 +79,8 @@ float IntervalOverlapScore(const port::CorridorInterval& a, const port::Corridor
     return std::clamp(overlap / denominator, 0.0F, 1.0F);
 }
 
+// 计算历史先验承载得分 —— 评估当前观测与上一帧轨迹的横向一致性
+// 用于在节点评分中奖励与历史轨迹连续的候选
 float PriorCarryScore(const port::LegacySteeringState& prior_state,
                       std::size_t layer_index,
                       const LaneObservation& observation,
@@ -76,6 +98,11 @@ float PriorCarryScore(const port::LegacySteeringState& prior_state,
     return std::clamp(normalized, 0.0F, 1.0F) * graph_params.prior_carry_confidence_scale;
 }
 
+// 从走廊间隔和边界观测状态创建车道观测
+// 根据左右边界是否被观测到，分四种情况推演车道中心、宽度和置信度：
+// - 双侧观测：直接使用间隔中心
+// - 单侧观测：用标称车道宽度从观测侧推算中心
+// - 宽支撑截断：当截断+单侧观测+宽度超标时，仍使用间隔中心但降低置信度
 LaneObservation ObserveLaneWithEdges(const port::CorridorInterval& interval,
                                      const port::BEVCorridorGraphParameters& graph_params,
                                      bool left_boundary_observed,
@@ -94,19 +121,30 @@ LaneObservation ObserveLaneWithEdges(const port::CorridorInterval& interval,
     const bool support_is_clipped =
         is_clipped_evidence(interval.left_boundary_evidence) ||
         is_clipped_evidence(interval.right_boundary_evidence);
+    const bool single_observed_boundary =
+        observation.left_boundary_observed != observation.right_boundary_observed;
+    const bool clipped_single_edge_wide_support =
+        support_is_clipped && single_observed_boundary &&
+        interval.width_m >= nominal_width * 1.25F;
 
     if (observation.left_boundary_observed && observation.right_boundary_observed) {
         observation.lane_width_m = interval.width_m;
         observation.center_m = interval.lateral_center_m;
         observation.confidence = interval.confidence;
     } else if (observation.left_boundary_observed) {
-        observation.lane_width_m = nominal_width;
-        observation.center_m = interval.lateral_min_m + nominal_width * 0.5F;
-        observation.confidence = interval.confidence * 0.65F;
+        observation.lane_width_m = clipped_single_edge_wide_support ? interval.width_m : nominal_width;
+        observation.center_m = clipped_single_edge_wide_support
+                                   ? interval.lateral_center_m
+                                   : interval.lateral_min_m + nominal_width * 0.5F;
+        observation.confidence = interval.confidence * (clipped_single_edge_wide_support ? 0.50F : 0.65F);
+        observation.normal_anchor_allowed = !clipped_single_edge_wide_support;
     } else if (observation.right_boundary_observed) {
-        observation.lane_width_m = nominal_width;
-        observation.center_m = interval.lateral_max_m - nominal_width * 0.5F;
-        observation.confidence = interval.confidence * 0.65F;
+        observation.lane_width_m = clipped_single_edge_wide_support ? interval.width_m : nominal_width;
+        observation.center_m = clipped_single_edge_wide_support
+                                   ? interval.lateral_center_m
+                                   : interval.lateral_max_m - nominal_width * 0.5F;
+        observation.confidence = interval.confidence * (clipped_single_edge_wide_support ? 0.50F : 0.65F);
+        observation.normal_anchor_allowed = !clipped_single_edge_wide_support;
     } else {
         observation.lane_width_m = nominal_width;
         observation.center_m = interval.lateral_center_m;
@@ -118,6 +156,7 @@ LaneObservation ObserveLaneWithEdges(const port::CorridorInterval& interval,
     return observation;
 }
 
+// 简化版车道观测 —— 使用间隔自身记录的边界有效性标记
 LaneObservation ObserveLane(const port::CorridorInterval& interval,
                             const port::BEVCorridorGraphParameters& graph_params) {
     return ObserveLaneWithEdges(interval,
@@ -126,6 +165,7 @@ LaneObservation ObserveLane(const port::CorridorInterval& interval,
                                 interval.right_edge_valid);
 }
 
+// 根据索引数组获取指定层的选中间隔指针（越界返回 nullptr）
 const port::CorridorInterval* SelectedIntervalAt(
     const CorridorIntervalSet& intervals,
     const std::array<int, port::kBevTrackSampleCount>& indices,
@@ -141,14 +181,19 @@ const port::CorridorInterval* SelectedIntervalAt(
     return &intervals.layers[layer].intervals[static_cast<std::size_t>(interval_index)];
 }
 
+// 布尔值转边界锚定侧枚举
 BoundaryAnchorSide AnchorSide(bool left_edge) {
     return left_edge ? BoundaryAnchorSide::kLeft : BoundaryAnchorSide::kRight;
 }
 
+// 计算边界连续性跳变限幅 —— 约为最大中心跳变的 55%
+// 用于过滤边界轨迹中的异常跳变点
 float BoundaryContinuityJumpLimit(const port::BEVCorridorGraphParameters& graph_params) {
     return std::max(0.04F, graph_params.max_center_jump_m * 0.55F);
 }
 
+// 检查边界轨迹的某层是否有邻近层支撑（前后 2 层内存在有效点）
+// 用于过滤孤立无效的边界点，确保边界轨迹的连续性
 bool HasNearbyBoundarySupport(const PathSampleArray& path,
                               std::size_t layer,
                               const port::BEVCorridorGraphParameters& graph_params) {
@@ -176,6 +221,7 @@ bool HasNearbyBoundarySupport(const PathSampleArray& path,
     return false;
 }
 
+// 过滤边界轨迹 —— 移除没有邻近层支撑的孤立边界点
 PathSampleArray FilterBoundaryTrace(const PathSampleArray& raw,
                                     const port::BEVCorridorGraphParameters& graph_params) {
     PathSampleArray filtered{};
@@ -187,6 +233,8 @@ PathSampleArray FilterBoundaryTrace(const PathSampleArray& raw,
     return filtered;
 }
 
+// 从选中的间隔集合构建左右边界轨迹
+// 先提取原始边界点，再过滤掉缺乏邻近支撑的孤立点
 BoundaryTraces BuildBoundaryTraces(const CorridorIntervalSet& intervals,
                                    const std::array<int, port::kBevTrackSampleCount>& indices,
                                    const port::BEVCorridorGraphParameters& graph_params) {
@@ -211,6 +259,8 @@ BoundaryTraces BuildBoundaryTraces(const CorridorIntervalSet& intervals,
     return traces;
 }
 
+// 计算路径某层的支撑等级（前后层是否有有效点）
+// 等级 0=孤立点, 1=至少一侧有相邻有效点, 2=两侧都有
 int PathSupportRank(const PathSampleArray& path, std::size_t layer) {
     int support_rank = 0;
     for (std::size_t index = layer; index > 0U; --index) {
@@ -228,6 +278,8 @@ int PathSupportRank(const PathSampleArray& path, std::size_t layer) {
     return support_rank;
 }
 
+// 从边界轨迹沿法线偏移生成车道中心候选点
+// 利用边界点 + 法线向量 + 半车道宽，推算出观测到的车道中心
 bool MakeNormalCenterCandidate(
     const PathSampleArray& boundary_path,
     std::size_t layer,
@@ -258,6 +310,7 @@ bool MakeNormalCenterCandidate(
     return true;
 }
 
+// 计算锚定候选与上一帧观测的连续性得分（横向跳变越小越高）
 float CandidateContinuityScore(const AnchorCandidate& candidate,
                                const LaneObservation* previous_observation,
                                const port::BEVCorridorGraphParameters& graph_params) {
@@ -271,6 +324,8 @@ float CandidateContinuityScore(const AnchorCandidate& candidate,
     return std::clamp(normalized, 0.0F, 1.0F);
 }
 
+// 计算锚定候选与降级观测中心的中点贴近得分
+// 用于在没有先验时的默认选择依据
 float CandidateMidpointScore(const AnchorCandidate& candidate,
                              const LaneObservation& fallback,
                              const port::BEVCorridorGraphParameters& graph_params) {
@@ -282,6 +337,12 @@ float CandidateMidpointScore(const AnchorCandidate& candidate,
     return std::clamp(1.0F - delta / half_width, 0.0F, 1.0F);
 }
 
+// 从左右两个锚定候选中选择更优的一个
+// 选择策略（按优先级）：
+// 1. 只有一个有效 → 强制选择
+// 2. 有 committed 侧 + 对侧连续性显著更好 → 切换
+// 3. 综合评分（支撑等级 + 连续性 + 中点贴近度）
+// 4. 平局时沿用上一帧的锚定侧
 const AnchorCandidate* SelectAnchorCandidate(
     const AnchorCandidate& left_candidate,
     const AnchorCandidate& right_candidate,
@@ -344,6 +405,9 @@ const AnchorCandidate* SelectAnchorCandidate(
     return &left_candidate;
 }
 
+// 应用法线锚定中心推理 —— 利用观测到的边界轨迹沿法线推算车道中心
+// 如果降级观测不允许法线锚定（normal_anchor_allowed=false），直接返回降级观测
+// 否则在左右候选中选择最优者，用其法线偏移位置作为最终中心
 LaneObservation ApplyNormalCenterInference(
     const BoundaryTraces& boundary_traces,
     std::size_t layer,
@@ -357,6 +421,10 @@ LaneObservation ApplyNormalCenterInference(
     AnchorCandidate left_candidate{};
     AnchorCandidate right_candidate{};
     anchor_side = BoundaryAnchorSide::kNone;
+    if (!fallback.normal_anchor_allowed) {
+        forced_choice = false;
+        return fallback;
+    }
     (void)MakeNormalCenterCandidate(
         boundary_traces.left, layer, graph_params, true, left_candidate);
     (void)MakeNormalCenterCandidate(
@@ -380,6 +448,9 @@ LaneObservation ApplyNormalCenterInference(
     return observation;
 }
 
+// 构建全链车道观测 —— 遍历所有层，为每个选中间隔生成带法线锚定的观测
+// 同时维护 committed_anchor_side（非强制选择时提交的锚定侧）和
+// previous_anchor_side（上一层的锚定侧）用于候选选择的连续性
 std::array<LaneObservation, port::kBevTrackSampleCount> BuildChainObservations(
     const CorridorIntervalSet& intervals,
     const std::array<int, port::kBevTrackSampleCount>& indices,
@@ -430,15 +501,16 @@ std::array<LaneObservation, port::kBevTrackSampleCount> BuildChainObservations(
     return observations;
 }
 
+// 判断走廊间隔是否可用作图节点（必须 usable + 宽度在有效范围内）
 bool IntervalAllowed(const port::CorridorInterval& interval,
                      const port::BEVCorridorGraphParameters& graph_params) {
     const LaneObservation observation = ObserveLane(interval, graph_params);
     return observation.usable &&
            interval.width_m >= graph_params.min_interval_width_m &&
-           interval.width_m <= graph_params.max_interval_width_m &&
-           interval.confidence > 0.0F;
+           interval.width_m <= graph_params.max_interval_width_m;
 }
 
+// 生成普通路段的走廊图参数 —— 从 RuntimeParameters 提取并合并 bev_geometry 约束
 port::BEVCorridorGraphParameters OrdinaryGraphParams(const port::RuntimeParameters& params) {
     port::BEVCorridorGraphParameters graph_params = params.bev_corridor_graph;
     if (graph_params.nominal_lane_width_m <= 0.0F) {
@@ -455,6 +527,8 @@ port::BEVCorridorGraphParameters OrdinaryGraphParams(const port::RuntimeParamete
     return graph_params;
 }
 
+// 计算图节点的得分 —— 综合置信度、中心偏离度、宽度与标称宽度匹配度
+// 节点分用于动态规划搜索中的候选排序
 float NodeScore(const LaneObservation& observation,
                 const port::BEVCorridorGraphParameters& graph_params) {
     const float center_score =
@@ -470,6 +544,8 @@ float NodeScore(const LaneObservation& observation,
     return observation.confidence + 0.35F * center_score + 0.25F * width_score;
 }
 
+// 构建跨层连接边 —— 计算两个间隔之间的 overlap / center_jump / width_change / confidence
+// 边用于 DP 搜索中的跃迁成本/收益计算
 port::CorridorGraphEdge BuildEdge(int from_layer,
                                   int from_interval,
                                   int to_layer,
@@ -493,6 +569,7 @@ port::CorridorGraphEdge BuildEdge(int from_layer,
     return edge;
 }
 
+// 计算两个路径点之间的航向角（atan2），用于远侧航向误差
 float ComputeHeading(const port::BEVPathSample& near_sample, const port::BEVPathSample& far_sample) {
     const float delta_forward = far_sample.point.forward_m - near_sample.point.forward_m;
     if (std::abs(delta_forward) < 1e-4F) {
@@ -501,31 +578,51 @@ float ComputeHeading(const port::BEVPathSample& near_sample, const port::BEVPath
     return std::atan2(far_sample.point.lateral_m - near_sample.point.lateral_m, delta_forward);
 }
 
-float ComputeCurvature(const port::BEVPathSample& first,
-                       const port::BEVPathSample& second,
-                       const port::BEVPathSample& third) {
-    const float ds1 = std::max(1e-4F, second.point.forward_m - first.point.forward_m);
-    const float ds2 = std::max(1e-4F, third.point.forward_m - second.point.forward_m);
-    const float slope1 = (second.point.lateral_m - first.point.lateral_m) / ds1;
-    const float slope2 = (third.point.lateral_m - second.point.lateral_m) / ds2;
-    return (slope2 - slope1) / std::max(1e-4F, third.point.forward_m - first.point.forward_m);
-}
-
+// 将 int 索引限幅到合法的 size_t 范围 [0, kBevTrackSampleCount)
 std::size_t ClampSampleIndex(int index) {
     return std::min<std::size_t>(
         static_cast<std::size_t>(std::max(0, index)),
         port::kBevTrackSampleCount - 1U);
 }
 
-bool HasPathSampleAt(const port::PathCandidate& candidate, std::size_t layer_index) {
-    return layer_index < candidate.sampled_path.size() && candidate.sampled_path[layer_index].valid;
-}
-
+// 检查指定层是否有被选中的间隔（索引 >= 0）
 bool HasSelectedIntervalAt(const std::array<int, port::kBevTrackSampleCount>& indices,
                            std::size_t layer_index) {
     return layer_index < indices.size() && indices[layer_index] >= 0;
 }
 
+// 裁剪路径到选中间隔所覆盖的前向范围之外的点（法线外推可能超出支撑区间）
+// 超过选中层范围的点是推理伪影，予以移除
+int PrunePathToSelectedSupportHorizon(
+    std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
+    const std::array<int, port::kBevTrackSampleCount>& indices) {
+    std::size_t first_selected_layer = port::kBevTrackSampleCount;
+    std::size_t last_selected_layer = port::kBevTrackSampleCount;
+    for (std::size_t layer = 0; layer < indices.size(); ++layer) {
+        if (HasSelectedIntervalAt(indices, layer)) {
+            first_selected_layer = std::min(first_selected_layer, layer);
+            last_selected_layer = layer;
+        }
+    }
+    int valid_count = 0;
+    for (std::size_t layer = 0; layer < path.size(); ++layer) {
+        // Normal-offset fitting can project samples outside the corridor
+        // support span. Those samples remain inference artifacts, not
+        // observed path support.
+        if (last_selected_layer == port::kBevTrackSampleCount ||
+            layer < first_selected_layer ||
+            layer > last_selected_layer) {
+            path[layer] = {};
+            continue;
+        }
+        if (path[layer].valid) {
+            ++valid_count;
+        }
+    }
+    return valid_count;
+}
+
+// 检查从指定层开始往后是否有任何选中间隔
 bool HasSelectedIntervalAtOrBeyond(const std::array<int, port::kBevTrackSampleCount>& indices,
                                    std::size_t layer_index) {
     for (std::size_t index = layer_index; index < indices.size(); ++index) {
@@ -536,95 +633,12 @@ bool HasSelectedIntervalAtOrBeyond(const std::array<int, port::kBevTrackSampleCo
     return false;
 }
 
-bool HasSelectedIntervalNear(const std::array<int, port::kBevTrackSampleCount>& indices,
-                             std::size_t layer_index) {
-    constexpr std::size_t kMaxControlAnchorEvidenceGap = 1U;
-    const std::size_t begin = layer_index > kMaxControlAnchorEvidenceGap
-                                  ? layer_index - kMaxControlAnchorEvidenceGap
-                                  : 0U;
-    const std::size_t end =
-        std::min(indices.size() - 1U, layer_index + kMaxControlAnchorEvidenceGap);
-    for (std::size_t index = begin; index <= end; ++index) {
-        if (HasSelectedIntervalAt(indices, index)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-struct BoundarySupportStats {
-    bool valid = false;
-    int count = 0;
-    float first_forward_m = 0.0F;
-    float last_forward_m = 0.0F;
-    float min_lateral_m = 0.0F;
-    float max_lateral_m = 0.0F;
-};
-
-BoundarySupportStats SingleSideBoundarySupport(
-    const PathSampleArray& boundary,
-    const PathSampleArray& opposite_boundary,
-    std::size_t start_layer) {
-    BoundarySupportStats stats{};
-    for (std::size_t layer = start_layer; layer < boundary.size(); ++layer) {
-        if (!boundary[layer].valid || opposite_boundary[layer].valid) {
-            continue;
-        }
-        if (!stats.valid) {
-            stats.valid = true;
-            stats.first_forward_m = boundary[layer].point.forward_m;
-            stats.min_lateral_m = boundary[layer].point.lateral_m;
-            stats.max_lateral_m = boundary[layer].point.lateral_m;
-        }
-        stats.last_forward_m = boundary[layer].point.forward_m;
-        stats.min_lateral_m = std::min(stats.min_lateral_m, boundary[layer].point.lateral_m);
-        stats.max_lateral_m = std::max(stats.max_lateral_m, boundary[layer].point.lateral_m);
-        ++stats.count;
-    }
-    return stats;
-}
-
-bool HasLongCurvedSingleSideProjection(const BoundarySupportStats& stats,
-                                       const port::BEVCorridorGraphParameters& graph_params) {
-    constexpr int kMinDistantBoundarySamples = 4;
-    const float min_forward_span_m = std::max(0.18F, graph_params.nominal_lane_width_m * 0.40F);
-    const float min_lateral_span_m = std::max(0.10F, graph_params.nominal_lane_width_m * 0.30F);
-    return stats.valid && stats.count >= kMinDistantBoundarySamples &&
-           stats.last_forward_m - stats.first_forward_m >= min_forward_span_m &&
-           stats.max_lateral_m - stats.min_lateral_m >= min_lateral_span_m;
-}
-
-bool HasDistantBoundaryProjectionAnchor(
-    const CorridorIntervalSet& intervals,
-    const std::array<int, port::kBevTrackSampleCount>& indices,
-    std::size_t start_layer,
-    const port::BEVCorridorGraphParameters& graph_params) {
-    if (start_layer >= indices.size()) {
-        return false;
-    }
-    const BoundaryTraces boundary_traces = BuildBoundaryTraces(intervals, indices, graph_params);
-    const BoundarySupportStats left_stats =
-        SingleSideBoundarySupport(boundary_traces.left, boundary_traces.right, start_layer);
-    const BoundarySupportStats right_stats =
-        SingleSideBoundarySupport(boundary_traces.right, boundary_traces.left, start_layer);
-    return HasLongCurvedSingleSideProjection(left_stats, graph_params) ||
-           HasLongCurvedSingleSideProjection(right_stats, graph_params);
-}
-
-bool HasEvidenceBackedControlAnchor(
-    const CorridorIntervalSet& intervals,
-    const std::array<int, port::kBevTrackSampleCount>& indices,
-    std::size_t near_index,
-    std::size_t curvature_index,
-    const port::BEVCorridorGraphParameters& graph_params) {
-    if (HasSelectedIntervalNear(indices, near_index)) {
-        return true;
-    }
-    const std::size_t distant_start =
-        std::min(indices.size() - 1U, std::max(near_index + 2U, curvature_index));
-    return HasDistantBoundaryProjectionAnchor(intervals, indices, distant_start, graph_params);
-}
-
+// 填充路径候选摘要：
+// 1. 构建全链观测（BuildChainObservations）
+// 2. 提取中心线采样点
+// 3. 归一化到标准前向网格（NormalizePathToForwardSamples）
+// 4. 裁剪支撑范围外的外推点
+// 5. 计算统计量（置信度、平均宽度、宽度稳定性、曲率）
 void FillCandidateSummary(port::PathCandidate& candidate,
                           const CorridorIntervalSet& intervals,
                           const std::array<int, port::kBevTrackSampleCount>& indices,
@@ -670,13 +684,43 @@ void FillCandidateSummary(port::PathCandidate& candidate,
         ++valid_count;
     }
 
-    const int normalized_count =
-        NormalizePathToForwardSamples(candidate.sampled_path,
-                                      params.bev_topology_sampler.forward_samples_m,
-                                      graph_params.nominal_lane_width_m * 0.5F,
-                                      std::max(std::abs(params.bev_topology_sampler.lateral_step_m),
-                                               std::abs(params.bev_geometry.lateral_step_m)) *
-                                          2.0F);
+    const float sample_spacing =
+        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                 params.bev_topology_sampler.forward_samples_m[0]);
+    const auto direct_observation_path = candidate.sampled_path;
+    const float max_forward_extrapolate =
+        std::max(sample_spacing * 0.75F,
+                 std::max(std::abs(params.bev_topology_sampler.lateral_step_m),
+                          std::abs(params.bev_geometry.lateral_step_m)) *
+                     2.0F);
+    (void)NormalizePathToForwardSamples(candidate.sampled_path,
+                                        params.bev_topology_sampler.forward_samples_m,
+                                        max_forward_extrapolate,
+                                        std::max(std::abs(params.bev_topology_sampler.lateral_step_m),
+                                                 std::abs(params.bev_geometry.lateral_step_m)) *
+                                            2.0F);
+    int normalized_count = PrunePathToSelectedSupportHorizon(candidate.sampled_path, indices);
+    for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
+        if (candidate.sampled_path[layer].valid ||
+            !direct_observation_path[layer].valid ||
+            !HasSelectedIntervalAt(indices, layer)) {
+            continue;
+        }
+        const int interval_index = indices[layer];
+        if (interval_index < 0 ||
+            interval_index >= static_cast<int>(intervals.layers[layer].intervals.size())) {
+            continue;
+        }
+        const port::CorridorInterval& interval =
+            intervals.layers[layer].intervals[static_cast<std::size_t>(interval_index)];
+        if (!interval.left_edge_valid || !interval.right_edge_valid) {
+            continue;
+        }
+        candidate.sampled_path[layer] = direct_observation_path[layer];
+        candidate.sampled_path[layer].point.forward_m =
+            params.bev_topology_sampler.forward_samples_m[layer];
+        ++normalized_count;
+    }
     candidate.valid = normalized_count >= 3;
     if (!candidate.valid) {
         return;
@@ -705,7 +749,7 @@ void FillCandidateSummary(port::PathCandidate& candidate,
         candidate.end_forward_m = sample.point.forward_m;
     }
     if (first != nullptr && mid != nullptr && last != nullptr && first != last && mid != last) {
-        candidate.curvature = ComputeCurvature(*first, *mid, *last);
+        candidate.curvature = PathCurvatureFromThreeSamples(*first, *mid, *last);
         candidate.curvature_consistency =
             std::clamp(1.0F - std::abs(candidate.curvature) /
                                  std::max(1e-4F, graph_params.max_curvature_abs),
@@ -714,6 +758,8 @@ void FillCandidateSummary(port::PathCandidate& candidate,
     }
 }
 
+// 清空轨迹估计的几何信息（将所有数组置零/无效）
+// 用于降级或无效路径时的安全清理
 void ClearPublishedTrackGeometry(port::BEVTrackEstimate& track) {
     track.sampled_left_boundary.fill({});
     track.sampled_centerline.fill({});
@@ -731,6 +777,13 @@ void ClearPublishedTrackGeometry(port::BEVTrackEstimate& track) {
 
 }  // namespace
 
+// ========== 主入口：构建走廊图 ==========
+// 使用 Viterbi 式动态规划搜索最优跨层间隔链：
+// 阶段 1：初始化 — 为每层每个合法间隔计算节点得分（含先验承载分）
+// 阶段 2：向前传播 — 跨层连接，计算跃迁得分，记录最优前驱
+// 阶段 3：回溯 — 找到全局最优路径，填充 graph.ordinary_interval_indices
+// 阶段 4：填充候选摘要（中心线归一化 + 统计量）
+// 阶段 5：有效性验证（最少 3 个有效采样点 + 控制水平线必须存在）
 CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
                                  const port::RuntimeParameters& params,
                                  const port::LegacySteeringState& prior_state) {
@@ -744,6 +797,8 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
 
     const port::BEVCorridorGraphParameters graph_params = OrdinaryGraphParams(params);
 
+    // scores[layer][i] = 到达第 layer 层第 i 个间隔的最大累积得分
+    // predecessors[layer][i] = 到达该最优路径的前一层间隔索引
     std::array<std::vector<float>, port::kBevTrackSampleCount> scores{};
     std::array<std::vector<int>, port::kBevTrackSampleCount> predecessors{};
     for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
@@ -762,6 +817,9 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
         }
     }
 
+    // 阶段 2：向前传播 —— 跨层连接，计算跃迁得分，记录最优前驱
+    // 对每层的每个合法间隔，尝试与上一层所有合法间隔连接
+    // 跃迁分 = edge.confidence + edge.overlap - center_jump_cost - 0.5*width_change_cost
     for (std::size_t layer = 1; layer < port::kBevTrackSampleCount; ++layer) {
         const CorridorIntervalLayer& previous_layer = intervals.layers[layer - 1U];
         const CorridorIntervalLayer& current_layer = intervals.layers[layer];
@@ -805,6 +863,7 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
         }
     }
 
+    // 阶段 3：回溯 —— 在最终层找到全局最优（累积得分最高的节点），反向追溯整条路径
     float best_score = kNegativeInfinity;
     int best_layer = -1;
     int best_interval = -1;
@@ -818,6 +877,7 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
         }
     }
 
+    // 反向回溯：从最优终点沿 predecessor 链回推到起点，填充各层选中的间隔索引
     while (best_layer >= 0 && best_interval >= 0) {
         graph.ordinary_interval_indices[static_cast<std::size_t>(best_layer)] = best_interval;
         const int previous = predecessors[static_cast<std::size_t>(best_layer)]
@@ -826,6 +886,7 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
         best_interval = previous;
     }
 
+    // 阶段 4：填充候选摘要（中心线归一化到标准前向网格 + 统计量）
     graph.ordinary.mode = port::ReferenceMode::kCenterline;
     FillCandidateSummary(graph.ordinary,
                          intervals,
@@ -834,20 +895,10 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
                          graph_params,
                          &graph.ordinary_raw_centerline,
                          &graph.ordinary_center_anchor_side);
-    const std::size_t near_index = ClampSampleIndex(params.bev_control_model.near_sample_index);
+    // 阶段 5：有效性验证 —— 候选必须有效且控制水平线（曲率采样点）存在
     const std::size_t curvature_index = ClampSampleIndex(params.bev_control_model.curvature_sample_index);
     if (!graph.ordinary.valid) {
         graph.fallback_mode = "insufficient_corridor_samples";
-    } else if (!HasPathSampleAt(graph.ordinary, near_index)) {
-        graph.ordinary.valid = false;
-        graph.fallback_mode = "control_anchor_missing";
-    } else if (!HasEvidenceBackedControlAnchor(intervals,
-                                               graph.ordinary_interval_indices,
-                                               near_index,
-                                               curvature_index,
-                                               graph_params)) {
-        graph.ordinary.valid = false;
-        graph.fallback_mode = "control_anchor_missing";
     } else if (!HasSelectedIntervalAtOrBeyond(graph.ordinary_interval_indices, curvature_index)) {
         graph.ordinary.valid = false;
         graph.fallback_mode = "control_horizon_missing";
@@ -856,6 +907,11 @@ CorridorGraph BuildCorridorGraph(const CorridorIntervalSet& intervals,
     return graph;
 }
 
+// ========== 从走廊图生成最终轨迹估计 ==========
+// 将 BuildCorridorGraph 选出的最优路径链转换为 BEVTrackEstimate：
+// 1. 复制 centerline 采样点，提取左右边界和 drivable 边界
+// 2. 计算近侧横向误差、远侧航向误差、预览曲率
+// 3. 检查置信度和可见范围，决定是否需要降级
 port::BEVTrackEstimate BuildBEVTrackEstimateFromCorridorGraph(const CorridorIntervalSet& intervals,
                                                               const CorridorGraph& graph,
                                                               const port::RuntimeParameters& params) {
@@ -870,6 +926,7 @@ port::BEVTrackEstimate BuildBEVTrackEstimateFromCorridorGraph(const CorridorInte
         return track;
     }
 
+    // 步骤 1：复制中心线采样点，计算可见范围
     int valid_count = 0;
     float confidence_sum = 0.0F;
     const port::BEVCorridorGraphParameters graph_params = OrdinaryGraphParams(params);
@@ -883,6 +940,7 @@ port::BEVTrackEstimate BuildBEVTrackEstimateFromCorridorGraph(const CorridorInte
         track.visible_range_m =
             std::max(track.visible_range_m, graph.ordinary.sampled_path[layer].point.forward_m);
     }
+    // 步骤 2：提取左右边界和 drivable 边界，累加车道宽度和置信度
     for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
         const int interval_index = graph.ordinary_interval_indices[layer];
         if (interval_index < 0 ||
@@ -913,14 +971,13 @@ port::BEVTrackEstimate BuildBEVTrackEstimateFromCorridorGraph(const CorridorInte
         ++valid_count;
     }
 
+    // 步骤 3：计算控制误差（近侧横向误差、远侧航向误差、预览曲率）
     const std::size_t near_index = ClampSampleIndex(params.bev_control_model.near_sample_index);
-    const bool has_control_anchor =
-        near_index < port::kBevTrackSampleCount && track.sampled_centerline[near_index].valid;
-    track.valid = valid_count >= 3 && has_control_anchor;
+    track.valid = valid_count >= 3;
     track.track_confidence =
         valid_count > 0 ? std::clamp(confidence_sum / static_cast<float>(valid_count), 0.0F, 1.0F) : 0.0F;
     if (!track.valid) {
-        track.fallback_mode = has_control_anchor ? "insufficient_corridor_samples" : "control_anchor_missing";
+        track.fallback_mode = "insufficient_corridor_samples";
         ClearPublishedTrackGeometry(track);
         return track;
     }
@@ -948,9 +1005,9 @@ port::BEVTrackEstimate BuildBEVTrackEstimateFromCorridorGraph(const CorridorInte
         track.sampled_centerline[first_index].valid && track.sampled_centerline[near_index].valid &&
         track.sampled_centerline[curvature_index].valid) {
         track.preview_curvature =
-            ComputeCurvature(track.sampled_centerline[first_index],
-                             track.sampled_centerline[near_index],
-                             track.sampled_centerline[curvature_index]);
+            PathCurvatureFromThreeSamples(track.sampled_centerline[first_index],
+                                          track.sampled_centerline[near_index],
+                                          track.sampled_centerline[curvature_index]);
     }
     if (track.track_confidence < params.bev_geometry.min_track_confidence) {
         track.fallback_mode = "low_confidence";

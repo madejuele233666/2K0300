@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -559,6 +560,11 @@ std::string LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& pa
         return "built-in";
     }
     const std::string json = StripJsonComments(ReadTextFile(path));
+    ReadDoubleField(json, "see_max", params.see_max);
+    ReadIntField(json, "emergency_threshold", params.emergency_threshold);
+    ReadIntField(json, "exp_light", params.exp_light);
+    ReadIntField(json, "camera_frame_width", params.camera_frame_width);
+    ReadIntField(json, "camera_frame_height", params.camera_frame_height);
     LoadProjectorParams(json, params);
     LoadGeometryParams(json, params);
     LoadTopologySamplerParams(json, params);
@@ -918,6 +924,33 @@ void DrawTextShadow(RgbImage& image, int x, int y, const std::string& text, cons
     DrawText(image, x, y, text, color, scale);
 }
 
+std::string OverlayTextToken(std::string text) {
+    for (char& value : text) {
+        if (value >= 'a' && value <= 'z') {
+            value = static_cast<char>('A' + (value - 'a'));
+        } else if (value == '_') {
+            value = '-';
+        }
+    }
+    return text;
+}
+
+std::string ElementStatusToken(const ls2k::port::BEVElementEvidence& evidence) {
+    if (evidence.cross_band.present) {
+        return "ELEMENT:CROSS";
+    }
+    if (evidence.left_circle_corner.present && evidence.right_circle_corner.present) {
+        return "ELEMENT:CORNER-LR";
+    }
+    if (evidence.left_circle_corner.present) {
+        return "ELEMENT:CORNER-L";
+    }
+    if (evidence.right_circle_corner.present) {
+        return "ELEMENT:CORNER-R";
+    }
+    return "ELEMENT:NONE";
+}
+
 void DrawFrameBorder(RgbImage& image, int x, int y, int width, int height, const Color& color) {
     DrawLine(image, x, y, x + width - 1, y, color);
     DrawLine(image, x, y, x, y + height - 1, color);
@@ -1230,6 +1263,10 @@ bool GraphNormalConstructionAt(const ls2k::legacy::CorridorGraph& graph,
     } else {
         return false;
     }
+    if (graph.ordinary.sampled_path[index].valid) {
+        center_point = graph.ordinary.sampled_path[index].point;
+        return true;
+    }
     if (!graph.ordinary_raw_centerline[index].valid) {
         return false;
     }
@@ -1395,6 +1432,93 @@ void DrawBevIntervals(RgbImage& image,
             }
         }
     }
+}
+
+const ls2k::port::BEVRowProfileEvidence* ClosestRowProfile(
+    const ls2k::port::BEVElementEvidence& evidence,
+    float forward_m) {
+    const ls2k::port::BEVRowProfileEvidence* best = nullptr;
+    float best_distance = std::numeric_limits<float>::infinity();
+    for (const ls2k::port::BEVRowProfileEvidence& profile : evidence.row_profiles) {
+        if (!profile.valid) {
+            continue;
+        }
+        const float distance = std::abs(profile.forward_m - forward_m);
+        if (distance < best_distance) {
+            best = &profile;
+            best_distance = distance;
+        }
+    }
+    return best;
+}
+
+void DrawCircleCornerEvidence(RgbImage& image,
+                              const ls2k::port::BEVCircleCornerEvidence& corner,
+                              const PanelLayout& layout,
+                              float lateral_limit_m,
+                              float forward_max_m,
+                              const Color& color) {
+    if (!corner.present) {
+        return;
+    }
+    int x = 0;
+    int y = 0;
+    if (!ProjectBevToPanel(BEVPoint{corner.forward_m, corner.lateral_m},
+                           layout,
+                           lateral_limit_m,
+                           forward_max_m,
+                           x,
+                           y)) {
+        return;
+    }
+    DrawCircle(image, x, y, 5, color, false);
+    DrawCross(image, x, y, 6, color);
+}
+
+void DrawBevElementEvidence(RgbImage& image,
+                            const ls2k::port::BEVElementEvidence& evidence,
+                            const PanelLayout& layout,
+                            float lateral_limit_m,
+                            float forward_max_m) {
+    if (!evidence.valid) {
+        return;
+    }
+    if (evidence.cross_band.present) {
+        const ls2k::port::BEVRowProfileEvidence* profile =
+            ClosestRowProfile(evidence, evidence.cross_band.forward_m);
+        if (profile != nullptr) {
+            int x0 = 0;
+            int y0 = 0;
+            int x1 = 0;
+            int y1 = 0;
+            if (ProjectBevToPanel(BEVPoint{profile->forward_m, profile->valid_lateral_min_m},
+                                  layout,
+                                  lateral_limit_m,
+                                  forward_max_m,
+                                  x0,
+                                  y0) &&
+                ProjectBevToPanel(BEVPoint{profile->forward_m, profile->valid_lateral_max_m},
+                                  layout,
+                                  lateral_limit_m,
+                                  forward_max_m,
+                                  x1,
+                                  y1)) {
+                DrawLineAlpha(image, x0, y0, x1, y1, Color{255, 92, 48}, 0.85F, 7);
+            }
+        }
+    }
+    DrawCircleCornerEvidence(image,
+                             evidence.left_circle_corner,
+                             layout,
+                             lateral_limit_m,
+                             forward_max_m,
+                             Color{255, 64, 220});
+    DrawCircleCornerEvidence(image,
+                             evidence.right_circle_corner,
+                             layout,
+                             lateral_limit_m,
+                             forward_max_m,
+                             Color{255, 64, 220});
 }
 
 void DrawRawCorridorCrossSections(
@@ -1684,7 +1808,7 @@ void WriteBmp(const std::string& path, const RgbImage& image) {
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::cerr << "usage: scene_overlay_probe <input.raw> <output.bmp> [params_or_config_snapshot.json]"
-                     " [--bev-only]\n";
+                     " [--bev-only] [--warmup <input.raw> ...] [--confirm-cycles <count>]\n";
         return 1;
     }
 
@@ -1696,10 +1820,29 @@ int main(int argc, char** argv) {
         RuntimeParameters params{};
         std::string params_path;
         bool bev_only = false;
+        int confirm_cycles = 1;
+        std::vector<std::string> warmup_paths;
         for (int arg_index = 3; arg_index < argc; ++arg_index) {
             const std::string arg = argv[arg_index];
             if (arg == "--bev-only") {
                 bev_only = true;
+                continue;
+            }
+            if (arg == "--warmup") {
+                if (arg_index + 1 >= argc) {
+                    throw std::runtime_error("--warmup requires a raw frame path");
+                }
+                warmup_paths.push_back(argv[++arg_index]);
+                continue;
+            }
+            if (arg == "--confirm-cycles") {
+                if (arg_index + 1 >= argc) {
+                    throw std::runtime_error("--confirm-cycles requires a positive integer");
+                }
+                confirm_cycles = std::stoi(argv[++arg_index]);
+                if (confirm_cycles <= 0) {
+                    throw std::runtime_error("--confirm-cycles must be positive");
+                }
                 continue;
             }
             if (!params_path.empty()) {
@@ -1721,19 +1864,39 @@ int main(int argc, char** argv) {
             throw std::runtime_error("failed to configure BEV projector");
         }
 
-        const ls2k::port::LegacySteeringState prior_state{};
-        const ls2k::legacy::SteeringAnalysisResult analysis =
-            ls2k::legacy::AnalyzeFrame(frame, params, prior_state, {}, false, 1, 1);
+        ls2k::port::LegacySteeringState prior_state{};
+        std::uint64_t frame_id = 1;
+        for (const std::string& warmup_path : warmup_paths) {
+            const LegacyCameraFrame warmup_frame = ReadRawFrame(warmup_path);
+            const ls2k::legacy::SteeringAnalysisResult warmup_analysis =
+                ls2k::legacy::AnalyzeFrame(warmup_frame, params, prior_state, {}, false, frame_id++, 1);
+            if (!warmup_analysis.steering_state_update_valid) {
+                throw std::runtime_error("warmup frame did not return a state update: " + warmup_path);
+            }
+            prior_state = warmup_analysis.steering_state_update;
+        }
+        ls2k::port::LegacySteeringState analysis_prior_state = prior_state;
+        ls2k::legacy::SteeringAnalysisResult analysis{};
+        for (int cycle = 0; cycle < confirm_cycles; ++cycle) {
+            analysis_prior_state = prior_state;
+            analysis =
+                ls2k::legacy::AnalyzeFrame(frame, params, prior_state, {}, false, frame_id++, 1);
+            if (!analysis.steering_state_update_valid) {
+                throw std::runtime_error("analysis frame did not return a state update");
+            }
+            prior_state = analysis.steering_state_update;
+        }
 
         const ls2k::legacy::BEVTopologyPipelineResult topology =
             ls2k::legacy::RunBEVTopologyPipeline(frame,
                                                  analysis.perception.threshold,
                                                  params,
-                                                 prior_state,
+                                                 analysis_prior_state,
                                                  projector);
         const ls2k::legacy::BEVSparseSampleGrid& sparse_samples = topology.sparse_samples;
         const ls2k::legacy::CorridorIntervalSet& corridor_intervals = topology.corridor_intervals;
         const ls2k::legacy::CorridorGraph& corridor_graph = topology.corridor_graph;
+        const ls2k::port::BEVElementEvidence& element_evidence = topology.element_evidence;
         const ls2k::port::BEVTrackEstimate& overlay_track = topology.track_estimate;
         const bool draw_graph_geometry = corridor_graph.valid && corridor_graph.ordinary.valid;
         const bool draw_track_geometry = overlay_track.valid;
@@ -1800,6 +1963,9 @@ int main(int argc, char** argv) {
                        use_runtime_facts ? "RUNTIME BEV IMAGE" : "BEV IMAGE/TOPOLOGY",
                        Color{230, 230, 230},
                        1);
+        const std::string scene_status =
+            "S:" + OverlayTextToken(analysis.perception.active_module + "/" + analysis.perception.scene_phase);
+        DrawTextShadow(image, layout.bev_x + 150, 4, scene_status, Color{230, 230, 230}, 1);
         BlitRawFrame(image, frame, layout.raw_x, layout.raw_y);
 
         if (!use_runtime_facts) {
@@ -1891,6 +2057,7 @@ int main(int argc, char** argv) {
         if (!use_runtime_facts) {
             DrawBevSamples(image, sparse_samples, layout, lateral_limit_m, forward_max_m);
             DrawBevIntervals(image, corridor_intervals, layout, lateral_limit_m, forward_max_m);
+            DrawBevElementEvidence(image, element_evidence, layout, lateral_limit_m, forward_max_m);
             if (draw_graph_geometry) {
                 DrawBevPath(image,
                             corridor_graph.ordinary.sampled_path,
@@ -1984,6 +2151,17 @@ int main(int argc, char** argv) {
             }
         }
         DrawBevVehicle(image, layout, lateral_limit_m, forward_max_m);
+        DrawTextShadow(image,
+                       layout.bev_x + 5,
+                       layout.bev_y + 5,
+                       ElementStatusToken(element_evidence),
+                       element_evidence.cross_band.present
+                           ? Color{255, 92, 48}
+                           : ((element_evidence.left_circle_corner.present ||
+                               element_evidence.right_circle_corner.present)
+                                  ? Color{255, 86, 255}
+                                  : Color{185, 185, 185}),
+                       1);
         bool drew_lookahead = false;
         if (use_runtime_facts) {
             DrawRuntimeSnapshotFacts(image, runtime_facts, params, projector, layout, lateral_limit_m, forward_max_m);
@@ -2017,6 +2195,7 @@ int main(int argc, char** argv) {
             legend_x = DrawLegendItem(image, legend_x, legend_y, Color{150, 118, 64}, "INTERVAL");
             legend_x = DrawLegendItem(image, legend_x, legend_y, Color{32, 255, 72}, "OBS L");
             legend_x = DrawLegendItem(image, legend_x, legend_y, Color{36, 142, 255}, "OBS R");
+            legend_x = DrawLegendItem(image, legend_x, legend_y, Color{255, 92, 48}, "CROSS");
             legend_x = 6;
             legend_x = DrawLegendItem(image, legend_x, legend_y + 14, Color{255, 180, 32}, "ORDINARY");
             legend_x = DrawLegendItem(image, legend_x, legend_y + 14, Color{255, 128, 0}, "ARC L");
@@ -2053,6 +2232,13 @@ int main(int argc, char** argv) {
                   << " yaw_rate_target=" << analysis.control_output.yaw_rate_target
                   << " visible_range_m=" << analysis.perception.visible_range_m
                   << " track_confidence=" << analysis.perception.track_confidence
+                  << " cross_band=" << (analysis.topology_evidence.element_evidence.cross_band.present ? "true" : "false")
+                  << " left_corner="
+                  << (analysis.topology_evidence.element_evidence.left_circle_corner.present ? "true" : "false")
+                  << " right_corner="
+                  << (analysis.topology_evidence.element_evidence.right_circle_corner.present ? "true" : "false")
+                  << " warmup_count=" << warmup_paths.size()
+                  << " confirm_cycles=" << confirm_cycles
                   << " projector_id=" << params.bev_projector.projector_id
                   << " params_source=" << params_source << "\n";
         std::cout << "overlay_algorithm=bev_topology_pipeline"

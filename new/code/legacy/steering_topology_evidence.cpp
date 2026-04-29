@@ -1,5 +1,11 @@
 #include "legacy/steering_topology_evidence.hpp"
 
+// 拓扑证据评分实现。
+// 对道路假设进行 5 个维度的评分（ordinary/cross/circle/zebra/lost），
+// 并维护时序累积器（EMA）用于平滑评分波动。
+// 评分考虑了：走廊间隔统计、边界观测质量、开口/膨胀对称性、曲率否决、
+// 斑马线纹理模式、元素证据融合等。
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -8,10 +14,12 @@
 namespace ls2k::legacy {
 namespace {
 
+// 值限幅到 [0, 1] 区间
 float Clamp01(float value) {
     return std::clamp(value, 0.0F, 1.0F);
 }
 
+// 间隔证据汇总结构 —— 从所有层的最佳间隔中提取关键统计数据
 struct IntervalEvidenceSummary {
     bool valid = false;
     float near_left = 0.0F;
@@ -27,6 +35,7 @@ struct IntervalEvidenceSummary {
     int valid_layers = 0;
 };
 
+// 在指定层中找置信度最高的间隔（不做其他过滤）
 const port::CorridorInterval* BestInterval(const CorridorIntervalLayer& layer) {
     const port::CorridorInterval* best = nullptr;
     for (const port::CorridorInterval& interval : layer.intervals) {
@@ -37,6 +46,7 @@ const port::CorridorInterval* BestInterval(const CorridorIntervalLayer& layer) {
     return best;
 }
 
+// 判断间隔是否可作为可靠的开口锚点（宽度在有效范围内 + 置信度 + 采样比例达标）
 bool ReliableOpeningAnchor(const port::CorridorInterval& interval,
                            const port::BEVCorridorGraphParameters& graph_params) {
     const float nominal_width = std::max(1e-4F, graph_params.nominal_lane_width_m);
@@ -48,6 +58,9 @@ bool ReliableOpeningAnchor(const port::CorridorInterval& interval,
            interval.valid_sample_ratio >= 0.35F;
 }
 
+// 汇总所有层的间隔统计信息
+// 选取开口锚点层，计算近端宽度、最大宽度、左右开口量、
+// 边界观测比例、无效边惩罚和平均置信度
 IntervalEvidenceSummary SummarizeIntervals(const CorridorIntervalSet& intervals,
                                            const port::BEVCorridorGraphParameters& graph_params) {
     IntervalEvidenceSummary summary{};
@@ -128,6 +141,8 @@ IntervalEvidenceSummary SummarizeIntervals(const CorridorIntervalSet& intervals,
     return summary;
 }
 
+// 宽度膨胀评分 —— 评估道路从近端到最宽处的膨胀程度
+// 用于十字路口检测（路口处道路显著变宽）
 float WidthBulgeScore(const IntervalEvidenceSummary& summary,
                       const port::BEVCorridorGraphParameters& params) {
     const float reference = summary.near_width > 1e-4F ? summary.near_width : params.nominal_lane_width_m;
@@ -135,6 +150,7 @@ float WidthBulgeScore(const IntervalEvidenceSummary& summary,
     return Clamp01(bulge / std::max(1e-4F, params.nominal_lane_width_m));
 }
 
+// 可见范围覆盖率评分 —— 候选路径的有效前向覆盖程度
 float VisibleCoverageScore(const port::PathCandidate& candidate,
                            const port::RuntimeParameters& params) {
     if (!candidate.valid) {
@@ -147,10 +163,13 @@ float VisibleCoverageScore(const port::PathCandidate& candidate,
                    std::max(1e-4F, full_range_m - reliable_start_m));
 }
 
+// 已进入场景的评分 —— 只有超过进入阈值的得分才保留（否则归零）
 float EnteredSceneScore(float score, float enter_threshold) {
     return score >= enter_threshold ? score : 0.0F;
 }
 
+// 模糊场景压力计算 —— 在 release_threshold 和 enter_threshold 之间的评分产生"压力"
+// 压力使 lost_score 升高（系统不确定当前场景但又不能完全忽略）
 float AmbiguousScenePressure(float score, float release_threshold, float enter_threshold) {
     if (score >= enter_threshold) {
         return 0.0F;
@@ -167,11 +186,13 @@ float AmbiguousScenePressure(float score, float release_threshold, float enter_t
     return std::max(release_threshold, pressure);
 }
 
+// 曲率否决的环岛压力 —— 弯曲否决强时环岛分数被放大作为压力
 float CurvatureVetoedCirclePressure(float circle_score, float bend_veto_score) {
     const float curvature_scale = std::max(0.20F, 1.0F - bend_veto_score);
     return Clamp01(circle_score / curvature_scale);
 }
 
+// 未解决的曲率否决环岛评分 —— 环岛分数被否决但压力仍存时的残留评分
 float UnresolvedCurvatureVetoedCircleScore(float circle_score,
                                            float bend_veto_score,
                                            float release_threshold,
@@ -186,10 +207,7 @@ float UnresolvedCurvatureVetoedCircleScore(float circle_score,
     return std::min(pressure, std::nextafter(enter_threshold, 0.0F));
 }
 
-float ReliableOrdinaryScore(float ordinary_score, float invalid_edge_penalty) {
-    return Clamp01(ordinary_score * (1.0F - 0.5F * invalid_edge_penalty));
-}
-
+// 开口平衡评分 —— 评估左右两侧开口的对称性（较小值/较大值）
 float OpeningBalanceScore(float left_opening, float right_opening) {
     const float larger = std::max(left_opening, right_opening);
     if (larger <= 1e-4F) {
@@ -198,6 +216,7 @@ float OpeningBalanceScore(float left_opening, float right_opening) {
     return Clamp01(std::min(left_opening, right_opening) / larger);
 }
 
+// 重新获取评分 —— 候选路径有效 + 置信度达标 + 可见范围达标时返回 1.0
 float ReacquireScore(const port::PathCandidate& candidate,
                      const port::RuntimeParameters& params) {
     if (!candidate.valid ||
@@ -211,6 +230,7 @@ float ReacquireScore(const port::PathCandidate& candidate,
     return 1.0F;
 }
 
+// 弧线支撑评分 —— 检查弧线候选或分支候选是否达到可信阈值
 float ArcSupportScore(const port::PathCandidate& arc_candidate,
                       const port::PathCandidate& branch_candidate,
                       const port::RuntimeParameters& params) {
@@ -229,6 +249,8 @@ float ArcSupportScore(const port::PathCandidate& arc_candidate,
     return 0.0F;
 }
 
+// 近端锚点信任缩放 —— 当近端只有一个边界被观测到时降低 trust
+// 如果是直道场景且缺少一侧边界，trust 受到更大折损
 float NearAnchorOrdinaryTrustScale(const port::PathCandidate& ordinary,
                                    const CorridorIntervalSet& intervals,
                                    const port::RuntimeParameters& params) {
@@ -249,6 +271,8 @@ float NearAnchorOrdinaryTrustScale(const port::PathCandidate& ordinary,
     return 1.0F - 0.5F * straightness;
 }
 
+// 斑马线评分 —— 检测前向层中宽度交替变化（宽-窄-宽模式）
+// 斑马线的典型特征是间隔宽度在前向层中反复切换（条纹状）
 float ZebraStripeScore(const CorridorIntervalSet& intervals,
                        const port::RuntimeParameters& params,
                        float invalid_edge_penalty) {
@@ -288,19 +312,41 @@ float ZebraStripeScore(const CorridorIntervalSet& intervals,
 
 }  // namespace
 
+// ========== 主入口：拓扑证据评分 ==========
+// 综合多个维度评分输入，输出当前帧的场景拓扑证据。
+// 评分维度包括：
+// - invalid_edge_penalty: 无效边惩罚
+// - bilateral_opening_sync: 双侧开口同步度
+// - ordinary_score: 普通路段置信度
+// - cross_score: 十字路口得分
+// - left_circle_score / right_circle_score: 环岛得分
+// - zebra_score: 斑马线得分
+// - lost_score: 丢失得分
 port::TopologyEvidence ScoreTopologyEvidence(const port::RoadHypotheses& hypotheses,
                                              const CorridorIntervalSet& intervals,
                                              const port::VehicleContext& vehicle,
                                              const port::RuntimeParameters& params,
-                                             const port::TopologyEvidenceAccumulator& prior_accumulator) {
+                                             const port::TopologyEvidenceAccumulator& prior_accumulator,
+                                             const port::BEVElementEvidence* element_evidence) {
     (void)vehicle;
     (void)prior_accumulator;
     port::TopologyEvidence evidence{};
+    // 汇总走廊间隔统计，作为评分基础
     const IntervalEvidenceSummary summary = SummarizeIntervals(intervals, params.bev_corridor_graph);
+    // 基础证据：元素证据 + 无效边惩罚 + 开口评分 + 弯曲否决
+    const bool have_element_evidence = element_evidence != nullptr && element_evidence->valid;
+    if (have_element_evidence) {
+        evidence.element_evidence = *element_evidence;
+    }
 
     evidence.invalid_edge_penalty = summary.invalid_edge_penalty;
+    if (have_element_evidence) {
+        evidence.invalid_edge_penalty =
+            std::max(evidence.invalid_edge_penalty, element_evidence->invalid_edge_penalty);
+    }
     evidence.left_opening_score = summary.left_opening;
     evidence.right_opening_score = summary.right_opening;
+    // 双侧开口同步度 = 较小开口 / 半车道宽
     evidence.bilateral_opening_sync =
         Clamp01(std::min(summary.left_opening, summary.right_opening) /
                 std::max(1e-4F, params.bev_corridor_graph.nominal_lane_width_m * 0.5F));
@@ -309,6 +355,8 @@ port::TopologyEvidence ScoreTopologyEvidence(const port::RoadHypotheses& hypothe
         Clamp01(evidence.bend_curvature_abs / std::max(1e-4F, params.bev_corridor_graph.max_curvature_abs));
     evidence.zebra_score = intervals.valid ? ZebraStripeScore(intervals, params, evidence.invalid_edge_penalty) : 0.0F;
 
+    // ordinary_score：普通路段置信度
+    // 综合：路径置信度 × 宽度稳定性 × 边界有效性 × 可见覆盖 × 近端信任
     if (hypotheses.ordinary.valid) {
         const float visible_coverage = VisibleCoverageScore(hypotheses.ordinary, params);
         const float near_anchor_trust =
@@ -318,11 +366,21 @@ port::TopologyEvidence ScoreTopologyEvidence(const port::RoadHypotheses& hypothe
                     (1.0F - 0.5F * evidence.invalid_edge_penalty) * visible_coverage *
                     near_anchor_trust);
     }
+    // forward_reacquire_score：前向重新获取能力评分
     evidence.forward_reacquire_score = ReacquireScore(hypotheses.forward_exit, params);
 
+    // cross_score：十字路口评分
+    // 入口1：有元素证据（cross_band present）→ 直接用元素证据评分
+    // 入口2：无元素证据 → 基于双侧开口 + 宽度膨胀 + 开口平衡 + 弯曲否决
     const float width_bulge = WidthBulgeScore(summary, params.bev_corridor_graph);
     const float bilateral_open_m = std::min(summary.left_opening, summary.right_opening);
-    if (bilateral_open_m >= params.bev_scene_fsm.cross_bilateral_open_min_m) {
+    if (have_element_evidence) {
+        if (element_evidence->cross_band.present) {
+            evidence.cross_score =
+                Clamp01(std::max(element_evidence->cross_band.score,
+                                 params.bev_topology_evidence.cross_enter_score));
+        }
+    } else if (bilateral_open_m >= params.bev_scene_fsm.cross_bilateral_open_min_m) {
         const float opening_balance = OpeningBalanceScore(summary.left_opening, summary.right_opening);
         const float core_cross = std::min(width_bulge, evidence.bilateral_opening_sync);
         if (evidence.zebra_score < params.bev_topology_evidence.zebra_enter_score &&
@@ -334,29 +392,64 @@ port::TopologyEvidence ScoreTopologyEvidence(const port::RoadHypotheses& hypothe
         }
     }
 
+    // circle_score（左/右）：环岛评分
+    // 入口1（有元素证据）：用 element_evidence 的 circle_corner 评分
+    // 入口2（无元素证据）：基于开口 + 弧线支撑 + 对侧观测 + 弯曲否决
     const float left_open_score =
         Clamp01(summary.left_opening / std::max(1e-4F, params.bev_corridor_graph.nominal_lane_width_m * 0.5F));
     const float right_open_score =
         Clamp01(summary.right_opening / std::max(1e-4F, params.bev_corridor_graph.nominal_lane_width_m * 0.5F));
     const float left_arc_support = ArcSupportScore(hypotheses.left_arc, hypotheses.left_branch, params);
     const float right_arc_support = ArcSupportScore(hypotheses.right_arc, hypotheses.right_branch, params);
-    evidence.left_circle_score =
-        Clamp01(std::max(left_open_score, hypotheses.left_branch.confidence) *
-                left_arc_support *
-                summary.right_observed_ratio *
-                (1.0F - evidence.bilateral_opening_sync) *
-                (1.0F - evidence.bend_veto_score) *
-                (1.0F - 0.5F * evidence.invalid_edge_penalty));
-    evidence.right_circle_score =
-        Clamp01(std::max(right_open_score, hypotheses.right_branch.confidence) *
-                right_arc_support *
-                summary.left_observed_ratio *
-                (1.0F - evidence.bilateral_opening_sync) *
-                (1.0F - evidence.bend_veto_score) *
-                (1.0F - 0.5F * evidence.invalid_edge_penalty));
+    if (have_element_evidence) {
+        if (!element_evidence->cross_band.present) {
+            const bool left_corner_present = element_evidence->left_circle_corner.present;
+            const bool right_corner_present = element_evidence->right_circle_corner.present;
+            const float corner_dominance_margin = 0.25F;
+            const bool unilateral_left =
+                left_corner_present &&
+                (!right_corner_present ||
+                 element_evidence->left_circle_corner.score >=
+                     element_evidence->right_circle_corner.score + corner_dominance_margin);
+            const bool unilateral_right =
+                right_corner_present &&
+                (!left_corner_present ||
+                 element_evidence->right_circle_corner.score >=
+                     element_evidence->left_circle_corner.score + corner_dominance_margin);
+            if (unilateral_left) {
+                evidence.left_circle_score =
+                    Clamp01(std::max(params.bev_topology_evidence.circle_enter_score,
+                                     element_evidence->left_circle_corner.score *
+                                         (1.0F - 0.5F * element_evidence->left_circle_corner.invalid_penalty)));
+            }
+            if (unilateral_right) {
+                evidence.right_circle_score =
+                    Clamp01(std::max(params.bev_topology_evidence.circle_enter_score,
+                                     element_evidence->right_circle_corner.score *
+                                         (1.0F - 0.5F * element_evidence->right_circle_corner.invalid_penalty)));
+            }
+        }
+    } else {
+        evidence.left_circle_score =
+            Clamp01(std::max(left_open_score, hypotheses.left_branch.confidence) *
+                    left_arc_support *
+                    summary.right_observed_ratio *
+                    (1.0F - evidence.bilateral_opening_sync) *
+                    (1.0F - evidence.bend_veto_score) *
+                    (1.0F - 0.5F * evidence.invalid_edge_penalty));
+        evidence.right_circle_score =
+            Clamp01(std::max(right_open_score, hypotheses.right_branch.confidence) *
+                    right_arc_support *
+                    summary.left_observed_ratio *
+                    (1.0F - evidence.bilateral_opening_sync) *
+                    (1.0F - evidence.bend_veto_score) *
+                    (1.0F - 0.5F * evidence.invalid_edge_penalty));
+    }
 
+    // lost_score：丢失评分 = 1 - 所有已知场景中的最高得分
+    // 当 ordinary 分数低于 release 阈值时，未解决的特殊场景压力会提高 lost_score
     const float best_known =
-        std::max({ReliableOrdinaryScore(evidence.ordinary_score, evidence.invalid_edge_penalty),
+        std::max({evidence.ordinary_score,
                   EnteredSceneScore(evidence.cross_score, params.bev_topology_evidence.cross_enter_score),
                   EnteredSceneScore(evidence.left_circle_score, params.bev_topology_evidence.circle_enter_score),
                   EnteredSceneScore(evidence.right_circle_score, params.bev_topology_evidence.circle_enter_score),
@@ -383,6 +476,9 @@ port::TopologyEvidence ScoreTopologyEvidence(const port::RoadHypotheses& hypothe
     return evidence;
 }
 
+// ========== 更新拓扑证据累积器（EMA 滤波） ==========
+// 对每个评分维度做指数移动平均：next = prior * keep + current * add
+// 平滑评分波动，防止场景状态在帧间频繁抖动
 port::TopologyEvidenceAccumulator UpdateTopologyEvidenceAccumulator(
     const port::TopologyEvidence& evidence,
     const port::RuntimeParameters& params,
@@ -412,6 +508,7 @@ port::TopologyEvidenceAccumulator UpdateTopologyEvidenceAccumulator(
         prior_accumulator.value.right_opening_score * keep + evidence.right_opening_score * add;
     next.value.invalid_edge_penalty =
         prior_accumulator.value.invalid_edge_penalty * keep + evidence.invalid_edge_penalty * add;
+    next.value.element_evidence = evidence.element_evidence;
     next.update_cycles = prior_accumulator.update_cycles + 1;
     return next;
 }

@@ -1,5 +1,9 @@
 #include "port/platform_adapter.hpp"
 
+// 参数存储实现 —— 从 JSON 配置文件中加载运行时参数。
+// 支持 JSON 注释剥离、文件读取、OpenCV FileStorage 解析。
+// 负责加载所有感知/控制子系统参数（几何、采样器、走廊图、FSM、PID 等）。
+
 #include <array>
 #include <cstddef>
 #include <cmath>
@@ -12,6 +16,7 @@
 namespace ls2k::platform {
 namespace {
 
+// 读取文件全部内容到字符串
 bool ReadText(const std::string& path, std::string& out) {
     std::ifstream input(path);
     if (!input.is_open()) {
@@ -23,6 +28,8 @@ bool ReadText(const std::string& path, std::string& out) {
     return true;
 }
 
+// 剥离 JSON 中的注释（C风格 // 和 /* */），输出纯 JSON。
+// 追踪字符串字面量上下文避免误删字符串内的 '//'。
 std::string StripJsonComments(const std::string& text) {
     std::string output;
     output.reserve(text.size());
@@ -92,6 +99,7 @@ std::string StripJsonComments(const std::string& text) {
     return output;
 }
 
+// 基于 OpenCV FileStorage 解析 JSON 字符串为结构化节点树
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
         const std::string sanitized = StripJsonComments(text);
@@ -107,6 +115,7 @@ bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     return !root.empty() && root.isMap();
 }
 
+// 从 JSON 节点读取数值（整数或浮点数）
 bool ReadNumberNode(const cv::FileNode& node, double& value) {
     if (node.empty() || (!node.isInt() && !node.isReal())) {
         return false;
@@ -115,10 +124,12 @@ bool ReadNumberNode(const cv::FileNode& node, double& value) {
     return true;
 }
 
+// 读取必填数值参数，缺失则返回 false
 bool ReadRequiredNumber(const cv::FileNode& root, const char* key, double& value) {
     return ReadNumberNode(root[key], value);
 }
 
+// 读取整数值，验证数值是否为整数（允许浮点数但必须有整数精度）
 bool ReadIntegerValue(const cv::FileNode& node, int& value) {
     double numeric = 0.0;
     if (!ReadNumberNode(node, numeric)) {
@@ -136,6 +147,7 @@ bool ReadRequiredInt(const cv::FileNode& root, const char* key, int& value) {
     return ReadIntegerValue(root[key], value);
 }
 
+// 读取布尔值，支持整数/字符串格式（true/TRUE/1/yes/on 等）
 bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     if (node.empty()) {
         return false;
@@ -158,6 +170,7 @@ bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     return false;
 }
 
+// 读取字符串值
 bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     if (node.empty() || !node.isString()) {
         return false;
@@ -166,6 +179,7 @@ bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     return true;
 }
 
+// 读取可选数值参数（缺失不报错，格式错误标记 malformed）
 void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -176,6 +190,7 @@ void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value
     }
 }
 
+// 读取可选整数参数
 void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -186,6 +201,7 @@ void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool
     }
 }
 
+// 读取可选布尔参数
 void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -196,6 +212,7 @@ void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bo
     }
 }
 
+// 读取嵌套可选数值参数（const char* child, double 版本）
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -218,6 +235,7 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
+// 读取嵌套可选数值参数（std::string child, double 版本）
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -240,6 +258,7 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
+// float 特化的嵌套数值读取（const char* child, float 版本，通过 double 中转）
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -250,6 +269,7 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
+// float 特化嵌套数值读取（std::string child, float 版本）
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -260,6 +280,7 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
+// 读取嵌套可选浮点数组（固定长度 N）
 template <std::size_t N>
 void ReadOptionalNestedFloatArray(const cv::FileNode& root,
                                   const char* parent,
@@ -292,6 +313,7 @@ void ReadOptionalNestedFloatArray(const cv::FileNode& root,
     }
 }
 
+// 读取嵌套可选布尔值
 void ReadOptionalNestedBool(const cv::FileNode& root,
                             const char* parent,
                             const char* child,
@@ -314,6 +336,7 @@ void ReadOptionalNestedBool(const cv::FileNode& root,
     }
 }
 
+// 读取嵌套可选整数
 void ReadOptionalNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -336,6 +359,7 @@ void ReadOptionalNestedInt(const cv::FileNode& root,
     }
 }
 
+// 读取嵌套可选字符串
 void ReadOptionalNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -358,6 +382,7 @@ void ReadOptionalNestedString(const cv::FileNode& root,
     }
 }
 
+// 读取必填嵌套数值参数（缺失返回 false）
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -369,6 +394,7 @@ bool ReadRequiredNestedNumber(const cv::FileNode& root,
     return ReadNumberNode(parent_node[child], value);
 }
 
+// 读取必填嵌套字符串值
 bool ReadRequiredNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -380,6 +406,7 @@ bool ReadRequiredNestedString(const cv::FileNode& root,
     return ReadStringValue(parent_node[child], value);
 }
 
+// 读取必填嵌套整数值
 bool ReadRequiredNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -391,6 +418,7 @@ bool ReadRequiredNestedInt(const cv::FileNode& root,
     return ReadIntegerValue(parent_node[child], value);
 }
 
+// 读取必填字符串值
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
     const cv::FileNode node = root[key];
     if (node.empty() || !node.isString()) {
@@ -400,6 +428,7 @@ bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& 
     return true;
 }
 
+// 解析子系统模式文本枚举
 bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     if (mode_text == "adaptation-hook") {
         mode = port::SubsystemMode::kAdaptationHook;
@@ -416,6 +445,7 @@ bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     return false;
 }
 
+// 解析硬件配置文件的子系统块（mode + hook）
 bool ParseProfileBlock(const cv::FileNode& root,
                        const char* key,
                        port::SubsystemProfile& out_profile) {
@@ -438,6 +468,7 @@ bool ParseProfileBlock(const cv::FileNode& root,
     return true;
 }
 
+// 生成子系统解析错误详情字符串
 std::string ProfileBlockError(const char* key) {
     return std::string("hardware profile parse failure for subsystem '") + key +
            "' (missing block or malformed mode/hook)";
@@ -445,6 +476,8 @@ std::string ProfileBlockError(const char* key) {
 
 class ParamStore final : public port::IParamStore {
 public:
+    // 从 JSON 文件加载全部运行时参数。先读文件→剥注释→解析 JSON→
+    // 依次提取必填字段和可选字段→校验完整性→回退默认值保护。
     bool LoadRuntimeParameters(const std::string& path,
                                port::RuntimeParameters& out,
                                port::DiagnosticSink& diagnostics) override {
@@ -474,6 +507,7 @@ public:
         const cv::FileNode root = json.root();
         port::RuntimeParameters parsed{};
         bool all_ok = true;
+        // --- 必填参数：缺失直接导致解析失败 ---
         all_ok &= ReadRequiredNumber(root, "Speed_base", parsed.Speed_base);
         all_ok &= ReadRequiredNumber(root, "see_max", parsed.see_max);
         all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_GYRO_CAMERA", "D", parsed.pid_turn_gyro_camera_d);
@@ -492,6 +526,7 @@ public:
         all_ok &= ReadRequiredNestedString(root, "assistant_tcp", "host", parsed.assistant_tcp.host);
         all_ok &= ReadRequiredNestedInt(root, "assistant_tcp", "port", parsed.assistant_tcp.port);
 
+        // --- 可选参数：缺失使用结构体默认值，格式错误标记 malformed ---
         bool optional_malformed = false;
         ReadOptionalInt(root, "emergency_threshold", parsed.emergency_threshold, optional_malformed);
         ReadOptionalInt(root, "control_period_ms", parsed.control_period_ms, optional_malformed);
@@ -596,6 +631,7 @@ public:
                                  "PROJECTOR_HASH",
                                  parsed.bev_projector.projector_hash,
                                  optional_malformed);
+        // --- 可选参数：BEV 投影校准 ---
         for (int index = 0; index < static_cast<int>(port::kBevCalibrationPointCount); ++index) {
             ReadOptionalNestedNumber(root,
                                      "BEV_PROJECTOR",
@@ -618,6 +654,7 @@ public:
                                      parsed.bev_projector.target_points[static_cast<std::size_t>(index)].lateral_m,
                                      optional_malformed);
         }
+        // --- 可选参数：BEV 几何配置 ---
         for (int index = 0; index < static_cast<int>(port::kBevTrackSampleCount); ++index) {
             ReadOptionalNestedNumber(root,
                                      "BEV_GEOMETRY",
@@ -676,6 +713,7 @@ public:
                               parsed.bev_geometry.image_border_truncation_margin_px,
                               optional_malformed);
         parsed.bev_corridor_graph.nominal_lane_width_m = parsed.bev_geometry.nominal_lane_width_m;
+        // --- BEV 拓扑采样器参数 ---
         ReadOptionalNestedFloatArray(root,
                                      "BEV_TOPOLOGY_SAMPLER",
                                      "FORWARD_SAMPLES_M",
@@ -718,6 +756,7 @@ public:
                                  "UNKNOWN_CONFIDENCE_MIN",
                                  parsed.bev_topology_sampler.unknown_confidence_min,
                                  optional_malformed);
+        // --- BEV 走廊图参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_CORRIDOR_GRAPH",
                                  "NOMINAL_LANE_WIDTH_M",
@@ -753,6 +792,7 @@ public:
                                  "PRIOR_CARRY_CONFIDENCE_SCALE",
                                  parsed.bev_corridor_graph.prior_carry_confidence_scale,
                                  optional_malformed);
+        // --- BEV 拓扑证据参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_TOPOLOGY_EVIDENCE",
                                  "CROSS_ENTER_SCORE",
@@ -793,9 +833,10 @@ public:
                                  "EVIDENCE_DECAY",
                                  parsed.bev_topology_evidence.evidence_decay,
                                  optional_malformed);
+        // --- BEV 路径策略参数 ---
         ReadOptionalNestedInt(root,
-                              "BEV_REFERENCE_POLICY",
-                              "HOLD_LAST_MAX_CYCLES",
+                              "BEV_PATH_POLICY",
+                              "CROSS_EXIT_MIN_LAYERS",
                               parsed.bev_reference_policy.hold_last_max_cycles,
                               optional_malformed);
         ReadOptionalNestedInt(root,
@@ -813,6 +854,57 @@ public:
                                  "STABLE_BOUNDARY_CONFIDENCE_MIN",
                                  parsed.bev_reference_policy.stable_boundary_confidence_min,
                                  optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_PATH_POLICY",
+                              "CROSS_EXIT_MIN_LAYERS",
+                              parsed.bev_path_policy.cross_exit_min_layers,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "CROSS_EXIT_AFTER_BAND_MIN_M",
+                                 parsed.bev_path_policy.cross_exit_after_band_min_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "CROSS_EXIT_HEADING_ABS_MAX_RAD",
+                                 parsed.bev_path_policy.cross_exit_heading_abs_max_rad,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_PATH_POLICY",
+                              "CIRCLE_INNER_MIN_LAYERS",
+                              parsed.bev_path_policy.circle_inner_min_layers,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "CIRCLE_TANGENT_PARALLEL_ABS_MAX_RAD",
+                                 parsed.bev_path_policy.circle_tangent_parallel_abs_max_rad,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "CIRCLE_EXIT_YAW_DEG",
+                                 parsed.bev_path_policy.circle_exit_yaw_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_PATH_POLICY",
+                              "REFERENCE_BLEND_CYCLES",
+                              parsed.bev_path_policy.reference_blend_cycles,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "TRUSTED_REFERENCE_DECAY",
+                                 parsed.bev_path_policy.trusted_reference_decay,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "REFERENCE_COMPATIBILITY_TAU_M",
+                                 parsed.bev_path_policy.reference_compatibility_tau_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_PATH_POLICY",
+                                 "REFERENCE_COMPATIBILITY_MAX_ERROR_M",
+                                 parsed.bev_path_policy.reference_compatibility_max_error_m,
+                                 optional_malformed);
+        // --- BEV 场景 FSM 参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_SCENE_FSM",
                                  "BEND_SEVERITY_CONFIRM",
@@ -878,6 +970,7 @@ public:
                                  "RELEASE_TRACK_CONFIDENCE_MIN",
                                  parsed.bev_scene_fsm.release_track_confidence_min,
                                  optional_malformed);
+        // --- BEV 控制模型参数 ---
         ReadOptionalNestedInt(root,
                               "BEV_CONTROL_MODEL",
                               "NEAR_SAMPLE_INDEX",
@@ -973,6 +1066,7 @@ public:
                                  "MEASUREMENT_FILTER_ALPHA",
                                  parsed.right_wheel_pid.measurement_filter_alpha,
                                  optional_malformed);
+        // 综合校验：必填字段成功 + 无格式错误
         all_ok = all_ok && !optional_malformed;
 
         if (!all_ok) {
@@ -1001,6 +1095,7 @@ public:
         return true;
     }
 
+    // 从 JSON 文件加载硬件配置（camera/imu/encoder/motor/timer/persistence/display 子系统）
     bool LoadHardwareProfile(const std::string& path,
                              port::HardwareProfile& out,
                              port::DiagnosticSink& diagnostics) override {
@@ -1082,6 +1177,7 @@ public:
         return true;
     }
 
+    // 应用启动物联网关键参数（P_Mode, exp_light）有效性校验
     void ApplyStartupCritical(port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) override {
         const bool p_mode_ok = params.P_Mode >= 0 && params.P_Mode <= 4;
         const bool exposure_ok = params.exp_light >= 0 && params.exp_light <= 2500;

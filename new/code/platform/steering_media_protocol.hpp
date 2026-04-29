@@ -1,6 +1,9 @@
 #ifndef LS2K_PLATFORM_STEERING_MEDIA_PROTOCOL_HPP
 #define LS2K_PLATFORM_STEERING_MEDIA_PROTOCOL_HPP
 
+// 转向媒体协议定义 —— 参数快照、图像帧和编码/解码接口。
+// 用于将感知/控制状态和相机帧打包传输到外部媒体系统。
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -10,8 +13,10 @@
 
 namespace ls2k::platform {
 
+// 计算指定分辨率下图像负载的字节数
 std::size_t SteeringMediaImagePayloadBytes(int width, int height);
 
+// 参数快照视图 —— 包含 PID 参数和 BEV 配置的运行时快照
 struct SteeringMediaParamSnapshotView {
     double pid_turn_camera_p = 0.0;
     double pid_turn_camera_p_scale = 0.0;
@@ -32,6 +37,7 @@ struct SteeringMediaParamSnapshotView {
     port::BEVCorridorGraphParameters bev_corridor_graph{};
     port::BEVTopologyEvidenceParameters bev_topology_evidence{};
     port::BEVReferencePolicyParameters bev_reference_policy{};
+    port::BEVPathPolicyParameters bev_path_policy{};
 };
 
 struct SteeringMediaSnapshotView {
@@ -90,6 +96,10 @@ struct SteeringMediaSnapshotView {
     std::string circle_direction = "none";
     std::string circle_reference_mode = "none";
     double circle_heading_delta_deg = 0.0;
+    double circle_yaw_accum_deg = 0.0;
+    std::string circle_path_phase = "none";
+    double reference_compatibility_error_m = 0.0;
+    std::string reference_source = "none";
     bool circle_entry_signal_active = false;
 };
 

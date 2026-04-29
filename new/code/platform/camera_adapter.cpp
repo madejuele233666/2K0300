@@ -2,6 +2,9 @@
 #include "platform/true_ls2k0300/bridge.hpp"
 #include "platform/true_ls2k0300/vendor_paths.hpp"
 
+// 相机适配器实现 —— 平台级相机硬件适配层。
+// 负责初始化相机硬件、采集帧数据、转换为 LegacyCameraFrame 格式。
+
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>

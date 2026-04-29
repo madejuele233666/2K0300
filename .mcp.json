@@ -12,6 +12,14 @@
       "env": {
         "PROJECT_ROOT": "/home/madejuele/projects/2K0300"
       }
+    },
+    "ast-grep-mcp": {
+      "command": "/home/madejuele/.local/bin/uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/ast-grep/ast-grep-mcp",
+        "ast-grep-server"
+      ]
     }
   }
 }

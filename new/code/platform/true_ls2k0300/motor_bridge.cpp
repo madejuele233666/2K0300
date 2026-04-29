@@ -1,3 +1,6 @@
+// 电机桥接实现 —— 通过供应商 PWM/GPIO 字符设备控制差速驱动电机。
+// 管理方向切换（GPIO 电平）和占空比（PWM 写入）的时序协调。
+
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <algorithm>
@@ -23,15 +26,18 @@ struct MotorApplyState {
     bool last_pwm_zero = true;
 };
 
+// 逻辑映射：右路 PWM/GPIO 控制左电机，左路 PWM/GPIO 控制右电机（硬件接脚交叉）
 constexpr MotorChannel kLogicalLeftMotor = {kRightMotorPwmPath, kRightMotorGpioPath};
 constexpr MotorChannel kLogicalRightMotor = {kLeftMotorPwmPath, kLeftMotorGpioPath};
 MotorApplyState g_left_motor_state{};
 MotorApplyState g_right_motor_state{};
 
+// 供应商方向约定与逻辑方向相反，取负
 int NormalizeLogicalDutyToVendorDirection(int logical_duty) {
     return -logical_duty;
 }
 
+// 测试路径是否可写打开
 bool OpenWritable(const char* path) {
     const int fd = open(path, O_WRONLY);
     if (fd < 0) {
@@ -40,6 +46,7 @@ bool OpenWritable(const char* path) {
     return close(fd) == 0;
 }
 
+// 以二进制写入字符设备（PWM 占空比或 GPIO 电平）
 template <typename T>
 bool WriteBinary(const char* path, const T& value) {
     const int fd = open(path, O_WRONLY);
@@ -55,6 +62,7 @@ bool WriteBinary(const char* path, const T& value) {
     return accepted && close_rc == 0;
 }
 
+// 施加单电机命令 —— 方向变化时先清零 PWM → 写 GPIO → 再写 PWM
 BridgeStatus ApplyOne(const MotorChannel& channel, MotorApplyState& state, int signed_duty) {
     BridgeStatus status{};
     const int vendor_signed_duty = NormalizeLogicalDutyToVendorDirection(signed_duty);
@@ -87,6 +95,7 @@ BridgeStatus ApplyOne(const MotorChannel& channel, MotorApplyState& state, int s
     return status;
 }
 
+// 探测电机设备路径的可访问性
 BridgeStatus ProbeMotorPath(const char* path) {
     BridgeStatus status{};
     if (!OpenWritable(path)) {
@@ -100,6 +109,7 @@ BridgeStatus ProbeMotorPath(const char* path) {
 
 }  // namespace
 
+// 初始化电机 —— 探测 PWM/GPIO 路径可写性
 BridgeStatus InitializeMotor() {
     for (const char* path : {kLeftMotorPwmPath, kRightMotorPwmPath, kLeftMotorGpioPath, kRightMotorGpioPath}) {
         const BridgeStatus probe = ProbeMotorPath(path);
@@ -112,6 +122,7 @@ BridgeStatus InitializeMotor() {
     return {true, "motor PWM/GPIO resources probed successfully"};
 }
 
+// 施加电机命令（左右 PWM）。任一路失败时回滚禁用全部输出。
 BridgeStatus ApplyMotorCommand(int left_pwm, int right_pwm) {
     const BridgeStatus left = ApplyOne(kLogicalLeftMotor, g_left_motor_state, left_pwm);
     if (!left.ok) {
@@ -133,6 +144,7 @@ BridgeStatus ApplyMotorCommand(int left_pwm, int right_pwm) {
     return right;
 }
 
+// 禁用电机输出 —— 将左右 PWM 清零
 BridgeStatus DisableMotorOutput() {
     const uint16_t zero = 0;
     if (!WriteBinary(kLeftMotorPwmPath, zero)) {

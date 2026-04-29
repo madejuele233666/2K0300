@@ -1,5 +1,8 @@
 #include "platform/steering_media_protocol.hpp"
 
+// 转向媒体协议实现 —— 参数快照和图像帧的编码/解码。
+// 使用 JSON 头部 + 二进制负载的复合格式，支持媒体链路传输。
+
 #include <cstring>
 #include <iomanip>
 #include <limits>
@@ -8,6 +11,7 @@
 namespace ls2k::platform {
 namespace {
 
+// JSON 字符串转义追加（处理控制字符和引号）
 void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
     for (const char ch : value) {
@@ -41,14 +45,17 @@ void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
 }
 
+// JSON 数值追加（12 位精度）
 void AppendJsonNumber(std::ostringstream& stream, double value) {
     stream << std::setprecision(12) << value;
 }
 
+// JSON 布尔值追加
 void AppendJsonBool(std::ostringstream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
+// 构建转向快照 JSON —— 将 SteeringMediaSnapshotView 序列化为 JSON 对象
 std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot) {
     std::ostringstream stream;
     stream << "{";
@@ -133,6 +140,14 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     AppendJsonString(stream, snapshot.circle_reference_mode);
     stream << ",\"circle_heading_delta_deg\":";
     AppendJsonNumber(stream, snapshot.circle_heading_delta_deg);
+    stream << ",\"circle_yaw_accum_deg\":";
+    AppendJsonNumber(stream, snapshot.circle_yaw_accum_deg);
+    stream << ",\"circle_path_phase\":";
+    AppendJsonString(stream, snapshot.circle_path_phase);
+    stream << ",\"reference_compatibility_error_m\":";
+    AppendJsonNumber(stream, snapshot.reference_compatibility_error_m);
+    stream << ",\"reference_source\":";
+    AppendJsonString(stream, snapshot.reference_source);
     stream << ",\"circle_entry_signal_active\":";
     AppendJsonBool(stream, snapshot.circle_entry_signal_active);
     stream << ",\"roadblock_interface_state\":";
@@ -161,6 +176,7 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     return stream.str();
 }
 
+// 编码媒体信封 —— 4 字节头部长度 + 4 字节负载长度 + JSON 头部 + 二进制负载
 bool EncodeEnvelope(const std::string& header_json,
                     const std::uint8_t* payload_data,
                     std::size_t payload_size,
@@ -196,6 +212,7 @@ bool EncodeEnvelope(const std::string& header_json,
 
 }  // namespace
 
+// 计算灰度图像负载字节数
 std::size_t SteeringMediaImagePayloadBytes(int width, int height) {
     if (width <= 0 || height <= 0) {
         return 0;
@@ -203,6 +220,7 @@ std::size_t SteeringMediaImagePayloadBytes(int width, int height) {
     return static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
 }
 
+// 校验图像负载尺寸是否与声明分辨率一致
 bool ValidateSteeringMediaImagePayload(int width,
                                        int height,
                                        std::size_t payload_size,
@@ -220,6 +238,7 @@ bool ValidateSteeringMediaImagePayload(int width,
     return true;
 }
 
+// 编码参数配置快照为媒体信封格式
 bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapshot,
                                        std::vector<std::uint8_t>& encoded,
                                        std::string& error) {
@@ -362,6 +381,28 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"STABLE_BOUNDARY_CONFIDENCE_MIN\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_reference_policy.stable_boundary_confidence_min);
     header << "}";
+    header << ",\"BEV_PATH_POLICY\":{";
+    header << "\"CROSS_EXIT_MIN_LAYERS\":"
+           << snapshot.param_snapshot.bev_path_policy.cross_exit_min_layers;
+    header << ",\"CROSS_EXIT_AFTER_BAND_MIN_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.cross_exit_after_band_min_m);
+    header << ",\"CROSS_EXIT_HEADING_ABS_MAX_RAD\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.cross_exit_heading_abs_max_rad);
+    header << ",\"CIRCLE_INNER_MIN_LAYERS\":"
+           << snapshot.param_snapshot.bev_path_policy.circle_inner_min_layers;
+    header << ",\"CIRCLE_TANGENT_PARALLEL_ABS_MAX_RAD\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.circle_tangent_parallel_abs_max_rad);
+    header << ",\"CIRCLE_EXIT_YAW_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.circle_exit_yaw_deg);
+    header << ",\"REFERENCE_BLEND_CYCLES\":"
+           << snapshot.param_snapshot.bev_path_policy.reference_blend_cycles;
+    header << ",\"TRUSTED_REFERENCE_DECAY\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.trusted_reference_decay);
+    header << ",\"REFERENCE_COMPATIBILITY_TAU_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.reference_compatibility_tau_m);
+    header << ",\"REFERENCE_COMPATIBILITY_MAX_ERROR_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_path_policy.reference_compatibility_max_error_m);
+    header << "}";
     header << ",\"BEV_SCENE_FSM\":{";
     header << "\"BEND_SEVERITY_CONFIRM\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_scene_fsm.bend_severity_confirm);
@@ -422,6 +463,7 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);
 }
 
+// 编码图像帧为媒体信封格式（JSON 头部 + 灰度像素数据）
 bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
                                    std::vector<std::uint8_t>& encoded,
                                    std::string& error) {
@@ -450,6 +492,7 @@ bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
     return EncodeEnvelope(header.str(), frame.pixel_data, frame.pixel_size, encoded, error);
 }
 
+// 解码媒体信封 —— 解析 8 字节前缀 + JSON 头部 + 二进制负载
 bool DecodeSteeringMediaEnvelope(const std::uint8_t* data,
                                  std::size_t size,
                                  std::string& header_json,

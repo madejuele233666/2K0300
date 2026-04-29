@@ -1,5 +1,8 @@
 #include "runtime/perception_frontend.hpp"
 
+// 感知前端实现 —— 运行时感知管线调度。
+// 负责故障注入、诊断发布、感知结果缓存和前端线程生命周期管理。
+
 #include <cstdlib>
 #include <string>
 
@@ -8,6 +11,7 @@
 namespace ls2k::runtime {
 namespace {
 
+// 从环境变量读取正整数值（用于故障注入间隔）
 int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
     const char* value = std::getenv(key);
     if (value == nullptr || value[0] == '\0') {
@@ -29,6 +33,7 @@ int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, 
     return 0;
 }
 
+// 构建丢帧回退感知结果（用于故障注入场景）
 port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capture) {
     port::PerceptionResult fallback{};
     fallback.published = true;
@@ -42,11 +47,13 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     return fallback;
 }
 
+// 缓存最新相机帧到运行时状态
 void RememberCameraCapture(RuntimeState& state, const port::CameraCapture& capture) {
     state.latest_camera_capture = capture;
     state.recent_camera_captures.Push(capture);
 }
 
+// 将感知分析结果应用到转向运行时状态
 void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analysis, RuntimeState& state) {
     if (analysis.steering_state_update_valid) {
         state.steering_state = analysis.steering_state_update;
@@ -67,6 +74,7 @@ PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
                                        port::DiagnosticSink& diagnostics)
     : camera_(camera), power_(power), state_(state), diagnostics_(diagnostics) {}
 
+// 刷新低电压状态 —— 从电源监控采样并更新紧急标志
 void PerceptionFrontend::RefreshLowVoltageState() {
     const port::LowVoltageSample sample = power_.SampleLowVoltage(diagnostics_);
     if (!sample.valid) {
@@ -92,6 +100,7 @@ void PerceptionFrontend::RefreshLowVoltageState() {
     }
 }
 
+// 处理一帧图像：低电压检查 → 故障注入 → 空帧处理 → AnalyzeFrame 感知
 void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) {
     RefreshLowVoltageState();
     ++processed_frames_;

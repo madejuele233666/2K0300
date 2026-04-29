@@ -1,14 +1,25 @@
 #include "legacy/steering_topology_hypotheses.hpp"
 
+// 道路假设生成实现。
+// 在走廊图的最优路径（ordinary）基础上，派生出多种场景候选路径：
+// - forward_exit: 基于最佳观测间隔的前向退出路径
+// - cross_exit: 十字路口退出路径（在 cross_band 之后）
+// - left_arc/right_arc: 沿法线偏移的弧线路径
+// - circle_inner_left/right: 环岛内侧路径（沿边界跟随）
+// - circle_outer_guard: 环岛外侧守卫路径
+// - left_branch/right_branch: 分支候选路径
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 
 #include "legacy/steering_bev_geometry.hpp"
+#include "legacy/steering_path_math.hpp"
 
 namespace ls2k::legacy {
 namespace {
 
+// 刷新候选路径的前向范围（start_forward_m / end_forward_m）
 void RefreshCandidateForwardRange(port::PathCandidate& candidate) {
     bool have_sample = false;
     for (const port::BEVPathSample& sample : candidate.sampled_path) {
@@ -23,12 +34,90 @@ void RefreshCandidateForwardRange(port::PathCandidate& candidate) {
     }
 }
 
+// 统计候选路径中有效采样点的数量
+int CountValidSamples(const port::PathCandidate& candidate) {
+    int count = 0;
+    for (const port::BEVPathSample& sample : candidate.sampled_path) {
+        if (sample.valid) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+// 裁剪路径在指定前向距离之后的部分（用于环岛转角处局部化路径）
+void TrimCandidateAfterForward(port::PathCandidate& candidate, float max_forward_m) {
+    if (!candidate.valid) {
+        return;
+    }
+    for (port::BEVPathSample& sample : candidate.sampled_path) {
+        if (sample.valid && sample.point.forward_m > max_forward_m) {
+            sample = {};
+        }
+    }
+    candidate.valid = CountValidSamples(candidate) >= 2;
+    if (candidate.valid) {
+        RefreshCandidateForwardRange(candidate);
+    }
+}
+
+// 裁剪路径在指定前向距离之前的部分
+void TrimCandidateBeforeForward(port::PathCandidate& candidate, float min_forward_m) {
+    if (!candidate.valid) {
+        return;
+    }
+    for (port::BEVPathSample& sample : candidate.sampled_path) {
+        if (sample.valid && sample.point.forward_m < min_forward_m) {
+            sample = {};
+        }
+    }
+    candidate.valid = CountValidSamples(candidate) >= 2;
+    if (candidate.valid) {
+        RefreshCandidateForwardRange(candidate);
+    }
+}
+
+// 将候选路径的第一个有效点之前的层用线性插值"桥接"到道路中心
+// 用于裁剪后近端空缺的路径，使其在近端平滑过渡到中心线
+void BridgeCandidateFromNearCenter(port::PathCandidate& candidate,
+                                   const port::RuntimeParameters& params) {
+    if (!candidate.valid) {
+        return;
+    }
+    std::size_t first_valid = port::kBevTrackSampleCount;
+    for (std::size_t index = 0; index < candidate.sampled_path.size(); ++index) {
+        if (candidate.sampled_path[index].valid) {
+            first_valid = index;
+            break;
+        }
+    }
+    if (first_valid == 0U || first_valid >= port::kBevTrackSampleCount) {
+        return;
+    }
+    const port::BEVPathSample first_sample = candidate.sampled_path[first_valid];
+    const float start_forward = params.bev_topology_sampler.forward_samples_m[0];
+    const float span = std::max(1.0e-4F, first_sample.point.forward_m - start_forward);
+    for (std::size_t index = 0; index < first_valid; ++index) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[index];
+        const float t = std::clamp((forward - start_forward) / span, 0.0F, 1.0F);
+        port::BEVPathSample bridge{};
+        bridge.valid = true;
+        bridge.point.forward_m = forward;
+        bridge.point.lateral_m = first_sample.point.lateral_m * t;
+        bridge.confidence = std::clamp(first_sample.confidence * (0.45F + 0.35F * t), 0.0F, 1.0F);
+        candidate.sampled_path[index] = bridge;
+    }
+    RefreshCandidateForwardRange(candidate);
+}
+
+// 终态化候选路径：设置有效性、置信度、平均宽度、宽度稳定性、曲率
 void FinalizeCandidate(port::PathCandidate& candidate,
                        int valid_count,
                        float confidence_sum,
                        float width_sum,
-                       const port::RuntimeParameters& params) {
-    candidate.valid = valid_count >= 3;
+                       const port::RuntimeParameters& params,
+                       int min_valid_count = 3) {
+    candidate.valid = valid_count >= std::max(1, min_valid_count);
     if (!candidate.valid) {
         return;
     }
@@ -56,12 +145,7 @@ void FinalizeCandidate(port::PathCandidate& candidate,
         last = &sample;
     }
     if (first != nullptr && mid != nullptr && last != nullptr && first != mid && mid != last) {
-        const float ds1 = std::max(1e-4F, mid->point.forward_m - first->point.forward_m);
-        const float ds2 = std::max(1e-4F, last->point.forward_m - mid->point.forward_m);
-        const float slope1 = (mid->point.lateral_m - first->point.lateral_m) / ds1;
-        const float slope2 = (last->point.lateral_m - mid->point.lateral_m) / ds2;
-        candidate.curvature =
-            (slope2 - slope1) / std::max(1e-4F, last->point.forward_m - first->point.forward_m);
+        candidate.curvature = PathCurvatureFromThreeSamples(*first, *mid, *last);
         candidate.curvature_consistency =
             std::clamp(1.0F - std::abs(candidate.curvature) /
                                  std::max(1e-4F, params.bev_corridor_graph.max_curvature_abs),
@@ -70,6 +154,8 @@ void FinalizeCandidate(port::PathCandidate& candidate,
     }
 }
 
+// 在指定层中找到最佳的双侧观测间隔（左右边界均有效且宽度在有效范围内）
+// 置信度最高的间隔胜出
 const port::CorridorInterval* BestObservedInterval(const CorridorIntervalLayer& layer,
                                                    const port::RuntimeParameters& params) {
     const port::CorridorInterval* best = nullptr;
@@ -89,16 +175,17 @@ const port::CorridorInterval* BestObservedInterval(const CorridorIntervalLayer& 
     return best;
 }
 
+// 构建前向退出候选路径（完整版，可指定起始层和最小有效点数）
+// 从 start_layer 开始遍历后续各层，每层选 BestObservedInterval
 port::PathCandidate BuildForwardExitCandidate(const CorridorIntervalSet& intervals,
-                                              const port::RuntimeParameters& params) {
+                                              const port::RuntimeParameters& params,
+                                              std::size_t start_layer,
+                                              int min_valid_count) {
     port::PathCandidate candidate{};
     candidate.mode = port::ReferenceMode::kBlendToExit;
     int valid_count = 0;
     float confidence_sum = 0.0F;
     float width_sum = 0.0F;
-    const std::size_t start_layer =
-        std::min<std::size_t>(static_cast<std::size_t>(std::max(0, params.bev_control_model.curvature_sample_index)),
-                              port::kBevTrackSampleCount - 1U);
     for (std::size_t layer = start_layer; layer < port::kBevTrackSampleCount; ++layer) {
         const port::CorridorInterval* interval = BestObservedInterval(intervals.layers[layer], params);
         if (interval == nullptr) {
@@ -114,13 +201,84 @@ port::PathCandidate BuildForwardExitCandidate(const CorridorIntervalSet& interva
         width_sum += interval->width_m;
         ++valid_count;
     }
-    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params);
+    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params, min_valid_count);
     return candidate;
 }
 
+// 构建前向退出候选路径（简化版）—— 从 curvature_sample_index 层开始搜索
+port::PathCandidate BuildForwardExitCandidate(const CorridorIntervalSet& intervals,
+                                              const port::RuntimeParameters& params) {
+    const std::size_t start_layer =
+        std::min<std::size_t>(static_cast<std::size_t>(std::max(0, params.bev_control_model.curvature_sample_index)),
+                              port::kBevTrackSampleCount - 1U);
+    return BuildForwardExitCandidate(intervals, params, start_layer, 3);
+}
+
+// 找到前向采样网格中第一个 >= 指定距离的层索引
+std::size_t FirstForwardLayerAtOrAfter(const port::RuntimeParameters& params, float forward_m) {
+    for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
+        if (params.bev_topology_sampler.forward_samples_m[layer] >= forward_m) {
+            return layer;
+        }
+    }
+    return port::kBevTrackSampleCount - 1U;
+}
+
+// 计算候选路径的绝对航向角（首尾有效点的方向）
+float CandidateHeadingAbs(const port::PathCandidate& candidate) {
+    const port::BEVPathSample* first = nullptr;
+    const port::BEVPathSample* last = nullptr;
+    for (const port::BEVPathSample& sample : candidate.sampled_path) {
+        if (!sample.valid) {
+            continue;
+        }
+        if (first == nullptr) {
+            first = &sample;
+        }
+        last = &sample;
+    }
+    if (first == nullptr || last == nullptr || first == last) {
+        return 0.0F;
+    }
+    const float df = last->point.forward_m - first->point.forward_m;
+    if (std::abs(df) < 1e-4F) {
+        return 0.0F;
+    }
+    return std::abs(std::atan2(last->point.lateral_m - first->point.lateral_m, df));
+}
+
+// 构建十字路口退出候选路径
+// 在 cross_band 位置之后 start_layer 层开始搜索出口
+// 如果路径航向角过大（转弯太急），视为无效
+port::PathCandidate BuildCrossExitCandidate(const CorridorIntervalSet& intervals,
+                                            const port::RuntimeParameters& params,
+                                            const port::BEVElementEvidence* element_evidence) {
+    if (element_evidence == nullptr || !element_evidence->valid ||
+        !element_evidence->cross_band.present) {
+        return {};
+    }
+    const float start_forward = element_evidence->cross_band.forward_m +
+                                params.bev_path_policy.cross_exit_after_band_min_m;
+    const std::size_t start_layer = FirstForwardLayerAtOrAfter(params, start_forward);
+    port::PathCandidate candidate =
+        BuildForwardExitCandidate(intervals,
+                                  params,
+                                  start_layer,
+                                  std::max(1, params.bev_path_policy.cross_exit_min_layers));
+    candidate.mode = port::ReferenceMode::kBlendToExit;
+    if (candidate.valid &&
+        CandidateHeadingAbs(candidate) > params.bev_path_policy.cross_exit_heading_abs_max_rad) {
+        candidate.valid = false;
+    }
+    return candidate;
+}
+
+// 构建边界偏移候选路径 —— 沿某一侧边界 + 法线偏移半车道宽
+// 用于左右弧线路径，在没有中心线弧线候选时作为 fallback
 port::PathCandidate BuildBoundaryOffsetCandidate(const CorridorIntervalSet& intervals,
                                                  bool left_boundary,
-                                                 const port::RuntimeParameters& params) {
+                                                 const port::RuntimeParameters& params,
+                                                 int min_valid_count = 3) {
     port::PathCandidate candidate{};
     candidate.mode = port::ReferenceMode::kStableBoundaryOffset;
     int valid_count = 0;
@@ -150,7 +308,7 @@ port::PathCandidate BuildBoundaryOffsetCandidate(const CorridorIntervalSet& inte
         width_sum += std::max(1e-4F, best->width_m);
         ++valid_count;
     }
-    if (valid_count < 3) {
+    if (valid_count < std::max(1, min_valid_count)) {
         return candidate;
     }
 
@@ -164,7 +322,7 @@ port::PathCandidate BuildBoundaryOffsetCandidate(const CorridorIntervalSet& inte
                                         std::max(std::abs(params.bev_topology_sampler.lateral_step_m),
                                                  std::abs(params.bev_geometry.lateral_step_m)) *
                                             2.0F);
-    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params);
+    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params, min_valid_count);
     if (candidate.valid) {
         candidate.confidence = std::clamp(candidate.confidence * 0.75F, 0.0F, 1.0F);
         for (port::BEVPathSample& sample : candidate.sampled_path) {
@@ -176,6 +334,70 @@ port::PathCandidate BuildBoundaryOffsetCandidate(const CorridorIntervalSet& inte
     return candidate;
 }
 
+// 构建边界跟随候选路径 —— 沿边界向内偏移指定距离
+// 用于环岛内侧路径（紧贴边界但留出内偏余量）
+port::PathCandidate BuildBoundaryFollowCandidate(const CorridorIntervalSet& intervals,
+                                                 bool left_boundary,
+                                                 const port::RuntimeParameters& params,
+                                                 float inward_offset_m,
+                                                 int min_valid_count = 3) {
+    port::PathCandidate candidate{};
+    candidate.mode = port::ReferenceMode::kStableBoundaryOffset;
+    int valid_count = 0;
+    float confidence_sum = 0.0F;
+    float width_sum = 0.0F;
+    const float signed_offset = left_boundary ? inward_offset_m : -inward_offset_m;
+    for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
+        const port::CorridorInterval* best = nullptr;
+        for (const port::CorridorInterval& interval : intervals.layers[layer].intervals) {
+            const bool edge_valid = left_boundary ? interval.left_edge_valid : interval.right_edge_valid;
+            if (!edge_valid) {
+                continue;
+            }
+            if (best == nullptr || interval.confidence > best->confidence) {
+                best = &interval;
+            }
+        }
+        if (best == nullptr) {
+            continue;
+        }
+        port::BEVPathSample sample{};
+        sample.valid = true;
+        sample.point.forward_m = best->forward_m;
+        sample.point.lateral_m =
+            (left_boundary ? best->lateral_min_m : best->lateral_max_m) + signed_offset;
+        sample.confidence = best->confidence;
+        candidate.sampled_path[layer] = sample;
+        confidence_sum += best->confidence;
+        width_sum += std::max(1e-4F, best->width_m);
+        ++valid_count;
+    }
+    if (valid_count < std::max(1, min_valid_count)) {
+        return candidate;
+    }
+
+    const float sample_spacing =
+        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                 params.bev_topology_sampler.forward_samples_m[0]);
+    (void)NormalizePathToForwardSamples(candidate.sampled_path,
+                                        params.bev_topology_sampler.forward_samples_m,
+                                        std::max(sample_spacing * 0.75F,
+                                                 std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F),
+                                        std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
+    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params, min_valid_count);
+    if (candidate.valid) {
+        candidate.confidence = std::clamp(candidate.confidence * 0.80F, 0.0F, 1.0F);
+        for (port::BEVPathSample& sample : candidate.sampled_path) {
+            if (sample.valid) {
+                sample.confidence = std::clamp(sample.confidence * 0.80F, 0.0F, 1.0F);
+            }
+        }
+    }
+    return candidate;
+}
+
+// 平移候选路径 —— 整体沿法线偏移指定距离（用于生成弧线路径）
+// 同时缩放置信度，保留原始路径形状
 port::PathCandidate ShiftCandidate(const port::PathCandidate& base,
                                    port::ReferenceMode mode,
                                    float lateral_offset,
@@ -200,6 +422,8 @@ port::PathCandidate ShiftCandidate(const port::PathCandidate& base,
     return shifted;
 }
 
+// 选取分支候选路径 —— 在 ordinary 路径同一层中，寻找位于左侧或右侧的其他间隔
+// 用于检测道路分支（分叉路或出口）
 port::PathCandidate PickBranchCandidate(const CorridorGraph& graph,
                                         const CorridorIntervalSet& intervals,
                                         bool left_branch,
@@ -272,20 +496,36 @@ port::PathCandidate PickBranchCandidate(const CorridorGraph& graph,
 
 }  // namespace
 
+// ========== 主入口：生成道路假设 ==========
+// 从走廊图的最优路径（ordinary）派生出所有场景候选：
+// 1. ordinary: 走廊图选出的最优中心线
+// 2. forward_exit: 前向退出（最佳观测间隔链）
+// 3. cross_exit: 十字路口退出路径
+// 4. left_arc/right_arc: 弧线偏移路径
+// 5. circle_inner_left/right: 环岛内侧路径
+// 6. circle_outer_guard_left/right: 环岛外侧守卫
+// 7. left_branch/right_branch: 分支候选
+// 8. zebra_hold: 斑马线保持路径
 port::RoadHypotheses GenerateRoadHypotheses(const CorridorGraph& graph,
                                             const CorridorIntervalSet& intervals,
                                             const port::LegacySteeringState& prior_state,
-                                            const port::RuntimeParameters& params) {
+                                            const port::RuntimeParameters& params,
+                                            const port::BEVElementEvidence* element_evidence) {
     (void)prior_state;
     port::RoadHypotheses hypotheses{};
+    // 基础候选：ordinary + forward_exit
     hypotheses.ordinary = graph.ordinary;
     hypotheses.ordinary.mode = port::ReferenceMode::kCenterline;
     hypotheses.forward_exit = graph.ordinary;
     hypotheses.forward_exit.mode = port::ReferenceMode::kCenterline;
+    // 如果 ordinary 无效，用 forward_exit 替代
     if (!hypotheses.forward_exit.valid) {
         hypotheses.forward_exit = BuildForwardExitCandidate(intervals, params);
     }
+    // 十字路口退出候选
+    hypotheses.cross_exit = BuildCrossExitCandidate(intervals, params, element_evidence);
 
+    // 弧线路径：从 ordinary 沿法线偏移半车道宽
     const float arc_offset = params.bev_corridor_graph.nominal_lane_width_m * 0.5F;
     if (graph.ordinary.valid) {
         hypotheses.left_arc =
@@ -295,13 +535,54 @@ port::RoadHypotheses GenerateRoadHypotheses(const CorridorGraph& graph,
         hypotheses.zebra_hold = graph.ordinary;
         hypotheses.zebra_hold.mode = port::ReferenceMode::kHoldLast;
     }
+    // 如果法线偏移无效，fallback 到基于边界的偏移候选
     if (!hypotheses.left_arc.valid) {
         hypotheses.left_arc = BuildBoundaryOffsetCandidate(intervals, true, params);
     }
     if (!hypotheses.right_arc.valid) {
         hypotheses.right_arc = BuildBoundaryOffsetCandidate(intervals, false, params);
     }
+    // 环岛路径：外侧守卫（对侧边界偏移）和内侧跟随（本侧边界跟随）
+    const int circle_min_layers = std::max(1, params.bev_path_policy.circle_inner_min_layers);
+    hypotheses.circle_outer_guard_left =
+        BuildBoundaryOffsetCandidate(intervals, false, params, circle_min_layers);
+    hypotheses.circle_outer_guard_left.mode = port::ReferenceMode::kOuterOffset;
+    hypotheses.circle_outer_guard_right =
+        BuildBoundaryOffsetCandidate(intervals, true, params, circle_min_layers);
+    hypotheses.circle_outer_guard_right.mode = port::ReferenceMode::kOuterOffset;
+    const float circle_line_offset =
+        std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                 std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
+    hypotheses.circle_inner_left =
+        BuildBoundaryFollowCandidate(intervals, true, params, circle_line_offset, circle_min_layers);
+    hypotheses.circle_inner_right =
+        BuildBoundaryFollowCandidate(intervals, false, params, circle_line_offset, circle_min_layers);
+    // 使用元素证据的环岛转角位置，裁剪内侧路径到转角附近并桥接近端空缺
+    const float circle_trim_margin =
+        std::max(0.08F,
+                 std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                          params.bev_topology_sampler.forward_samples_m[0]) *
+                     2.0F);
+    if (element_evidence != nullptr && element_evidence->left_circle_corner.present) {
+        TrimCandidateBeforeForward(hypotheses.circle_inner_left,
+                                   element_evidence->left_circle_corner.forward_m - circle_trim_margin);
+        TrimCandidateAfterForward(hypotheses.circle_inner_left,
+                                  element_evidence->left_circle_corner.forward_m + circle_trim_margin);
+        BridgeCandidateFromNearCenter(hypotheses.circle_inner_left, params);
+    }
+    if (element_evidence != nullptr && element_evidence->right_circle_corner.present) {
+        TrimCandidateBeforeForward(hypotheses.circle_inner_right,
+                                   element_evidence->right_circle_corner.forward_m - circle_trim_margin);
+        TrimCandidateAfterForward(hypotheses.circle_inner_right,
+                                  element_evidence->right_circle_corner.forward_m + circle_trim_margin);
+        BridgeCandidateFromNearCenter(hypotheses.circle_inner_right, params);
+    }
+    // 环岛出口路径：优先用 cross_exit，否则用 forward_exit
+    hypotheses.circle_exit_left = hypotheses.cross_exit.valid ? hypotheses.cross_exit : hypotheses.forward_exit;
+    hypotheses.circle_exit_left.mode = port::ReferenceMode::kBlendToExit;
+    hypotheses.circle_exit_right = hypotheses.circle_exit_left;
 
+    // 分支候选路径
     hypotheses.left_branch = PickBranchCandidate(graph, intervals, true, params);
     hypotheses.right_branch = PickBranchCandidate(graph, intervals, false, params);
     return hypotheses;

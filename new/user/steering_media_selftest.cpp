@@ -238,6 +238,10 @@ void TestEnvelopeValidation() {
             "config snapshot must include BEV control model group");
     Require(Contains(header_json, "\"LOW_VISIBLE_RANGE_M\":0.949999988079"),
             "config snapshot must include BEV control low visible range");
+    Require(Contains(header_json, "\"BEV_PATH_POLICY\""),
+            "config snapshot must include BEV path policy group");
+    Require(Contains(header_json, "\"CIRCLE_EXIT_YAW_DEG\""),
+            "config snapshot must include circle exit yaw policy");
 
     Require(!ls2k::platform::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size() - 1, header_json, payload, error),
@@ -375,6 +379,9 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.circle_direction = "left";
         state.control_debug_snapshot.steering.circle_reference_mode = "inner_offset";
         state.control_debug_snapshot.steering.circle_heading_delta_deg = 52.0;
+        state.control_debug_snapshot.steering.circle_yaw_accum_deg = 121.0;
+        state.control_debug_snapshot.steering.circle_path_phase = "entry";
+        state.control_debug_snapshot.steering.reference_source = "candidate_trusted_blend";
         state.control_debug_snapshot.steering.circle_entry_signal_active = true;
         state.latest_camera_capture.has_frame = true;
         state.latest_camera_capture.frame_id = 41;
@@ -421,6 +428,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV control settings");
     Require(Contains(header_json, "\"CURVATURE_TO_W_TARGET_GAIN\""),
             "service config snapshot must expose curvature control gain");
+    Require(Contains(header_json, "\"BEV_PATH_POLICY\""),
+            "service config snapshot must expose BEV path policy settings");
 
     Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
@@ -440,12 +449,18 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include BEV reference mode");
     Require(Contains(header_json, "\"curvature_command\":-0.1"),
             "image frame must include BEV curvature command");
-    Require(!Contains(header_json, "\"compatibility\""),
+    Require(!Contains(header_json, "\"compatibility.\""),
             "image frame must not include deprecated compatibility group");
     Require(Contains(header_json, "\"circle_direction\":\"left\""),
             "image frame must include circle direction");
     Require(Contains(header_json, "\"circle_reference_mode\":\"inner_offset\""),
             "image frame must include circle reference mode");
+    Require(Contains(header_json, "\"circle_yaw_accum_deg\":121"),
+            "image frame must include circle gyro progress");
+    Require(Contains(header_json, "\"circle_path_phase\":\"entry\""),
+            "image frame must include circle path phase");
+    Require(Contains(header_json, "\"reference_source\":\"candidate_trusted_blend\""),
+            "image frame must include reference source");
     Require(Contains(header_json, "\"circle_entry_signal_active\":true"),
             "image frame must include circle entry signal activity");
 }

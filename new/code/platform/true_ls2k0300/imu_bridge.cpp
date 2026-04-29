@@ -1,3 +1,6 @@
+// IMU 桥接实现 —— 通过 IIO sysfs 自动探测并读取 IMU 传感器数据。
+// 支持 IMU660RA/IMU660RB/IMU963RA 三种型号。
+
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <algorithm>
@@ -27,6 +30,7 @@ struct ResolvedImu {
 ImuInitResult g_imu_init{};
 std::array<std::string, kSensorPathCount> g_imu_paths{};
 
+// 从 sysfs 文件读取单行字符串令牌
 std::optional<std::string> ReadTokenFile(const std::string& path) {
     std::ifstream input(path);
     if (!input.is_open()) {
@@ -41,6 +45,7 @@ std::optional<std::string> ReadTokenFile(const std::string& path) {
     return value;
 }
 
+// 从 sysfs 文件读取整数
 std::optional<int> ReadIntFile(const std::string& path) {
     const std::optional<std::string> token = ReadTokenFile(path);
     if (!token.has_value()) {
@@ -54,6 +59,7 @@ std::optional<int> ReadIntFile(const std::string& path) {
     }
 }
 
+// 解析 IMU 型号名称到供应商类型枚举
 std::optional<uint8_t> ParseImuType(const std::string& name) {
     if (name == "IMU660RA") {
         return DEV_IMU660RA;
@@ -67,6 +73,7 @@ std::optional<uint8_t> ParseImuType(const std::string& name) {
     return std::nullopt;
 }
 
+// 构建 9 轴传感器路径数组（accel/gyro/magn xyz）
 std::array<std::string, kSensorPathCount> BuildImuPaths(const std::string& device_dir) {
     return {{
         device_dir + "/in_accel_x_raw",
@@ -81,6 +88,7 @@ std::array<std::string, kSensorPathCount> BuildImuPaths(const std::string& devic
     }};
 }
 
+// 探测 IMU 数据路径集合的可读性（IMU963RA 需 9 路，其他 6 路）
 bool ProbePathSet(const std::array<std::string, kSensorPathCount>& paths, uint8_t imu_type, std::string& detail) {
     const std::size_t required_count = (imu_type == DEV_IMU963RA) ? kSensorPathCount : 6;
     for (std::size_t i = 0; i < required_count; ++i) {
@@ -93,6 +101,7 @@ bool ProbePathSet(const std::array<std::string, kSensorPathCount>& paths, uint8_
     return true;
 }
 
+// 探测并解析 IMU 设备 —— 从 IIO sysfs 遍历或环境变量覆盖路径
 std::optional<ResolvedImu> ResolveImuDevice(std::string& detail) {
     std::vector<std::string> name_paths;
     bool used_override = false;
@@ -172,6 +181,7 @@ std::optional<ResolvedImu> ResolveImuDevice(std::string& detail) {
 
 }  // namespace
 
+// 初始化 IMU —— 解析设备 → 探测路径 → 设置全局类型
 ImuInitResult InitializeImu() {
     g_imu_init = {};
     g_imu_paths = {};
@@ -201,6 +211,7 @@ ImuInitResult InitializeImu() {
     return g_imu_init;
 }
 
+// 读取 IMU 传感器样本 —— 从 sysfs 读取加速度/角速度/磁力计原始值
 ImuBridgeSample ReadImuSample() {
     ImuBridgeSample sample{};
     sample.imu_type = g_imu_init.imu_type;

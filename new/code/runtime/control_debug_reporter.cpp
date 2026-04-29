@@ -1,25 +1,32 @@
 #include "runtime/control_debug_reporter.hpp"
 
+// 控制调试报告器实现 —— 周期性输出调试快照到诊断系统。
+// 支持配置化发射间隔，避免过高频率的诊断输出。
+
 #include <algorithm>
 #include <sstream>
 
 namespace ls2k::runtime {
 namespace {
 
+// 布尔值转字符串 "true"/"false"
 const char* BoolToken(bool value) {
     return value ? "true" : "false";
 }
 
 }  // namespace
 
+// 配置调试报告器发射间隔
 void ControlDebugReporter::Configure(const port::RuntimeParameters& params) {
     interval_ms_ = std::max(1, params.control_snapshot_emit_interval_ms);
 }
 
+// 重置报告器发射时间（强制下次立即发射）
 void ControlDebugReporter::Reset() {
     last_emit_ms_ = 0;
 }
 
+// 周期性发射调试快照 —— 将控制快照格式化为诊断消息输出
 void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port::DiagnosticSink& diagnostics) {
     if (!snapshot.valid) {
         return;
@@ -119,6 +126,11 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " circle_direction=" << snapshot.steering.circle_direction
                      << " circle_reference_mode=" << snapshot.steering.circle_reference_mode
                      << " circle_heading_delta_deg=" << snapshot.steering.circle_heading_delta_deg
+                     << " circle_yaw_accum_deg=" << snapshot.steering.circle_yaw_accum_deg
+                     << " circle_path_phase=" << snapshot.steering.circle_path_phase
+                     << " reference_compatibility_error_m="
+                     << snapshot.steering.reference_compatibility_error_m
+                     << " reference_source=" << snapshot.steering.reference_source
                      << " circle_entry_signal_active="
                      << BoolToken(snapshot.steering.circle_entry_signal_active)
                      << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state

@@ -82,6 +82,7 @@ set(NEW_SRCS
     ../code/legacy/camera_logic.cpp
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_bev_sparse_sampler.cpp
+    ../code/legacy/steering_bev_element_evidence.cpp
     ../code/legacy/steering_corridor_intervals.cpp
     ../code/legacy/steering_corridor_graph.cpp
     ../code/legacy/steering_topology_hypotheses.cpp

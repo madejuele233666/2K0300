@@ -1,3 +1,7 @@
+// 辅助桥接实现 —— 基于 TCP 的远程辅助通信桥。
+// 管理与外部上位机（如调参控制台）的连接、重连、数据收发。
+// 封装 seekfree_assistant 协议，支持波形发送和图像传输。
+
 #include "platform/true_ls2k0300/assistant_bridge.hpp"
 
 #include <algorithm>
@@ -30,6 +34,7 @@ constexpr std::size_t kMaxReceiveDrainBytesPerPoll = 8192;
 // receive-side close/error report.
 constexpr uint64_t kPostSendDisconnectGuardMs = 1000;
 
+// I/O 状态枚举
 enum class IoStatus {
     kOk = 0,
     kWouldBlock,
@@ -37,11 +42,13 @@ enum class IoStatus {
     kError,
 };
 
+// 发送策略 —— 丢弃忙帧或可靠重试
 enum class SendPolicy {
     kDropIfBusy = 0,
     kReliable,
 };
 
+// 辅助桥全局上下文 —— 连接状态、套接字、I/O 统计和待接收数据
 struct AssistantBridgeContext {
     AssistantBridgeConfig config{};
     AssistantBridgeState state = AssistantBridgeState::kUnconfigured;
@@ -64,12 +71,14 @@ struct AssistantBridgeContext {
 
 AssistantBridgeContext g_bridge{};
 
+// 获取单调时钟当前毫秒数
 uint64_t MonotonicNowMs() {
     const auto now = std::chrono::steady_clock::now().time_since_epoch();
     return static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
 }
 
+// 关闭并清理套接字
 void CloseSocket() {
     if (g_bridge.socket_fd >= 0) {
         close(g_bridge.socket_fd);
@@ -77,6 +86,7 @@ void CloseSocket() {
     }
 }
 
+// 状态迁移 —— 标记 state_dirty 供外部轮询时捕获
 void TransitionTo(AssistantBridgeState state, std::string detail) {
     if (g_bridge.state != state || g_bridge.detail != detail) {
         g_bridge.state_dirty = true;
@@ -85,12 +95,14 @@ void TransitionTo(AssistantBridgeState state, std::string detail) {
     g_bridge.detail = std::move(detail);
 }
 
+// 进入回退状态 —— 关闭套接字并设置下次重试时间
 void EnterBackoff(const std::string& detail) {
     CloseSocket();
     g_bridge.next_retry_at_ms = MonotonicNowMs() + kReconnectBackoffMs;
     TransitionTo(AssistantBridgeState::kBackoff, detail);
 }
 
+// 设置套接字为非阻塞模式
 bool EnsureNonBlocking(int socket_fd, std::string& detail) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags < 0) {
@@ -104,6 +116,7 @@ bool EnsureNonBlocking(int socket_fd, std::string& detail) {
     return true;
 }
 
+// 启用 TCP_NODELAY 禁用 Nagle 算法降低延迟
 bool EnableLowLatencySocket(int socket_fd, std::string& detail) {
     const int enabled = 1;
     if (setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &enabled, sizeof(enabled)) < 0) {
@@ -113,11 +126,13 @@ bool EnableLowLatencySocket(int socket_fd, std::string& detail) {
     return true;
 }
 
+// 重置 I/O 状态记录
 void ResetIoStatus() {
     g_bridge.last_io_status = IoStatus::kOk;
     g_bridge.last_io_detail.clear();
 }
 
+// 描述最近 I/O 统计信息（发送/接收字节数和距上次时间）
 std::string DescribeRecentIo() {
     const uint64_t now_ms = MonotonicNowMs();
     const uint64_t send_age_ms =
@@ -132,6 +147,7 @@ std::string DescribeRecentIo() {
            " total_recv_bytes=" + std::to_string(g_bridge.total_received_bytes);
 }
 
+// 转换 TCP 状态编号为可读名称
 const char* ToTcpStateName(uint8_t state) {
     switch (state) {
         case 1:
@@ -161,6 +177,7 @@ const char* ToTcpStateName(uint8_t state) {
     }
 }
 
+// 描述套接字本地和远端地址端口信息
 std::string DescribeSocketEndpoints() {
     if (g_bridge.socket_fd < 0) {
         return " fd=closed";
@@ -184,6 +201,7 @@ std::string DescribeSocketEndpoints() {
     return detail;
 }
 
+// 读取 TCP_INFO 和发送队列深度描述连接健康状态
 std::string DescribeTcpInfo() {
     if (g_bridge.socket_fd < 0) {
         return {};
@@ -218,10 +236,12 @@ std::string DescribeTcpInfo() {
     return detail;
 }
 
+// 组合完整的套接字状态描述（I/O 统计 + 端点 + TCP 信息）
 std::string DescribeFullSocketState() {
     return DescribeRecentIo() + DescribeSocketEndpoints() + DescribeTcpInfo();
 }
 
+// 记录 I/O 状态 —— 仅记录非 OK 状态，避免冲掉已有错误
 void RecordIoStatus(IoStatus status, const std::string& detail) {
     if (status == IoStatus::kOk) {
         return;
@@ -232,10 +252,12 @@ void RecordIoStatus(IoStatus status, const std::string& detail) {
     }
 }
 
+// 套接字故障处理 —— 直接进入回退状态
 void HandleSocketFailure(const std::string& detail) {
     EnterBackoff(detail);
 }
 
+// 延迟断开判决 —— 发送后短时内收到的关闭/错误可能为 WLAN 伪报，延后处理
 bool ShouldDeferDisconnect(IoStatus status) {
     if ((status != IoStatus::kClosed && status != IoStatus::kError) || g_bridge.last_send_at_ms == 0) {
         return false;
@@ -254,6 +276,7 @@ bool ShouldDeferDisconnect(IoStatus status) {
     return now_ms - g_bridge.last_send_at_ms <= kPostSendDisconnectGuardMs;
 }
 
+// 检查套接字是否有可读事件（poll 零超时探测）
 bool SocketHasReadableEvent() {
     if (g_bridge.socket_fd < 0) {
         return false;
@@ -284,6 +307,7 @@ bool SocketHasReadableEvent() {
     }
 }
 
+// 等待套接字可写（带超时），用于可靠发送的重试
 bool WaitForSocketWritable(uint64_t started_at_ms, uint64_t timeout_ms) {
     if (g_bridge.socket_fd < 0) {
         return false;
@@ -320,6 +344,7 @@ bool WaitForSocketWritable(uint64_t started_at_ms, uint64_t timeout_ms) {
     }
 }
 
+// 带发送策略的数据发送 —— kDropIfBusy 丢弃整帧，kReliable 等待可写重试
 uint32 BridgeSendDataWithPolicy(const uint8* buff, uint32 length, SendPolicy policy) {
     if (g_bridge.state != AssistantBridgeState::kReady || g_bridge.socket_fd < 0) {
         RecordIoStatus(IoStatus::kClosed, "assistant transport is not connected");
@@ -377,10 +402,12 @@ uint32 BridgeSendDataWithPolicy(const uint8* buff, uint32 length, SendPolicy pol
     return 0;
 }
 
+// 使用当前活跃发送策略发送数据
 uint32 BridgeSendData(const uint8* buff, uint32 length) {
     return BridgeSendDataWithPolicy(buff, length, g_bridge.active_send_policy);
 }
 
+// 从套接字接收数据 —— 返回实际收到的字节数，0 表示无数据或连接关闭
 uint32 BridgeReadData(uint8* buff, uint32 length) {
     if (g_bridge.state != AssistantBridgeState::kReady || g_bridge.socket_fd < 0 || buff == nullptr || length == 0) {
         return 0;
@@ -419,6 +446,7 @@ uint32 BridgeReadData(uint8* buff, uint32 length) {
     }
 }
 
+// 排空接收缓冲区 —— 将可读数据追加到待处理字节串，单次上限 kMaxReceiveDrainBytesPerPoll
 void DrainReceiveBuffer() {
     uint8_t buffer[256];
     std::size_t drained_bytes = 0;
@@ -439,6 +467,7 @@ void DrainReceiveBuffer() {
     }
 }
 
+// 发起 TCP 连接 —— DNS 解析 → 创建非阻塞套接字 → connect（非阻塞）
 bool BeginConnectAttempt() {
     addrinfo hints{};
     hints.ai_family = AF_INET;
@@ -498,6 +527,7 @@ bool BeginConnectAttempt() {
     return false;
 }
 
+// 完成挂起的非阻塞连接 —— 通过 poll + getsockopt(SO_ERROR) 检查连接是否成功
 void FinishPendingConnect() {
     if (g_bridge.socket_fd < 0) {
         EnterBackoff("assistant TCP socket disappeared during connect");
@@ -531,6 +561,7 @@ void FinishPendingConnect() {
                  "assistant TCP connected to " + g_bridge.config.host + ":" + std::to_string(g_bridge.config.port));
 }
 
+// 获取轮询结果 —— 提取状态、变更标记、待处理数据，清理 dirty 标志
 AssistantBridgePollResult TakePollResult(const uint64_t now_ms) {
     AssistantBridgePollResult result{};
     result.state = g_bridge.state;
@@ -541,6 +572,7 @@ AssistantBridgePollResult TakePollResult(const uint64_t now_ms) {
     return result;
 }
 
+// 最终化传输结果 —— 根据 last_io_status 判断成功/失败，出错时聚合诊断信息
 bool FinalizeTransferResult(std::string& detail) {
     if (g_bridge.last_io_status == IoStatus::kOk) {
         detail.clear();
@@ -556,6 +588,7 @@ bool FinalizeTransferResult(std::string& detail) {
 
 }  // namespace
 
+// 初始化辅助桥 —— 配置主机/端口，绑定协议接口，重置全局状态
 bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string& detail) {
     if (config.host.empty() || config.port <= 0) {
         CloseSocket();
@@ -586,6 +619,7 @@ bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string&
     return true;
 }
 
+// 轮询辅助桥状态机 —— 根据当前状态执行连接/重连/排空/故障处理
 AssistantBridgePollResult PollAssistantBridge() {
     const uint64_t now_ms = MonotonicNowMs();
     ResetIoStatus();
@@ -617,10 +651,12 @@ AssistantBridgePollResult PollAssistantBridge() {
     return TakePollResult(now_ms);
 }
 
+// 检查辅助桥是否处于就绪状态
 bool AssistantBridgeReady() {
     return g_bridge.state == AssistantBridgeState::kReady;
 }
 
+// 发送辅助数据字节 —— 支持可靠/丢弃策略，返回 FinalizeTransferResult
 bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, bool reliable, std::string& detail) {
     if (!AssistantBridgeReady()) {
         detail = "assistant bridge not connected";
@@ -642,6 +678,7 @@ bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, bool relia
     return FinalizeTransferResult(detail);
 }
 
+// 发送示波器数据 —— 封装 seekfree_assistant 波形协议，最多 8 通道
 bool SendAssistantOscilloscope(const std::array<float, 8>& values,
                                std::size_t channel_count,
                                std::string& detail) {
@@ -665,6 +702,7 @@ bool SendAssistantOscilloscope(const std::array<float, 8>& values,
     return FinalizeTransferResult(detail);
 }
 
+// 发送辅助摄像头图像 —— 灰度图经 seekfree_assistant 协议发送
 bool SendAssistantImage(const uint8_t* image_gray, int width, int height, std::string& detail) {
     if (!AssistantBridgeReady()) {
         detail = "assistant bridge not connected";

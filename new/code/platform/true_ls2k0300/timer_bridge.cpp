@@ -1,3 +1,6 @@
+// 定时器桥接实现 —— 基于 timerfd + eventfd + poll 的周期定时器。
+// 支持启动/停止、超时回调、故障回调和线程安全的生命周期管理。
+
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <atomic>
@@ -15,6 +18,7 @@ namespace ls2k::platform::true_ls2k0300 {
 
 namespace {
 
+// 毫秒转 timespec 结构
 timespec ToTimespec(uint32_t period_ms) {
     timespec spec{};
     spec.tv_sec = static_cast<time_t>(period_ms / 1000U);
@@ -22,6 +26,7 @@ timespec ToTimespec(uint32_t period_ms) {
     return spec;
 }
 
+// RAII 文件描述符封装 —— 自动关闭，仅移动语义
 class ScopedFd {
 public:
     ScopedFd() = default;
@@ -55,6 +60,7 @@ private:
     int fd_ = -1;
 };
 
+// 周期定时器抽象接口
 class PeriodicTimerBackend {
 public:
     virtual ~PeriodicTimerBackend() = default;
@@ -63,10 +69,13 @@ public:
     virtual bool Running() const = 0;
 };
 
+// 基于 timerfd + eventfd 的周期定时器实现。
+// 工作线程执行 poll() 监听定时器到期和停止信号。
 class TimerfdBackend final : public PeriodicTimerBackend {
 public:
     ~TimerfdBackend() override { Stop(); }
 
+    // 启动定时器 —— 创建 timerfd/eventfd → 设置周期性 arm → 创建工作线程
     bool Start(uint32_t period_ms, std::function<void()> callback, std::function<void()> on_failure) override {
         Stop();
         if (!callback || period_ms == 0U) {
@@ -101,6 +110,7 @@ public:
         return true;
     }
 
+    // 停止定时器 —— 信号通知工作线程退出并等待 join
     void Stop() override {
         if (!running_.load() && !worker_.joinable()) {
             timer_fd_.Reset();
@@ -120,9 +130,11 @@ public:
         stop_fd_.Reset();
     }
 
+    // 判断定时器是否在运行
     bool Running() const override { return running_.load(); }
 
 private:
+    // arm timerfd 定时器（一次性 + 周期）
     static bool ArmTimerFd(int timer_fd, uint32_t period_ms) {
         itimerspec schedule{};
         schedule.it_value = ToTimespec(period_ms);
@@ -130,6 +142,7 @@ private:
         return timerfd_settime(timer_fd, 0, &schedule, nullptr) == 0;
     }
 
+    // 向 eventfd 写入停止信号
     void SignalStop() {
         if (!stop_fd_.Valid()) {
             return;
@@ -148,6 +161,7 @@ private:
         }
     }
 
+    // 排空 eventfd 停止信号（在读端消耗）
     static void DrainStopSignal(int stop_fd) {
         uint64_t signal = 0;
         while (read(stop_fd, &signal, sizeof(signal)) < 0) {
@@ -158,6 +172,7 @@ private:
         }
     }
 
+    // 工作线程主循环 —— poll timerfd/stop_fd，到期执行回调
     void Run(std::function<void()> callback, std::function<void()> on_failure) {
         pollfd descriptors[2]{};
         descriptors[0].fd = timer_fd_.Get();

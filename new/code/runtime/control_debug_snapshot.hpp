@@ -1,6 +1,9 @@
 #ifndef LS2K_RUNTIME_CONTROL_DEBUG_SNAPSHOT_HPP
 #define LS2K_RUNTIME_CONTROL_DEBUG_SNAPSHOT_HPP
 
+// 控制调试快照结构 —— 记录每帧完整的感知、控制、场景状态。
+// 用于调试输出、媒体服务协议和离线分析。
+
 #include <cstdint>
 #include <string>
 
@@ -9,6 +12,7 @@
 
 namespace ls2k::runtime {
 
+// 转向调试快照 —— 包含控制误差、场景候选、PID 项、陀螺仪状态等完整诊断信息
 struct SteeringDebugSnapshot {
     bool valid = false;
     std::uint64_t frame_id = 0;
@@ -68,6 +72,10 @@ struct SteeringDebugSnapshot {
     std::string circle_direction = "none";
     std::string circle_reference_mode = "none";
     double circle_heading_delta_deg = 0.0;
+    double circle_yaw_accum_deg = 0.0;
+    std::string circle_path_phase = "none";
+    double reference_compatibility_error_m = 0.0;
+    std::string reference_source = "none";
     bool circle_entry_signal_active = false;
 };
 

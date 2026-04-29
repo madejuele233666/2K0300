@@ -1,5 +1,10 @@
 #include "legacy/camera_logic.hpp"
 
+// 相机逻辑实现 —— 感知管线顶层入口。
+// AnalyzeFrame() 串联完整 BEV 拓扑感知流程：
+// 投影 → 稀疏采样 → 元素证据 → 走廊图 → 拓扑假设/证据 → 场景 FSM →
+// 参考策略 → 控制误差模型，输出 PerceptionResult。
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -20,6 +25,7 @@
 namespace ls2k::legacy {
 namespace {
 
+// Otsu 快速阈值计算（2 倍步长降采样提速）—— 用于图像二值化分割
 int OtsuThresholdFast(const port::LegacyCameraFrame& frame) {
     std::array<int, 256> hist{};
     if (frame.width <= 0 || frame.height <= 0) {
@@ -71,10 +77,12 @@ int OtsuThresholdFast(const port::LegacyCameraFrame& frame) {
     return threshold;
 }
 
+// 返回车道几何历史锚点的采样索引（近/中/远三层）
 std::array<std::size_t, port::kLaneGeometryAnchorCount> AnchorIndices() {
     return {1U, 3U, 6U};
 }
 
+// 构建车道几何历史快照 —— 将 BEV 边界锚点反投影回图像平面
 port::LaneGeometryHistorySnapshot BuildLaneHistorySnapshot(const port::BEVTrackEstimate& track,
                                                            const BEVProjector& projector,
                                                            int frame_width,
@@ -109,6 +117,7 @@ port::LaneGeometryHistorySnapshot BuildLaneHistorySnapshot(const port::BEVTrackE
     return snapshot;
 }
 
+// 根据远距离航向误差判断转向方向（左/右/直行）
 int TrackTurnSign(const port::BEVTrackEstimate& track) {
     if (track.far_heading_error > 0.02F) {
         return 1;
@@ -119,6 +128,7 @@ int TrackTurnSign(const port::BEVTrackEstimate& track) {
     return 0;
 }
 
+// 计算参考路径的航向角（远近两点之间的方位角）
 float ReferenceHeading(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
                        std::size_t near_index,
                        std::size_t far_index) {
@@ -133,6 +143,7 @@ float ReferenceHeading(const std::array<port::BEVPathSample, port::kBevTrackSamp
     return std::atan2(path[far_index].point.lateral_m - path[near_index].point.lateral_m, ds);
 }
 
+// 通过三点差分计算参考路径曲率
 float ReferenceCurvature(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& path,
                          std::size_t near_index,
                          std::size_t curvature_index) {
@@ -150,6 +161,7 @@ float ReferenceCurvature(const std::array<port::BEVPathSample, port::kBevTrackSa
            std::max(1e-4F, path[curvature_index].point.forward_m - path[0].point.forward_m);
 }
 
+// 判断参考模式是否可为控制提供有效支持（非平凡模式）
 bool ReferenceModeCanSupportControl(port::ReferenceMode mode) {
     return mode == port::ReferenceMode::kHoldLast ||
            mode == port::ReferenceMode::kEntryHeadingExtension ||
@@ -160,6 +172,8 @@ bool ReferenceModeCanSupportControl(port::ReferenceMode mode) {
            mode == port::ReferenceMode::kBlend;
 }
 
+// 当 BEV 跟踪无效但参考路径可用时，用参考路径构建支持性跟踪。
+// 降级模式下仍可提供有限的控制信号。
 port::BEVTrackEstimate BuildReferenceSupportTrack(const port::BEVTrackEstimate& observed_track,
                                                   const port::BEVReferencePath& reference,
                                                   const port::RuntimeParameters& params) {
@@ -214,6 +228,7 @@ port::BEVTrackEstimate BuildReferenceSupportTrack(const port::BEVTrackEstimate& 
     return support;
 }
 
+// 构建跟踪历史快照 —— 包含中心线锚点图像坐标、车道宽度、转向方向序列
 port::TrackHistorySnapshot BuildTrackHistorySnapshot(const port::BEVTrackEstimate& track,
                                                      const BEVProjector& projector,
                                                      int frame_width,
@@ -257,6 +272,7 @@ port::TrackHistorySnapshot BuildTrackHistorySnapshot(const port::BEVTrackEstimat
     return snapshot;
 }
 
+// 将 circle reference_mode 与 direction 联合以兼容历史记录格式
 std::string CircleReferenceModeForCompatibility(const std::string& reference_mode,
                                                 const std::string& circle_direction) {
     if (circle_direction == "none") {
@@ -267,6 +283,10 @@ std::string CircleReferenceModeForCompatibility(const std::string& reference_mod
 
 }  // namespace
 
+// 感知管线顶层入口。以一帧灰度图像为输入，串联完整的 BEV 拓扑感知流程：
+// Otsu 阈值 → BEV 投影 → 稀疏采样 → 走廊间隔/图 → 场景观测组装 →
+// 道路假设 → 拓扑证据 → 场景 FSM → 参考策略 → 控制误差模型 → 陀螺仪连续
+// 性约束。输出 SteeringAnalysisResult 供控制循环消费。
 SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                     const port::RuntimeParameters& params,
                                     const port::LegacySteeringState& prior_state,
@@ -277,6 +297,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     SteeringAnalysisResult analysis{};
     const int threshold = OtsuThresholdFast(frame);
 
+    // --- 第 1 阶段：BEV 投影 + 稀疏采样 + 走廊图 ---
     BEVProjector projector{};
     (void)projector.Configure(params.bev_projector);
     const BEVTopologyPipelineResult topology =
@@ -284,11 +305,6 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     const CorridorIntervalSet& intervals = topology.corridor_intervals;
     const CorridorGraph& graph = topology.corridor_graph;
     port::BEVTrackEstimate track = topology.track_estimate;
-    if (!projector.Valid() || frame.width <= 0 || frame.height <= 0) {
-        track.valid = false;
-        track.fallback_mode = "projector_invalid";
-        track.source = "bev_corridor_topology";
-    }
     const ObservationAssemblyResult assembled =
         AssembleObservation(frame,
                             threshold,
@@ -300,20 +316,23 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                             capture_time_ms,
                             track,
                             projector);
+    // --- 第 2 阶段：道路假设生成 ---
     const port::RoadHypotheses hypotheses =
-        GenerateRoadHypotheses(graph, intervals, prior_state, params);
+        GenerateRoadHypotheses(graph, intervals, prior_state, params, &topology.element_evidence);
     const port::TopologyEvidence topology_evidence =
         ScoreTopologyEvidence(hypotheses,
                               intervals,
                               assembled.vehicle,
                               params,
-                              prior_state.topology_evidence_accumulator);
+                              prior_state.topology_evidence_accumulator,
+                              &topology.element_evidence);
     const port::TopologyEvidenceAccumulator topology_accumulator =
         UpdateTopologyEvidenceAccumulator(topology_evidence,
                                           params,
                                           prior_state.topology_evidence_accumulator);
+    // --- 第 3 阶段：场景 FSM + 参考策略 ---
     const SceneFsmResult scene =
-        UpdateTopologySceneFsm(topology_evidence, params, prior_state.scene_fsm);
+        UpdateTopologySceneFsm(topology_evidence, assembled.vehicle, params, prior_state.scene_fsm);
     const ReferencePolicyResult reference =
         ResolveReferencePolicy(hypotheses,
                                topology_evidence,
@@ -322,6 +341,7 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
                                params);
     const port::BEVTrackEstimate control_track =
         BuildReferenceSupportTrack(track, reference.reference_path, params);
+    // --- 第 4 阶段：控制约束 + 误差模型 ---
     port::ControlConstraintSet constraints = assembled.constraints;
     if (!track.valid && control_track.valid) {
         constraints.fail_safe_veto = false;
@@ -387,6 +407,10 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.circle_reference_mode =
         CircleReferenceModeForCompatibility(reference.reference_mode, scene.state.circle_direction);
     perception.circle_heading_delta_deg = continuity.next_state.heading_delta_deg_150ms;
+    perception.circle_yaw_accum_deg = scene.state.circle_yaw_accum_deg;
+    perception.circle_path_phase = scene.state.circle_path_phase;
+    perception.reference_compatibility_error_m = reference.state.compatibility_error_m;
+    perception.reference_source = reference.state.reference_source;
     perception.circle_entry_signal_active = scene.state.circle_entry_signal_active;
     perception.track_confidence = control_track.track_confidence;
     perception.track_valid = control_track.valid;

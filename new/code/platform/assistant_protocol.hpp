@@ -1,11 +1,15 @@
 #ifndef LS2K_PLATFORM_ASSISTANT_PROTOCOL_HPP
 #define LS2K_PLATFORM_ASSISTANT_PROTOCOL_HPP
 
+// 辅助协议定义 —— 外部助手通信的消息类型、状态视图和编解码接口。
+// 基于 JSON 行协议，支持命令下发和遥测上传。
+
 #include <cstdint>
 #include <string>
 
 namespace ls2k::platform {
 
+// 助手命令类型枚举
 enum class AssistantCommandType {
     kStart,
     kStop,
@@ -77,6 +81,10 @@ struct AssistantTelemetryView {
     std::string circle_direction = "none";
     std::string circle_reference_mode = "none";
     double circle_heading_delta_deg = 0.0;
+    double circle_yaw_accum_deg = 0.0;
+    std::string circle_path_phase = "none";
+    double reference_compatibility_error_m = 0.0;
+    std::string reference_source = "none";
     bool circle_entry_signal_active = false;
 };
 

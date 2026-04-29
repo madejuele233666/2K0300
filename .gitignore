@@ -123,6 +123,26 @@ dataset/
 .codex/
 .index/
 
+# Project-local build outputs and generated verification artifacts
+new/out/
+new/out-*/
+verification/
+new/verification/
+new/verification/*-20*/
+new/verification/**/*.raw
+new/verification/**/*.bmp
+new/verification/**/*.pgm
+new/verification/**/*.png
+new/verification/test-images/authority-baseline/*-analysis/
+new/verification/test-images/authority-baseline/*-overlays/
+
+# Extra guards for generated verification executables if parts of
+# verification are force-added later.
+new/verification/tests/*_test
+new/verification/tests/*_validate
+new/verification/tests/*_host
+new/verification/tests/*_selftest
+
 # Original and vendor libraries (Do not track, only keep custom code)
 old/
 old_2/

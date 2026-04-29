@@ -1,11 +1,15 @@
 #include "runtime/steering_media_service.hpp"
 
+// 转向媒体服务实现 —— 将调试快照与相机帧打包为媒体帧并发布。
+// 通过 SteeringMediaLink 发送到外部媒体接收端（如远程监控）。
+
 #include <algorithm>
 #include <utility>
 
 namespace ls2k::runtime {
 namespace {
 
+// 从运行时状态的相机缓存中查找匹配的快照帧
 bool ResolveSteeringCapture(const RuntimeState& state,
                             const ControlDebugSnapshot& snapshot,
                             port::CameraCapture& capture) {
@@ -26,6 +30,7 @@ bool ResolveSteeringCapture(const RuntimeState& state,
 SteeringMediaService::SteeringMediaService(platform::SteeringMediaLink link)
     : link_(std::move(link)) {}
 
+// 启动媒体服务：配置参数、初始化媒体链路（若启用）
 void SteeringMediaService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.steering_media_enabled;
@@ -44,6 +49,7 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
     (void)link_.Initialize(params, diagnostics);
 }
 
+// 构建参数配置快照 —— 导出当前运行时参数到媒体协议格式
 platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(std::uint64_t now_ms) const {
     platform::SteeringMediaConfigSnapshot snapshot{};
     snapshot.publish_time_ms = now_ms;
@@ -67,9 +73,11 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.bev_corridor_graph = params_.bev_corridor_graph;
     snapshot.param_snapshot.bev_topology_evidence = params_.bev_topology_evidence;
     snapshot.param_snapshot.bev_reference_policy = params_.bev_reference_policy;
+    snapshot.param_snapshot.bev_path_policy = params_.bev_path_policy;
     return snapshot;
 }
 
+// 构建转向快照视图 —— 将 DebugSnapshot 转换为媒体协议视图
 platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     const SteeringDebugSnapshot& snapshot) const {
     platform::SteeringMediaSnapshotView view{};
@@ -117,6 +125,10 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.circle_direction = snapshot.circle_direction;
     view.circle_reference_mode = snapshot.circle_reference_mode;
     view.circle_heading_delta_deg = snapshot.circle_heading_delta_deg;
+    view.circle_yaw_accum_deg = snapshot.circle_yaw_accum_deg;
+    view.circle_path_phase = snapshot.circle_path_phase;
+    view.reference_compatibility_error_m = snapshot.reference_compatibility_error_m;
+    view.reference_source = snapshot.reference_source;
     view.circle_entry_signal_active = snapshot.circle_entry_signal_active;
     view.roadblock_active = snapshot.roadblock_active;
     view.resolved_fuzzy_p = snapshot.resolved_fuzzy_p;
@@ -132,6 +144,7 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     return view;
 }
 
+// 媒体 Tick —— 检查连接 → 发布配置快照 → 查找新帧 → 发布图像帧
 void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
     if (!configured_ || !enabled_) {
         return;

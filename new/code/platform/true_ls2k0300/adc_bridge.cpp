@@ -1,3 +1,5 @@
+// ADC 桥接实现 —— 从 sysfs 路径读取电池 ADC 原始值。
+
 #include "platform/true_ls2k0300/bridge.hpp"
 
 #include <fstream>
@@ -5,6 +7,7 @@
 
 namespace ls2k::platform::true_ls2k0300 {
 
+// 从指定 sysfs ADC 路径读取原始电池电压值
 BatteryRawResult ReadBatteryRaw(const std::string& adc_path) {
     BatteryRawResult result{};
     result.source = adc_path;

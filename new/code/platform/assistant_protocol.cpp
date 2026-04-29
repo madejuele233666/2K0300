@@ -1,5 +1,8 @@
 #include "platform/assistant_protocol.hpp"
 
+// 辅助协议实现 —— 外部助手（如远程控制台）的 JSON 命令解析和状态编码。
+// 支持命令：start/stop、tuning mode、turn suppression、target speed override。
+
 #include <cmath>
 #include <iomanip>
 #include <limits>
@@ -345,6 +348,14 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     AppendJsonString(stream, telemetry.circle_reference_mode);
     stream << ",\"circle_heading_delta_deg\":";
     AppendJsonNumber(stream, telemetry.circle_heading_delta_deg);
+    stream << ",\"circle_yaw_accum_deg\":";
+    AppendJsonNumber(stream, telemetry.circle_yaw_accum_deg);
+    stream << ",\"circle_path_phase\":";
+    AppendJsonString(stream, telemetry.circle_path_phase);
+    stream << ",\"reference_compatibility_error_m\":";
+    AppendJsonNumber(stream, telemetry.reference_compatibility_error_m);
+    stream << ",\"reference_source\":";
+    AppendJsonString(stream, telemetry.reference_source);
     stream << ",\"circle_entry_signal_active\":";
     AppendJsonBool(stream, telemetry.circle_entry_signal_active);
     stream << '}';
