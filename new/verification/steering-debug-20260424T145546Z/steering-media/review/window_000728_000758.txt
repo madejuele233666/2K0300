@@ -1,2 +1,0 @@
-frame 000728	err=-29.722	turn=-2082	/home/madejuele/projects/2K0300/new/verification/steering-debug-20260424T145546Z/steering-media/frames-png/frame-000728.png
-frame 000758	err=-8.157	turn=-571	/home/madejuele/projects/2K0300/new/verification/steering-debug-20260424T145546Z/steering-media/frames-png/frame-000758.png

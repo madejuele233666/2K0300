@@ -1,9 +1,0 @@
-{
-  "board_ip": "169.254.148.181",
-  "board_user": "root",
-  "remote_log": "/home/root/new_runtime.log",
-  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/board-delayed-connect-20260425T042441Z/board_runtime.log",
-  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/board-delayed-connect-20260425T042441Z/board_steering_snapshot.jsonl",
-  "snapshot_count": 26,
-  "receiver_error": null
-}

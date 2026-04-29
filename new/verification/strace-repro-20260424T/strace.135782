@@ -1,7 +1,0 @@
-13:32:06.802372 close(255)              = 0
-13:32:06.803603 close(4)                = 0
-13:32:06.803750 close(3)                = 0
-13:32:06.805517 close(4)                = 0
-13:32:06.822794 close(3)                = 0
-13:32:06.823637 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=135783, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
-13:32:06.825190 +++ exited with 0 +++

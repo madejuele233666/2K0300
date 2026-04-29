@@ -1,9 +1,0 @@
-{
-  "status": "validated_only",
-  "stage": "validation",
-  "message": "protocol validation passed; dynamic tuning skipped because --motor-enabled was not set",
-  "params_working": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-working.json",
-  "params_best": "/home/madejuele/projects/2K0300/new/verification/params/auto-wheel-pid-best.json",
-  "seed_best_from_input": true,
-  "round_deploy_mode": "reuse-build"
-}

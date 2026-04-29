@@ -1,9 +1,0 @@
-{
-  "board_ip": "10.100.170.226",
-  "board_user": "root",
-  "remote_log": "/home/root/new_pid_retune_motor_disabled.log",
-  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/pid-retune-motor-disabled-20260426T231725Z/board_runtime.log",
-  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/pid-retune-motor-disabled-20260426T231725Z/board_steering_snapshot.jsonl",
-  "snapshot_count": 0,
-  "receiver_error": null
-}

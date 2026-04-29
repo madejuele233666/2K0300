@@ -1,9 +1,0 @@
-{
-  "board_ip": "10.100.170.226",
-  "board_user": "root",
-  "remote_log": "/home/root/new_runtime.log",
-  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/static-bend-entry-20260425T072933Z-boardtest/board_runtime.log",
-  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/static-bend-entry-20260425T072933Z-boardtest/board_steering_snapshot.jsonl",
-  "snapshot_count": 73,
-  "receiver_error": null
-}

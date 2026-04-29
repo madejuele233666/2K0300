@@ -1,9 +1,0 @@
-{
-  "board_ip": "169.254.148.181",
-  "board_user": "root",
-  "remote_log": "/home/root/new_runtime.log",
-  "raw_log_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T095330Z/board_runtime.log",
-  "steering_snapshot_path": "/home/madejuele/projects/2K0300/new/verification/bev-board-suspended-20260426T095330Z/board_steering_snapshot.jsonl",
-  "snapshot_count": 28,
-  "receiver_error": null
-}

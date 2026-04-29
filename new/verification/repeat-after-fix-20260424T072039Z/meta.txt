@@ -1,2 +1,0 @@
-board_ip=169.254.239.60
-start_line=1789
