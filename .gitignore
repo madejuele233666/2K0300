@@ -96,6 +96,7 @@ venv.bak/
 # IDEs
 .idea/
 .vscode/
+CLAUDE.md
 *.swp
 *.swo
 *~
