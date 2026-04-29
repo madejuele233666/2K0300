@@ -177,6 +177,40 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
+        control_debug_snapshot_contract_test
+        ../verification/tests/control_debug_snapshot_contract_test.cpp
+        ../code/runtime/control_debug_reporter.cpp
+        ../code/runtime/control_decision.cpp
+        ../code/runtime/motion_supervisor.cpp
+    )
+    target_link_libraries(
+        control_debug_snapshot_contract_test
+        pthread
+        m
+    )
+
+    add_executable(
+        control_loop_reset_test
+        ../verification/tests/control_loop_reset_test.cpp
+        ../code/runtime/control_loop.cpp
+        ../code/runtime/control_decision.cpp
+        ../code/runtime/control_debug_reporter.cpp
+        ../code/runtime/motion_supervisor.cpp
+        ../code/runtime/tuning_state.cpp
+        ../code/legacy/attitude_logic.cpp
+        ../code/legacy/fuzzy_pid_ucas.cpp
+        ../code/legacy/motor_logic.cpp
+        ../code/legacy/pid_control.cpp
+        ../code/legacy/wheel_pid.cpp
+        ../code/legacy/wheel_target_mixer.cpp
+    )
+    target_link_libraries(
+        control_loop_reset_test
+        pthread
+        m
+    )
+
+    add_executable(
         runtime_params_load_test
         ../verification/tests/runtime_params_load_test.cpp
         ../code/platform/param_store.cpp
@@ -201,6 +235,19 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
+        bev_element_evidence_test
+        ../verification/tests/bev_element_evidence_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_bev_element_evidence.cpp
+    )
+    target_link_libraries(
+        bev_element_evidence_test
+        pthread
+        m
+    )
+
+    add_executable(
         corridor_interval_test
         ../verification/tests/corridor_interval_test.cpp
         ../code/legacy/steering_corridor_intervals.cpp
@@ -214,7 +261,12 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         corridor_graph_test
         ../verification/tests/corridor_graph_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_bev_element_evidence.cpp
+        ../code/legacy/steering_corridor_intervals.cpp
         ../code/legacy/steering_corridor_graph.cpp
+        ../code/legacy/steering_bev_geometry.cpp
     )
     target_link_libraries(
         corridor_graph_test
@@ -228,6 +280,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/camera_logic.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_bev_element_evidence.cpp
         ../code/legacy/steering_corridor_intervals.cpp
         ../code/legacy/steering_corridor_graph.cpp
         ../code/legacy/steering_topology_hypotheses.cpp
@@ -253,6 +306,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/camera_logic.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_sparse_sampler.cpp
+        ../code/legacy/steering_bev_element_evidence.cpp
         ../code/legacy/steering_corridor_intervals.cpp
         ../code/legacy/steering_corridor_graph.cpp
         ../code/legacy/steering_topology_hypotheses.cpp
