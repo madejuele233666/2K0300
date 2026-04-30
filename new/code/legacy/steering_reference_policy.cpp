@@ -331,6 +331,10 @@ bool CandidateHasNearSupport(const port::PathCandidate& candidate,
     return HasNearSelfSupport(candidate, params);
 }
 
+bool IsCircleInnerIslandCandidate(const port::PathCandidate& candidate) {
+    return candidate.mode == port::ReferenceMode::kCircleInnerIsland;
+}
+
 bool PathsTangentCompatible(const port::PathCandidate& first,
                             const port::PathCandidate& second,
                             const port::RuntimeParameters& params) {
@@ -379,8 +383,16 @@ bool InnerCircleSwitchAllowed(const port::PathCandidate& inner,
                               const port::PathCandidate& outer_guard,
                               const port::ReferencePolicyState& prior_state,
                               const port::RuntimeParameters& params) {
-    if (!inner.valid || !CandidateHasNearSupport(inner, params)) {
+    if (!inner.valid || !IsCircleInnerIslandCandidate(inner)) {
         return false;
+    }
+    if (CandidateHasNearSupport(inner, params)) {
+        return true;
+    }
+    if (prior_state.circle_inner_island_memory_active &&
+        prior_state.circle_inner_island_memory_age_cycles <=
+            params.bev_reference_policy.hold_last_max_cycles) {
+        return true;
     }
     if (PathsTangentCompatible(inner, outer_guard, params) ||
         PathTangentCompatibleWithPrior(inner, prior_state, params)) {
@@ -393,6 +405,210 @@ bool InnerCircleSwitchAllowed(const port::PathCandidate& inner,
     const float late_switch_heading_abs =
         std::max(0.50F, params.bev_path_policy.circle_tangent_parallel_abs_max_rad * 1.5F);
     return std::abs(PathHeadingAt(inner.sampled_path, range.min_forward_m)) >= late_switch_heading_abs;
+}
+
+bool EdgePathsCompatibleForMemory(
+    const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& memory_edge,
+    const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& current_edge,
+    const port::RuntimeParameters& params) {
+    const float max_delta =
+        std::max(0.12F, params.bev_corridor_graph.max_center_jump_m * 1.25F);
+    int overlap_count = 0;
+    float delta_sum = 0.0F;
+    float delta_max = 0.0F;
+    for (std::size_t index = 0; index < port::kBevTrackSampleCount; ++index) {
+        if (!memory_edge[index].valid || !current_edge[index].valid) {
+            continue;
+        }
+        const float delta =
+            std::abs(memory_edge[index].point.lateral_m - current_edge[index].point.lateral_m);
+        delta_sum += delta;
+        delta_max = std::max(delta_max, delta);
+        ++overlap_count;
+    }
+    if (overlap_count == 0) {
+        return false;
+    }
+    return delta_sum / static_cast<float>(overlap_count) <= max_delta &&
+           delta_max <= max_delta * 1.75F;
+}
+
+bool InnerIslandCalibrationCompatibleForMemory(
+    const port::ReferencePolicyState& state,
+    const port::BEVCircleInnerIslandEvidence& evidence,
+    bool left_side,
+    const port::RuntimeParameters& params) {
+    if (!state.circle_inner_island_memory_active) {
+        return true;
+    }
+    if (state.circle_inner_island_memory_left != left_side) {
+        return false;
+    }
+    if (state.circle_inner_island_black_end_forward_m <=
+            state.circle_inner_island_black_start_forward_m + 1.0e-4F ||
+        evidence.black_end_forward_m <= evidence.black_start_forward_m + 1.0e-4F) {
+        return EdgePathsCompatibleForMemory(state.circle_inner_island_edge,
+                                            evidence.road_facing_edge,
+                                            params);
+    }
+    const float overlap_start =
+        std::max(state.circle_inner_island_black_start_forward_m, evidence.black_start_forward_m);
+    const float overlap_end =
+        std::min(state.circle_inner_island_black_end_forward_m, evidence.black_end_forward_m);
+    const float overlap = std::max(0.0F, overlap_end - overlap_start);
+    const float remembered_len =
+        state.circle_inner_island_black_end_forward_m -
+        state.circle_inner_island_black_start_forward_m;
+    const float current_len = evidence.black_end_forward_m - evidence.black_start_forward_m;
+    const float min_overlap =
+        std::max(0.035F, std::min(remembered_len, current_len) * 0.25F);
+    const float max_scan_delta =
+        std::max(0.10F, params.bev_corridor_graph.nominal_lane_width_m * 0.35F);
+    return overlap >= min_overlap &&
+           std::abs(state.circle_inner_island_scan_lateral_m - evidence.scan_lateral_m) <=
+               max_scan_delta;
+}
+
+bool EdgeUsableForMemory(
+    const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& edge,
+    const port::RuntimeParameters& params) {
+    int count = 0;
+    for (const port::BEVPathSample& sample : edge) {
+        if (sample.valid) {
+            ++count;
+        }
+    }
+    return count >= std::max(1, params.bev_path_policy.circle_inner_min_layers);
+}
+
+void ClearInnerIslandMemory(port::ReferencePolicyState& state) {
+    state.circle_inner_island_memory_active = false;
+    state.circle_inner_island_memory_age_cycles = 0;
+    state.circle_inner_island_missing_edge_cycles = 0;
+    state.circle_inner_island_memory_confidence = 0.0F;
+    state.circle_inner_island_scan_lateral_m = 0.0F;
+    state.circle_inner_island_black_start_forward_m = 0.0F;
+    state.circle_inner_island_black_end_forward_m = 0.0F;
+    state.circle_inner_island_edge = {};
+}
+
+void AdoptInnerIslandMemory(port::ReferencePolicyState& state,
+                            const port::BEVCircleInnerIslandEvidence& evidence,
+                            bool left_side) {
+    state.circle_inner_island_memory_active = true;
+    state.circle_inner_island_memory_left = left_side;
+    state.circle_inner_island_memory_age_cycles = 0;
+    state.circle_inner_island_missing_edge_cycles = 0;
+    state.circle_inner_island_memory_confidence = std::clamp(evidence.score, 0.25F, 1.0F);
+    state.circle_inner_island_scan_lateral_m = evidence.scan_lateral_m;
+    state.circle_inner_island_black_start_forward_m = evidence.black_start_forward_m;
+    state.circle_inner_island_black_end_forward_m = evidence.black_end_forward_m;
+    state.circle_inner_island_edge = evidence.road_facing_edge;
+}
+
+void MergeInnerIslandMemoryEdge(port::ReferencePolicyState& state,
+                                const port::BEVCircleInnerIslandEvidence& evidence,
+                                const port::RuntimeParameters& params) {
+    for (std::size_t index = 0; index < port::kBevTrackSampleCount; ++index) {
+        if (evidence.road_facing_edge[index].valid) {
+            state.circle_inner_island_edge[index] = evidence.road_facing_edge[index];
+        }
+    }
+    state.circle_inner_island_memory_age_cycles = 0;
+    state.circle_inner_island_missing_edge_cycles = 0;
+    state.circle_inner_island_memory_confidence =
+        std::min(1.0F,
+                 std::max(state.circle_inner_island_memory_confidence,
+                          std::clamp(evidence.score, 0.25F, 1.0F)) /
+                     std::max(0.50F, params.bev_path_policy.trusted_reference_decay));
+}
+
+void UpdateInnerIslandMemory(port::ReferencePolicyState& state,
+                             const port::TopologyEvidence& evidence,
+                             const port::SpecialSceneFsmState& scene_state,
+                             const port::RuntimeParameters& params) {
+    if ((evidence.element_evidence.valid && evidence.element_evidence.cross_band.present) ||
+        scene_state.active_scene == port::SpecialSceneKind::kCross) {
+        ClearInnerIslandMemory(state);
+        return;
+    }
+
+    bool updated = false;
+    const auto try_update = [&](const port::BEVCircleInnerIslandEvidence& island, bool left_side) {
+        if (!island.edge_present || !island.trace_present ||
+            !EdgeUsableForMemory(island.road_facing_edge, params)) {
+            return;
+        }
+        if (island.present) {
+            if (InnerIslandCalibrationCompatibleForMemory(state, island, left_side, params)) {
+                AdoptInnerIslandMemory(state, island, left_side);
+                updated = true;
+                return;
+            }
+            if (state.circle_inner_island_memory_active &&
+                state.circle_inner_island_memory_left == left_side &&
+                EdgePathsCompatibleForMemory(state.circle_inner_island_edge,
+                                             island.road_facing_edge,
+                                             params)) {
+                MergeInnerIslandMemoryEdge(state, island, params);
+                updated = true;
+            } else if (state.circle_inner_island_memory_active &&
+                       state.circle_inner_island_memory_left == left_side) {
+                ++state.circle_inner_island_missing_edge_cycles;
+            }
+            return;
+        }
+        if (state.circle_inner_island_memory_active &&
+            state.circle_inner_island_memory_left == left_side &&
+            EdgePathsCompatibleForMemory(state.circle_inner_island_edge,
+                                         island.road_facing_edge,
+                                         params)) {
+            MergeInnerIslandMemoryEdge(state, island, params);
+            updated = true;
+        } else if (state.circle_inner_island_memory_active &&
+                   state.circle_inner_island_memory_left == left_side) {
+            ++state.circle_inner_island_missing_edge_cycles;
+        }
+    };
+
+    if (evidence.element_evidence.valid) {
+        const bool prefer_left =
+            evidence.element_evidence.left_inner_island.score >=
+            evidence.element_evidence.right_inner_island.score;
+        if (prefer_left) {
+            try_update(evidence.element_evidence.left_inner_island, true);
+            if (!updated) {
+                try_update(evidence.element_evidence.right_inner_island, false);
+            }
+        } else {
+            try_update(evidence.element_evidence.right_inner_island, false);
+            if (!updated) {
+                try_update(evidence.element_evidence.left_inner_island, true);
+            }
+        }
+    }
+
+    if (!updated && state.circle_inner_island_memory_active) {
+        ++state.circle_inner_island_memory_age_cycles;
+        if (scene_state.phase != port::SpecialScenePhase::kCandidate) {
+            ++state.circle_inner_island_missing_edge_cycles;
+        }
+        state.circle_inner_island_memory_confidence *= params.bev_path_policy.trusted_reference_decay;
+    }
+
+    const int max_age =
+        params.bev_reference_policy.hold_last_max_cycles +
+        params.bev_scene_fsm.circle_release_cycles +
+        params.bev_scene_fsm.circle_confirm_cycles;
+    const int max_missing =
+        params.bev_reference_policy.hold_last_max_cycles +
+        params.bev_scene_fsm.circle_release_cycles;
+    if (state.circle_inner_island_memory_active &&
+        (state.circle_inner_island_memory_confidence < 0.15F ||
+         state.circle_inner_island_memory_age_cycles > max_age ||
+         state.circle_inner_island_missing_edge_cycles > max_missing)) {
+        ClearInnerIslandMemory(state);
+    }
 }
 
 bool CircleExitSwitchAllowed(const port::SpecialSceneFsmState& scene_state,
@@ -588,6 +804,7 @@ ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypothe
                                              const port::RuntimeParameters& params) {
     ReferencePolicyResult result{};
     result.state = prior_state;
+    UpdateInnerIslandMemory(result.state, evidence, scene_state, params);
     result.trusted_error_reference = TrustedErrorReferenceFromPrior(prior_state, params);
     result.trusted_error_confidence =
         result.trusted_error_reference.valid ? std::clamp(prior_state.trusted_confidence, 0.0F, 1.0F) : 0.0F;
@@ -674,13 +891,14 @@ ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypothe
                                          params);
             if (inner_allowed) {
                 const port::ReferenceMode mode =
-                    hypotheses.circle_inner_left.mode == port::ReferenceMode::kStableBoundaryOffset
-                        ? port::ReferenceMode::kStableBoundaryOffset
+                    hypotheses.circle_inner_left.mode == port::ReferenceMode::kCircleInnerIsland
+                        ? port::ReferenceMode::kCircleInnerIsland
                         : port::ReferenceMode::kArcFollow;
                 result.reference_path = ExpectedReferenceFromCandidate(hypotheses.circle_inner_left, mode);
                 circle_inner_latched = circle_inner_latched || result.reference_path.valid;
                 circle_reference_phase = "inner_follow";
-                reference_source = result.reference_path.valid ? "circle_inner_follow" : "circle_left_inner_none";
+                reference_source =
+                    result.reference_path.valid ? "circle_inner_island_memory_follow" : "circle_left_inner_none";
             }
             if (!result.reference_path.valid && !circle_inner_latched) {
                 result.reference_path =
@@ -719,13 +937,14 @@ ReferencePolicyResult ResolveReferencePolicy(const port::RoadHypotheses& hypothe
                                          params);
             if (inner_allowed) {
                 const port::ReferenceMode mode =
-                    hypotheses.circle_inner_right.mode == port::ReferenceMode::kStableBoundaryOffset
-                        ? port::ReferenceMode::kStableBoundaryOffset
+                    hypotheses.circle_inner_right.mode == port::ReferenceMode::kCircleInnerIsland
+                        ? port::ReferenceMode::kCircleInnerIsland
                         : port::ReferenceMode::kArcFollow;
                 result.reference_path = ExpectedReferenceFromCandidate(hypotheses.circle_inner_right, mode);
                 circle_inner_latched = circle_inner_latched || result.reference_path.valid;
                 circle_reference_phase = "inner_follow";
-                reference_source = result.reference_path.valid ? "circle_inner_follow" : "circle_right_inner_none";
+                reference_source =
+                    result.reference_path.valid ? "circle_inner_island_memory_follow" : "circle_right_inner_none";
             }
             if (!result.reference_path.valid && !circle_inner_latched) {
                 result.reference_path =
@@ -786,6 +1005,8 @@ const char* ToString(port::ReferenceMode mode) {
             return "blend_to_exit";
         case port::ReferenceMode::kLostPrediction:
             return "lost_prediction";
+        case port::ReferenceMode::kCircleInnerIsland:
+            return "circle_inner_island";
         case port::ReferenceMode::kCenterline:
         default:
             return "centerline";

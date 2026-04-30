@@ -104,7 +104,8 @@ enum class ReferenceMode {
     kStableBoundaryOffset,     //!< 稳定边界偏移：基于稳定观测边界偏移
     kArcFollow,                //!< 弧线跟随：沿固定曲率弧线行驶
     kBlendToExit,              //!< 混合至出口：从内部路径过渡到出口路径
-    kLostPrediction            //!< 丢失预测：完全丢失感知时的猜测路径
+    kLostPrediction,           //!< 丢失预测：完全丢失感知时的猜测路径
+    kCircleInnerIsland         //!< 环岛内圆黑区记忆路径
 };
 
 // 路径中的一个采样点，包含有效性标志、BEV 坐标和置信度
@@ -253,6 +254,28 @@ struct BEVCircleCornerEvidence {
     int support_layers = 0;            //!< 支持该检测的前向层数
 };
 
+// 环岛内圆黑区证据 —— 角点附近竖线的 白-黑-白 语义及面向道路的黑区边缘
+struct BEVCircleInnerIslandEvidence {
+    bool present = false;              //!< 完整 white-black-white 内圆标定是否成立
+    bool edge_present = false;         //!< 当前帧是否有可用的 traced road-facing edge
+    bool compatible_with_memory = false; //!< 当前 edge 是否与既有记忆兼容
+    bool trace_present = false;        //!< 连续内圆边缘追踪是否成立
+    float score = 0.0F;                //!< 内圆黑区证据评分
+    float scan_lateral_m = 0.0F;       //!< 标定竖线横向位置
+    float black_start_forward_m = 0.0F; //!< 黑区前向起点
+    float black_end_forward_m = 0.0F;  //!< 黑区前向终点
+    float trace_start_forward_m = 0.0F; //!< traced edge 起点
+    float trace_end_forward_m = 0.0F;  //!< traced edge 终点
+    float trace_confidence = 0.0F;     //!< traced edge 平均置信度
+    float invalid_penalty = 0.0F;      //!< 无效/图像边缘惩罚
+    int support_lines = 0;             //!< 支持该黑区语义的竖线数量
+    int trace_support_layers = 0;      //!< traced edge 的真实观测层数
+    int trace_gap_layers = 0;          //!< traced edge 中插值补齐的缺口层数
+    int rejected_far_segments = 0;     //!< 未接入 trace 的远端孤立段数量
+    std::array<BEVPathSample, kBevTrackSampleCount> raw_road_facing_edge{}; //!< 原始逐层候选调试
+    std::array<BEVPathSample, kBevTrackSampleCount> road_facing_edge{}; //!< traced 黑区面向道路的边缘
+};
+
 // BEV 元素证据 —— 十字路口和环岛检测的聚合结果
 struct BEVElementEvidence {
     bool valid = false;                                           //!< 元素证据是否有效
@@ -260,6 +283,8 @@ struct BEVElementEvidence {
     BEVCrossBandEvidence cross_band{};       //!< 十字路口带状检测结果
     BEVCircleCornerEvidence left_circle_corner{};  //!< 左环岛转角检测结果
     BEVCircleCornerEvidence right_circle_corner{}; //!< 右环岛转角检测结果
+    BEVCircleInnerIslandEvidence left_inner_island{};  //!< 左环岛内圆黑区证据
+    BEVCircleInnerIslandEvidence right_inner_island{}; //!< 右环岛内圆黑区证据
     float invalid_edge_penalty = 0.0F;       //!< 无效边缘的整体惩罚因子
 };
 
@@ -636,6 +661,15 @@ struct ReferencePolicyState {
     std::string circle_reference_phase = "none"; //!< reference policy 实际环岛路径阶段
     bool circle_inner_latched = false;  //!< 是否已锁存内圆跟随
     bool circle_exit_latched = false;   //!< 是否已锁存出环路径
+    bool circle_inner_island_memory_active = false; //!< 是否已有标定内圆记忆
+    bool circle_inner_island_memory_left = true; //!< 内圆记忆方向，true=左环岛
+    int circle_inner_island_memory_age_cycles = 0; //!< 内圆记忆龄期
+    int circle_inner_island_missing_edge_cycles = 0; //!< 连续缺失兼容 edge 的周期数
+    float circle_inner_island_memory_confidence = 0.0F; //!< 内圆记忆置信度
+    float circle_inner_island_scan_lateral_m = 0.0F; //!< 内圆标定竖线横向位置
+    float circle_inner_island_black_start_forward_m = 0.0F; //!< 内圆黑区起点
+    float circle_inner_island_black_end_forward_m = 0.0F; //!< 内圆黑区终点
+    std::array<BEVPathSample, kBevTrackSampleCount> circle_inner_island_edge{}; //!< 已记忆的内圆边缘
     std::array<BEVPathSample, kBevTrackSampleCount> last_reference{}; //!< 最后有效参考路径
 };
 
@@ -674,6 +708,19 @@ struct PerceptionResult {
     float reference_compatibility_error_m = 0.0F; //!< 参考兼容性误差
     std::string reference_source = "none";   //!< 参考路径来源
     bool circle_entry_signal_active = false; //!< 环岛入口信号激活
+    bool inner_island_memory_active = false; //!< 内圆黑区记忆是否激活
+    int inner_island_memory_age = 0;         //!< 内圆黑区记忆龄期
+    float inner_island_memory_confidence = 0.0F; //!< 内圆黑区记忆置信度
+    bool left_inner_island_present = false;  //!< 当前帧左内圆白黑白证据
+    bool right_inner_island_present = false; //!< 当前帧右内圆白黑白证据
+    bool inner_edge_compatible = false;      //!< 当前局部内圆 edge 是否兼容记忆
+    bool inner_island_trace_present = false; //!< 当前帧内圆连续 trace 是否存在
+    float inner_island_trace_start_forward_m = 0.0F; //!< 当前内圆 trace 起点
+    float inner_island_trace_end_forward_m = 0.0F; //!< 当前内圆 trace 终点
+    float inner_island_trace_confidence = 0.0F; //!< 当前内圆 trace 置信度
+    int inner_island_trace_support_layers = 0; //!< 当前内圆 trace 观测层数
+    int inner_island_trace_gap_layers = 0; //!< 当前内圆 trace 插值缺口层数
+    int inner_island_rejected_far_segments = 0; //!< 当前内圆 trace 拒绝远端段数
     float near_lateral_error = 0.0F;         //!< 近端横向误差
     float far_heading_error = 0.0F;          //!< 远端航向误差
     float preview_curvature = 0.0F;          //!< 预览曲率

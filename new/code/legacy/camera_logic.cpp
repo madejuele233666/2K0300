@@ -168,6 +168,7 @@ bool ReferenceModeCanSupportControl(port::ReferenceMode mode) {
            mode == port::ReferenceMode::kArcFollow ||
            mode == port::ReferenceMode::kBlendToExit ||
            mode == port::ReferenceMode::kLostPrediction ||
+           mode == port::ReferenceMode::kCircleInnerIsland ||
            mode == port::ReferenceMode::kStableBoundaryOffset ||
            mode == port::ReferenceMode::kBlend;
 }
@@ -421,6 +422,29 @@ SteeringAnalysisResult AnalyzeFrame(const port::LegacyCameraFrame& frame,
     perception.reference_compatibility_error_m = reference.state.compatibility_error_m;
     perception.reference_source = reference.state.reference_source;
     perception.circle_entry_signal_active = scene.state.circle_entry_signal_active;
+    perception.inner_island_memory_active = reference.state.circle_inner_island_memory_active;
+    perception.inner_island_memory_age = reference.state.circle_inner_island_memory_age_cycles;
+    perception.inner_island_memory_confidence =
+        reference.state.circle_inner_island_memory_confidence;
+    perception.left_inner_island_present = topology_evidence.element_evidence.left_inner_island.present;
+    perception.right_inner_island_present = topology_evidence.element_evidence.right_inner_island.present;
+    const port::BEVCircleInnerIslandEvidence& selected_inner_trace =
+        topology_evidence.element_evidence.left_inner_island.trace_present
+            ? topology_evidence.element_evidence.left_inner_island
+            : topology_evidence.element_evidence.right_inner_island;
+    perception.inner_island_trace_present = selected_inner_trace.trace_present;
+    perception.inner_island_trace_start_forward_m = selected_inner_trace.trace_start_forward_m;
+    perception.inner_island_trace_end_forward_m = selected_inner_trace.trace_end_forward_m;
+    perception.inner_island_trace_confidence = selected_inner_trace.trace_confidence;
+    perception.inner_island_trace_support_layers = selected_inner_trace.trace_support_layers;
+    perception.inner_island_trace_gap_layers = selected_inner_trace.trace_gap_layers;
+    perception.inner_island_rejected_far_segments = selected_inner_trace.rejected_far_segments;
+    perception.inner_edge_compatible =
+        (reference.state.circle_inner_island_memory_active &&
+         reference.state.circle_inner_island_missing_edge_cycles == 0) ||
+        (!reference.state.circle_inner_island_memory_active &&
+         (topology_evidence.element_evidence.left_inner_island.edge_present ||
+          topology_evidence.element_evidence.right_inner_island.edge_present));
     perception.track_confidence = control_track.track_confidence;
     perception.track_valid = control_track.valid;
     perception.sign_flip_blocked = false;

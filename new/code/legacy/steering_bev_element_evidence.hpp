@@ -17,7 +17,8 @@ port::BEVElementEvidence ExtractBEVElementEvidence(const port::LegacyCameraFrame
                                                    int threshold,
                                                    const port::RuntimeParameters& params,
                                                    const BEVProjector& projector,
-                                                   const BEVSparseSampleGrid& sparse_grid);
+                                                   const BEVSparseSampleGrid& sparse_grid,
+                                                   const port::ReferencePolicyState* reference_memory = nullptr);
 
 }  // namespace ls2k::legacy
 

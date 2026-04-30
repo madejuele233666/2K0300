@@ -6,6 +6,7 @@
 
 #include "legacy/steering_control_error_model.hpp"
 #include "legacy/steering_reference_policy.hpp"
+#include "legacy/steering_topology_hypotheses.hpp"
 
 namespace {
 
@@ -74,6 +75,30 @@ ls2k::port::ReferencePolicyState TrustedPrior(const ls2k::port::RuntimeParameter
             Sample(params.bev_topology_sampler.forward_samples_m[index], lateral_m);
     }
     return prior;
+}
+
+void FillEdge(const ls2k::port::RuntimeParameters& params,
+              std::array<ls2k::port::BEVPathSample, ls2k::port::kBevTrackSampleCount>& edge,
+              float lateral_m,
+              float confidence = 0.90F) {
+    for (std::size_t index = 0; index < edge.size(); ++index) {
+        edge[index] = Sample(params.bev_topology_sampler.forward_samples_m[index], lateral_m, confidence);
+    }
+}
+
+ls2k::port::BEVCircleInnerIslandEvidence IslandEvidence(const ls2k::port::RuntimeParameters& params,
+                                                        float lateral_m) {
+    ls2k::port::BEVCircleInnerIslandEvidence evidence{};
+    evidence.present = true;
+    evidence.edge_present = true;
+    evidence.trace_present = true;
+    evidence.score = 0.82F;
+    evidence.scan_lateral_m = lateral_m - 0.04F;
+    evidence.black_start_forward_m = params.bev_topology_sampler.forward_samples_m[1];
+    evidence.black_end_forward_m = params.bev_topology_sampler.forward_samples_m[8];
+    evidence.support_lines = 2;
+    FillEdge(params, evidence.road_facing_edge, lateral_m);
+    return evidence;
 }
 
 ls2k::port::SpecialSceneFsmState CrossState(ls2k::port::SpecialScenePhase phase) {
@@ -167,13 +192,60 @@ void TestCircleCandidateUsesOuterGuard() {
            "left circle candidate must use right-side outer guard, not inner circle");
 }
 
+void TestCircleCandidateBuildsInnerIslandMemoryButKeepsOuterGuard() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::port::RoadHypotheses hypotheses{};
+    hypotheses.circle_outer_guard_left =
+        ConstantCandidate(params, 0.18F, ls2k::port::ReferenceMode::kOuterOffset);
+    hypotheses.circle_inner_left =
+        SlopedCandidate(params, -0.18F, 0.75F, ls2k::port::ReferenceMode::kCircleInnerIsland);
+
+    ls2k::port::TopologyEvidence evidence{};
+    evidence.element_evidence.valid = true;
+    evidence.element_evidence.left_inner_island = IslandEvidence(params, -0.24F);
+
+    ls2k::port::SpecialSceneFsmState scene{};
+    scene.active_scene = ls2k::port::SpecialSceneKind::kOrdinary;
+    scene.phase = ls2k::port::SpecialScenePhase::kCandidate;
+    scene.candidate_scene = ls2k::port::SpecialSceneKind::kCircleLeft;
+
+    const auto result =
+        ls2k::legacy::ResolveReferencePolicy(hypotheses, evidence, scene, {}, params);
+    Expect(result.reference_path.mode == ls2k::port::ReferenceMode::kOuterOffset,
+           "circle candidate must keep using outer guard after inner-island calibration");
+    Expect(result.state.circle_inner_island_memory_active,
+           "white-black-white inner-island evidence must establish memory");
+    Expect(result.state.circle_inner_island_memory_left,
+           "left island evidence must store left-side direction");
+}
+
+void TestStableBoundaryInnerCandidateCannotLatch() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::port::RoadHypotheses hypotheses{};
+    hypotheses.circle_outer_guard_left =
+        ConstantCandidate(params, 0.22F, ls2k::port::ReferenceMode::kOuterOffset);
+    hypotheses.circle_inner_left =
+        SlopedCandidate(params, -0.18F, 0.75F, ls2k::port::ReferenceMode::kStableBoundaryOffset);
+
+    ls2k::port::SpecialSceneFsmState scene{};
+    scene.active_scene = ls2k::port::SpecialSceneKind::kCircleLeft;
+    scene.phase = ls2k::port::SpecialScenePhase::kInterior;
+
+    const auto result =
+        ls2k::legacy::ResolveReferencePolicy(hypotheses, {}, scene, {}, params);
+    Expect(result.reference_path.mode == ls2k::port::ReferenceMode::kOuterOffset,
+           "generic stable-boundary inner candidate must not trigger inner follow");
+    Expect(!result.state.circle_inner_latched,
+           "generic stable-boundary inner candidate must not latch circle inner state");
+}
+
 void TestCircleInnerLateSwitchAndExitGate() {
     ls2k::port::RuntimeParameters params{};
     ls2k::port::RoadHypotheses hypotheses{};
     hypotheses.circle_outer_guard_left =
         ConstantCandidate(params, 0.18F, ls2k::port::ReferenceMode::kOuterOffset);
     hypotheses.circle_inner_left =
-        SlopedCandidate(params, -0.18F, 0.75F, ls2k::port::ReferenceMode::kStableBoundaryOffset);
+        SlopedCandidate(params, -0.18F, 0.75F, ls2k::port::ReferenceMode::kCircleInnerIsland);
     hypotheses.circle_exit_left =
         SlopedCandidate(params, -0.05F, 0.75F, ls2k::port::ReferenceMode::kBlendToExit);
 
@@ -185,15 +257,15 @@ void TestCircleInnerLateSwitchAndExitGate() {
         ls2k::legacy::ResolveReferencePolicy(hypotheses, {}, scene, {}, params);
     Expect(inner.reference_path.valid, "late-switch inner path must be valid");
     Expect(inner.state.circle_inner_latched, "late-switch inner path must latch");
-    Expect(inner.reference_path.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
-           "late-switch path must use inner boundary-follow mode");
+    Expect(inner.reference_path.mode == ls2k::port::ReferenceMode::kCircleInnerIsland,
+           "late-switch path must use inner-island memory mode");
 
     ls2k::port::ReferencePolicyState prior = inner.state;
     scene.phase = ls2k::port::SpecialScenePhase::kExit;
     scene.circle_yaw_accum_deg = params.bev_path_policy.circle_exit_yaw_deg - 20.0F;
     const auto before_yaw =
         ls2k::legacy::ResolveReferencePolicy(hypotheses, {}, scene, prior, params);
-    Expect(before_yaw.reference_path.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
+    Expect(before_yaw.reference_path.mode == ls2k::port::ReferenceMode::kCircleInnerIsland,
            "circle exit must not switch before yaw gate");
 
     prior = before_yaw.state;
@@ -251,6 +323,72 @@ void TestCircleExitLatchSurvivesMissingExitCandidate() {
     Expect(result.reference_path.mode == ls2k::port::ReferenceMode::kLostPrediction,
            "latched exit loss must not return to inner-follow geometry");
     Expect(result.state.circle_exit_latched, "exit latch must survive a missing exit candidate frame");
+}
+
+void TestCircleInnerUsesCompleteTracedEdgeOnly() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::port::LegacySteeringState prior{};
+    prior.reference_policy.circle_inner_island_memory_active = true;
+    prior.reference_policy.circle_inner_island_memory_left = true;
+    prior.reference_policy.circle_inner_island_memory_confidence = 0.85F;
+    prior.reference_policy.circle_inner_island_black_start_forward_m =
+        params.bev_topology_sampler.forward_samples_m[10];
+    prior.reference_policy.circle_inner_island_black_end_forward_m =
+        params.bev_topology_sampler.forward_samples_m[20];
+    prior.reference_policy.circle_inner_island_edge[11] =
+        Sample(params.bev_topology_sampler.forward_samples_m[11], -0.24F);
+    prior.reference_policy.circle_inner_island_edge[14] =
+        Sample(params.bev_topology_sampler.forward_samples_m[14], -0.22F);
+    prior.reference_policy.circle_inner_island_edge[19] =
+        Sample(params.bev_topology_sampler.forward_samples_m[19], -0.23F);
+
+    ls2k::port::BEVElementEvidence elements{};
+    elements.valid = true;
+    elements.left_inner_island.edge_present = true;
+    elements.left_inner_island.trace_present = true;
+    elements.left_inner_island.score = 0.35F;
+    for (std::size_t index = 2; index <= 10; ++index) {
+        elements.left_inner_island.road_facing_edge[index] =
+            Sample(params.bev_topology_sampler.forward_samples_m[index],
+                   -0.30F - 0.02F * static_cast<float>(index - 2U));
+    }
+
+    const ls2k::legacy::CorridorGraph graph{};
+    const ls2k::legacy::CorridorIntervalSet intervals{};
+    const ls2k::port::RoadHypotheses hypotheses =
+        ls2k::legacy::GenerateRoadHypotheses(graph, intervals, prior, params, &elements);
+
+    Expect(hypotheses.circle_inner_left.valid,
+           "inner-island memory must allow current edge-only local inner path");
+    Expect(hypotheses.circle_inner_left.sampled_path[2].valid &&
+               hypotheses.circle_inner_left.sampled_path[10].valid,
+           "complete traced inner edge must be retained by the path layer");
+    const float expected_offset =
+        std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                 std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
+    Expect(std::abs(hypotheses.circle_inner_left.sampled_path[2].point.lateral_m -
+                    (-0.30F + expected_offset)) < 1.0e-4F,
+           "circle inner path must be generated from the traced current edge");
+}
+
+void TestCircleInnerEdgeOnlyRequiresMemory() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::port::BEVElementEvidence elements{};
+    elements.valid = true;
+    elements.left_inner_island.edge_present = true;
+    elements.left_inner_island.trace_present = true;
+    elements.left_inner_island.score = 0.35F;
+    for (std::size_t index = 2; index <= 5; ++index) {
+        elements.left_inner_island.road_facing_edge[index] =
+            Sample(params.bev_topology_sampler.forward_samples_m[index], -0.30F);
+    }
+
+    const ls2k::legacy::CorridorGraph graph{};
+    const ls2k::legacy::CorridorIntervalSet intervals{};
+    const ls2k::port::RoadHypotheses hypotheses =
+        ls2k::legacy::GenerateRoadHypotheses(graph, intervals, {}, params, &elements);
+    Expect(!hypotheses.circle_inner_left.valid,
+           "current edge-only inner path must not exist before inner-island memory is calibrated");
 }
 
 ls2k::port::BEVReferencePath ReferencePath(const ls2k::port::RuntimeParameters& params,
@@ -322,9 +460,13 @@ int main() {
         TestCrossNoExitUsesTrustedHoldOnly();
         TestCrossExitStitchesFromExpectedNearPath();
         TestCircleCandidateUsesOuterGuard();
+        TestCircleCandidateBuildsInnerIslandMemoryButKeepsOuterGuard();
+        TestStableBoundaryInnerCandidateCannotLatch();
         TestCircleInnerLateSwitchAndExitGate();
         TestCircleInnerLatchDoesNotFallBackToOuterGuard();
         TestCircleExitLatchSurvivesMissingExitCandidate();
+        TestCircleInnerUsesCompleteTracedEdgeOnly();
+        TestCircleInnerEdgeOnlyRequiresMemory();
         TestTrustedErrorBlendsErrorsButNotPath();
         TestTrustedMissingForwardLeavesRawTerm();
     } catch (const TestFailure& failure) {

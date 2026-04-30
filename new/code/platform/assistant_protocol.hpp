@@ -86,6 +86,19 @@ struct AssistantTelemetryView {
     double reference_compatibility_error_m = 0.0;
     std::string reference_source = "none";
     bool circle_entry_signal_active = false;
+    bool inner_island_memory_active = false;
+    int inner_island_memory_age = 0;
+    double inner_island_memory_confidence = 0.0;
+    bool left_inner_island_present = false;
+    bool right_inner_island_present = false;
+    bool inner_edge_compatible = false;
+    bool inner_island_trace_present = false;
+    double inner_island_trace_start_forward_m = 0.0;
+    double inner_island_trace_end_forward_m = 0.0;
+    double inner_island_trace_confidence = 0.0;
+    int inner_island_trace_support_layers = 0;
+    int inner_island_trace_gap_layers = 0;
+    int inner_island_rejected_far_segments = 0;
 };
 
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed);

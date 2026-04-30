@@ -10,6 +10,7 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   -I"${REPO_ROOT}/new/code/port" \
   -I"${REPO_ROOT}/new/code/legacy" \
   "${REPO_ROOT}/new/verification/tests/reference_policy_control_error_test.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_topology_hypotheses.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_policy.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_control_error_model.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_geometry.cpp" \

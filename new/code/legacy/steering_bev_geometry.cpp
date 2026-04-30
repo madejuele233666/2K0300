@@ -426,7 +426,12 @@ BEVTopologyPipelineResult RunBEVTopologyPipeline(const port::LegacyCameraFrame& 
     result.sparse_samples = SparseMetricSample(frame, threshold, params, projector);
     // 步骤 2：元素证据提取（十字路口带 / 环岛转角检测）
     result.element_evidence =
-        ExtractBEVElementEvidence(frame, threshold, params, projector, result.sparse_samples);
+        ExtractBEVElementEvidence(frame,
+                                  threshold,
+                                  params,
+                                  projector,
+                                  result.sparse_samples,
+                                  &prior_state.reference_policy);
     // 步骤 3：走廊间隔（每层的 Drivable 支撑区间）
     result.corridor_intervals = ExtractCorridorIntervals(result.sparse_samples, params);
     // 步骤 4：走廊图（跨层连接，形成路径候选）

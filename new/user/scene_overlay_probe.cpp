@@ -939,6 +939,18 @@ std::string ElementStatusToken(const ls2k::port::BEVElementEvidence& evidence) {
     if (evidence.cross_band.present) {
         return "ELEMENT:CROSS";
     }
+    if (evidence.left_inner_island.present) {
+        return "ELEMENT:ISLAND-L";
+    }
+    if (evidence.right_inner_island.present) {
+        return "ELEMENT:ISLAND-R";
+    }
+    if (evidence.left_inner_island.trace_present) {
+        return "ELEMENT:TRACE-L";
+    }
+    if (evidence.right_inner_island.trace_present) {
+        return "ELEMENT:TRACE-R";
+    }
     if (evidence.left_circle_corner.present && evidence.right_circle_corner.present) {
         return "ELEMENT:CORNER-LR";
     }
@@ -1475,6 +1487,53 @@ void DrawCircleCornerEvidence(RgbImage& image,
     DrawCross(image, x, y, 6, color);
 }
 
+void DrawInnerIslandEvidence(RgbImage& image,
+                             const ls2k::port::BEVCircleInnerIslandEvidence& island,
+                             const PanelLayout& layout,
+                             float lateral_limit_m,
+                             float forward_max_m,
+                             const Color& color) {
+    if (!island.present && !island.edge_present && !island.trace_present) {
+        return;
+    }
+    DrawBevPath(image,
+                island.raw_road_facing_edge,
+                layout,
+                lateral_limit_m,
+                forward_max_m,
+                Color{148, 112, 76},
+                1);
+    if (island.present) {
+        int x0 = 0;
+        int y0 = 0;
+        int x1 = 0;
+        int y1 = 0;
+        if (ProjectBevToPanel(BEVPoint{island.black_start_forward_m, island.scan_lateral_m},
+                              layout,
+                              lateral_limit_m,
+                              forward_max_m,
+                              x0,
+                              y0) &&
+            ProjectBevToPanel(BEVPoint{island.black_end_forward_m, island.scan_lateral_m},
+                              layout,
+                              lateral_limit_m,
+                              forward_max_m,
+                              x1,
+                              y1)) {
+            DrawLineAlpha(image, x0, y0, x1, y1, color, 0.90F, 4);
+            DrawCircle(image, x0, y0, 3, color, true);
+            DrawCircle(image, x1, y1, 3, color, true);
+        }
+    }
+    DrawBevPath(image,
+                island.road_facing_edge,
+                layout,
+                lateral_limit_m,
+                forward_max_m,
+                Color{255, 152, 32},
+                3);
+}
+
 void DrawBevElementEvidence(RgbImage& image,
                             const ls2k::port::BEVElementEvidence& evidence,
                             const PanelLayout& layout,
@@ -1519,6 +1578,18 @@ void DrawBevElementEvidence(RgbImage& image,
                              lateral_limit_m,
                              forward_max_m,
                              Color{255, 64, 220});
+    DrawInnerIslandEvidence(image,
+                            evidence.left_inner_island,
+                            layout,
+                            lateral_limit_m,
+                            forward_max_m,
+                            Color{255, 164, 32});
+    DrawInnerIslandEvidence(image,
+                            evidence.right_inner_island,
+                            layout,
+                            lateral_limit_m,
+                            forward_max_m,
+                            Color{255, 164, 32});
 }
 
 void DrawRawCorridorCrossSections(
@@ -2215,6 +2286,7 @@ int main(int argc, char** argv) {
         std::cout << "module=" << analysis.perception.active_module
                   << " scene=" << analysis.perception.scene_phase
                   << " reference_mode=" << analysis.perception.reference_mode
+                  << " reference_source=" << analysis.perception.reference_source
                   << " cross_candidate=" << (analysis.scene_observation.cross_candidate ? "true" : "false")
                   << " width_expand_ratio=" << analysis.scene_observation.width_expand_ratio
                   << " cross_bilateral_open_score_m="
@@ -2255,6 +2327,31 @@ int main(int argc, char** argv) {
                   << (analysis.topology_evidence.element_evidence.left_circle_corner.present ? "true" : "false")
                   << " right_corner="
                   << (analysis.topology_evidence.element_evidence.right_circle_corner.present ? "true" : "false")
+                  << " left_inner_island="
+                  << (analysis.topology_evidence.element_evidence.left_inner_island.present ? "true" : "false")
+                  << " right_inner_island="
+                  << (analysis.topology_evidence.element_evidence.right_inner_island.present ? "true" : "false")
+                  << " inner_island_memory_active="
+                  << (analysis.perception.inner_island_memory_active ? "true" : "false")
+                  << " inner_island_memory_age=" << analysis.perception.inner_island_memory_age
+                  << " inner_island_memory_confidence="
+                  << analysis.perception.inner_island_memory_confidence
+                  << " inner_edge_compatible="
+                  << (analysis.perception.inner_edge_compatible ? "true" : "false")
+                  << " inner_island_trace_present="
+                  << (analysis.perception.inner_island_trace_present ? "true" : "false")
+                  << " inner_island_trace_start_forward_m="
+                  << analysis.perception.inner_island_trace_start_forward_m
+                  << " inner_island_trace_end_forward_m="
+                  << analysis.perception.inner_island_trace_end_forward_m
+                  << " inner_island_trace_confidence="
+                  << analysis.perception.inner_island_trace_confidence
+                  << " inner_island_trace_support_layers="
+                  << analysis.perception.inner_island_trace_support_layers
+                  << " inner_island_trace_gap_layers="
+                  << analysis.perception.inner_island_trace_gap_layers
+                  << " inner_island_rejected_far_segments="
+                  << analysis.perception.inner_island_rejected_far_segments
                   << " warmup_count=" << warmup_paths.size()
                   << " confirm_cycles=" << confirm_cycles
                   << " projector_id=" << params.bev_projector.projector_id

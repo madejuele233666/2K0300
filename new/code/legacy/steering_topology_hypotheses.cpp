@@ -34,82 +34,6 @@ void RefreshCandidateForwardRange(port::PathCandidate& candidate) {
     }
 }
 
-// 统计候选路径中有效采样点的数量
-int CountValidSamples(const port::PathCandidate& candidate) {
-    int count = 0;
-    for (const port::BEVPathSample& sample : candidate.sampled_path) {
-        if (sample.valid) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-// 裁剪路径在指定前向距离之后的部分（用于环岛转角处局部化路径）
-void TrimCandidateAfterForward(port::PathCandidate& candidate, float max_forward_m) {
-    if (!candidate.valid) {
-        return;
-    }
-    for (port::BEVPathSample& sample : candidate.sampled_path) {
-        if (sample.valid && sample.point.forward_m > max_forward_m) {
-            sample = {};
-        }
-    }
-    candidate.valid = CountValidSamples(candidate) >= 2;
-    if (candidate.valid) {
-        RefreshCandidateForwardRange(candidate);
-    }
-}
-
-// 裁剪路径在指定前向距离之前的部分
-void TrimCandidateBeforeForward(port::PathCandidate& candidate, float min_forward_m) {
-    if (!candidate.valid) {
-        return;
-    }
-    for (port::BEVPathSample& sample : candidate.sampled_path) {
-        if (sample.valid && sample.point.forward_m < min_forward_m) {
-            sample = {};
-        }
-    }
-    candidate.valid = CountValidSamples(candidate) >= 2;
-    if (candidate.valid) {
-        RefreshCandidateForwardRange(candidate);
-    }
-}
-
-// 将候选路径的第一个有效点之前的层用线性插值"桥接"到道路中心
-// 用于裁剪后近端空缺的路径，使其在近端平滑过渡到中心线
-void BridgeCandidateFromNearCenter(port::PathCandidate& candidate,
-                                   const port::RuntimeParameters& params) {
-    if (!candidate.valid) {
-        return;
-    }
-    std::size_t first_valid = port::kBevTrackSampleCount;
-    for (std::size_t index = 0; index < candidate.sampled_path.size(); ++index) {
-        if (candidate.sampled_path[index].valid) {
-            first_valid = index;
-            break;
-        }
-    }
-    if (first_valid == 0U || first_valid >= port::kBevTrackSampleCount) {
-        return;
-    }
-    const port::BEVPathSample first_sample = candidate.sampled_path[first_valid];
-    const float start_forward = params.bev_topology_sampler.forward_samples_m[0];
-    const float span = std::max(1.0e-4F, first_sample.point.forward_m - start_forward);
-    for (std::size_t index = 0; index < first_valid; ++index) {
-        const float forward = params.bev_topology_sampler.forward_samples_m[index];
-        const float t = std::clamp((forward - start_forward) / span, 0.0F, 1.0F);
-        port::BEVPathSample bridge{};
-        bridge.valid = true;
-        bridge.point.forward_m = forward;
-        bridge.point.lateral_m = first_sample.point.lateral_m * t;
-        bridge.confidence = std::clamp(first_sample.confidence * (0.45F + 0.35F * t), 0.0F, 1.0F);
-        candidate.sampled_path[index] = bridge;
-    }
-    RefreshCandidateForwardRange(candidate);
-}
-
 // 终态化候选路径：设置有效性、置信度、平均宽度、宽度稳定性、曲率
 void FinalizeCandidate(port::PathCandidate& candidate,
                        int valid_count,
@@ -334,65 +258,113 @@ port::PathCandidate BuildBoundaryOffsetCandidate(const CorridorIntervalSet& inte
     return candidate;
 }
 
-// 构建边界跟随候选路径 —— 沿边界向内偏移指定距离
-// 用于环岛内侧路径（紧贴边界但留出内偏余量）
-port::PathCandidate BuildBoundaryFollowCandidate(const CorridorIntervalSet& intervals,
-                                                 bool left_boundary,
-                                                 const port::RuntimeParameters& params,
-                                                 float inward_offset_m,
-                                                 int min_valid_count = 3) {
+bool EdgePathUsable(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& edge,
+                    int min_valid_count) {
+    int valid_count = 0;
+    for (const port::BEVPathSample& sample : edge) {
+        if (sample.valid) {
+            ++valid_count;
+        }
+    }
+    return valid_count >= std::max(1, min_valid_count);
+}
+
+bool SegmentHasNearSupport(const std::array<port::BEVPathSample, port::kBevTrackSampleCount>& segment,
+                           const port::RuntimeParameters& params) {
+    const std::size_t curvature_index =
+        std::min<std::size_t>(static_cast<std::size_t>(
+                                  std::max(0, params.bev_control_model.curvature_sample_index)),
+                              port::kBevTrackSampleCount - 1U);
+    const float near_limit =
+        std::max(static_cast<float>(params.bev_control_model.lookahead_max_m),
+                 params.bev_topology_sampler.forward_samples_m[curvature_index]) +
+        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                 params.bev_topology_sampler.forward_samples_m[0]);
+    for (const port::BEVPathSample& sample : segment) {
+        if (sample.valid) {
+            return sample.point.forward_m <= near_limit + 1.0e-4F;
+        }
+    }
+    return false;
+}
+
+port::PathCandidate BuildCircleInnerFromIslandMemoryCandidate(
+    const port::ReferencePolicyState& memory,
+    const port::BEVCircleInnerIslandEvidence& current,
+    bool left_side,
+    const port::RuntimeParameters& params) {
     port::PathCandidate candidate{};
-    candidate.mode = port::ReferenceMode::kStableBoundaryOffset;
+    candidate.mode = port::ReferenceMode::kCircleInnerIsland;
+    const int min_layers = std::max(1, params.bev_path_policy.circle_inner_min_layers);
+    const bool memory_available =
+        memory.circle_inner_island_memory_active &&
+        memory.circle_inner_island_memory_left == left_side &&
+        EdgePathUsable(memory.circle_inner_island_edge, min_layers);
+    const bool current_available =
+        current.edge_present && current.trace_present &&
+        EdgePathUsable(current.road_facing_edge, min_layers);
+    if (!memory_available && !current_available) {
+        return candidate;
+    }
+    if (!memory_available && !current.present) {
+        return candidate;
+    }
+
+    const bool memory_edge_available =
+        memory_available && SegmentHasNearSupport(memory.circle_inner_island_edge, params);
+
+    std::array<port::BEVPathSample, port::kBevTrackSampleCount> edge{};
+    float confidence_scale = 1.0F;
+    if (current_available && (memory_available || current.present)) {
+        edge = current.road_facing_edge;
+        confidence_scale =
+            memory_available
+                ? std::max(std::clamp(memory.circle_inner_island_memory_confidence, 0.35F, 1.0F),
+                           std::clamp(current.score, 0.35F, 1.0F))
+                : std::clamp(current.score, 0.35F, 1.0F);
+    } else if (memory_edge_available) {
+        edge = memory.circle_inner_island_edge;
+        confidence_scale =
+            std::clamp(memory.circle_inner_island_memory_confidence, 0.35F, 1.0F);
+    } else {
+        return candidate;
+    }
+
+    const float signed_offset =
+        left_side
+            ? std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                       std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F)
+            : -std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
+                        std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
     int valid_count = 0;
     float confidence_sum = 0.0F;
-    float width_sum = 0.0F;
-    const float signed_offset = left_boundary ? inward_offset_m : -inward_offset_m;
-    for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
-        const port::CorridorInterval* best = nullptr;
-        for (const port::CorridorInterval& interval : intervals.layers[layer].intervals) {
-            const bool edge_valid = left_boundary ? interval.left_edge_valid : interval.right_edge_valid;
-            if (!edge_valid) {
-                continue;
-            }
-            if (best == nullptr || interval.confidence > best->confidence) {
-                best = &interval;
-            }
-        }
-        if (best == nullptr) {
+    for (std::size_t index = 0; index < edge.size(); ++index) {
+        if (!edge[index].valid) {
             continue;
         }
         port::BEVPathSample sample{};
         sample.valid = true;
-        sample.point.forward_m = best->forward_m;
-        sample.point.lateral_m =
-            (left_boundary ? best->lateral_min_m : best->lateral_max_m) + signed_offset;
-        sample.confidence = best->confidence;
-        candidate.sampled_path[layer] = sample;
-        confidence_sum += best->confidence;
-        width_sum += std::max(1e-4F, best->width_m);
+        sample.point.forward_m = edge[index].point.forward_m;
+        sample.point.lateral_m = edge[index].point.lateral_m + signed_offset;
+        sample.confidence = std::clamp(edge[index].confidence * confidence_scale, 0.0F, 1.0F);
+        candidate.sampled_path[index] = sample;
+        confidence_sum += sample.confidence;
         ++valid_count;
     }
-    if (valid_count < std::max(1, min_valid_count)) {
+    if (valid_count < min_layers) {
         return candidate;
     }
-
-    const float sample_spacing =
-        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
-                 params.bev_topology_sampler.forward_samples_m[0]);
-    (void)NormalizePathToForwardSamples(candidate.sampled_path,
-                                        params.bev_topology_sampler.forward_samples_m,
-                                        std::max(sample_spacing * 0.75F,
-                                                 std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F),
-                                        std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
-    FinalizeCandidate(candidate, valid_count, confidence_sum, width_sum, params, min_valid_count);
-    if (candidate.valid) {
-        candidate.confidence = std::clamp(candidate.confidence * 0.80F, 0.0F, 1.0F);
-        for (port::BEVPathSample& sample : candidate.sampled_path) {
-            if (sample.valid) {
-                sample.confidence = std::clamp(sample.confidence * 0.80F, 0.0F, 1.0F);
-            }
-        }
-    }
+    candidate.valid = true;
+    candidate.confidence = std::clamp(confidence_sum / static_cast<float>(valid_count), 0.0F, 1.0F);
+    candidate.mean_width_m = params.bev_corridor_graph.nominal_lane_width_m;
+    candidate.width_stability = 1.0F;
+    RefreshCandidateForwardRange(candidate);
+    FinalizeCandidate(candidate,
+                      valid_count,
+                      confidence_sum,
+                      params.bev_corridor_graph.nominal_lane_width_m * static_cast<float>(valid_count),
+                      params,
+                      min_layers);
     return candidate;
 }
 
@@ -542,7 +514,7 @@ port::RoadHypotheses GenerateRoadHypotheses(const CorridorGraph& graph,
     if (!hypotheses.right_arc.valid) {
         hypotheses.right_arc = BuildBoundaryOffsetCandidate(intervals, false, params);
     }
-    // 环岛路径：外侧守卫（对侧边界偏移）和内侧跟随（本侧边界跟随）
+    // 环岛路径：外侧守卫（对侧边界偏移）和内侧黑区记忆跟随
     const int circle_min_layers = std::max(1, params.bev_path_policy.circle_inner_min_layers);
     hypotheses.circle_outer_guard_left =
         BuildBoundaryOffsetCandidate(intervals, false, params, circle_min_layers);
@@ -550,33 +522,20 @@ port::RoadHypotheses GenerateRoadHypotheses(const CorridorGraph& graph,
     hypotheses.circle_outer_guard_right =
         BuildBoundaryOffsetCandidate(intervals, true, params, circle_min_layers);
     hypotheses.circle_outer_guard_right.mode = port::ReferenceMode::kOuterOffset;
-    const float circle_line_offset =
-        std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.5F,
-                 std::abs(params.bev_topology_sampler.lateral_step_m) * 2.0F);
     hypotheses.circle_inner_left =
-        BuildBoundaryFollowCandidate(intervals, true, params, circle_line_offset, circle_min_layers);
+        BuildCircleInnerFromIslandMemoryCandidate(prior_state.reference_policy,
+                                                  element_evidence != nullptr
+                                                      ? element_evidence->left_inner_island
+                                                      : port::BEVCircleInnerIslandEvidence{},
+                                                  true,
+                                                  params);
     hypotheses.circle_inner_right =
-        BuildBoundaryFollowCandidate(intervals, false, params, circle_line_offset, circle_min_layers);
-    // 使用元素证据的环岛转角位置，裁剪内侧路径到转角附近并桥接近端空缺
-    const float circle_trim_margin =
-        std::max(0.08F,
-                 std::abs(params.bev_topology_sampler.forward_samples_m[1] -
-                          params.bev_topology_sampler.forward_samples_m[0]) *
-                     2.0F);
-    if (element_evidence != nullptr && element_evidence->left_circle_corner.present) {
-        TrimCandidateBeforeForward(hypotheses.circle_inner_left,
-                                   element_evidence->left_circle_corner.forward_m - circle_trim_margin);
-        TrimCandidateAfterForward(hypotheses.circle_inner_left,
-                                  element_evidence->left_circle_corner.forward_m + circle_trim_margin);
-        BridgeCandidateFromNearCenter(hypotheses.circle_inner_left, params);
-    }
-    if (element_evidence != nullptr && element_evidence->right_circle_corner.present) {
-        TrimCandidateBeforeForward(hypotheses.circle_inner_right,
-                                   element_evidence->right_circle_corner.forward_m - circle_trim_margin);
-        TrimCandidateAfterForward(hypotheses.circle_inner_right,
-                                  element_evidence->right_circle_corner.forward_m + circle_trim_margin);
-        BridgeCandidateFromNearCenter(hypotheses.circle_inner_right, params);
-    }
+        BuildCircleInnerFromIslandMemoryCandidate(prior_state.reference_policy,
+                                                  element_evidence != nullptr
+                                                      ? element_evidence->right_inner_island
+                                                      : port::BEVCircleInnerIslandEvidence{},
+                                                  false,
+                                                  params);
     // 环岛出口路径：优先用 cross_exit，否则用 forward_exit
     hypotheses.circle_exit_left = hypotheses.cross_exit.valid ? hypotheses.cross_exit : hypotheses.forward_exit;
     hypotheses.circle_exit_left.mode = port::ReferenceMode::kBlendToExit;

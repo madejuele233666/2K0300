@@ -151,6 +151,32 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " reference_source=" << snapshot.steering.reference_source
                      << " circle_entry_signal_active="
                      << BoolToken(snapshot.steering.circle_entry_signal_active)
+                     << " inner_island_memory_active="
+                     << BoolToken(snapshot.steering.inner_island_memory_active)
+                     << " inner_island_memory_age="
+                     << snapshot.steering.inner_island_memory_age
+                     << " inner_island_memory_confidence="
+                     << snapshot.steering.inner_island_memory_confidence
+                     << " left_inner_island_present="
+                     << BoolToken(snapshot.steering.left_inner_island_present)
+                     << " right_inner_island_present="
+                     << BoolToken(snapshot.steering.right_inner_island_present)
+                     << " inner_edge_compatible="
+                     << BoolToken(snapshot.steering.inner_edge_compatible)
+                     << " inner_island_trace_present="
+                     << BoolToken(snapshot.steering.inner_island_trace_present)
+                     << " inner_island_trace_start_forward_m="
+                     << snapshot.steering.inner_island_trace_start_forward_m
+                     << " inner_island_trace_end_forward_m="
+                     << snapshot.steering.inner_island_trace_end_forward_m
+                     << " inner_island_trace_confidence="
+                     << snapshot.steering.inner_island_trace_confidence
+                     << " inner_island_trace_support_layers="
+                     << snapshot.steering.inner_island_trace_support_layers
+                     << " inner_island_trace_gap_layers="
+                     << snapshot.steering.inner_island_trace_gap_layers
+                     << " inner_island_rejected_far_segments="
+                     << snapshot.steering.inner_island_rejected_far_segments
                      << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
                      << " roadblock_active=" << BoolToken(snapshot.steering.roadblock_active)
                      << " resolved_fuzzy_p=" << snapshot.steering.resolved_fuzzy_p

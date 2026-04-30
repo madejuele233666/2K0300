@@ -32,6 +32,8 @@ constexpr float kCircleCornerAngleMinDeg = 55.0F;
 constexpr float kCircleLocalAngleMinDeg = 35.0F;
 // 环岛转角存在评分门槛
 constexpr float kCircleCornerPresentScoreMin = 0.65F;
+// 内圆黑区完整 white-black-white 标定评分门槛
+constexpr float kInnerIslandPresentScoreMin = 0.58F;
 
 // 用于稠密重采样的内部结构（与 BEVSample 类似，但使用 vector 存储）
 struct DenseSample {
@@ -62,6 +64,22 @@ struct LocalCornerPartition {
     float one_dark_score = 0.0F;    //!< 一个象限暗（背景）、其他亮（可行驶）的评分
     float one_bright_score = 0.0F;  //!< 一个象限亮、其他暗的评分
     float invalid_penalty = 0.0F;   //!< 无效投影惩罚
+};
+
+struct ForwardClassRun {
+    port::BEVSampleClass sample_class = port::BEVSampleClass::kInvalidOutsideImage;
+    float start_forward_m = 0.0F;
+    float end_forward_m = 0.0F;
+    int sample_count = 0;
+    int invalid_count = 0;
+};
+
+struct WhiteBlackWhiteRun {
+    bool valid = false;
+    float score = 0.0F;
+    float black_start_forward_m = 0.0F;
+    float black_end_forward_m = 0.0F;
+    float invalid_penalty = 0.0F;
 };
 
 // 限制到 [0, 1]
@@ -114,6 +132,14 @@ bool IsDrivable(port::BEVSampleClass sample_class) {
 // 判断采样点是否属于背景类
 bool IsBackground(port::BEVSampleClass sample_class) {
     return sample_class == port::BEVSampleClass::kBackground;
+}
+
+bool SameRunClass(port::BEVSampleClass left, port::BEVSampleClass right) {
+    return (IsDrivable(left) && IsDrivable(right)) ||
+           (IsBackground(left) && IsBackground(right)) ||
+           (left == right &&
+            (left == port::BEVSampleClass::kUnknownLowConfidence ||
+             left == port::BEVSampleClass::kInvalidOutsideImage));
 }
 
 // 单点稠密采样：投影 BEV 点到图像，采样单像素灰度并分类（无 patch 统计）
@@ -376,6 +402,582 @@ std::array<BoundaryPoint, port::kBevTrackSampleCount> BuildBoundaryTrace(const B
         trace[layer_index] = best;
     }
     return trace;
+}
+
+std::vector<ForwardClassRun> BuildForwardRuns(const port::LegacyCameraFrame& frame,
+                                              int threshold,
+                                              const port::RuntimeParameters& params,
+                                              const BEVProjector& projector,
+                                              float lateral_m,
+                                              float forward_min_m,
+                                              float forward_max_m) {
+    std::vector<ForwardClassRun> runs;
+    const float forward_min =
+        std::max(params.bev_topology_sampler.forward_samples_m.front(), forward_min_m);
+    const float forward_max =
+        std::min(params.bev_topology_sampler.forward_samples_m.back(), forward_max_m);
+    const float sample_spacing =
+        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                 params.bev_topology_sampler.forward_samples_m[0]);
+    const float step = std::max(0.010F, sample_spacing * 0.50F);
+    ForwardClassRun current{};
+    bool have_current = false;
+    for (float forward = forward_min; forward <= forward_max + step * 0.5F; forward += step) {
+        const DenseSample sample =
+            SampleDensePoint(frame, threshold, params, projector, {forward, lateral_m});
+        port::BEVSampleClass run_class = sample.sample_class;
+        if (!IsReliableProjection(sample)) {
+            run_class = port::BEVSampleClass::kInvalidOutsideImage;
+        }
+        if (!have_current || !SameRunClass(current.sample_class, run_class)) {
+            if (have_current) {
+                runs.push_back(current);
+            }
+            current = {};
+            current.sample_class = run_class;
+            current.start_forward_m = forward;
+            current.end_forward_m = forward;
+            current.sample_count = 1;
+            current.invalid_count =
+                run_class == port::BEVSampleClass::kInvalidOutsideImage ? 1 : 0;
+            have_current = true;
+        } else {
+            current.end_forward_m = forward;
+            ++current.sample_count;
+            if (run_class == port::BEVSampleClass::kInvalidOutsideImage) {
+                ++current.invalid_count;
+            }
+        }
+    }
+    if (have_current) {
+        runs.push_back(current);
+    }
+    return runs;
+}
+
+WhiteBlackWhiteRun FindWhiteBlackWhiteRun(const std::vector<ForwardClassRun>& runs,
+                                          const port::RuntimeParameters& params) {
+    WhiteBlackWhiteRun best{};
+    const float sample_spacing =
+        std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                 params.bev_topology_sampler.forward_samples_m[0]);
+    const float min_white_len =
+        std::max(0.040F, sample_spacing * 0.60F);
+    const float min_black_len =
+        std::max(0.055F, params.bev_corridor_graph.nominal_lane_width_m * 0.12F);
+    for (std::size_t index = 1U; index + 1U < runs.size(); ++index) {
+        const ForwardClassRun& before = runs[index - 1U];
+        const ForwardClassRun& black = runs[index];
+        const ForwardClassRun& after = runs[index + 1U];
+        if (!IsDrivable(before.sample_class) ||
+            !IsBackground(black.sample_class) ||
+            !IsDrivable(after.sample_class)) {
+            continue;
+        }
+        const float before_len = before.end_forward_m - before.start_forward_m;
+        const float black_len = black.end_forward_m - black.start_forward_m;
+        const float after_len = after.end_forward_m - after.start_forward_m;
+        if (before_len < min_white_len || black_len < min_black_len || after_len < min_white_len) {
+            continue;
+        }
+        const float white_score =
+            Clamp01(std::min(before_len, after_len) / std::max(1.0e-4F, min_white_len * 2.0F));
+        const float black_score =
+            Clamp01(black_len / std::max(1.0e-4F, min_black_len * 2.0F));
+        const float score = Clamp01(0.45F + 0.30F * white_score + 0.25F * black_score);
+        if (!best.valid || black.start_forward_m < best.black_start_forward_m ||
+            (std::abs(black.start_forward_m - best.black_start_forward_m) < 1.0e-4F &&
+             score > best.score)) {
+            best.valid = true;
+            best.score = score;
+            best.black_start_forward_m = black.start_forward_m;
+            best.black_end_forward_m = black.end_forward_m;
+            best.invalid_penalty = 0.0F;
+        }
+    }
+    return best;
+}
+
+struct InnerEdgeCandidate {
+    port::BEVPathSample sample{};
+};
+
+using InnerEdgeCandidateLayers =
+    std::array<std::vector<InnerEdgeCandidate>, port::kBevTrackSampleCount>;
+
+struct InnerEdgeTraceResult {
+    bool present = false;
+    std::array<port::BEVPathSample, port::kBevTrackSampleCount> edge{};
+    float start_forward_m = 0.0F;
+    float end_forward_m = 0.0F;
+    float confidence = 0.0F;
+    int support_layers = 0;
+    int gap_layers = 0;
+    int rejected_far_segments = 0;
+};
+
+float ForwardSampleSpacingM(const port::RuntimeParameters& params) {
+    return std::abs(params.bev_topology_sampler.forward_samples_m[1] -
+                    params.bev_topology_sampler.forward_samples_m[0]);
+}
+
+float InnerTraceMaxJumpM(const port::RuntimeParameters& params) {
+    return std::max(std::abs(params.bev_topology_sampler.lateral_step_m) * 4.0F,
+                    params.bev_corridor_graph.max_center_jump_m * 0.45F);
+}
+
+void AddInnerEdgeCandidate(std::vector<InnerEdgeCandidate>& candidates,
+                           const port::BEVPathSample& sample,
+                           float merge_tolerance_m) {
+    for (InnerEdgeCandidate& candidate : candidates) {
+        if (std::abs(candidate.sample.point.lateral_m - sample.point.lateral_m) <=
+            merge_tolerance_m) {
+            if (sample.confidence > candidate.sample.confidence) {
+                candidate.sample = sample;
+            }
+            return;
+        }
+    }
+    candidates.push_back(InnerEdgeCandidate{sample});
+}
+
+InnerEdgeCandidateLayers CollectInnerIslandRoadFacingEdgeCandidates(
+    const port::LegacyCameraFrame& frame,
+    int threshold,
+    const port::RuntimeParameters& params,
+    const BEVProjector& projector,
+    bool left_side,
+    float lateral_hint_m,
+    float forward_min_m,
+    float forward_max_m) {
+    InnerEdgeCandidateLayers candidates{};
+    const float lateral_min = std::min(params.bev_topology_sampler.lateral_min_m,
+                                       params.bev_topology_sampler.lateral_max_m);
+    const float lateral_max = std::max(params.bev_topology_sampler.lateral_min_m,
+                                       params.bev_topology_sampler.lateral_max_m);
+    const float step = std::max(0.004F, std::abs(params.bev_topology_sampler.lateral_step_m) * 0.25F);
+    const float forward_spacing = ForwardSampleSpacingM(params);
+    constexpr std::array<float, 5> kForwardProbeOffsets{{-0.75F, -0.40F, 0.0F, 0.40F, 0.75F}};
+    const float window =
+        std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.90F,
+                 std::abs(params.bev_topology_sampler.lateral_step_m) * 9.0F);
+    const float side_limit =
+        std::max(0.08F, params.bev_corridor_graph.nominal_lane_width_m * 0.20F);
+    const float scan_min =
+        std::max(lateral_min, left_side ? lateral_hint_m - window : -side_limit);
+    const float scan_max =
+        std::min(lateral_max, left_side ? side_limit : lateral_hint_m + window);
+
+    for (std::size_t layer = 0; layer < port::kBevTrackSampleCount; ++layer) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[layer];
+        if (forward < forward_min_m - 1.0e-4F || forward > forward_max_m + 1.0e-4F) {
+            continue;
+        }
+        for (float forward_offset_scale : kForwardProbeOffsets) {
+            const float probe_forward =
+                std::clamp(forward + forward_offset_scale * forward_spacing,
+                           params.bev_topology_sampler.forward_samples_m.front(),
+                           params.bev_topology_sampler.forward_samples_m.back());
+            DenseSample last_known{};
+            bool have_last_known = false;
+            int mixed_bridge_steps = 0;
+            for (float lateral = scan_min; lateral <= scan_max + step * 0.5F; lateral += step) {
+                const DenseSample current =
+                    SampleDensePoint(frame, threshold, params, projector, {probe_forward, lateral});
+                if (!IsReliableProjection(current)) {
+                    have_last_known = false;
+                    mixed_bridge_steps = 0;
+                    continue;
+                }
+                if (!IsDrivable(current.sample_class) && !IsBackground(current.sample_class)) {
+                    if (have_last_known) {
+                        ++mixed_bridge_steps;
+                        if (mixed_bridge_steps <= 5) {
+                            continue;
+                        }
+                    }
+                    have_last_known = false;
+                    mixed_bridge_steps = 0;
+                    continue;
+                }
+                const bool transition =
+                    left_side
+                        ? (have_last_known && IsBackground(last_known.sample_class) &&
+                           IsDrivable(current.sample_class))
+                        : (have_last_known && IsDrivable(last_known.sample_class) &&
+                           IsBackground(current.sample_class));
+                if (transition) {
+                    const float bridge_width =
+                        std::abs(current.point.lateral_m - last_known.point.lateral_m);
+                    const bool bridge_ok =
+                        bridge_width <=
+                        std::max(std::abs(params.bev_topology_sampler.lateral_step_m) * 0.90F,
+                                 step * 6.0F);
+                    if (!bridge_ok) {
+                        last_known = current;
+                        mixed_bridge_steps = 0;
+                        continue;
+                    }
+                    const float edge_lateral =
+                        (last_known.point.lateral_m + current.point.lateral_m) * 0.5F;
+                    const bool side_ok = left_side ? edge_lateral <= side_limit : edge_lateral >= -side_limit;
+                    if (side_ok) {
+                        port::BEVPathSample sample{};
+                        sample.valid = true;
+                        sample.point.forward_m = forward;
+                        sample.point.lateral_m = edge_lateral;
+                        const float probe_confidence_scale =
+                            std::abs(forward_offset_scale) < 1.0e-4F ? 1.0F : 0.90F;
+                        sample.confidence =
+                            std::clamp((last_known.confidence + current.confidence) * 0.5F *
+                                           probe_confidence_scale *
+                                           (mixed_bridge_steps > 0 ? 0.82F : 1.0F),
+                                       0.0F,
+                                       1.0F);
+                        AddInnerEdgeCandidate(candidates[layer],
+                                              sample,
+                                              std::abs(params.bev_topology_sampler.lateral_step_m) *
+                                                  0.50F);
+                    }
+                }
+                last_known = current;
+                have_last_known = true;
+                mixed_bridge_steps = 0;
+            }
+        }
+    }
+    return candidates;
+}
+
+std::array<port::BEVPathSample, port::kBevTrackSampleCount> BestRawInnerEdgeByLayer(
+    const InnerEdgeCandidateLayers& candidates,
+    float seed_lateral_m) {
+    std::array<port::BEVPathSample, port::kBevTrackSampleCount> raw{};
+    for (std::size_t layer = 0; layer < candidates.size(); ++layer) {
+        const InnerEdgeCandidate* best = nullptr;
+        float best_score = std::numeric_limits<float>::infinity();
+        for (const InnerEdgeCandidate& candidate : candidates[layer]) {
+            const float score =
+                std::abs(candidate.sample.point.lateral_m - seed_lateral_m) -
+                candidate.sample.confidence * 0.02F;
+            if (best == nullptr || score < best_score) {
+                best = &candidate;
+                best_score = score;
+            }
+        }
+        if (best != nullptr) {
+            raw[layer] = best->sample;
+        }
+    }
+    return raw;
+}
+
+float MemorySeedLateral(const port::ReferencePolicyState* memory,
+                        bool left_side,
+                        float fallback_lateral_m) {
+    if (memory == nullptr || !memory->circle_inner_island_memory_active ||
+        memory->circle_inner_island_memory_left != left_side) {
+        return fallback_lateral_m;
+    }
+    for (const port::BEVPathSample& sample : memory->circle_inner_island_edge) {
+        if (sample.valid) {
+            return sample.point.lateral_m;
+        }
+    }
+    return memory->circle_inner_island_scan_lateral_m;
+}
+
+InnerEdgeTraceResult TraceFromSeed(const InnerEdgeCandidateLayers& candidates,
+                                   std::size_t start_layer,
+                                   const port::BEVPathSample& start,
+                                   const port::RuntimeParameters& params,
+                                   int min_support_layers,
+                                   int max_gap_layers) {
+    InnerEdgeTraceResult trace{};
+    const float max_jump = InnerTraceMaxJumpM(params);
+    const float max_gap_jump = max_jump * static_cast<float>(max_gap_layers + 1);
+    std::size_t previous_layer = start_layer;
+    port::BEVPathSample previous = start;
+    float trend = 0.0F;
+    int pending_gap_layers = 0;
+    float confidence_sum = start.confidence;
+    trace.edge[start_layer] = start;
+    trace.support_layers = 1;
+
+    for (std::size_t layer = start_layer + 1U; layer < candidates.size(); ++layer) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[layer];
+        const float predicted_lateral =
+            previous.point.lateral_m + trend * (forward - previous.point.forward_m);
+        const InnerEdgeCandidate* best = nullptr;
+        float best_score = std::numeric_limits<float>::infinity();
+        const float allowed_jump =
+            std::min(max_gap_jump, max_jump * static_cast<float>(pending_gap_layers + 1));
+        for (const InnerEdgeCandidate& candidate : candidates[layer]) {
+            const float delta =
+                std::abs(candidate.sample.point.lateral_m - predicted_lateral);
+            if (delta > allowed_jump) {
+                continue;
+            }
+            const float score = delta - candidate.sample.confidence * 0.03F;
+            if (best == nullptr || score < best_score) {
+                best = &candidate;
+                best_score = score;
+            }
+        }
+        if (best == nullptr) {
+            ++pending_gap_layers;
+            if (pending_gap_layers > max_gap_layers) {
+                break;
+            }
+            continue;
+        }
+
+        if (pending_gap_layers > 0) {
+            const std::size_t gap_begin = previous_layer + 1U;
+            const std::size_t gap_end = layer;
+            for (std::size_t gap_layer = gap_begin; gap_layer < gap_end; ++gap_layer) {
+                const float gap_forward = params.bev_topology_sampler.forward_samples_m[gap_layer];
+                const float span = best->sample.point.forward_m - previous.point.forward_m;
+                const float t = span > 1.0e-4F
+                                    ? std::clamp((gap_forward - previous.point.forward_m) / span,
+                                                 0.0F,
+                                                 1.0F)
+                                    : 0.0F;
+                port::BEVPathSample interpolated{};
+                interpolated.valid = true;
+                interpolated.point.forward_m = gap_forward;
+                interpolated.point.lateral_m =
+                    previous.point.lateral_m +
+                    (best->sample.point.lateral_m - previous.point.lateral_m) * t;
+                interpolated.confidence =
+                    std::min(previous.confidence, best->sample.confidence) * 0.45F;
+                trace.edge[gap_layer] = interpolated;
+                ++trace.gap_layers;
+            }
+        }
+
+        const float df = best->sample.point.forward_m - previous.point.forward_m;
+        if (df > 1.0e-4F) {
+            trend = (best->sample.point.lateral_m - previous.point.lateral_m) / df;
+        }
+        trace.edge[layer] = best->sample;
+        previous = best->sample;
+        previous_layer = layer;
+        pending_gap_layers = 0;
+        confidence_sum += best->sample.confidence;
+        ++trace.support_layers;
+    }
+
+    if (trace.support_layers < std::max(1, min_support_layers)) {
+        return {};
+    }
+    trace.present = true;
+    trace.confidence = std::clamp(confidence_sum / static_cast<float>(trace.support_layers),
+                                  0.0F,
+                                  1.0F);
+    for (const port::BEVPathSample& sample : trace.edge) {
+        if (!sample.valid) {
+            continue;
+        }
+        if (trace.start_forward_m <= 1.0e-4F) {
+            trace.start_forward_m = sample.point.forward_m;
+        }
+        trace.end_forward_m = sample.point.forward_m;
+    }
+    return trace;
+}
+
+int CountRejectedFarSegments(const InnerEdgeCandidateLayers& candidates,
+                             const InnerEdgeTraceResult& trace,
+                             const port::RuntimeParameters& params) {
+    if (!trace.present) {
+        return 0;
+    }
+    const float sample_spacing = ForwardSampleSpacingM(params);
+    const float far_start = trace.end_forward_m + sample_spacing * 2.0F;
+    int segments = 0;
+    bool in_segment = false;
+    for (std::size_t layer = 0; layer < candidates.size(); ++layer) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[layer];
+        const bool has_far_candidate = forward >= far_start && !candidates[layer].empty();
+        if (has_far_candidate && !in_segment) {
+            ++segments;
+            in_segment = true;
+        } else if (!has_far_candidate) {
+            in_segment = false;
+        }
+    }
+    return segments;
+}
+
+InnerEdgeTraceResult TraceInnerIslandRoadFacingEdge(
+    const InnerEdgeCandidateLayers& candidates,
+    const port::RuntimeParameters& params,
+    const port::ReferencePolicyState* memory,
+    bool left_side,
+    float seed_lateral_m,
+    float seed_forward_limit_m) {
+    const int min_support_layers = std::max(1, params.bev_path_policy.circle_inner_min_layers);
+    // Extended 1.5m BEV uses denser forward layers; cap the occlusion bridge by metric
+    // distance, not by a fixed row count, while keeping it bounded to avoid far splices.
+    const int max_gap_layers =
+        std::clamp(static_cast<int>(std::ceil(0.22F / ForwardSampleSpacingM(params))), 2, 4);
+    const float near_start_limit =
+        std::max(static_cast<float>(params.bev_control_model.lookahead_max_m),
+                 params.bev_topology_sampler.forward_samples_m[std::min<std::size_t>(
+                     static_cast<std::size_t>(
+                         std::max(0, params.bev_control_model.curvature_sample_index)),
+                     port::kBevTrackSampleCount - 1U)]) +
+        ForwardSampleSpacingM(params);
+    const float start_limit = std::max(near_start_limit, seed_forward_limit_m);
+    const float memory_lateral = MemorySeedLateral(memory, left_side, seed_lateral_m);
+    InnerEdgeTraceResult best_trace{};
+    float best_score = -std::numeric_limits<float>::infinity();
+    std::size_t best_start_layer = port::kBevTrackSampleCount;
+    for (std::size_t layer = 0; layer < candidates.size(); ++layer) {
+        const float forward = params.bev_topology_sampler.forward_samples_m[layer];
+        if (forward > start_limit + 1.0e-4F) {
+            break;
+        }
+        for (const InnerEdgeCandidate& candidate : candidates[layer]) {
+            const InnerEdgeTraceResult trace =
+                TraceFromSeed(candidates,
+                              layer,
+                              candidate.sample,
+                              params,
+                              min_support_layers,
+                              max_gap_layers);
+            if (!trace.present) {
+                continue;
+            }
+            const float seed_distance =
+                std::min(std::abs(candidate.sample.point.lateral_m - seed_lateral_m),
+                         std::abs(candidate.sample.point.lateral_m - memory_lateral));
+            const float score =
+                static_cast<float>(trace.support_layers) * 3.0F +
+                trace.end_forward_m * 0.75F -
+                static_cast<float>(trace.gap_layers) * 0.35F -
+                static_cast<float>(layer) * 0.30F -
+                seed_distance * 0.50F;
+            if (!best_trace.present || layer < best_start_layer ||
+                (layer == best_start_layer && score > best_score)) {
+                best_trace = trace;
+                best_score = score;
+                best_start_layer = layer;
+            }
+        }
+    }
+    if (best_trace.present) {
+        best_trace.rejected_far_segments = CountRejectedFarSegments(candidates, best_trace, params);
+    }
+    return best_trace;
+}
+
+port::BEVCircleInnerIslandEvidence DetectCircleInnerIsland(
+    const port::LegacyCameraFrame& frame,
+    int threshold,
+    const port::RuntimeParameters& params,
+    const BEVProjector& projector,
+    const port::BEVCircleCornerEvidence& corner,
+    const port::ReferencePolicyState* reference_memory,
+    bool left_side) {
+    port::BEVCircleInnerIslandEvidence evidence{};
+    if (!corner.present) {
+        return evidence;
+    }
+
+    const float lateral_min = std::min(params.bev_topology_sampler.lateral_min_m,
+                                       params.bev_topology_sampler.lateral_max_m);
+    const float lateral_max = std::max(params.bev_topology_sampler.lateral_min_m,
+                                       params.bev_topology_sampler.lateral_max_m);
+    const float lateral_step =
+        std::max(0.010F, std::abs(params.bev_topology_sampler.lateral_step_m) * 0.75F);
+    const float search_radius =
+        std::max(params.bev_corridor_graph.nominal_lane_width_m * 0.70F,
+                 std::abs(params.bev_topology_sampler.lateral_step_m) * 10.0F);
+    const float side_limit =
+        std::max(0.08F, params.bev_corridor_graph.nominal_lane_width_m * 0.20F);
+    const float scan_min = std::max(lateral_min, corner.lateral_m - search_radius);
+    const float scan_max = std::min(lateral_max, corner.lateral_m + search_radius);
+    const float forward_search_min = params.bev_topology_sampler.forward_samples_m.front();
+    const float forward_search_max = params.bev_topology_sampler.forward_samples_m.back();
+
+    WhiteBlackWhiteRun best_run{};
+    float best_lateral = corner.lateral_m;
+    int support_lines = 0;
+    for (float lateral = scan_min; lateral <= scan_max + lateral_step * 0.5F; lateral += lateral_step) {
+        if (left_side && lateral > side_limit) {
+            continue;
+        }
+        if (!left_side && lateral < -side_limit) {
+            continue;
+        }
+        const std::vector<ForwardClassRun> runs =
+            BuildForwardRuns(frame,
+                             threshold,
+                             params,
+                             projector,
+                             lateral,
+                             forward_search_min,
+                             forward_search_max);
+        const WhiteBlackWhiteRun candidate = FindWhiteBlackWhiteRun(runs, params);
+        if (!candidate.valid) {
+            continue;
+        }
+        ++support_lines;
+        if (!best_run.valid || candidate.score > best_run.score ||
+            (std::abs(candidate.score - best_run.score) < 1.0e-4F &&
+             candidate.black_start_forward_m < best_run.black_start_forward_m)) {
+            best_run = candidate;
+            best_lateral = lateral;
+        }
+    }
+
+    const float edge_hint = best_run.valid ? best_lateral : corner.lateral_m;
+    const float forward_min = params.bev_topology_sampler.forward_samples_m.front();
+    const float forward_max = params.bev_topology_sampler.forward_samples_m.back();
+    const InnerEdgeCandidateLayers candidates =
+        CollectInnerIslandRoadFacingEdgeCandidates(frame,
+                                                   threshold,
+                                                   params,
+                                                   projector,
+                                                   left_side,
+                                                   edge_hint,
+                                                   forward_min,
+                                                   forward_max);
+    evidence.raw_road_facing_edge = BestRawInnerEdgeByLayer(candidates, edge_hint);
+    const float seed_forward_limit =
+        best_run.valid
+            ? best_run.black_start_forward_m + ForwardSampleSpacingM(params) * 2.0F
+            : corner.forward_m + ForwardSampleSpacingM(params);
+    const InnerEdgeTraceResult trace =
+        TraceInnerIslandRoadFacingEdge(candidates,
+                                       params,
+                                       reference_memory,
+                                       left_side,
+                                       edge_hint,
+                                       seed_forward_limit);
+    evidence.trace_present = trace.present;
+    evidence.edge_present = trace.present;
+    evidence.road_facing_edge = trace.edge;
+    evidence.trace_start_forward_m = trace.start_forward_m;
+    evidence.trace_end_forward_m = trace.end_forward_m;
+    evidence.trace_confidence = trace.confidence;
+    evidence.trace_support_layers = trace.support_layers;
+    evidence.trace_gap_layers = trace.gap_layers;
+    evidence.rejected_far_segments = trace.rejected_far_segments;
+    evidence.support_lines = support_lines;
+    evidence.scan_lateral_m = edge_hint;
+    if (best_run.valid) {
+        evidence.present = best_run.score >= kInnerIslandPresentScoreMin;
+        evidence.score = best_run.score;
+        evidence.black_start_forward_m = best_run.black_start_forward_m;
+        evidence.black_end_forward_m = best_run.black_end_forward_m;
+        evidence.invalid_penalty = best_run.invalid_penalty;
+    } else if (evidence.edge_present) {
+        evidence.score = 0.35F;
+    }
+    return evidence;
 }
 
 // 计算边界点线段拟合的残差（评估点偏离直线的程度）
@@ -793,7 +1395,8 @@ port::BEVElementEvidence ExtractBEVElementEvidence(const port::LegacyCameraFrame
                                                    int threshold,
                                                    const port::RuntimeParameters& params,
                                                    const BEVProjector& projector,
-                                                   const BEVSparseSampleGrid& sparse_grid) {
+                                                   const BEVSparseSampleGrid& sparse_grid,
+                                                   const port::ReferencePolicyState* reference_memory) {
     port::BEVElementEvidence evidence{};
     if (!sparse_grid.valid || !projector.Valid() || frame.width <= 0 || frame.height <= 0) {
         return evidence;
@@ -839,10 +1442,28 @@ port::BEVElementEvidence ExtractBEVElementEvidence(const port::LegacyCameraFrame
                            threshold,
                            params,
                            projector);
+    evidence.left_inner_island =
+        DetectCircleInnerIsland(frame,
+                                threshold,
+                                params,
+                                projector,
+                                evidence.left_circle_corner,
+                                reference_memory,
+                                true);
+    evidence.right_inner_island =
+        DetectCircleInnerIsland(frame,
+                                threshold,
+                                params,
+                                projector,
+                                evidence.right_circle_corner,
+                                reference_memory,
+                                false);
     // 步骤 5：场景互斥——十字路口存在时抑制环岛检测
     if (evidence.cross_band.present) {
         evidence.left_circle_corner = {};
         evidence.right_circle_corner = {};
+        evidence.left_inner_island = {};
+        evidence.right_inner_island = {};
     }
     return evidence;
 }

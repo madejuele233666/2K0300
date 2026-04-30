@@ -282,6 +282,26 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         perception.reference_compatibility_error_m;
     debug_snapshot.steering.reference_source = perception.reference_source;
     debug_snapshot.steering.circle_entry_signal_active = perception.circle_entry_signal_active;
+    debug_snapshot.steering.inner_island_memory_active = perception.inner_island_memory_active;
+    debug_snapshot.steering.inner_island_memory_age = perception.inner_island_memory_age;
+    debug_snapshot.steering.inner_island_memory_confidence =
+        perception.inner_island_memory_confidence;
+    debug_snapshot.steering.left_inner_island_present = perception.left_inner_island_present;
+    debug_snapshot.steering.right_inner_island_present = perception.right_inner_island_present;
+    debug_snapshot.steering.inner_edge_compatible = perception.inner_edge_compatible;
+    debug_snapshot.steering.inner_island_trace_present = perception.inner_island_trace_present;
+    debug_snapshot.steering.inner_island_trace_start_forward_m =
+        perception.inner_island_trace_start_forward_m;
+    debug_snapshot.steering.inner_island_trace_end_forward_m =
+        perception.inner_island_trace_end_forward_m;
+    debug_snapshot.steering.inner_island_trace_confidence =
+        perception.inner_island_trace_confidence;
+    debug_snapshot.steering.inner_island_trace_support_layers =
+        perception.inner_island_trace_support_layers;
+    debug_snapshot.steering.inner_island_trace_gap_layers =
+        perception.inner_island_trace_gap_layers;
+    debug_snapshot.steering.inner_island_rejected_far_segments =
+        perception.inner_island_rejected_far_segments;
     debug_snapshot.steering.roadblock_active = perception.roadblock_active;
     debug_snapshot.steering.resolved_fuzzy_p = inputs.camera_turn.resolved_fuzzy_p;
     debug_snapshot.steering.camera_p_term = inputs.camera_turn.camera_p_term;

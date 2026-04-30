@@ -147,6 +147,39 @@ void TestCircleCornerRequiresSharpPoint() {
            "smooth inner-curve support must not be treated as a circle corner");
 }
 
+void TestCircleInnerIslandRequiresWhiteBlackWhite() {
+    const ls2k::port::RuntimeParameters params{};
+    const ls2k::legacy::BEVProjector projector = MakeProjector(params);
+
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+    DrawCornerRegion(frame, projector, true);
+    DrawBevRect(frame, projector, 0.11F, 0.22F, -0.14F, -0.06F, 220U);
+    DrawBevRect(frame, projector, 0.28F, 0.39F, -0.14F, -0.06F, 0U);
+    DrawBevRect(frame, projector, 0.45F, 0.62F, -0.14F, -0.06F, 220U);
+
+    const ls2k::port::BEVElementEvidence evidence = Extract(frame, params, projector);
+
+    Expect(evidence.left_inner_island.present || evidence.right_inner_island.present,
+           "corner-side white-black-white vertical scan must establish inner-island evidence");
+    const ls2k::port::BEVCircleInnerIslandEvidence& island =
+        evidence.left_inner_island.present ? evidence.left_inner_island : evidence.right_inner_island;
+    Expect(island.trace_present && island.edge_present,
+           "white-black-white inner island must expose a continuous traced road-facing edge");
+    Expect(island.trace_support_layers >= std::max(1, params.bev_path_policy.circle_inner_min_layers),
+           "inner-island trace must have enough support layers for path authority");
+    Expect(island.trace_end_forward_m > island.trace_start_forward_m,
+           "inner-island trace must cover a forward span, not a single row");
+
+    ls2k::port::LegacyCameraFrame incomplete = MakeFrame(0U);
+    DrawBevRect(incomplete, projector, 0.11F, 0.22F, -0.14F, -0.06F, 220U);
+    DrawBevRect(incomplete, projector, 0.28F, 0.70F, -0.14F, -0.06F, 0U);
+    const ls2k::port::BEVElementEvidence incomplete_evidence =
+        Extract(incomplete, params, projector);
+    Expect(!incomplete_evidence.left_inner_island.present &&
+               !incomplete_evidence.right_inner_island.present,
+           "white-black without the second white run must not calibrate inner-island memory");
+}
+
 void TestCrossSuppressesCircleCornerEvidence() {
     const ls2k::port::RuntimeParameters params{};
     const ls2k::legacy::BEVProjector projector = MakeProjector(params);
@@ -159,6 +192,10 @@ void TestCrossSuppressesCircleCornerEvidence() {
     Expect(evidence.cross_band.present, "fixture must contain cross-band evidence");
     Expect(!evidence.left_circle_corner.present && !evidence.right_circle_corner.present,
            "cross band must suppress simultaneous circle-corner evidence");
+    Expect(!evidence.left_inner_island.present && !evidence.right_inner_island.present,
+           "cross band must suppress simultaneous inner-island evidence");
+    Expect(!evidence.left_inner_island.trace_present && !evidence.right_inner_island.trace_present,
+           "cross band must suppress simultaneous inner-island trace");
 }
 
 }  // namespace
@@ -168,6 +205,7 @@ int main() {
         TestCrossBandPassesOnlyForContinuousWhiteSpan();
         TestCrossBandRejectsGapAndBlankFrame();
         TestCircleCornerRequiresSharpPoint();
+        TestCircleInnerIslandRequiresWhiteBlackWhite();
         TestCrossSuppressesCircleCornerEvidence();
     } catch (const TestFailure& failure) {
         std::cerr << "bev_element_evidence_test failed: " << failure.message << "\n";

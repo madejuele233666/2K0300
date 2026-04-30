@@ -585,7 +585,7 @@ void TestCircleProgressionAndDirectionLatch() {
            "ordinary reacquire must release circle state");
 }
 
-void TestCircleInteriorUsesStableBoundaryOffsetWithoutOrdinaryGraph() {
+void TestCircleInteriorRejectsStableBoundaryOffsetWithoutInnerIslandMemory() {
     const ls2k::port::RuntimeParameters params = MakeParams();
     ls2k::legacy::CorridorGraph graph{};
     const ls2k::legacy::CorridorIntervalSet intervals = MakeOpeningIntervals(params, 0.26F, 0.0F);
@@ -607,9 +607,9 @@ void TestCircleInteriorUsesStableBoundaryOffsetWithoutOrdinaryGraph() {
     const ls2k::legacy::ReferencePolicyResult reference =
         ls2k::legacy::ResolveReferencePolicy(hypotheses, left_circle, circle_state, {}, params);
     Expect(reference.reference_path.valid,
-           "circle interior must be controllable from stable observed boundary offset without ordinary graph");
-    Expect(reference.reference_path.mode == ls2k::port::ReferenceMode::kStableBoundaryOffset,
-           "circle interior must keep stable-boundary offset distinct from arc-follow");
+           "circle interior without inner-island memory must remain controllable by outer guard");
+    Expect(reference.reference_path.mode == ls2k::port::ReferenceMode::kOuterOffset,
+           "circle interior must not use generic stable-boundary offset as an inner-circle path");
 
     const ls2k::legacy::ReferencePolicyResult no_boundary =
         ls2k::legacy::ResolveReferencePolicy({}, left_circle, circle_state, {}, params);
@@ -844,7 +844,7 @@ int main() {
         TestUnobservedEdgesRaiseLostTopology();
         TestSingleSidedNearAnchorStraightTrackWeakensOrdinaryEvidence();
         TestCircleProgressionAndDirectionLatch();
-        TestCircleInteriorUsesStableBoundaryOffsetWithoutOrdinaryGraph();
+        TestCircleInteriorRejectsStableBoundaryOffsetWithoutInnerIslandMemory();
         TestArcHypothesesUseBevNormalOffset();
         TestExitAndBoundaryArcHypothesesDoNotRequireOrdinaryGraph();
         TestZebraHoldAndConstraintsUseTopologyPath();

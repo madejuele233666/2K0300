@@ -119,6 +119,25 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.reference_compatibility_error_m = snapshot.steering.reference_compatibility_error_m;
     telemetry.reference_source = snapshot.steering.reference_source;
     telemetry.circle_entry_signal_active = snapshot.steering.circle_entry_signal_active;
+    telemetry.inner_island_memory_active = snapshot.steering.inner_island_memory_active;
+    telemetry.inner_island_memory_age = snapshot.steering.inner_island_memory_age;
+    telemetry.inner_island_memory_confidence = snapshot.steering.inner_island_memory_confidence;
+    telemetry.left_inner_island_present = snapshot.steering.left_inner_island_present;
+    telemetry.right_inner_island_present = snapshot.steering.right_inner_island_present;
+    telemetry.inner_edge_compatible = snapshot.steering.inner_edge_compatible;
+    telemetry.inner_island_trace_present = snapshot.steering.inner_island_trace_present;
+    telemetry.inner_island_trace_start_forward_m =
+        snapshot.steering.inner_island_trace_start_forward_m;
+    telemetry.inner_island_trace_end_forward_m =
+        snapshot.steering.inner_island_trace_end_forward_m;
+    telemetry.inner_island_trace_confidence =
+        snapshot.steering.inner_island_trace_confidence;
+    telemetry.inner_island_trace_support_layers =
+        snapshot.steering.inner_island_trace_support_layers;
+    telemetry.inner_island_trace_gap_layers =
+        snapshot.steering.inner_island_trace_gap_layers;
+    telemetry.inner_island_rejected_far_segments =
+        snapshot.steering.inner_island_rejected_far_segments;
     return telemetry;
 }
 
