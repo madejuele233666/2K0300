@@ -21,6 +21,15 @@ def utc_timestamp() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def nested(frame: Dict[str, Any], *keys: str, default: Any = "") -> Any:
+    value: Any = frame
+    for key in keys:
+        if not isinstance(value, dict):
+            return default
+        value = value.get(key, default)
+    return value
+
+
 class SteeringMediaListener:
     def __init__(
         self,
@@ -195,7 +204,7 @@ class SteeringMediaListener:
             self._log(
                 "[media] config_snapshot "
                 f"interval_ms={header.get('media_publish_interval_ms')} "
-                f"pid_turn_camera_d={header.get('param_snapshot', {}).get('pid_turn_camera_d')}"
+                f"yaw_rate_pid_p={header.get('param_snapshot', {}).get('yaw_rate_pid', {}).get('p')}"
             )
             return
 
@@ -238,18 +247,11 @@ class SteeringMediaListener:
             self._log(
                 "[media] "
                 f"frame_id={frame_id} phase={header.get('motion_phase')} "
-                f"module={steering.get('active_module')} scene={steering.get('scene_phase')} "
-                f"circle={steering.get('circle_direction')}/{steering.get('circle_reference_mode')} "
-                f"entry_signal={steering.get('circle_entry_signal_active')} "
-                f"ref={steering.get('reference_mode')} "
-                f"near_lateral_error={steering.get('near_lateral_error')} "
-                f"lookahead_m={steering.get('lookahead_distance_m')} "
-                f"lookahead_y={steering.get('lookahead_lateral_error')} "
-                f"lookahead_heading={steering.get('lookahead_heading_error')} "
-                f"ref_curvature={steering.get('reference_curvature')} "
-                f"curvature_command={steering.get('curvature_command')} "
-                f"yaw_rate_target={steering.get('yaw_rate_target')} "
-                f"visible_range_m={steering.get('visible_range_m')} "
-                f"track_confidence={steering.get('track_confidence')} "
-                f"raw_turn={steering.get('raw_turn_output')} applied_turn={steering.get('applied_turn_output')}"
+                f"ref={nested(steering, 'reference', 'mode')} "
+                f"source={nested(steering, 'reference', 'source')} "
+                f"lookahead_m={nested(steering, 'curvature', 'lookahead_distance_m')} "
+                f"curvature_command={nested(steering, 'curvature', 'curvature_command')} "
+                f"yaw_rate_target={nested(steering, 'yaw_control', 'yaw_rate_target')} "
+                f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
+                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
             )

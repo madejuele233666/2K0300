@@ -18,7 +18,7 @@ void RunShutdown(port::PlatformBundle& platform, RuntimeState& state, port::Diag
     state.last_command = {};
     state.control_observation = {};
     state.control_debug_snapshot = {};
-    ResetSteeringRuntimeState(state.steering_state);
+    state.perception_memory_reset_generation.fetch_add(1);
 
     if (platform.camera) {
         platform.camera->Shutdown(diagnostics);

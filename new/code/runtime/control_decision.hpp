@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "port/control_types.hpp"
+#include "port/actuator_command_types.hpp"
 #include "runtime/motion_types.hpp"
 
 namespace ls2k::runtime {
@@ -11,7 +11,8 @@ namespace ls2k::runtime {
 enum class ControlVetoReason {
     kNone,
     kPerceptionStale,
-    kPerceptionEmergencyVeto,
+    kPerceptionInvalid,
+    kReferenceControlNotReady,
     kLowVoltage,
     kImuInvalid,
     kEncoderInvalid
@@ -32,7 +33,8 @@ struct ControlGateInputs {
     bool perception_fresh = false;
     uint64_t perception_capture_time_ms = 0;
     uint64_t perception_publish_time_ms = 0;
-    bool perception_emergency_veto = true;
+    bool perception_projector_ok = false;
+    bool reference_control_ready = false;
     bool low_voltage_emergency = false;
     bool imu_valid = false;
     bool encoder_valid = false;

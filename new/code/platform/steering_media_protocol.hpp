@@ -9,122 +9,90 @@
 #include <string>
 #include <vector>
 
-#include "port/control_types.hpp"
+#include "port/bev_geometry_types.hpp"
 
 namespace ls2k::platform {
 
 // 计算指定分辨率下图像负载的字节数
 std::size_t SteeringMediaImagePayloadBytes(int width, int height);
 
-// 参数快照视图 —— 包含 PID 参数和 BEV 配置的运行时快照
+// 参数快照视图 —— 包含 gyro yaw 参数和 BEV 配置的运行时快照
 struct SteeringMediaParamSnapshotView {
-    double pid_turn_camera_p = 0.0;
-    double pid_turn_camera_p_scale = 0.0;
-    double pid_turn_camera_d = 0.0;
-    bool pid_turn_camera_use_fuzzy = false;
-    double pid_turn_gyro_camera_p = 0.0;
-    double pid_turn_gyro_camera_i = 0.0;
-    double pid_turn_gyro_camera_d = 0.0;
-    int p_mode = 0;
-    double speed_base = 0.0;
+    double running_speed_target = 0.0;
+    double yaw_rate_pid_p = 0.0;
+    double yaw_rate_pid_i = 0.0;
+    double yaw_rate_pid_d = 0.0;
     int control_period_ms = 0;
+    int low_voltage_sample_interval_ms = 0;
+    int low_voltage_raw_threshold = 0;
     int raw_turn_output_limit = 0;
     port::BEVProjectorCalibration bev_projector{};
     port::BEVGeometryParameters bev_geometry{};
-    port::BEVSceneFsmParameters bev_scene_fsm{};
+    port::BEVClassificationParameters bev_classification{};
     port::BEVControlModelParameters bev_control_model{};
-    port::BEVTopologySamplerParameters bev_topology_sampler{};
-    port::BEVCorridorGraphParameters bev_corridor_graph{};
-    port::BEVTopologyEvidenceParameters bev_topology_evidence{};
-    port::BEVReferencePolicyParameters bev_reference_policy{};
-    port::BEVPathPolicyParameters bev_path_policy{};
+};
+
+struct SteeringMediaReferenceView {
+    std::string mode = "none";
+    std::string source = "none";
+};
+
+struct SteeringMediaPerceptionHealthView {
+    bool projector_ok = false;
+    std::string reason = "projector_invalid";
+};
+
+struct SteeringMediaEligibilityView {
+    bool usable = false;
+    std::uint64_t leading_usable_samples = 0;
+    double leading_min_forward_m = 0.0;
+    double leading_max_forward_m = 0.0;
+    double lookahead_distance_m = 0.0;
+    std::string reason = "no_reference_facts";
+};
+
+struct SteeringMediaCurvatureView {
+    bool computed = false;
+    double lookahead_distance_m = 0.0;
+    double curvature_command = 0.0;
+    std::string reason = "reference_unusable";
+};
+
+struct SteeringMediaReferenceControlView {
+    bool ready = false;
+    std::string reason = "reference_unusable";
+};
+
+struct SteeringMediaSafetyGateView {
+    bool veto_active = true;
+    std::string reason = "perception_stale";
+};
+
+struct SteeringMediaDegradedView {
+    bool active = false;
+    std::string reason = "none";
+};
+
+struct SteeringMediaYawControlView {
+    double yaw_rate_target = 0.0;
+};
+
+struct SteeringMediaActuatorView {
+    int raw_turn_output = 0;
+    int applied_turn_output = 0;
 };
 
 struct SteeringMediaSnapshotView {
-    double near_lateral_error = 0.0;
-    double far_heading_error = 0.0;
-    double preview_curvature = 0.0;
-    double raw_near_lateral_error = 0.0;
-    double raw_far_heading_error = 0.0;
-    double raw_preview_curvature = 0.0;
-    double lookahead_distance_m = 0.0;
-    double lookahead_lateral_error = 0.0;
-    double lookahead_heading_error = 0.0;
-    double reference_curvature = 0.0;
-    double raw_lookahead_lateral_error = 0.0;
-    double raw_lookahead_heading_error = 0.0;
-    double raw_reference_curvature = 0.0;
-    bool trusted_error_active = false;
-    double trusted_error_weight_near = 0.0;
-    double trusted_error_weight_far = 0.0;
-    double trusted_error_weight_lookahead = 0.0;
-    double trusted_error_weight_curvature = 0.0;
-    double curvature_command = 0.0;
-    double yaw_rate_target = 0.0;
-    double visible_range_m = 0.0;
-    double scene_width_expand_ratio = 1.0;
-    double scene_cross_bilateral_open_score_m = 0.0;
-    bool scene_cross_bilateral_open = false;
-    bool scene_cross_candidate = false;
-    bool scene_zebra_candidate = false;
-    bool scene_circle_left_candidate = false;
-    bool scene_circle_right_candidate = false;
-    double scene_left_open_score = 0.0;
-    double scene_right_open_score = 0.0;
-    double scene_left_contract_score = 0.0;
-    double scene_right_contract_score = 0.0;
-    double scene_left_boundary_heading_abs_rad = 0.0;
-    double scene_right_boundary_heading_abs_rad = 0.0;
-    bool scene_circle_left_opposite_straight = false;
-    bool scene_circle_right_opposite_straight = false;
-    double lateral_error = 0.0;
-    double heading_error = 0.0;
-    double curvature = 0.0;
-    double track_confidence = 0.0;
-    bool track_valid = false;
-    bool sign_flip_blocked = false;
-    bool imu_grace_active = false;
-    double gyro_heading_delta_deg = 0.0;
-    double gyro_consistency_score = 1.0;
     int threshold = 0;
-    bool threshold_veto = false;
-    double resolved_fuzzy_p = 0.0;
-    double camera_p_term = 0.0;
-    double camera_d_term = 0.0;
-    double w_target = 0.0;
-    double gyro_z = 0.0;
-    double gyro_error = 0.0;
-    double gyro_p_term = 0.0;
-    double gyro_d_term = 0.0;
-    int raw_turn_output = 0;
-    int applied_turn_output = 0;
-    bool roadblock_active = false;
-    std::string active_module = "straight";
-    std::string scene_phase = "idle";
-    std::string scene_override_source = "none";
-    std::string reference_mode = "centerline";
-    std::string roadblock_interface_state = "supported_not_implemented";
-    std::string circle_direction = "none";
-    std::string circle_reference_mode = "none";
-    double circle_heading_delta_deg = 0.0;
-    double circle_yaw_accum_deg = 0.0;
-    std::string circle_path_phase = "none";
-    double reference_compatibility_error_m = 0.0;
-    std::string reference_source = "none";
-    bool circle_entry_signal_active = false;
-    bool inner_island_memory_active = false;
-    int inner_island_memory_age = 0;
-    double inner_island_memory_confidence = 0.0;
-    bool left_inner_island_present = false;
-    bool right_inner_island_present = false;
-    bool inner_edge_compatible = false;
-    bool inner_island_trace_present = false;
-    double inner_island_trace_start_forward_m = 0.0;
-    double inner_island_trace_end_forward_m = 0.0;
-    double inner_island_trace_confidence = 0.0;
-    int inner_island_trace_support_layers = 0;
-    int inner_island_trace_gap_layers = 0;
-    int inner_island_rejected_far_segments = 0;
+    SteeringMediaPerceptionHealthView perception_health{};
+    SteeringMediaReferenceView reference{};
+    SteeringMediaEligibilityView eligibility{};
+    SteeringMediaCurvatureView curvature{};
+    SteeringMediaReferenceControlView reference_control{};
+    SteeringMediaSafetyGateView safety_gate{};
+    SteeringMediaDegradedView degraded{};
+    SteeringMediaYawControlView yaw_control{};
+    SteeringMediaActuatorView actuator{};
 };
 
 struct SteeringMediaConfigSnapshot {

@@ -22,7 +22,7 @@ namespace ls2k::platform::true_ls2k0300 {
 namespace {
 
 constexpr std::uint64_t kReconnectBackoffMs = 1000;
-constexpr std::uint64_t kReliableSendTimeoutMs = 75;
+[[maybe_unused]] constexpr std::uint64_t kReliableSendTimeoutMs = 75;
 constexpr int kSteeringMediaSocketBufferBytes = 256 * 1024;
 
 struct SteeringMediaBridgeContext {
@@ -242,7 +242,7 @@ void CheckReadySocketHealth() {
 }
 
 // 等待套接字可写（带超时），用于可靠发送的重试
-bool WaitForSocketWritable(std::uint64_t started_at_ms, std::uint64_t timeout_ms) {
+[[maybe_unused]] bool WaitForSocketWritable(std::uint64_t started_at_ms, std::uint64_t timeout_ms) {
     if (g_bridge.socket_fd < 0) {
         return false;
     }
@@ -315,7 +315,7 @@ SteeringMediaBridgeSendResult FlushPendingSend(bool wait_for_writable, std::stri
                 continue;
             }
             detail = "steering media TCP socket is busy; keeping current frame in-flight";
-            return SteeringMediaBridgeSendResult::kBusy;
+            return SteeringMediaBridgeSendResult::kBusyRejected;
         }
         EnterBackoff("steering media TCP send failed: " + std::string(std::strerror(errno)));
         detail = g_bridge.detail;
@@ -390,7 +390,8 @@ bool SteeringMediaBridgeReady() {
     return g_bridge.state == SteeringMediaBridgeState::kReady && g_bridge.socket_fd >= 0;
 }
 
-// 发送转向媒体数据 —— 先刷新待发缓冲，再将新数据加入并尝试发送，拥塞时返回 kBusy
+// 发送转向媒体数据 —— bridge 拥有当前 in-flight bytes；
+// 如果已有 in-flight 还没刷完，则拒收新帧，交由上层只保留最新 replacement。
 SteeringMediaBridgeSendResult SendSteeringMediaBytes(const std::uint8_t* data,
                                                      std::size_t length,
                                                      std::string& detail) {
@@ -408,7 +409,7 @@ SteeringMediaBridgeSendResult SendSteeringMediaBytes(const std::uint8_t* data,
         if (flush_result != SteeringMediaBridgeSendResult::kSent) {
             if (SteeringMediaBridgeReady() && !g_bridge.pending_send.empty()) {
                 detail = "steering media TCP socket is busy; finishing previous frame";
-                return SteeringMediaBridgeSendResult::kBusy;
+                return SteeringMediaBridgeSendResult::kBusyRejected;
             }
             return flush_result;
         }
@@ -416,13 +417,13 @@ SteeringMediaBridgeSendResult SendSteeringMediaBytes(const std::uint8_t* data,
 
     g_bridge.pending_send.assign(data, data + length);
     g_bridge.pending_send_offset = 0;
-    const SteeringMediaBridgeSendResult flush_result = FlushPendingSend(true, detail);
+    const SteeringMediaBridgeSendResult flush_result = FlushPendingSend(false, detail);
     if (flush_result == SteeringMediaBridgeSendResult::kSent) {
         return SteeringMediaBridgeSendResult::kSent;
     }
     if (SteeringMediaBridgeReady() && !g_bridge.pending_send.empty()) {
         detail.clear();
-        return SteeringMediaBridgeSendResult::kBusy;
+        return SteeringMediaBridgeSendResult::kAcceptedInFlight;
     }
     return flush_result;
 }

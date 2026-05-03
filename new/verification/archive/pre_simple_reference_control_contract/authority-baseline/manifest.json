@@ -1,0 +1,36 @@
+{
+  "schema": "bev-simple-authority-baseline-v1",
+  "projector_id": "bev_projector_true_bev_manual_forward_scale_v5",
+  "projector_calibration": {
+    "projector_hash": "bev-projector-true-bev-manual-forward-scale-20260428",
+    "source_points": [
+      { "row_px": 220.0, "col_px": 21.5 },
+      { "row_px": 220.0, "col_px": 296.0 },
+      { "row_px": 68.0, "col_px": 114.0 },
+      { "row_px": 68.0, "col_px": 211.0 }
+    ],
+    "target_points": [
+      { "forward_m": 0.061, "lateral_m": -0.21 },
+      { "forward_m": 0.061, "lateral_m": 0.21 },
+      { "forward_m": 0.61, "lateral_m": -0.21 },
+      { "forward_m": 0.61, "lateral_m": 0.21 }
+    ]
+  },
+  "contract_semantics": {
+    "pipeline": "raw camera frame -> BEV image -> BEV classification -> row white intervals -> source-labelled reference_path -> minimal control error",
+    "reference_source": "All authority samples in this first rewrite must use simple_interval_center, hold, or invalid. Topology, cross, circle, trusted and memory fields are intentionally absent.",
+    "path_points": "Every valid reference point must expose source=interval_center or source=hold. Invalid rows must stay source=invalid.",
+    "scene": "Element recognition is not part of this first rewrite; scene_phase stays idle and scene_override_source stays none."
+  },
+  "samples": [
+    { "file": "bend-1.raw", "label": "bend", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "bend-2.raw", "label": "bend", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "bend-3.raw", "label": "bend", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "circle-1.raw", "label": "circle", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "circle-2.raw", "label": "circle", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "circle-3.raw", "label": "circle", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "cross-1.raw", "label": "cross", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "cross-2.raw", "label": "cross", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] },
+    { "file": "cross-3.raw", "label": "cross", "expect_reference_sources": ["simple_interval_center", "hold", "invalid"] }
+  ]
+}

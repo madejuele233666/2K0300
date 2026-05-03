@@ -1,7 +1,6 @@
 #ifndef LS2K_PLATFORM_TRUE_LS2K0300_ASSISTANT_BRIDGE_HPP
 #define LS2K_PLATFORM_TRUE_LS2K0300_ASSISTANT_BRIDGE_HPP
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -32,14 +31,6 @@ bool InitializeAssistantBridge(const AssistantBridgeConfig& config, std::string&
 AssistantBridgePollResult PollAssistantBridge();
 bool AssistantBridgeReady();
 bool SendAssistantBytes(const std::uint8_t* data, std::size_t length, bool reliable, std::string& detail);
-bool SendAssistantOscilloscope(const std::array<float, 8>& values,
-                               std::size_t channel_count,
-                               std::string& detail);
-bool SendAssistantImage(const uint8_t* image_gray,
-                        int width,
-                        int height,
-                        std::string& detail);
-
 }  // namespace ls2k::platform::true_ls2k0300
 
 #endif  // LS2K_PLATFORM_TRUE_LS2K0300_ASSISTANT_BRIDGE_HPP

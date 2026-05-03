@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "platform/true_ls2k0300/steering_media_bridge.hpp"
+#include "port/perf_counter.hpp"
 
 namespace ls2k::platform {
 namespace {
@@ -52,8 +53,10 @@ public:
         switch (true_ls2k0300::SendSteeringMediaBytes(data, length, detail)) {
             case true_ls2k0300::SteeringMediaBridgeSendResult::kSent:
                 return SteeringMediaTransportSendResult::kSent;
-            case true_ls2k0300::SteeringMediaBridgeSendResult::kBusy:
-                return SteeringMediaTransportSendResult::kBusy;
+            case true_ls2k0300::SteeringMediaBridgeSendResult::kAcceptedInFlight:
+                return SteeringMediaTransportSendResult::kAcceptedInFlight;
+            case true_ls2k0300::SteeringMediaBridgeSendResult::kBusyRejected:
+                return SteeringMediaTransportSendResult::kBusyRejected;
             case true_ls2k0300::SteeringMediaBridgeSendResult::kDisconnected:
                 return SteeringMediaTransportSendResult::kDisconnected;
             case true_ls2k0300::SteeringMediaBridgeSendResult::kError:
@@ -156,9 +159,14 @@ SteeringMediaTransportSendResult SteeringMediaLink::PublishEncoded(
         return SteeringMediaTransportSendResult::kDisconnected;
     }
     std::string detail;
-    const SteeringMediaTransportSendResult send_result =
-        transport_->SendBytes(encoded.data(), encoded.size(), detail);
-    if (send_result != SteeringMediaTransportSendResult::kSent) {
+    SteeringMediaTransportSendResult send_result = SteeringMediaTransportSendResult::kError;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kMediaSend);
+        send_result = transport_->SendBytes(encoded.data(), encoded.size(), detail);
+    }
+    if (send_result != SteeringMediaTransportSendResult::kSent &&
+        send_result != SteeringMediaTransportSendResult::kAcceptedInFlight &&
+        send_result != SteeringMediaTransportSendResult::kBusyRejected) {
         ready_ = transport_->Ready();
     }
     if (send_result == SteeringMediaTransportSendResult::kDisconnected ||
@@ -175,27 +183,35 @@ bool SteeringMediaLink::PublishConfigSnapshot(const SteeringMediaConfigSnapshot&
                                               port::DiagnosticSink& diagnostics) {
     std::vector<std::uint8_t> encoded;
     std::string error;
-    if (!EncodeSteeringMediaConfigSnapshot(snapshot, encoded, error)) {
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "steering_media.config_snapshot.invalid",
-                          error,
-                          port::NowMs()});
-        return false;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kMediaEncode);
+        if (!EncodeSteeringMediaConfigSnapshot(snapshot, encoded, error)) {
+            diagnostics.Emit({port::DiagnosticLevel::kWarning,
+                              "steering_media.config_snapshot.invalid",
+                              error,
+                              port::NowMs()});
+            return false;
+        }
     }
-    return PublishEncoded(encoded, "steering_media.config_snapshot.failed", diagnostics) ==
-           SteeringMediaTransportSendResult::kSent;
+    const SteeringMediaTransportSendResult send_result =
+        PublishEncoded(encoded, "steering_media.config_snapshot.failed", diagnostics);
+    return send_result == SteeringMediaTransportSendResult::kSent ||
+           send_result == SteeringMediaTransportSendResult::kAcceptedInFlight;
 }
 
 SteeringMediaPublishResult SteeringMediaLink::PublishImageFrame(const SteeringMediaImageFrame& frame,
                                                                 port::DiagnosticSink& diagnostics) {
     std::vector<std::uint8_t> encoded;
     std::string error;
-    if (!EncodeSteeringMediaImageFrame(frame, encoded, error)) {
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "steering_media.image_frame.invalid",
-                          error,
-                          port::NowMs()});
-        return SteeringMediaPublishResult::kUnavailable;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kMediaEncode);
+        if (!EncodeSteeringMediaImageFrame(frame, encoded, error)) {
+            diagnostics.Emit({port::DiagnosticLevel::kWarning,
+                              "steering_media.image_frame.invalid",
+                              error,
+                              port::NowMs()});
+            return SteeringMediaPublishResult::kUnavailable;
+        }
     }
     if (!ready_) {
         return SteeringMediaPublishResult::kUnavailable;
@@ -209,7 +225,10 @@ SteeringMediaPublishResult SteeringMediaLink::PublishImageFrame(const SteeringMe
     if (send_result == SteeringMediaTransportSendResult::kSent) {
         return SteeringMediaPublishResult::kSent;
     }
-    if (send_result == SteeringMediaTransportSendResult::kBusy) {
+    if (send_result == SteeringMediaTransportSendResult::kAcceptedInFlight) {
+        return SteeringMediaPublishResult::kQueued;
+    }
+    if (send_result == SteeringMediaTransportSendResult::kBusyRejected) {
         pending_image_ = std::move(encoded);
         return SteeringMediaPublishResult::kQueued;
     }
@@ -222,14 +241,18 @@ bool SteeringMediaLink::FlushPendingImage(port::DiagnosticSink& diagnostics) {
     }
     const SteeringMediaTransportSendResult send_result =
         PublishEncoded(pending_image_, "steering_media.image_frame.failed", diagnostics);
-    if (send_result != SteeringMediaTransportSendResult::kSent) {
+    if (send_result == SteeringMediaTransportSendResult::kSent ||
+        send_result == SteeringMediaTransportSendResult::kAcceptedInFlight) {
+        pending_image_.clear();
+        return true;
+    }
+    if (send_result != SteeringMediaTransportSendResult::kBusyRejected) {
         if (!ready_) {
             pending_image_.clear();
         }
         return false;
     }
-    pending_image_.clear();
-    return true;
+    return false;
 }
 
 bool SteeringMediaLink::Ready() const {

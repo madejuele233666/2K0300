@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -54,9 +54,14 @@ public:
             detail = "fake transport not ready";
             return ls2k::platform::SteeringMediaTransportSendResult::kDisconnected;
         }
+        if (accept_in_flight_) {
+            sent_frames.emplace_back(data, data + length);
+            detail = "fake transport accepted in-flight";
+            return ls2k::platform::SteeringMediaTransportSendResult::kAcceptedInFlight;
+        }
         if (busy_) {
             detail = "fake transport busy";
-            return ls2k::platform::SteeringMediaTransportSendResult::kBusy;
+            return ls2k::platform::SteeringMediaTransportSendResult::kBusyRejected;
         }
         sent_frames.emplace_back(data, data + length);
         detail.clear();
@@ -73,6 +78,10 @@ public:
         busy_ = busy;
     }
 
+    void set_accept_in_flight(bool accept_in_flight) {
+        accept_in_flight_ = accept_in_flight;
+    }
+
     ls2k::platform::SteeringMediaTransportConfig config_{};
     std::vector<std::vector<std::uint8_t>> sent_frames{};
 
@@ -81,6 +90,7 @@ private:
         ls2k::platform::SteeringMediaTransportState::kDisconnected;
     bool state_dirty_ = true;
     bool busy_ = false;
+    bool accept_in_flight_ = false;
     std::string detail_ = "fake transport disconnected";
 };
 
@@ -94,12 +104,25 @@ void Require(bool condition, const std::string& message) {
     }
 }
 
-void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
+void FillMatchingCapture(ls2k::runtime::RuntimeState& state,
+                         std::uint64_t frame_id,
+                         std::uint64_t capture_time_ms) {
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = 320;
+    frame.height = 240;
+    frame.gray.fill(0x33);
+    const ls2k::runtime::CameraFrameHandle handle =
+        ls2k::runtime::MaterializeOwnedCameraFrame(state.camera_frame_slots,
+                                                  state.next_camera_frame_slot,
+                                                  frame.View(frame_id, capture_time_ms));
+    state.latest_camera_frame = handle;
+    state.recent_camera_captures.Push(handle);
+}
+
+void TestReporterEmitsMinimalSteeringSnapshot() {
     CollectingDiagnostics diagnostics;
     ls2k::runtime::ControlDebugReporter reporter;
     ls2k::port::RuntimeParameters params{};
-    params.assistant_enabled = false;
-    params.steering_media_enabled = false;
     params.control_snapshot_emit_interval_ms = 1;
     reporter.Configure(params);
 
@@ -113,85 +136,124 @@ void TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia() {
     snapshot.steering.valid = true;
     snapshot.steering.frame_id = 7;
     snapshot.steering.capture_time_ms = 88;
-    snapshot.steering.near_lateral_error = -0.21;
-    snapshot.steering.far_heading_error = 0.08;
-    snapshot.steering.preview_curvature = -0.03;
-    snapshot.steering.lookahead_distance_m = 1.4;
-    snapshot.steering.lookahead_lateral_error = -0.08;
-    snapshot.steering.lookahead_heading_error = 0.04;
-    snapshot.steering.reference_curvature = -0.01;
-    snapshot.steering.curvature_command = -0.09;
-    snapshot.steering.visible_range_m = 1.85;
-    snapshot.steering.reference_mode = "centerline";
-    snapshot.steering.lateral_error = -1.25;
     snapshot.steering.threshold = 91;
-    snapshot.steering.threshold_veto = true;
-    snapshot.steering.active_module = "bend";
-    snapshot.steering.scene_phase = "tracking";
-    snapshot.steering.scene_override_source = "lane_geometry";
-    snapshot.steering.scene_width_expand_ratio = 1.35;
-    snapshot.steering.scene_cross_bilateral_open_score_m = 0.01;
-    snapshot.steering.scene_cross_bilateral_open = false;
-    snapshot.steering.scene_cross_candidate = false;
-    snapshot.steering.scene_circle_left_candidate = false;
-    snapshot.steering.scene_circle_right_candidate = false;
-    snapshot.steering.scene_left_open_score = 0.21;
-    snapshot.steering.scene_right_open_score = 0.0;
-    snapshot.steering.scene_left_boundary_heading_abs_rad = 0.12;
-    snapshot.steering.scene_right_boundary_heading_abs_rad = 0.28;
-    snapshot.steering.circle_direction = "left";
-    snapshot.steering.circle_reference_mode = "inner_offset";
-    snapshot.steering.circle_heading_delta_deg = 48.5;
-    snapshot.steering.circle_entry_signal_active = false;
+    snapshot.steering.perception_health.projector_ok = true;
+    snapshot.steering.perception_health.reason = "ok";
+    snapshot.steering.reference.mode = "interval_center";
+    snapshot.steering.reference.source = "simple_interval_center";
+    snapshot.steering.eligibility.usable = true;
+    snapshot.steering.eligibility.leading_usable_samples = 4;
+    snapshot.steering.eligibility.leading_min_forward_m = 0.061;
+    snapshot.steering.eligibility.leading_max_forward_m = 0.25;
+    snapshot.steering.eligibility.lookahead_distance_m = 0.25;
+    snapshot.steering.eligibility.reason = "ok";
+    snapshot.steering.curvature.computed = true;
+    snapshot.steering.curvature.lookahead_distance_m = 0.25;
+    snapshot.steering.curvature.curvature_command = -0.09;
+    snapshot.steering.curvature.reason = "ok";
+    snapshot.steering.reference_control.ready = true;
+    snapshot.steering.reference_control.reason = "reference_hold";
+    snapshot.steering.safety_gate.veto_active = false;
+    snapshot.steering.safety_gate.reason = "none";
+    snapshot.steering.degraded.active = true;
+    snapshot.steering.degraded.reason = "reference_hold";
+    snapshot.steering.yaw_control.yaw_rate_target = -0.18;
+    snapshot.steering.actuator.raw_turn_output = -17;
+    snapshot.steering.actuator.applied_turn_output = -15;
+    snapshot.steering_internal.valid = true;
+    snapshot.steering_internal.frame_id = 7;
+    snapshot.steering_internal.capture_time_ms = 88;
+    snapshot.steering_internal.yaw_rate_gain = 18.0;
+    snapshot.steering_internal.yaw_rate_candidate = -2.0;
+    snapshot.steering_internal.gyro_z = 0.2;
+    snapshot.steering_internal.gyro_error = -0.1;
+    snapshot.steering_internal.gyro_p_term = -0.3;
+    snapshot.steering_internal.gyro_d_term = -0.4;
 
     reporter.MaybeEmit(snapshot, diagnostics);
 
-    Require(diagnostics.events.size() == 2, "expected control.snapshot and control.steering_snapshot");
-    Require(diagnostics.events[0].code == "control.snapshot", "first diagnostic must be control.snapshot");
+    Require(diagnostics.events.size() == 3,
+            "expected control.snapshot, public steering snapshot, and internal steering diagnostics");
+    const std::string& message = diagnostics.events[1].message;
     Require(diagnostics.events[1].code == "control.steering_snapshot",
             "second diagnostic must be control.steering_snapshot");
-    Require(Contains(diagnostics.events[1].message, "threshold_veto=true"),
-            "steering snapshot must contain threshold_veto");
-    Require(Contains(diagnostics.events[1].message, "raw_turn_output=0"),
-            "vetoed steering snapshot must still be exportable");
-    Require(Contains(diagnostics.events[1].message, "active_module=bend"),
-            "steering snapshot must expose active_module");
-    Require(Contains(diagnostics.events[1].message, "near_lateral_error=-0.21"),
-            "steering snapshot must expose BEV near_lateral_error");
-    Require(Contains(diagnostics.events[1].message, "reference_mode=centerline"),
-            "steering snapshot must expose reference_mode");
-    Require(Contains(diagnostics.events[1].message, "curvature_command=-0.09"),
-            "steering snapshot must expose BEV curvature command");
-    Require(!Contains(diagnostics.events[1].message, "compatibility."),
-            "steering snapshot must not expose deprecated compatibility fields");
-    Require(Contains(diagnostics.events[1].message, "circle_reference_mode=inner_offset"),
-            "steering snapshot must expose circle reference mode");
-    Require(Contains(diagnostics.events[1].message, "scene_evidence.cross_bilateral_open_score_m=0.01"),
-            "steering snapshot must expose BEV cross evidence");
-    Require(Contains(diagnostics.events[1].message, "scene_evidence.right_boundary_heading_abs_rad=0.28"),
-            "steering snapshot must expose BEV boundary heading evidence");
+    Require(Contains(message, "curvature.lookahead_distance_m=0.25"),
+            "steering snapshot must expose lookahead distance");
+    Require(Contains(message, "eligibility.leading_min_forward_m=0.061"),
+            "steering snapshot must expose leading minimum forward distance");
+    Require(Contains(message, "eligibility.leading_max_forward_m=0.25"),
+            "steering snapshot must expose leading maximum forward distance");
+    Require(Contains(message, "eligibility.lookahead_distance_m=0.25"),
+            "steering snapshot must expose eligibility lookahead distance");
+    Require(Contains(message, "curvature.curvature_command=-0.09"),
+            "steering snapshot must expose curvature command");
+    Require(Contains(message, "yaw_control.yaw_rate_target=-0.18"),
+            "steering snapshot must expose yaw rate target");
+    Require(Contains(message, "perception_health.projector_ok=true"),
+            "steering snapshot must expose perception health");
+    Require(Contains(message, "reference_control.ready=true"),
+            "steering snapshot must expose reference-control readiness");
+    Require(Contains(message, "safety_gate.veto_active=false"),
+            "steering snapshot must expose safety-gate state");
+    Require(Contains(message, "degraded.reason=reference_hold"),
+            "steering snapshot must expose degrade reason");
+    Require(Contains(message, "reference.mode=interval_center"),
+            "steering snapshot must expose factual interval-center reference mode");
+    Require(!Contains(message, std::string("w_") + "target"),
+            "steering snapshot must not expose removed legacy angular target field");
+    Require(Contains(message, "actuator.raw_turn_output=-17"),
+            "steering snapshot must expose raw turn command");
+    Require(Contains(message, "actuator.applied_turn_output=-15"),
+            "steering snapshot must expose applied turn command");
+    Require(!Contains(message, "near_lateral_error"),
+            "steering snapshot must not expose removed near/far control fields");
+    Require(!Contains(message, std::string("cross_") + "band_present"),
+            "steering snapshot must not expose unfinished element fields");
+    Require(!Contains(message, "scene_evidence."),
+            "steering snapshot must not expose removed evidence fields");
+    Require(!Contains(message, std::string("trusted_") + "error"),
+            "steering snapshot must not expose removed blend fields");
+    Require(!Contains(message, "topology_"),
+            "steering snapshot must not expose removed map fields");
+    Require(!Contains(message, std::string("active") + "_module"),
+            "steering snapshot must not expose removed module field");
+    Require(!Contains(message, std::string("scene") + "_phase"),
+            "steering snapshot must not expose removed phase field");
+    Require(!Contains(message, std::string("scene") + "_override_source"),
+            "steering snapshot must not expose removed override field");
+    Require(!Contains(message, std::string("track") + "_valid"),
+            "steering snapshot must not expose removed path-valid alias");
+    Require(!Contains(message, std::string("threshold") + "_veto"),
+            "public steering snapshot must not expose threshold veto internals");
+    Require(!Contains(message, std::string("roadblock_") + "interface_state"),
+            "public steering snapshot must not expose roadblock internals");
+    Require(!Contains(message, "yaw_rate_gain"),
+            "public steering snapshot must not expose PID internals");
+
+    const std::string& internal_message = diagnostics.events[2].message;
+    Require(diagnostics.events[2].code == "control.steering_internal",
+            "third diagnostic must be internal steering diagnostics");
+    Require(!Contains(internal_message, std::string("roadblock_") + "interface_state"),
+            "internal steering diagnostics must not expose removed roadblock state");
+    Require(Contains(internal_message, "yaw_rate_gain=18"),
+            "internal steering diagnostics must expose PID internals");
 }
 
-void TestEnvelopeValidation() {
+void TestConfigEnvelopeIsMinimalBevContract() {
     ls2k::platform::SteeringMediaConfigSnapshot config{};
     config.publish_time_ms = 101;
     config.media_publish_interval_ms = 80;
-    config.param_snapshot.pid_turn_camera_p = 14.75;
-    config.param_snapshot.pid_turn_camera_p_scale = 1.25;
-    config.param_snapshot.pid_turn_camera_d = 0.5;
-    config.param_snapshot.pid_turn_camera_use_fuzzy = true;
-    config.param_snapshot.pid_turn_gyro_camera_p = 20.0;
-    config.param_snapshot.pid_turn_gyro_camera_i = 0.75;
-    config.param_snapshot.pid_turn_gyro_camera_d = 0.25;
-    config.param_snapshot.p_mode = 3;
-    config.param_snapshot.speed_base = 77.0;
+    config.param_snapshot.running_speed_target = 100.0;
+    config.param_snapshot.yaw_rate_pid_p = 0.5;
+    config.param_snapshot.yaw_rate_pid_i = 0.0;
+    config.param_snapshot.yaw_rate_pid_d = 0.0;
     config.param_snapshot.control_period_ms = 5;
+    config.param_snapshot.low_voltage_raw_threshold = 400;
     config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
-    config.param_snapshot.bev_scene_fsm.cross_bilateral_open_min_m = 0.06F;
-    config.param_snapshot.bev_scene_fsm.circle_release_cycles = 4;
-    config.param_snapshot.bev_control_model.low_visible_range_m = 0.95F;
-    config.param_snapshot.bev_control_model.min_gain_scale = 0.3F;
+    config.param_snapshot.bev_classification.white_confidence_min = 0.60F;
+    config.param_snapshot.bev_control_model.lookahead_min_m = 0.16;
+    config.param_snapshot.bev_control_model.curvature_command_limit = 0.25;
 
     std::vector<std::uint8_t> encoded;
     std::string error;
@@ -206,42 +268,48 @@ void TestEnvelopeValidation() {
     Require(payload.empty(), "config snapshot payload must be empty");
     Require(Contains(header_json, "\"type\":\"config_snapshot\""),
             "config snapshot header must carry config_snapshot type");
-    Require(Contains(header_json, "\"pid_turn_camera_p\":14.75"),
-            "config snapshot must include camera P");
-    Require(Contains(header_json, "\"pid_turn_camera_p_scale\":1.25"),
-            "config snapshot must include camera P scale");
-    Require(Contains(header_json, "\"pid_turn_camera_use_fuzzy\":true"),
-            "config snapshot must include camera fuzzy flag");
-    Require(Contains(header_json, "\"pid_turn_gyro_camera_p\":20"),
-            "config snapshot must include gyro P");
-    Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.75"),
-            "config snapshot must include gyro I");
-    Require(!Contains(header_json, "\"SCENE_WIDE_CLASSIFIER\""),
-            "config snapshot must not include deprecated pixel scene classifier settings");
-    Require(!Contains(header_json, "\"CIRCLE_ENTRY\"") && !Contains(header_json, "\"CIRCLE_EXIT\""),
-            "config snapshot must not include deprecated pixel circle settings");
+    Require(Contains(header_json, "\"running_speed_target\":100"),
+            "config snapshot must include running speed target");
+    Require(Contains(header_json, "\"yaw_rate_pid\":{\"p\":0.5,\"i\":0,\"d\":0}"),
+            "config snapshot must include yaw-rate PID group");
+    Require(Contains(header_json, "\"low_voltage_raw_threshold\":400"),
+            "config snapshot must include low-voltage raw threshold");
+    Require(!Contains(header_json, std::string("pid_turn_") + "camera"),
+            "config snapshot must not include removed camera PID parameters");
     Require(Contains(header_json, "\"BEV_PROJECTOR\""),
             "config snapshot must include BEV projector group");
     Require(Contains(header_json, "\"PROJECTOR_HASH\":\"unit-test-projector-hash\""),
             "config snapshot must include projector hash");
     Require(Contains(header_json, "\"BEV_GEOMETRY\""),
             "config snapshot must include BEV geometry group");
-    Require(Contains(header_json, "\"SEARCH_LATERAL_LIMIT_M\":0.72000002861"),
-            "config snapshot must include BEV geometry values");
-    Require(Contains(header_json, "\"BEV_SCENE_FSM\""),
-            "config snapshot must include BEV scene FSM group");
-    Require(Contains(header_json, "\"CROSS_BILATERAL_OPEN_MIN_M\":0.0599999986589"),
-            "config snapshot must include BEV scene cross bilateral-open threshold");
-    Require(Contains(header_json, "\"CIRCLE_RELEASE_CYCLES\":4"),
-            "config snapshot must include BEV scene release cycles");
+    Require(Contains(header_json, "\"SEARCH_LATERAL_LIMIT_M\""),
+            "config snapshot must include BEV image scan lateral range");
+    Require(Contains(header_json, "\"BEV_CLASSIFICATION\""),
+            "config snapshot must include BEV classification group");
+    Require(Contains(header_json, "\"WHITE_CONFIDENCE_MIN\":0.600000023842"),
+            "config snapshot must include white classification confidence");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "config snapshot must include BEV control model group");
-    Require(Contains(header_json, "\"LOW_VISIBLE_RANGE_M\":0.949999988079"),
-            "config snapshot must include BEV control low visible range");
-    Require(Contains(header_json, "\"BEV_PATH_POLICY\""),
-            "config snapshot must include BEV path policy group");
-    Require(Contains(header_json, "\"CIRCLE_EXIT_YAW_DEG\""),
-            "config snapshot must include circle exit yaw policy");
+    Require(Contains(header_json, "\"CURVATURE_COMMAND_LIMIT\":0.25"),
+            "config snapshot must include curvature command limit");
+    Require(Contains(header_json, "\"CURVATURE_TO_YAW_RATE_TARGET_GAIN\""),
+            "config snapshot must include yaw-rate target gain");
+    Require(Contains(header_json, "\"MIN_LEADING_REFERENCE_SAMPLES\""),
+            "config snapshot must include configured leading reference minimum");
+    Require(!Contains(header_json, std::string("CURVATURE_TO_") + "W_" + "TARGET_GAIN"),
+            "config snapshot must not include removed legacy angular target gain key");
+    Require(!Contains(header_json, std::string("\"BEV_") + "TOPOLOGY"),
+            "config snapshot must not expose removed map parameters");
+    Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),
+            "config snapshot must not expose removed reference parameters");
+    Require(!Contains(header_json, std::string("\"BEV_") + "SCENE_FSM\""),
+            "config snapshot must not expose removed scene FSM parameters");
+    Require(!Contains(header_json, std::string("\"NOMINAL_") + "LANE_WIDTH_M\""),
+            "config snapshot must not expose removed lane width parameter");
+    Require(!Contains(header_json, std::string("\"CONTINUITY_") + "BREAK_THRESHOLD_M\""),
+            "config snapshot must not expose removed continuity parameter");
+    Require(!Contains(header_json, std::string("\"SAMPLE_") + "ROW_STEP_PX\""),
+            "config snapshot must not expose removed row-step parameter");
 
     Require(!ls2k::platform::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size() - 1, header_json, payload, error),
@@ -298,6 +366,8 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
     first_frame.width = 320;
     first_frame.height = 240;
     first_frame.motion_phase = "RUNNING";
+    first_frame.steering_snapshot.reference_control.ready = true;
+    first_frame.steering_snapshot.safety_gate.veto_active = false;
     first_frame.pixel_data = image_payload.data();
     first_frame.pixel_size = image_payload.size();
 
@@ -327,10 +397,52 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
                                                         error),
             "queued image frame should decode");
     Require(Contains(header_json, "\"frame_id\":2"), "latest queued frame must win");
-    Require(Contains(header_json, "\"scene_evidence\""),
-            "image frame snapshot must include BEV scene evidence");
+    Require(Contains(header_json, "\"reference_control\":{\"ready\":true"),
+            "image frame snapshot must nest reference-control readiness");
+    Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),
+            "image frame snapshot must nest safety-gate state");
+    Require(!Contains(header_json, std::string("\"w_") + "target\""),
+            "image frame snapshot must not include removed legacy angular target field");
     Require(payload.size() == ls2k::platform::SteeringMediaImagePayloadBytes(320, 240),
             "flushed image payload must remain intact");
+}
+
+void TestLinkDoesNotCacheFrameAcceptedInFlight() {
+    auto* fake_transport = new FakeSteeringMediaTransport();
+    ls2k::platform::SteeringMediaLink link{
+        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)};
+    CollectingDiagnostics diagnostics;
+
+    ls2k::port::RuntimeParameters params{};
+    params.assistant_tcp.host = "127.0.0.1";
+    params.steering_media_enabled = true;
+    params.steering_media_port = 8890;
+    Require(link.Initialize(params, diagnostics), "link should initialize");
+
+    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    (void)link.Poll(diagnostics);
+
+    std::vector<std::uint8_t> image_payload(
+        ls2k::platform::SteeringMediaImagePayloadBytes(320, 240), 0x55);
+    ls2k::platform::SteeringMediaImageFrame frame{};
+    frame.frame_id = 3;
+    frame.capture_time_ms = 30;
+    frame.publish_time_ms = 31;
+    frame.width = 320;
+    frame.height = 240;
+    frame.motion_phase = "RUNNING";
+    frame.pixel_data = image_payload.data();
+    frame.pixel_size = image_payload.size();
+
+    fake_transport->set_accept_in_flight(true);
+    Require(link.PublishImageFrame(frame, diagnostics) ==
+                ls2k::platform::SteeringMediaPublishResult::kQueued,
+            "accepted in-flight image should be reported as queued by the lower layer");
+    fake_transport->set_accept_in_flight(false);
+    Require(!link.FlushPendingImage(diagnostics),
+            "upper link must not retain a duplicate pending image after lower layer accepts ownership");
+    Require(fake_transport->sent_frames.size() == 1,
+            "accepted in-flight image must be sent exactly once");
 }
 
 void TestServicePublishesConfigSnapshotOnReadyTransition() {
@@ -344,15 +456,10 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.steering_media_enabled = true;
     params.steering_media_port = 8890;
     params.steering_media_publish_interval_ms = 80;
-    params.pid_turn_camera_p = 14.75;
-    params.pid_turn_camera_p_scale = 1.5;
-    params.pid_turn_camera_d = 0.5;
-    params.pid_turn_camera_use_fuzzy = true;
-    params.pid_turn_gyro_camera_p = 20.0;
-    params.pid_turn_gyro_camera_i = 0.5;
-    params.pid_turn_gyro_camera_d = 0.25;
-    params.P_Mode = 3;
-    params.Speed_base = 77.0;
+    params.yaw_rate_pid_p = 0.5;
+    params.yaw_rate_pid_i = 0.0;
+    params.yaw_rate_pid_d = 0.0;
+    params.running_speed_target = 100.0;
     params.control_period_ms = 5;
     service.Start(params, diagnostics);
 
@@ -364,37 +471,28 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
-        state.control_debug_snapshot.steering.near_lateral_error = -0.125;
-        state.control_debug_snapshot.steering.far_heading_error = 0.075;
-        state.control_debug_snapshot.steering.preview_curvature = -0.02;
-        state.control_debug_snapshot.steering.lookahead_distance_m = 1.4;
-        state.control_debug_snapshot.steering.lookahead_lateral_error = -0.09;
-        state.control_debug_snapshot.steering.lookahead_heading_error = 0.04;
-        state.control_debug_snapshot.steering.reference_curvature = -0.015;
-        state.control_debug_snapshot.steering.raw_lookahead_lateral_error = -0.12;
-        state.control_debug_snapshot.steering.raw_lookahead_heading_error = 0.06;
-        state.control_debug_snapshot.steering.raw_reference_curvature = -0.02;
-        state.control_debug_snapshot.steering.trusted_error_active = true;
-        state.control_debug_snapshot.steering.trusted_error_weight_near = 0.70;
-        state.control_debug_snapshot.steering.trusted_error_weight_lookahead = 0.35;
-        state.control_debug_snapshot.steering.curvature_command = -0.10;
-        state.control_debug_snapshot.steering.visible_range_m = 1.9;
-        state.control_debug_snapshot.steering.active_module = "circle";
-        state.control_debug_snapshot.steering.scene_phase = "circle_entry";
-        state.control_debug_snapshot.steering.reference_mode = "inner_offset";
-        state.control_debug_snapshot.steering.circle_direction = "left";
-        state.control_debug_snapshot.steering.circle_reference_mode = "inner_offset";
-        state.control_debug_snapshot.steering.circle_heading_delta_deg = 52.0;
-        state.control_debug_snapshot.steering.circle_yaw_accum_deg = 121.0;
-        state.control_debug_snapshot.steering.circle_path_phase = "entry";
-        state.control_debug_snapshot.steering.reference_source = "circle_inner_follow";
-        state.control_debug_snapshot.steering.circle_entry_signal_active = true;
-        state.latest_camera_capture.has_frame = true;
-        state.latest_camera_capture.frame_id = 41;
-        state.latest_camera_capture.capture_time_ms = 1234;
-        state.latest_camera_capture.frame.width = 320;
-        state.latest_camera_capture.frame.height = 240;
-        state.recent_camera_captures.Push(state.latest_camera_capture);
+        state.control_debug_snapshot.steering.perception_health.projector_ok = true;
+        state.control_debug_snapshot.steering.perception_health.reason = "ok";
+        state.control_debug_snapshot.steering.reference.mode = "interval_center";
+        state.control_debug_snapshot.steering.reference.source = "simple_interval_center";
+        state.control_debug_snapshot.steering.eligibility.usable = true;
+        state.control_debug_snapshot.steering.eligibility.leading_usable_samples = 4;
+        state.control_debug_snapshot.steering.eligibility.leading_min_forward_m = 0.061;
+        state.control_debug_snapshot.steering.eligibility.leading_max_forward_m = 0.25;
+        state.control_debug_snapshot.steering.eligibility.lookahead_distance_m = 0.25;
+        state.control_debug_snapshot.steering.eligibility.reason = "ok";
+        state.control_debug_snapshot.steering.curvature.computed = true;
+        state.control_debug_snapshot.steering.curvature.lookahead_distance_m = 0.25;
+        state.control_debug_snapshot.steering.curvature.curvature_command = -0.10;
+        state.control_debug_snapshot.steering.curvature.reason = "ok";
+        state.control_debug_snapshot.steering.reference_control.ready = true;
+        state.control_debug_snapshot.steering.reference_control.reason = "ok";
+        state.control_debug_snapshot.steering.safety_gate.veto_active = false;
+        state.control_debug_snapshot.steering.safety_gate.reason = "none";
+        state.control_debug_snapshot.steering.degraded.active = false;
+        state.control_debug_snapshot.steering.degraded.reason = "none";
+        state.control_debug_snapshot.steering.yaw_control.yaw_rate_target = -0.20;
+        FillMatchingCapture(state, 41, 1234);
     }
 
     fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
@@ -414,28 +512,14 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "config snapshot frame should decode");
     Require(Contains(header_json, "\"type\":\"config_snapshot\""),
             "first emitted frame must be config_snapshot");
-    Require(Contains(header_json, "\"pid_turn_camera_p\":14.75"),
-            "service config snapshot must export camera P");
-    Require(Contains(header_json, "\"pid_turn_camera_p_scale\":1.5"),
-            "service config snapshot must export camera P scale");
-    Require(Contains(header_json, "\"pid_turn_camera_use_fuzzy\":true"),
-            "service config snapshot must export camera fuzzy flag");
-    Require(Contains(header_json, "\"pid_turn_gyro_camera_p\":20"),
-            "service config snapshot must export gyro P");
-    Require(Contains(header_json, "\"pid_turn_gyro_camera_i\":0.5"),
-            "service config snapshot must export gyro I");
-    Require(!Contains(header_json, "\"SCENE_WIDE_CLASSIFIER\""),
-            "service config snapshot must not expose deprecated pixel scene classifier settings");
-    Require(!Contains(header_json, "\"CIRCLE_ENTRY\"") && !Contains(header_json, "\"CIRCLE_EXIT\""),
-            "service config snapshot must not expose deprecated pixel circle settings");
+    Require(!Contains(header_json, std::string("pid_turn_") + "camera"),
+            "service config snapshot must not export removed camera PID parameters");
     Require(Contains(header_json, "\"BEV_PROJECTOR\""),
             "service config snapshot must expose BEV projector settings");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "service config snapshot must expose BEV control settings");
-    Require(Contains(header_json, "\"CURVATURE_TO_W_TARGET_GAIN\""),
-            "service config snapshot must expose curvature control gain");
-    Require(Contains(header_json, "\"BEV_PATH_POLICY\""),
-            "service config snapshot must expose BEV path policy settings");
+    Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),
+            "service config snapshot must not expose removed BEV path policy");
 
     Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
@@ -445,34 +529,46 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame should decode");
     Require(Contains(header_json, "\"type\":\"image_frame\""),
             "second emitted frame must be image_frame");
-    Require(Contains(header_json, "\"active_module\":\"circle\""),
-            "image frame must include active_module in steering snapshot");
-    Require(Contains(header_json, "\"scene_phase\":\"circle_entry\""),
-            "image frame must include scene_phase in steering snapshot");
-    Require(Contains(header_json, "\"near_lateral_error\":-0.125"),
-            "image frame must include BEV primary steering fields");
-    Require(Contains(header_json, "\"reference_mode\":\"inner_offset\""),
-            "image frame must include BEV reference mode");
+    Require(Contains(header_json, "\"perception_health\":{\"projector_ok\":true"),
+            "image frame must include perception health");
+    Require(Contains(header_json, "\"reference_control\":{\"ready\":true"),
+            "image frame must include reference-control readiness");
+    Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),
+            "image frame must include safety gate");
+    Require(Contains(header_json, "\"lookahead_distance_m\":0.25"),
+            "image frame must include lookahead distance");
     Require(Contains(header_json, "\"curvature_command\":-0.1"),
-            "image frame must include BEV curvature command");
-    Require(!Contains(header_json, "\"compatibility.\""),
-            "image frame must not include deprecated compatibility group");
-    Require(Contains(header_json, "\"circle_direction\":\"left\""),
-            "image frame must include circle direction");
-    Require(Contains(header_json, "\"circle_reference_mode\":\"inner_offset\""),
-            "image frame must include circle reference mode");
-    Require(Contains(header_json, "\"circle_yaw_accum_deg\":121"),
-            "image frame must include circle gyro progress");
-    Require(Contains(header_json, "\"circle_path_phase\":\"entry\""),
-            "image frame must include circle path phase");
-    Require(Contains(header_json, "\"reference_source\":\"circle_inner_follow\""),
-            "image frame must include reference source");
-    Require(Contains(header_json, "\"trusted_error_active\":true"),
-            "image frame must include trusted error activity");
-    Require(Contains(header_json, "\"trusted_error_weight_near\":0.7"),
-            "image frame must include trusted error near weight");
-    Require(Contains(header_json, "\"circle_entry_signal_active\":true"),
-            "image frame must include circle entry signal activity");
+            "image frame must include curvature command");
+    Require(Contains(header_json, "\"yaw_rate_target\":-0.2"),
+            "image frame must include yaw rate target");
+    Require(Contains(header_json, "\"reference\":{\"mode\":\"interval_center\",\"source\":\"simple_interval_center\"}"),
+            "image frame must include nested reference facts");
+    Require(!Contains(header_json, "\"reference_mode\""),
+            "image frame must not include old flat reference mode");
+    Require(!Contains(header_json, "\"reference_source\""),
+            "image frame must not include old flat reference source");
+    Require(!Contains(header_json, "\"near_lateral_error\""),
+            "image frame must not include removed near/far fields");
+    Require(!Contains(header_json, std::string("cross_") + "band_present"),
+            "image frame must not include unfinished element fields");
+    Require(!Contains(header_json, std::string("\"trusted_") + "error\""),
+            "image frame must not include removed blend fields");
+    Require(!Contains(header_json, "\"topology_"),
+            "image frame must not include removed map fields");
+    Require(!Contains(header_json, std::string("\"active") + "_module\""),
+            "image frame must not include removed module field");
+    Require(!Contains(header_json, std::string("\"scene") + "_phase\""),
+            "image frame must not include removed phase field");
+    Require(!Contains(header_json, std::string("\"scene") + "_override_source\""),
+            "image frame must not include removed override field");
+    Require(!Contains(header_json, std::string("\"track") + "_valid\""),
+            "image frame must not include removed path-valid alias");
+    Require(!Contains(header_json, std::string("\"threshold") + "_veto\""),
+            "image frame must not include threshold veto internals");
+    Require(!Contains(header_json, std::string("\"roadblock_") + "interface_state\""),
+            "image frame must not include roadblock internals");
+    Require(!Contains(header_json, "\"yaw_rate_gain\""),
+            "image frame must not include PID internals");
 }
 
 void TestServicePublishesFromRecentMatchingCapture() {
@@ -496,23 +592,9 @@ void TestServicePublishesFromRecentMatchingCapture() {
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
-        state.control_debug_snapshot.steering.active_module = "straight";
-        state.control_debug_snapshot.steering.scene_phase = "idle";
+        FillMatchingCapture(state, 41, 1234);
 
-        ls2k::port::CameraCapture matched_capture{};
-        matched_capture.has_frame = true;
-        matched_capture.frame_id = 41;
-        matched_capture.capture_time_ms = 1234;
-        matched_capture.frame.width = 320;
-        matched_capture.frame.height = 240;
-        state.recent_camera_captures.Push(matched_capture);
-
-        state.latest_camera_capture.has_frame = true;
-        state.latest_camera_capture.frame_id = 42;
-        state.latest_camera_capture.capture_time_ms = 1249;
-        state.latest_camera_capture.frame.width = 320;
-        state.latest_camera_capture.frame.height = 240;
-        state.recent_camera_captures.Push(state.latest_camera_capture);
+        FillMatchingCapture(state, 42, 1249);
     }
 
     fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
@@ -538,10 +620,11 @@ void TestServicePublishesFromRecentMatchingCapture() {
 
 int main() {
     try {
-        TestReporterEmitsSteeringSnapshotWithoutAssistantOrMedia();
-        TestEnvelopeValidation();
+        TestReporterEmitsMinimalSteeringSnapshot();
+        TestConfigEnvelopeIsMinimalBevContract();
         TestImagePayloadValidation();
         TestLinkQueuesLatestFrameOnBusySocket();
+        TestLinkDoesNotCacheFrameAcceptedInFlight();
         TestServicePublishesConfigSnapshotOnReadyTransition();
         TestServicePublishesFromRecentMatchingCapture();
     } catch (const std::exception& error) {

@@ -7,9 +7,9 @@ namespace ls2k::legacy {
 
 port::ActuatorCommand LegacyMotorLogic::Compose(int left_pwm,
                                                 int right_pwm,
-                                                bool emergency_veto,
+                                                bool emergency_stop,
                                                 int pwm_limit) const {
-    if (emergency_veto) {
+    if (emergency_stop) {
         return {};
     }
 

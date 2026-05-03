@@ -28,7 +28,8 @@ struct SteeringMediaBridgePollResult {
 
 enum class SteeringMediaBridgeSendResult {
     kSent = 0,
-    kBusy,
+    kAcceptedInFlight,
+    kBusyRejected,
     kDisconnected,
     kError,
 };

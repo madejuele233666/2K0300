@@ -3,11 +3,10 @@
 #include "platform/true_ls2k0300/vendor_paths.hpp"
 
 // 相机适配器实现 —— 平台级相机硬件适配层。
-// 负责初始化相机硬件、采集帧数据、转换为 LegacyCameraFrame 格式。
+// 负责初始化相机硬件、采集帧视图并交给运行时立即消费。
 
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <sstream>
 #include <string>
 
@@ -95,8 +94,6 @@ public:
         out.capture_time_ms = port::NowMs();
         out.source_width = expected_width_;
         out.source_height = expected_height_;
-        out.frame.width = expected_width_;
-        out.frame.height = expected_height_;
 
         if (!enabled_) {
             out.marker = port::CameraGeometryMarker::kAdapterNotReady;
@@ -148,10 +145,13 @@ public:
             return out;
         }
 
-        const std::size_t frame_bytes = out.frame.PixelCount();
-        std::memcpy(out.frame.gray.data(), frame.gray, frame_bytes);
-
         out.has_frame = true;
+        out.view.gray = frame.gray;
+        out.view.width = frame.width;
+        out.view.height = frame.height;
+        out.view.stride = frame.width;
+        out.view.frame_id = out.frame_id;
+        out.view.capture_time_ms = out.capture_time_ms;
         out.marker = port::CameraGeometryMarker::kPhase1Adapted;
         return out;
     }

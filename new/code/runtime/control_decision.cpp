@@ -20,14 +20,17 @@ bool IsPerceptionStale(const ControlGateInputs& inputs) {
 }  // namespace
 
 ControlGateDecision EvaluateControlGate(const ControlGateInputs& inputs) {
-    if (IsPerceptionStale(inputs)) {
-        return {true, ControlVetoReason::kPerceptionStale};
-    }
     if (inputs.low_voltage_emergency) {
         return {true, ControlVetoReason::kLowVoltage};
     }
-    if (inputs.perception_emergency_veto) {
-        return {true, ControlVetoReason::kPerceptionEmergencyVeto};
+    if (IsPerceptionStale(inputs)) {
+        return {true, ControlVetoReason::kPerceptionStale};
+    }
+    if (!inputs.perception_projector_ok) {
+        return {true, ControlVetoReason::kPerceptionInvalid};
+    }
+    if (!inputs.reference_control_ready) {
+        return {true, ControlVetoReason::kReferenceControlNotReady};
     }
     if (!inputs.imu_valid) {
         return {true, ControlVetoReason::kImuInvalid};
@@ -78,8 +81,10 @@ const char* ToString(ControlVetoReason reason) {
             return "none";
         case ControlVetoReason::kPerceptionStale:
             return "perception_stale";
-        case ControlVetoReason::kPerceptionEmergencyVeto:
-            return "perception_emergency_veto";
+        case ControlVetoReason::kPerceptionInvalid:
+            return "perception_invalid";
+        case ControlVetoReason::kReferenceControlNotReady:
+            return "reference_control_not_ready";
         case ControlVetoReason::kLowVoltage:
             return "low_voltage";
         case ControlVetoReason::kImuInvalid:
@@ -94,8 +99,10 @@ const char* ToDiagnosticCode(ControlVetoReason reason) {
     switch (reason) {
         case ControlVetoReason::kPerceptionStale:
             return "control.veto.perception_stale";
-        case ControlVetoReason::kPerceptionEmergencyVeto:
-            return "control.veto.perception_emergency";
+        case ControlVetoReason::kPerceptionInvalid:
+            return "control.veto.perception_invalid";
+        case ControlVetoReason::kReferenceControlNotReady:
+            return "control.veto.reference_control_not_ready";
         case ControlVetoReason::kLowVoltage:
             return "control.veto.low_voltage";
         case ControlVetoReason::kImuInvalid:

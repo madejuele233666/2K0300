@@ -1,7 +1,7 @@
 #ifndef LS2K_LEGACY_WHEEL_TARGET_MIXER_HPP
 #define LS2K_LEGACY_WHEEL_TARGET_MIXER_HPP
 
-#include "port/control_types.hpp"
+#include "port/runtime_parameter_types.hpp"
 
 namespace ls2k::legacy {
 

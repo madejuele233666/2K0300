@@ -10,9 +10,9 @@
 ./debug.sh build
 ./debug.sh assistant status
 ./debug.sh assistant local 8888 8890
-./debug.sh assistant on 192.168.2.32 8888 8890
+./debug.sh assistant on 10.100.170.115 8888 8890
 ./debug.sh assistant off
-./debug.sh tuning --sequence 20,40,60,77 --disabled-mode-checks --invalid-target-speed 170 --media-listen-port 8890
+./debug.sh tuning --sequence 20,40,60,100 --disabled-mode-checks --invalid-target-speed 170 --media-listen-port 8890
 ./debug.sh steering --duration-s 20
 ./debug.sh remote start normal
 ./debug.sh remote start smoke
@@ -105,7 +105,7 @@ CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
 - `steering_media_alignment.jsonl`
 - `summary.json`
 
-`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开 `active_module`、`scene_phase`、`scene_override_source`、`curvature_command`、`lookahead_distance_m`、`raw_turn_output`、`applied_turn_output` 等 BEV-first 转向合同字段，可直接用于 assistant-disabled 复核和 host 侧对齐分析。`near_lateral_error`、`far_heading_error`、`preview_curvature` 仅保留为过渡期调试派生量，后续稳定后继续清除。
+`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开分组转向合同：`reference.{mode,source}`、`eligibility.*`、`curvature.*`、`control.*`、`degraded.*`、`yaw_control.yaw_rate_target`、`actuator.{raw_turn_output,applied_turn_output}`。旧的 near/far 误差派生字段和旧扁平 reference/control 字段已经从协议中移除。
 
 如果 steering media 已启用，`tuning` 会额外写出一组 sibling evidence：
 

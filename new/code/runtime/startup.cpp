@@ -129,6 +129,7 @@ bool ApplyStartupLowVoltage(port::PlatformBundle& platform,
         return false;
     }
     const port::LowVoltageSample sample = platform.power->SampleLowVoltage(diagnostics);
+    state.low_voltage_last_sample = sample;
     if (!sample.valid) {
         if (!degraded_startup) {
             diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
@@ -193,11 +194,12 @@ bool RunStartup(const port::HardwareProfile& profile,
     if (!params.startup_critical_applied) {
         diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
                           "startup.params.critical",
-                          "P_Mode/exp_light could not be applied before bring-up",
+                          "exp_light could not be applied before bring-up",
                           port::NowMs()});
         return false;
     }
 
+    platform.power->ConfigureLowVoltageThreshold(params.low_voltage_raw_threshold, diagnostics);
     if (!ApplyStartupLowVoltage(platform, state, degraded_startup, diagnostics)) {
         return false;
     }
@@ -258,7 +260,7 @@ bool RunStartup(const port::HardwareProfile& profile,
     state.perception = {};
     state.control_observation = {};
     state.control_debug_snapshot = {};
-    ResetSteeringRuntimeState(state.steering_state);
+    state.perception_memory_reset_generation.fetch_add(1);
     diagnostics.Emit({port::DiagnosticLevel::kInfo,
                       "startup.complete",
                       "startup validated required adapters and applied critical params",

@@ -6,23 +6,26 @@
 #include <algorithm>
 #include <utility>
 
+#include "port/perf_counter.hpp"
+
 namespace ls2k::runtime {
 namespace {
 
 // 从运行时状态的相机缓存中查找匹配的快照帧
 bool ResolveSteeringCapture(const RuntimeState& state,
                             const ControlDebugSnapshot& snapshot,
-                            port::CameraCapture& capture) {
+                            port::LegacyCameraFrame& frame,
+                            CameraFrameHandle& handle) {
     if (!snapshot.valid || !snapshot.steering.valid) {
         return false;
     }
-    const port::CameraCapture* matched =
+    const CameraFrameHandle* matched =
         state.recent_camera_captures.FindExact(snapshot.steering.frame_id, snapshot.steering.capture_time_ms);
-    if (matched == nullptr || !matched->has_frame) {
+    if (matched == nullptr) {
         return false;
     }
-    capture = *matched;
-    return true;
+    handle = *matched;
+    return CopyOwnedCameraFrameByHandle(state.camera_frame_slots, handle, frame);
 }
 
 }  // namespace
@@ -54,26 +57,18 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     platform::SteeringMediaConfigSnapshot snapshot{};
     snapshot.publish_time_ms = now_ms;
     snapshot.media_publish_interval_ms = publish_interval_ms_;
-    snapshot.param_snapshot.pid_turn_camera_p = params_.pid_turn_camera_p;
-    snapshot.param_snapshot.pid_turn_camera_p_scale = params_.pid_turn_camera_p_scale;
-    snapshot.param_snapshot.pid_turn_camera_d = params_.pid_turn_camera_d;
-    snapshot.param_snapshot.pid_turn_camera_use_fuzzy = params_.pid_turn_camera_use_fuzzy;
-    snapshot.param_snapshot.pid_turn_gyro_camera_p = params_.pid_turn_gyro_camera_p;
-    snapshot.param_snapshot.pid_turn_gyro_camera_i = params_.pid_turn_gyro_camera_i;
-    snapshot.param_snapshot.pid_turn_gyro_camera_d = params_.pid_turn_gyro_camera_d;
-    snapshot.param_snapshot.p_mode = params_.P_Mode;
-    snapshot.param_snapshot.speed_base = params_.Speed_base;
+    snapshot.param_snapshot.running_speed_target = params_.running_speed_target;
+    snapshot.param_snapshot.yaw_rate_pid_p = params_.yaw_rate_pid_p;
+    snapshot.param_snapshot.yaw_rate_pid_i = params_.yaw_rate_pid_i;
+    snapshot.param_snapshot.yaw_rate_pid_d = params_.yaw_rate_pid_d;
     snapshot.param_snapshot.control_period_ms = params_.control_period_ms;
+    snapshot.param_snapshot.low_voltage_sample_interval_ms = params_.low_voltage_sample_interval_ms;
+    snapshot.param_snapshot.low_voltage_raw_threshold = params_.low_voltage_raw_threshold;
     snapshot.param_snapshot.raw_turn_output_limit = params_.raw_turn_output_limit;
     snapshot.param_snapshot.bev_projector = params_.bev_projector;
     snapshot.param_snapshot.bev_geometry = params_.bev_geometry;
-    snapshot.param_snapshot.bev_scene_fsm = params_.bev_scene_fsm;
+    snapshot.param_snapshot.bev_classification = params_.bev_classification;
     snapshot.param_snapshot.bev_control_model = params_.bev_control_model;
-    snapshot.param_snapshot.bev_topology_sampler = params_.bev_topology_sampler;
-    snapshot.param_snapshot.bev_corridor_graph = params_.bev_corridor_graph;
-    snapshot.param_snapshot.bev_topology_evidence = params_.bev_topology_evidence;
-    snapshot.param_snapshot.bev_reference_policy = params_.bev_reference_policy;
-    snapshot.param_snapshot.bev_path_policy = params_.bev_path_policy;
     return snapshot;
 }
 
@@ -81,95 +76,36 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
 platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     const SteeringDebugSnapshot& snapshot) const {
     platform::SteeringMediaSnapshotView view{};
-    view.near_lateral_error = snapshot.near_lateral_error;
-    view.far_heading_error = snapshot.far_heading_error;
-    view.preview_curvature = snapshot.preview_curvature;
-    view.raw_near_lateral_error = snapshot.raw_near_lateral_error;
-    view.raw_far_heading_error = snapshot.raw_far_heading_error;
-    view.raw_preview_curvature = snapshot.raw_preview_curvature;
-    view.lookahead_distance_m = snapshot.lookahead_distance_m;
-    view.lookahead_lateral_error = snapshot.lookahead_lateral_error;
-    view.lookahead_heading_error = snapshot.lookahead_heading_error;
-    view.reference_curvature = snapshot.reference_curvature;
-    view.raw_lookahead_lateral_error = snapshot.raw_lookahead_lateral_error;
-    view.raw_lookahead_heading_error = snapshot.raw_lookahead_heading_error;
-    view.raw_reference_curvature = snapshot.raw_reference_curvature;
-    view.trusted_error_active = snapshot.trusted_error_active;
-    view.trusted_error_weight_near = snapshot.trusted_error_weight_near;
-    view.trusted_error_weight_far = snapshot.trusted_error_weight_far;
-    view.trusted_error_weight_lookahead = snapshot.trusted_error_weight_lookahead;
-    view.trusted_error_weight_curvature = snapshot.trusted_error_weight_curvature;
-    view.curvature_command = snapshot.curvature_command;
-    view.yaw_rate_target = snapshot.yaw_rate_target;
-    view.visible_range_m = snapshot.visible_range_m;
-    view.scene_width_expand_ratio = snapshot.scene_width_expand_ratio;
-    view.scene_cross_bilateral_open_score_m = snapshot.scene_cross_bilateral_open_score_m;
-    view.scene_cross_bilateral_open = snapshot.scene_cross_bilateral_open;
-    view.scene_cross_candidate = snapshot.scene_cross_candidate;
-    view.scene_zebra_candidate = snapshot.scene_zebra_candidate;
-    view.scene_circle_left_candidate = snapshot.scene_circle_left_candidate;
-    view.scene_circle_right_candidate = snapshot.scene_circle_right_candidate;
-    view.scene_left_open_score = snapshot.scene_left_open_score;
-    view.scene_right_open_score = snapshot.scene_right_open_score;
-    view.scene_left_contract_score = snapshot.scene_left_contract_score;
-    view.scene_right_contract_score = snapshot.scene_right_contract_score;
-    view.scene_left_boundary_heading_abs_rad = snapshot.scene_left_boundary_heading_abs_rad;
-    view.scene_right_boundary_heading_abs_rad = snapshot.scene_right_boundary_heading_abs_rad;
-    view.scene_circle_left_opposite_straight = snapshot.scene_circle_left_opposite_straight;
-    view.scene_circle_right_opposite_straight = snapshot.scene_circle_right_opposite_straight;
-    view.lateral_error = snapshot.lateral_error;
-    view.heading_error = snapshot.heading_error;
-    view.curvature = snapshot.curvature;
-    view.track_confidence = snapshot.track_confidence;
-    view.track_valid = snapshot.track_valid;
-    view.sign_flip_blocked = snapshot.sign_flip_blocked;
-    view.imu_grace_active = snapshot.imu_grace_active;
-    view.gyro_heading_delta_deg = snapshot.gyro_heading_delta_deg;
-    view.gyro_consistency_score = snapshot.gyro_consistency_score;
     view.threshold = snapshot.threshold;
-    view.threshold_veto = snapshot.threshold_veto;
-    view.active_module = snapshot.active_module;
-    view.scene_phase = snapshot.scene_phase;
-    view.scene_override_source = snapshot.scene_override_source;
-    view.reference_mode = snapshot.reference_mode;
-    view.roadblock_interface_state = snapshot.roadblock_interface_state;
-    view.circle_direction = snapshot.circle_direction;
-    view.circle_reference_mode = snapshot.circle_reference_mode;
-    view.circle_heading_delta_deg = snapshot.circle_heading_delta_deg;
-    view.circle_yaw_accum_deg = snapshot.circle_yaw_accum_deg;
-    view.circle_path_phase = snapshot.circle_path_phase;
-    view.reference_compatibility_error_m = snapshot.reference_compatibility_error_m;
-    view.reference_source = snapshot.reference_source;
-    view.circle_entry_signal_active = snapshot.circle_entry_signal_active;
-    view.inner_island_memory_active = snapshot.inner_island_memory_active;
-    view.inner_island_memory_age = snapshot.inner_island_memory_age;
-    view.inner_island_memory_confidence = snapshot.inner_island_memory_confidence;
-    view.left_inner_island_present = snapshot.left_inner_island_present;
-    view.right_inner_island_present = snapshot.right_inner_island_present;
-    view.inner_edge_compatible = snapshot.inner_edge_compatible;
-    view.inner_island_trace_present = snapshot.inner_island_trace_present;
-    view.inner_island_trace_start_forward_m = snapshot.inner_island_trace_start_forward_m;
-    view.inner_island_trace_end_forward_m = snapshot.inner_island_trace_end_forward_m;
-    view.inner_island_trace_confidence = snapshot.inner_island_trace_confidence;
-    view.inner_island_trace_support_layers = snapshot.inner_island_trace_support_layers;
-    view.inner_island_trace_gap_layers = snapshot.inner_island_trace_gap_layers;
-    view.inner_island_rejected_far_segments = snapshot.inner_island_rejected_far_segments;
-    view.roadblock_active = snapshot.roadblock_active;
-    view.resolved_fuzzy_p = snapshot.resolved_fuzzy_p;
-    view.camera_p_term = snapshot.camera_p_term;
-    view.camera_d_term = snapshot.camera_d_term;
-    view.w_target = snapshot.w_target;
-    view.gyro_z = snapshot.gyro_z;
-    view.gyro_error = snapshot.gyro_error;
-    view.gyro_p_term = snapshot.gyro_p_term;
-    view.gyro_d_term = snapshot.gyro_d_term;
-    view.raw_turn_output = snapshot.raw_turn_output;
-    view.applied_turn_output = snapshot.applied_turn_output;
+    view.perception_health.projector_ok = snapshot.perception_health.projector_ok;
+    view.perception_health.reason = snapshot.perception_health.reason;
+    view.reference.mode = snapshot.reference.mode;
+    view.reference.source = snapshot.reference.source;
+    view.eligibility.usable = snapshot.eligibility.usable;
+    view.eligibility.leading_usable_samples = snapshot.eligibility.leading_usable_samples;
+    view.eligibility.leading_min_forward_m = snapshot.eligibility.leading_min_forward_m;
+    view.eligibility.leading_max_forward_m = snapshot.eligibility.leading_max_forward_m;
+    view.eligibility.lookahead_distance_m = snapshot.eligibility.lookahead_distance_m;
+    view.eligibility.reason = snapshot.eligibility.reason;
+    view.curvature.computed = snapshot.curvature.computed;
+    view.curvature.lookahead_distance_m = snapshot.curvature.lookahead_distance_m;
+    view.curvature.curvature_command = snapshot.curvature.curvature_command;
+    view.curvature.reason = snapshot.curvature.reason;
+    view.reference_control.ready = snapshot.reference_control.ready;
+    view.reference_control.reason = snapshot.reference_control.reason;
+    view.safety_gate.veto_active = snapshot.safety_gate.veto_active;
+    view.safety_gate.reason = snapshot.safety_gate.reason;
+    view.degraded.active = snapshot.degraded.active;
+    view.degraded.reason = snapshot.degraded.reason;
+    view.yaw_control.yaw_rate_target = snapshot.yaw_control.yaw_rate_target;
+    view.actuator.raw_turn_output = snapshot.actuator.raw_turn_output;
+    view.actuator.applied_turn_output = snapshot.actuator.applied_turn_output;
     return view;
 }
 
 // 媒体 Tick —— 检查连接 → 发布配置快照 → 查找新帧 → 发布图像帧
 void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
+    LS2K_PERF_SCOPE(port::PerfStage::kSteeringMediaTick);
     if (!configured_ || !enabled_) {
         return;
     }
@@ -194,18 +130,19 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     }
 
     ControlDebugSnapshot snapshot{};
-    port::CameraCapture capture{};
+    port::LegacyCameraFrame capture_frame{};
+    CameraFrameHandle capture_handle{};
     bool have_capture = false;
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         snapshot = state.control_debug_snapshot;
-        have_capture = ResolveSteeringCapture(state, snapshot, capture);
+        have_capture = ResolveSteeringCapture(state, snapshot, capture_frame, capture_handle);
     }
 
     if (!have_capture || snapshot.steering.frame_id == 0) {
         return;
     }
-    if (capture.frame_id == last_image_frame_id_) {
+    if (capture_handle.frame_id == last_image_frame_id_) {
         return;
     }
     if (publish_interval_ms_ > 0 && last_image_publish_ms_ != 0 &&
@@ -215,21 +152,21 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     }
 
     platform::SteeringMediaImageFrame frame{};
-    frame.frame_id = capture.frame_id;
-    frame.capture_time_ms = capture.capture_time_ms;
+    frame.frame_id = capture_handle.frame_id;
+    frame.capture_time_ms = capture_handle.capture_time_ms;
     frame.publish_time_ms = now_ms;
-    frame.width = capture.frame.width;
-    frame.height = capture.frame.height;
+    frame.width = capture_frame.width;
+    frame.height = capture_frame.height;
     frame.motion_phase = ToString(snapshot.motion_phase);
     frame.steering_snapshot = BuildSnapshotView(snapshot.steering);
-    frame.pixel_data = capture.frame.gray.data();
-    frame.pixel_size = capture.frame.PixelCount();
+    frame.pixel_data = capture_frame.gray.data();
+    frame.pixel_size = capture_frame.PixelCount();
 
     const platform::SteeringMediaPublishResult result = link_.PublishImageFrame(frame, diagnostics);
     if (result == platform::SteeringMediaPublishResult::kSent ||
         result == platform::SteeringMediaPublishResult::kQueued) {
         last_image_publish_ms_ = now_ms;
-        last_image_frame_id_ = capture.frame_id;
+        last_image_frame_id_ = capture_handle.frame_id;
     }
 }
 

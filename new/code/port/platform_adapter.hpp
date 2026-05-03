@@ -6,9 +6,12 @@
 #include <memory>
 #include <string>
 
-#include "control_types.hpp"
+#include "actuator_command_types.hpp"
+#include "camera_frame_types.hpp"
 #include "diagnostics.hpp"
 #include "hardware_profile.hpp"
+#include "runtime_parameter_types.hpp"
+#include "sensor_sample_types.hpp"
 
 namespace ls2k::port {
 
@@ -67,6 +70,7 @@ class IPowerMonitorAdapter {
 public:
     virtual ~IPowerMonitorAdapter() = default;
     virtual bool Initialize(DiagnosticSink& diagnostics) = 0;
+    virtual void ConfigureLowVoltageThreshold(int raw_threshold, DiagnosticSink& diagnostics) = 0;
     virtual LowVoltageSample SampleLowVoltage(DiagnosticSink& diagnostics) = 0;
     virtual bool Ready() const = 0;
 };

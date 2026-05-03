@@ -12,25 +12,23 @@
 namespace ls2k::platform {
 namespace {
 
-bool TryParseInt(const char* text, int& out) {
+constexpr int kDefaultLowVoltageRawThreshold = 400;
+
+bool TryParsePositiveInt(const char* text, int& out) {
     if (text == nullptr || text[0] == '\0') {
         return false;
     }
     try {
-        out = std::stoi(text);
+        std::size_t parsed = 0;
+        const int value = std::stoi(text, &parsed);
+        if (text[parsed] != '\0' || value <= 0) {
+            return false;
+        }
+        out = value;
         return true;
     } catch (...) {
         return false;
     }
-}
-
-int ReadIntEnv(const char* key, int fallback) {
-    int value = fallback;
-    const char* text = std::getenv(key);
-    if (TryParseInt(text, value)) {
-        return value;
-    }
-    return fallback;
 }
 
 std::optional<bool> ReadBoolEnv(const char* key) {
@@ -53,6 +51,18 @@ std::optional<bool> ReadBoolEnv(const char* key) {
 
 class PowerMonitorAdapter final : public port::IPowerMonitorAdapter {
 public:
+    void ConfigureLowVoltageThreshold(int raw_threshold, port::DiagnosticSink& diagnostics) override {
+        if (raw_threshold > 0) {
+            configured_raw_threshold_ = raw_threshold;
+            return;
+        }
+        configured_raw_threshold_ = kDefaultLowVoltageRawThreshold;
+        diagnostics.Emit({port::DiagnosticLevel::kWarning,
+                          "power.low_voltage.threshold_config_invalid",
+                          "invalid low-voltage raw threshold; using built-in fail-safe default",
+                          port::NowMs()});
+    }
+
     bool Initialize(port::DiagnosticSink& diagnostics) override {
         initialized_ = true;
         const char* override_path = std::getenv("LS2K_LOW_VOLTAGE_RAW_PATH");
@@ -78,7 +88,22 @@ public:
     port::LowVoltageSample SampleLowVoltage(port::DiagnosticSink& diagnostics) override {
         port::LowVoltageSample sample{};
         sample.capture_time_ms = port::NowMs();
-        sample.threshold = ReadIntEnv("LS2K_LOW_VOLTAGE_RAW_THRESHOLD", 400);
+        sample.threshold = configured_raw_threshold_;
+        const char* threshold_env = std::getenv("LS2K_LOW_VOLTAGE_RAW_THRESHOLD");
+        if (threshold_env != nullptr && threshold_env[0] != '\0') {
+            int override_threshold = 0;
+            if (TryParsePositiveInt(threshold_env, override_threshold)) {
+                sample.threshold = override_threshold;
+            } else {
+                port::EmitRateLimited(diagnostics,
+                                      {port::DiagnosticLevel::kWarning,
+                                       "power.low_voltage.threshold_env_invalid",
+                                       std::string("ignoring invalid LS2K_LOW_VOLTAGE_RAW_THRESHOLD value=") +
+                                           threshold_env,
+                                       sample.capture_time_ms},
+                                      1000);
+            }
+        }
 
         const char* forced_raw = std::getenv("LS2K_FORCE_LOW_VOLTAGE");
         if (const std::optional<bool> forced = ReadBoolEnv("LS2K_FORCE_LOW_VOLTAGE"); forced.has_value()) {
@@ -143,6 +168,7 @@ public:
 private:
     bool initialized_ = false;
     bool ready_ = false;
+    int configured_raw_threshold_ = kDefaultLowVoltageRawThreshold;
 };
 
 }  // namespace

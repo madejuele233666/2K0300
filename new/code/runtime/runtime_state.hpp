@@ -1,13 +1,17 @@
 #ifndef LS2K_RUNTIME_RUNTIME_STATE_HPP
 #define LS2K_RUNTIME_RUNTIME_STATE_HPP
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
 
-#include "port/control_types.hpp"
+#include "port/camera_frame_types.hpp"
+#include "port/perception_result.hpp"
+#include "port/sensor_sample_types.hpp"
+#include "port/steering_state_types.hpp"
 #include "runtime/control_decision.hpp"
 #include "runtime/control_debug_snapshot.hpp"
 #include "runtime/motion_types.hpp"
@@ -15,85 +19,167 @@
 
 namespace ls2k::runtime {
 
-inline void ResetSteeringTrackMemory(port::LegacySteeringState& steering_state) {
-    steering_state.last_bev_track = {};
-    steering_state.bev_track_memory = {};
-    steering_state.lane_geometry_recent = {};
-    steering_state.lane_geometry_previous = {};
-    steering_state.track_history = {};
-    steering_state.gyro_continuity = {};
+inline void ResetSteeringPerceptionMemory(port::SteeringPerceptionMemory& memory) {
+    memory = {};
 }
 
-inline void ResetSteeringSceneMemory(port::LegacySteeringState& steering_state) {
-    steering_state.active_module = "straight";
-    steering_state.scene_phase = "idle";
-    steering_state.scene_override_source = "none";
-    steering_state.roadblock_active = false;
-    steering_state.roadblock_interface_state = "supported_not_implemented";
-    steering_state.scene_debug_candidate = "none";
-    steering_state.scene_debug_candidate_streak = 0;
-    steering_state.scene_cross_candidate_score_last = 0.0F;
-    steering_state.scene_circle_left_candidate_score_last = 0.0F;
-    steering_state.scene_circle_right_candidate_score_last = 0.0F;
-    steering_state.scene_fsm = {};
+inline void ResetSteeringControlMemory(port::SteeringControlMemory& memory) {
+    memory = {};
 }
 
-inline void ResetSteeringReferenceMemory(port::LegacySteeringState& steering_state) {
-    steering_state.reference_policy = {};
-}
+enum class OwnedCameraFrameSlotState {
+    kFree,
+    kReady,
+    kEncoding
+};
 
-inline void ResetSteeringControllerMemory(port::LegacySteeringState& steering_state) {
-    steering_state.drive_cycle_count = 0;
-    steering_state.controller_memory = {};
-}
+struct CameraFrameHandle {
+    bool valid = false;
+    std::size_t slot_id = 0;
+    uint64_t generation = 0;
+    uint64_t frame_id = 0;
+    uint64_t capture_time_ms = 0;
+    int width = 0;
+    int height = 0;
+    int stride = 0;
+};
 
-inline void ResetSteeringRuntimeState(port::LegacySteeringState& steering_state) {
-    ResetSteeringTrackMemory(steering_state);
-    ResetSteeringSceneMemory(steering_state);
-    ResetSteeringReferenceMemory(steering_state);
-    ResetSteeringControllerMemory(steering_state);
-}
+struct OwnedCameraFrameSlot {
+    std::size_t slot_id = 0;
+    uint64_t generation = 0;
+    uint64_t frame_id = 0;
+    uint64_t capture_time_ms = 0;
+    int width = 0;
+    int height = 0;
+    int stride = 0;
+    OwnedCameraFrameSlotState state = OwnedCameraFrameSlotState::kFree;
+    std::array<std::uint8_t, port::kCompiledCameraFrameWidth * port::kCompiledCameraFrameHeight> gray{};
+};
 
 struct CameraCaptureHistory {
     static constexpr std::size_t kCapacity = 8;
 
-    void Push(const port::CameraCapture& capture) {
-        captures[next_index] = capture;
+    void Push(const CameraFrameHandle& handle) {
+        handles[next_index] = handle;
         next_index = (next_index + 1) % kCapacity;
         if (count < kCapacity) {
             ++count;
         }
     }
 
-    const port::CameraCapture* FindExact(uint64_t frame_id, uint64_t capture_time_ms) const {
+    const CameraFrameHandle* FindExact(uint64_t frame_id, uint64_t capture_time_ms) const {
         for (std::size_t offset = 0; offset < count; ++offset) {
             const std::size_t index = (next_index + kCapacity - 1 - offset) % kCapacity;
-            const port::CameraCapture& capture = captures[index];
-            if (capture.frame_id == frame_id && capture.capture_time_ms == capture_time_ms) {
-                return &capture;
+            const CameraFrameHandle& handle = handles[index];
+            if (handle.valid && handle.frame_id == frame_id && handle.capture_time_ms == capture_time_ms) {
+                return &handle;
             }
         }
         return nullptr;
     }
 
-    std::array<port::CameraCapture, kCapacity> captures{};
+    std::array<CameraFrameHandle, kCapacity> handles{};
     std::size_t next_index = 0;
     std::size_t count = 0;
 };
 
-struct RuntimeState {
-    port::LegacySteeringState steering_state{};
+inline CameraFrameHandle MaterializeOwnedCameraFrame(
+    std::array<OwnedCameraFrameSlot, 3>& slots,
+    std::size_t& next_slot_index,
+    const port::LegacyCameraFrameView& view) {
+    CameraFrameHandle handle{};
+    if (!view.Valid() ||
+        view.width > port::kCompiledCameraFrameWidth ||
+        view.height > port::kCompiledCameraFrameHeight) {
+        return handle;
+    }
 
+    constexpr std::size_t kSlotCount = 3;
+    std::size_t selected = kSlotCount;
+    for (std::size_t attempt = 0; attempt < kSlotCount; ++attempt) {
+        const std::size_t index = (next_slot_index + attempt) % kSlotCount;
+        if (slots[index].state != OwnedCameraFrameSlotState::kEncoding) {
+            selected = index;
+            break;
+        }
+    }
+    if (selected == kSlotCount) {
+        return handle;
+    }
+    next_slot_index = (selected + 1) % kSlotCount;
+
+    OwnedCameraFrameSlot& slot = slots[selected];
+    slot.slot_id = selected;
+    slot.state = OwnedCameraFrameSlotState::kReady;
+    slot.generation = slot.generation == UINT64_MAX ? 1 : slot.generation + 1;
+    slot.frame_id = view.frame_id;
+    slot.capture_time_ms = view.capture_time_ms;
+    slot.width = view.width;
+    slot.height = view.height;
+    slot.stride = view.width;
+    for (int row = 0; row < view.height; ++row) {
+        const std::uint8_t* src =
+            view.gray + static_cast<std::size_t>(row) * static_cast<std::size_t>(view.stride);
+        std::uint8_t* dst =
+            slot.gray.data() + static_cast<std::size_t>(row) * static_cast<std::size_t>(slot.stride);
+        std::copy(src, src + view.width, dst);
+    }
+
+    handle.valid = true;
+    handle.slot_id = selected;
+    handle.generation = slot.generation;
+    handle.frame_id = slot.frame_id;
+    handle.capture_time_ms = slot.capture_time_ms;
+    handle.width = slot.width;
+    handle.height = slot.height;
+    handle.stride = slot.stride;
+    return handle;
+}
+
+inline bool CopyOwnedCameraFrameByHandle(const std::array<OwnedCameraFrameSlot, 3>& slots,
+                                         const CameraFrameHandle& handle,
+                                         port::LegacyCameraFrame& out) {
+    if (!handle.valid || handle.slot_id >= slots.size()) {
+        return false;
+    }
+    const OwnedCameraFrameSlot& slot = slots[handle.slot_id];
+    if (slot.state == OwnedCameraFrameSlotState::kFree ||
+        slot.generation != handle.generation ||
+        slot.frame_id != handle.frame_id ||
+        slot.capture_time_ms != handle.capture_time_ms ||
+        slot.width <= 0 ||
+        slot.height <= 0 ||
+        slot.width > port::kCompiledCameraFrameWidth ||
+        slot.height > port::kCompiledCameraFrameHeight) {
+        return false;
+    }
+    out = {};
+    out.width = slot.width;
+    out.height = slot.height;
+    for (int row = 0; row < slot.height; ++row) {
+        const std::uint8_t* src =
+            slot.gray.data() + static_cast<std::size_t>(row) * static_cast<std::size_t>(slot.stride);
+        std::uint8_t* dst =
+            out.gray.data() + static_cast<std::size_t>(row) * static_cast<std::size_t>(out.width);
+        std::copy(src, src + slot.width, dst);
+    }
+    return true;
+}
+
+struct RuntimeState {
     // Shared runtime channels.
     std::mutex shared_mutex{};
     port::PerceptionResult perception{};
     port::ImuSample imu{};
     port::EncoderDelta encoder{};
-    port::CameraCapture latest_camera_capture{};
+    CameraFrameHandle latest_camera_frame{};
     CameraCaptureHistory recent_camera_captures{};
+    std::array<OwnedCameraFrameSlot, 3> camera_frame_slots{};
+    std::size_t next_camera_frame_slot = 0;
     port::ActuatorCommand last_command{};
     ControlCycleObservation control_observation{};
     ControlDebugSnapshot control_debug_snapshot{};
+    port::LowVoltageSample low_voltage_last_sample{};
 
     // Lifecycle flags.
     bool startup_complete = false;
@@ -107,6 +193,7 @@ struct RuntimeState {
     MotionSupervisorState motion_state{};
     RuntimeTuningState tuning_state{};
     std::atomic<bool> low_voltage_emergency{false};
+    std::atomic<uint64_t> perception_memory_reset_generation{0};
 
     std::atomic<uint64_t> control_cycle_count{0};
     std::atomic<uint64_t> perception_publish_count{0};

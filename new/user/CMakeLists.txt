@@ -20,6 +20,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -pthread -Wno-delete-non
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
 
+option(LS2K_PERF_ENABLED "Enable fixed-stage runtime performance counters" OFF)
+option(LS2K_PERF_USE_CYCLE_COUNTER "Use LoongArch cycle counter for performance counters when available" ON)
+
 set(CMAKE_PREFIX_PATH "/opt/ls_2k0300_env/opencv_4_10_build")
 find_package(OpenCV REQUIRED)
 
@@ -65,6 +68,7 @@ set(NEW_SRCS
     ../code/platform/assistant_protocol.cpp
     ../code/platform/steering_media_link.cpp
     ../code/platform/steering_media_protocol.cpp
+    ../code/port/perf_counter.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
     ../code/platform/true_ls2k0300/imu_bridge.cpp
     ../code/platform/true_ls2k0300/encoder_bridge.cpp
@@ -73,28 +77,19 @@ set(NEW_SRCS
     ../code/platform/true_ls2k0300/timer_bridge.cpp
     ../code/platform/true_ls2k0300/assistant_bridge.cpp
     ../code/platform/true_ls2k0300/steering_media_bridge.cpp
-    ../code/legacy/fuzzy_pid_ucas.cpp
-    ../code/legacy/pid_control.cpp
+    ../code/legacy/steering_yaw_controller.cpp
     ../code/legacy/motor_logic.cpp
     ../code/legacy/wheel_target_mixer.cpp
     ../code/legacy/wheel_pid.cpp
-    ../code/legacy/attitude_logic.cpp
-    ../code/legacy/camera_logic.cpp
+    ../code/legacy/steering_otsu_threshold.cpp
     ../code/legacy/steering_bev_projector.cpp
-    ../code/legacy/steering_bev_sparse_sampler.cpp
-    ../code/legacy/steering_bev_element_evidence.cpp
-    ../code/legacy/steering_corridor_intervals.cpp
-    ../code/legacy/steering_corridor_graph.cpp
-    ../code/legacy/steering_topology_hypotheses.cpp
-    ../code/legacy/steering_topology_evidence.cpp
-    ../code/legacy/steering_bev_geometry.cpp
-    ../code/legacy/steering_observation_assembly.cpp
-    ../code/legacy/steering_scene_fsm.cpp
-    ../code/legacy/steering_reference_policy.cpp
-    ../code/legacy/steering_control_error_model.cpp
-    ../code/legacy/steering_gyro_continuity.cpp
+    ../code/legacy/steering_bev_simple_perception.cpp
+    ../code/legacy/steering_reference_usability.cpp
+    ../code/legacy/steering_reference_curvature.cpp
+    ../code/legacy/steering_reference_control_readiness.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/perception_frontend.cpp
+    ../code/runtime/low_voltage_sampler.cpp
     ../code/runtime/motion_supervisor.cpp
     ../code/runtime/control_decision.cpp
     ../code/runtime/control_loop.cpp
@@ -104,7 +99,6 @@ set(NEW_SRCS
     ../code/runtime/tuning_state.cpp
     ../code/runtime/shutdown.cpp
 )
-
 set(LS2K_COMMON_SRCS
     ${LS2K_LIB_ROOT}/zf_common/zf_common_fifo.cpp
     ${LS2K_LIB_ROOT}/zf_common/zf_common_font.cpp
@@ -144,6 +138,10 @@ add_executable(
     ${LS2K_DRIVER_SRCS}
     ${LS2K_ASSISTANT_SRCS}
 )
+target_compile_definitions(${PROJ_NAME} PRIVATE
+    LS2K_PERF_ENABLED=$<BOOL:${LS2K_PERF_ENABLED}>
+    LS2K_PERF_USE_CYCLE_COUNTER=$<BOOL:${LS2K_PERF_USE_CYCLE_COUNTER}>
+)
 set_target_properties(${PROJ_NAME} PROPERTIES
     INSTALL_RPATH "/opt/ls_2k0300_env/opencv_4_10_build/lib"
     BUILD_WITH_INSTALL_RPATH ON
@@ -160,6 +158,70 @@ option(LS2K_BUILD_VERIFICATION_HELPERS "Build verification helper binaries" OFF)
 
 if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
+        bev_simple_perception_test
+        ../verification/tests/bev_simple_perception_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_simple_perception.cpp
+        ../code/legacy/steering_reference_usability.cpp
+        ../code/port/perf_counter.cpp
+    )
+    target_link_libraries(
+        bev_simple_perception_test
+        pthread
+        m
+    )
+
+    add_executable(
+        reference_usability_curvature_test
+        ../verification/tests/reference_usability_curvature_test.cpp
+        ../code/legacy/steering_reference_usability.cpp
+        ../code/legacy/steering_reference_curvature.cpp
+        ../code/legacy/steering_reference_control_readiness.cpp
+        ../code/port/perf_counter.cpp
+        ../code/legacy/steering_yaw_controller.cpp
+        ../code/runtime/control_decision.cpp
+    )
+    target_link_libraries(
+        reference_usability_curvature_test
+        pthread
+        m
+    )
+
+    add_executable(
+        runtime_parameter_defaults_test
+        ../verification/tests/runtime_parameter_defaults_test.cpp
+    )
+    target_link_libraries(
+        runtime_parameter_defaults_test
+        pthread
+        m
+    )
+
+    add_executable(
+        power_adapter_threshold_test
+        ../verification/tests/power_adapter_threshold_test.cpp
+        ../code/platform/power_adapter.cpp
+        ../code/platform/true_ls2k0300/adc_bridge.cpp
+    )
+    target_link_libraries(
+        power_adapter_threshold_test
+        pthread
+        m
+    )
+
+    add_executable(
+        startup_low_voltage_order_test
+        ../verification/tests/startup_low_voltage_order_test.cpp
+        ../code/runtime/startup.cpp
+        ../code/platform/hardware_profile.cpp
+    )
+    target_link_libraries(
+        startup_low_voltage_order_test
+        pthread
+        m
+    )
+
+    add_executable(
         steering_media_selftest
         ../user/steering_media_selftest.cpp
         ../code/platform/steering_media_link.cpp
@@ -169,6 +231,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/runtime/control_decision.cpp
         ../code/runtime/motion_supervisor.cpp
         ../code/runtime/steering_media_service.cpp
+        ../code/port/perf_counter.cpp
     )
     target_link_libraries(
         steering_media_selftest
@@ -177,146 +240,15 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
-        control_debug_snapshot_contract_test
-        ../verification/tests/control_debug_snapshot_contract_test.cpp
-        ../code/runtime/control_debug_reporter.cpp
-        ../code/runtime/control_decision.cpp
-        ../code/runtime/motion_supervisor.cpp
-    )
-    target_link_libraries(
-        control_debug_snapshot_contract_test
-        pthread
-        m
-    )
-
-    add_executable(
-        control_loop_reset_test
-        ../verification/tests/control_loop_reset_test.cpp
-        ../code/runtime/control_loop.cpp
-        ../code/runtime/control_decision.cpp
-        ../code/runtime/control_debug_reporter.cpp
-        ../code/runtime/motion_supervisor.cpp
-        ../code/runtime/tuning_state.cpp
-        ../code/legacy/attitude_logic.cpp
-        ../code/legacy/fuzzy_pid_ucas.cpp
-        ../code/legacy/motor_logic.cpp
-        ../code/legacy/pid_control.cpp
-        ../code/legacy/wheel_pid.cpp
-        ../code/legacy/wheel_target_mixer.cpp
-    )
-    target_link_libraries(
-        control_loop_reset_test
-        pthread
-        m
-    )
-
-    add_executable(
-        runtime_params_load_test
-        ../verification/tests/runtime_params_load_test.cpp
-        ../code/platform/param_store.cpp
-    )
-    target_link_libraries(
-        runtime_params_load_test
-        ${OpenCV_LIBS}
-        pthread
-        m
-    )
-
-    add_executable(
-        bev_sparse_sampler_test
-        ../verification/tests/bev_sparse_sampler_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_sparse_sampler.cpp
-    )
-    target_link_libraries(
-        bev_sparse_sampler_test
-        pthread
-        m
-    )
-
-    add_executable(
-        bev_element_evidence_test
-        ../verification/tests/bev_element_evidence_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_sparse_sampler.cpp
-        ../code/legacy/steering_bev_element_evidence.cpp
-    )
-    target_link_libraries(
-        bev_element_evidence_test
-        pthread
-        m
-    )
-
-    add_executable(
-        corridor_interval_test
-        ../verification/tests/corridor_interval_test.cpp
-        ../code/legacy/steering_corridor_intervals.cpp
-    )
-    target_link_libraries(
-        corridor_interval_test
-        pthread
-        m
-    )
-
-    add_executable(
-        corridor_graph_test
-        ../verification/tests/corridor_graph_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_sparse_sampler.cpp
-        ../code/legacy/steering_bev_element_evidence.cpp
-        ../code/legacy/steering_corridor_intervals.cpp
-        ../code/legacy/steering_corridor_graph.cpp
-        ../code/legacy/steering_bev_geometry.cpp
-    )
-    target_link_libraries(
-        corridor_graph_test
-        pthread
-        m
-    )
-
-    add_executable(
-        scene_classifier_selftest
-        ../verification/tests/scene_classifier_selftest.cpp
-        ../code/legacy/camera_logic.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_sparse_sampler.cpp
-        ../code/legacy/steering_bev_element_evidence.cpp
-        ../code/legacy/steering_corridor_intervals.cpp
-        ../code/legacy/steering_corridor_graph.cpp
-        ../code/legacy/steering_topology_hypotheses.cpp
-        ../code/legacy/steering_topology_evidence.cpp
-        ../code/legacy/steering_bev_geometry.cpp
-        ../code/legacy/steering_observation_assembly.cpp
-        ../code/legacy/steering_scene_fsm.cpp
-        ../code/legacy/steering_reference_policy.cpp
-        ../code/legacy/steering_control_error_model.cpp
-        ../code/legacy/steering_gyro_continuity.cpp
-        ../code/legacy/pid_control.cpp
-        ../code/legacy/fuzzy_pid_ucas.cpp
-    )
-    target_link_libraries(
-        scene_classifier_selftest
-        pthread
-        m
-    )
-
-    add_executable(
         scene_overlay_probe
         ../user/scene_overlay_probe.cpp
-        ../code/legacy/camera_logic.cpp
+        ../code/legacy/steering_otsu_threshold.cpp
         ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_sparse_sampler.cpp
-        ../code/legacy/steering_bev_element_evidence.cpp
-        ../code/legacy/steering_corridor_intervals.cpp
-        ../code/legacy/steering_corridor_graph.cpp
-        ../code/legacy/steering_topology_hypotheses.cpp
-        ../code/legacy/steering_topology_evidence.cpp
-        ../code/legacy/steering_bev_geometry.cpp
-        ../code/legacy/steering_observation_assembly.cpp
-        ../code/legacy/steering_scene_fsm.cpp
-        ../code/legacy/steering_reference_policy.cpp
-        ../code/legacy/steering_control_error_model.cpp
-        ../code/legacy/steering_gyro_continuity.cpp
+        ../code/legacy/steering_bev_simple_perception.cpp
+        ../code/legacy/steering_reference_usability.cpp
+        ../code/legacy/steering_reference_curvature.cpp
+        ../code/legacy/steering_reference_control_readiness.cpp
+        ../code/port/perf_counter.cpp
     )
     target_link_libraries(
         scene_overlay_probe

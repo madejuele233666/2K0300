@@ -6,7 +6,11 @@
 #include <cstdlib>
 #include <string>
 
-#include "legacy/camera_logic.hpp"
+#include "legacy/steering_otsu_threshold.hpp"
+#include "legacy/steering_reference_control_readiness.hpp"
+#include "legacy/steering_reference_curvature.hpp"
+#include "legacy/steering_reference_usability.hpp"
+#include "port/perf_counter.hpp"
 
 namespace ls2k::runtime {
 namespace {
@@ -41,69 +45,87 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     fallback.frame_id = capture.frame_id;
     fallback.capture_time_ms = capture.capture_time_ms;
     fallback.publish_time_ms = capture.capture_time_ms;
-    fallback.geometry_veto = true;
-    fallback.emergency_veto = true;
     fallback.perception_tag = "injected-drop-frame";
     return fallback;
 }
 
-// 缓存最新相机帧到运行时状态
-void RememberCameraCapture(RuntimeState& state, const port::CameraCapture& capture) {
-    state.latest_camera_capture = capture;
-    state.recent_camera_captures.Push(capture);
-}
-
-// 将感知分析结果应用到转向运行时状态
-void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analysis, RuntimeState& state) {
-    if (analysis.steering_state_update_valid) {
-        state.steering_state = analysis.steering_state_update;
-        return;
-    }
-
-    state.steering_state.active_module = analysis.perception.active_module;
-    state.steering_state.scene_phase = analysis.perception.scene_phase;
-    state.steering_state.last_bev_track = analysis.track_estimate;
-    state.steering_state.gyro_continuity = analysis.gyro_continuity_state;
+port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
+                                             int threshold,
+                                             const port::PerceptionHealth& health,
+                                             const port::ReferenceContinuityResult& continuity,
+                                             const port::ReferenceUsability& selected_usability,
+                                             const port::ReferenceCurvatureEstimate& curvature,
+                                             const port::ReferenceControlReadiness& reference_control,
+                                             uint64_t publish_time_ms) {
+    port::PerceptionResult perception{};
+    perception.published = true;
+    perception.fresh = true;
+    perception.frame_id = capture.frame_id;
+    perception.capture_time_ms = capture.capture_time_ms;
+    perception.publish_time_ms = publish_time_ms;
+    perception.threshold = threshold;
+    perception.perception_tag = "bev_simple";
+    perception.reference_mode = legacy::ToString(continuity.mode);
+    perception.reference_source = continuity.source;
+    perception.perception_health = health;
+    perception.reference_usability = selected_usability;
+    perception.reference_curvature = curvature;
+    perception.reference_control = reference_control;
+    return perception;
 }
 
 }  // namespace
 
 PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
-                                       port::IPowerMonitorAdapter& power,
                                        RuntimeState& state,
                                        port::DiagnosticSink& diagnostics)
-    : camera_(camera), power_(power), state_(state), diagnostics_(diagnostics) {}
+    : camera_(camera), state_(state), diagnostics_(diagnostics) {}
 
-// 刷新低电压状态 —— 从电源监控采样并更新紧急标志
-void PerceptionFrontend::RefreshLowVoltageState() {
-    const port::LowVoltageSample sample = power_.SampleLowVoltage(diagnostics_);
-    if (!sample.valid) {
-        if (!state_.low_voltage_emergency.load()) {
-            diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                               "power.low_voltage.invalid",
-                               "low-voltage sample unavailable at runtime; forcing emergency veto",
-                               port::NowMs()});
-        }
-        state_.low_voltage_emergency.store(true);
-        return;
-    }
-
-    const bool previous = state_.low_voltage_emergency.load();
-    state_.low_voltage_emergency.store(sample.emergency);
-    if (sample.emergency != previous) {
-        diagnostics_.Emit({sample.emergency ? port::DiagnosticLevel::kFailSafe
-                                            : port::DiagnosticLevel::kInfo,
-                           "power.low_voltage.transition",
-                           sample.emergency ? "runtime low-voltage emergency asserted"
-                                            : "runtime low-voltage emergency cleared",
-                           sample.capture_time_ms});
-    }
+bool PerceptionFrontend::Configure(const port::RuntimeParameters& params) {
+    projector_configured_ = projector_.Configure(params.bev_projector);
+    sample_lut_ = {};
+    diagnostics_.Emit({projector_configured_ ? port::DiagnosticLevel::kInfo
+                                             : port::DiagnosticLevel::kFailSafe,
+                       projector_configured_ ? "perception.projector.configured"
+                                             : "perception.projector.invalid",
+                       projector_configured_ ? "BEV projector configured once for runtime perception"
+                                             : "BEV projector configuration failed; perception will publish fail-safe fallback",
+                       port::NowMs()});
+    return projector_configured_;
 }
 
-// 处理一帧图像：低电压检查 → 故障注入 → 空帧处理 → AnalyzeFrame 感知
+bool PerceptionFrontend::ShouldMaterializeFrame(const port::RuntimeParameters& params) const {
+    return params.steering_media_enabled && params.steering_media_publish_interval_ms > 0;
+}
+
+CameraFrameHandle PerceptionFrontend::RememberCameraCapture(const port::CameraCapture& capture,
+                                                            const port::RuntimeParameters& params) {
+    if (!capture.has_frame || !ShouldMaterializeFrame(params)) {
+        return {};
+    }
+    CameraFrameHandle handle =
+        MaterializeOwnedCameraFrame(state_.camera_frame_slots, state_.next_camera_frame_slot, capture.view);
+    if (handle.valid) {
+        state_.latest_camera_frame = handle;
+        state_.recent_camera_captures.Push(handle);
+    }
+    return handle;
+}
+
+void PerceptionFrontend::ConsumeMemoryResetRequest() {
+    const uint64_t generation = state_.perception_memory_reset_generation.load();
+    if (generation == consumed_perception_memory_reset_generation_) {
+        return;
+    }
+    ResetSteeringPerceptionMemory(perception_memory_);
+    consumed_perception_memory_reset_generation_ = generation;
+}
+
+// 处理一帧图像：故障注入 → 空帧处理 → Otsu → sparse BEV 感知
 void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) {
-    RefreshLowVoltageState();
+    LS2K_PERF_SCOPE(port::PerfStage::kPerceptionFrame);
     ++processed_frames_;
+    ConsumeMemoryResetRequest();
 
     // Foreground frame-ready path. Heavy perception stays outside PIT callback.
     const port::CameraCapture capture = camera_.Capture(diagnostics_);
@@ -119,7 +141,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
         fallback.publish_time_ms = port::NowMs();
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        RememberCameraCapture(state_, capture);
+        (void)RememberCameraCapture(capture, params);
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
@@ -132,8 +154,6 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         fallback.frame_id = capture.frame_id;
         fallback.capture_time_ms = capture.capture_time_ms;
         fallback.publish_time_ms = port::NowMs();
-        fallback.geometry_veto = true;
-        fallback.emergency_veto = true;
 
         switch (capture.marker) {
             case port::CameraGeometryMarker::kEmptyFrame:
@@ -154,34 +174,74 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         }
 
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        RememberCameraCapture(state_, capture);
+        (void)RememberCameraCapture(capture, params);
         state_.perception = fallback;
         ++state_.perception_publish_count;
         return;
     }
 
-    port::LegacySteeringState prior_state{};
-    port::ImuSample imu{};
+    int threshold = 0;
     {
-        std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        prior_state = state_.steering_state;
-        imu = state_.imu;
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionOtsu);
+        threshold = legacy::ComputeOtsuThreshold(capture.view);
     }
-    const legacy::SteeringAnalysisResult analysis =
-        legacy::AnalyzeFrame(capture.frame,
-                             params,
-                             prior_state,
-                             imu,
-                             state_.low_voltage_emergency.load(),
-                             capture.frame_id,
-                             capture.capture_time_ms);
-    port::PerceptionResult perception = analysis.perception;
-    perception.publish_time_ms = port::NowMs();
+    port::ReferenceContinuityResult continuity{};
+    port::ReferenceUsability selected_usability{};
+    port::ReferenceCurvatureEstimate curvature{};
+    port::ReferenceControlReadiness reference_control{};
+    port::PerceptionHealth health{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionBev);
+        health.projector_ok = projector_.Valid();
+        health.reason = health.projector_ok ? "ok" : "projector_invalid";
+        const port::SteeringPerceptionMemory prior_memory = perception_memory_;
+        const legacy::BEVSimplePerceptionResult current_facts =
+            legacy::RunBEVSimplePerception(capture.view, threshold, params, projector_, &sample_lut_);
+        const port::ReferenceUsability current_usability =
+            legacy::EvaluateReferenceUsability(current_facts.reference_path, params);
+        if (current_usability.usable) {
+            continuity.reference_path = current_facts.reference_path;
+            continuity.mode = current_facts.reference_path.mode;
+            continuity.source = current_facts.reference_source;
+            continuity.hold_selected = false;
+            continuity.next_hold_state =
+                legacy::MakeReferenceHoldState(current_facts.reference_path, params);
+            selected_usability = current_usability;
+        } else {
+            const port::ReferenceContinuityResult hold_candidate =
+                legacy::BuildReferenceHoldCandidate(prior_memory.reference_hold, params);
+            const port::ReferenceUsability hold_usability =
+                legacy::EvaluateReferenceUsability(hold_candidate.reference_path, params);
+            if (hold_usability.usable) {
+                continuity = hold_candidate;
+                selected_usability = hold_usability;
+            } else {
+                continuity = {};
+                selected_usability =
+                    legacy::EvaluateReferenceUsability(continuity.reference_path, params);
+            }
+        }
+        curvature = legacy::ComputeReferenceCurvature(continuity.reference_path,
+                                                      selected_usability,
+                                                      params);
+        reference_control = legacy::EvaluateReferenceControlReadiness(selected_usability,
+                                                                      curvature,
+                                                                      continuity.hold_selected);
+        perception_memory_.reference_hold = continuity.next_hold_state;
+    }
+    const uint64_t publish_time_ms = port::NowMs();
+    port::PerceptionResult perception = BuildPerceptionResult(capture,
+                                                              threshold,
+                                                              health,
+                                                              continuity,
+                                                              selected_usability,
+                                                              curvature,
+                                                              reference_control,
+                                                              publish_time_ms);
 
     std::lock_guard<std::mutex> lock(state_.shared_mutex);
-    RememberCameraCapture(state_, capture);
+    (void)RememberCameraCapture(capture, params);
     state_.perception = perception;
-    ApplyPerceptionToSteeringState(analysis, state_);
     ++state_.perception_publish_count;
 }
 

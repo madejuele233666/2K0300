@@ -4,9 +4,8 @@
 #include <atomic>
 #include <cstdint>
 
-#include "legacy/attitude_logic.hpp"
 #include "legacy/motor_logic.hpp"
-#include "legacy/pid_control.hpp"
+#include "legacy/steering_yaw_controller.hpp"
 #include "legacy/wheel_pid.hpp"
 #include "legacy/wheel_target_mixer.hpp"
 #include "port/platform_adapter.hpp"
@@ -39,14 +38,14 @@ private:
     port::RuntimeParameters params_{};
     std::atomic<bool> running_{false};
 
-    legacy::LegacyPidControl pid_{};
+    legacy::SteeringYawController yaw_controller_{};
     legacy::LegacyMotorLogic motor_logic_{};
-    legacy::LegacyAttitudeLogic attitude_{};
     legacy::WheelTargetMixer wheel_target_mixer_{};
     legacy::WheelPidController left_wheel_pid_{};
     legacy::WheelPidController right_wheel_pid_{};
     ControlDebugReporter debug_reporter_{};
     MotionSupervisor motion_supervisor_{};
+    port::SteeringControlMemory steering_control_memory_{};
     bool have_gate_interval_ = false;
     bool last_gate_veto_ = true;
     ControlVetoReason last_gate_reason_ = ControlVetoReason::kPerceptionStale;

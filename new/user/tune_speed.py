@@ -33,6 +33,15 @@ def utc_timestamp() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def nested(frame: Dict[str, Any], *keys: str, default: Any = "") -> Any:
+    value: Any = frame
+    for key in keys:
+        if not isinstance(value, dict):
+            return default
+        value = value.get(key, default)
+    return value
+
+
 def pip_install_args_for_current_python() -> list[str]:
     in_virtualenv = (
         hasattr(sys, "real_prefix") or
@@ -114,22 +123,20 @@ class CsvRecorder:
         "right_measured_speed",
         "left_pwm_command",
         "right_pwm_command",
-        "raw_turn_output",
-        "applied_turn_output",
-        "active_module",
-        "scene_phase",
-        "reference_mode",
-        "near_lateral_error",
-        "far_heading_error",
-        "preview_curvature",
-        "lookahead_distance_m",
-        "lookahead_lateral_error",
-        "lookahead_heading_error",
-        "reference_curvature",
-        "curvature_command",
-        "yaw_rate_target",
-        "visible_range_m",
-        "track_confidence",
+        "actuator.raw_turn_output",
+        "actuator.applied_turn_output",
+        "reference.mode",
+        "reference.source",
+        "eligibility.usable",
+        "eligibility.leading_usable_samples",
+        "eligibility.reason",
+        "reference_control.ready",
+        "degraded.active",
+        "degraded.reason",
+        "curvature.lookahead_distance_m",
+        "curvature.curvature_command",
+        "curvature.computed",
+        "yaw_control.yaw_rate_target",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -385,22 +392,20 @@ class AssistantSession:
             "right_measured_speed": frame.get("right_measured_speed", ""),
             "left_pwm_command": frame.get("left_pwm_command", ""),
             "right_pwm_command": frame.get("right_pwm_command", ""),
-            "raw_turn_output": frame.get("raw_turn_output", ""),
-            "applied_turn_output": frame.get("applied_turn_output", ""),
-            "active_module": frame.get("active_module", ""),
-            "scene_phase": frame.get("scene_phase", ""),
-            "reference_mode": frame.get("reference_mode", ""),
-            "near_lateral_error": frame.get("near_lateral_error", ""),
-            "far_heading_error": frame.get("far_heading_error", ""),
-            "preview_curvature": frame.get("preview_curvature", ""),
-            "lookahead_distance_m": frame.get("lookahead_distance_m", ""),
-            "lookahead_lateral_error": frame.get("lookahead_lateral_error", ""),
-            "lookahead_heading_error": frame.get("lookahead_heading_error", ""),
-            "reference_curvature": frame.get("reference_curvature", ""),
-            "curvature_command": frame.get("curvature_command", ""),
-            "yaw_rate_target": frame.get("yaw_rate_target", ""),
-            "visible_range_m": frame.get("visible_range_m", ""),
-            "track_confidence": frame.get("track_confidence", ""),
+            "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
+            "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
+            "reference.mode": nested(frame, "reference", "mode"),
+            "reference.source": nested(frame, "reference", "source"),
+            "eligibility.usable": nested(frame, "eligibility", "usable"),
+            "eligibility.leading_usable_samples": nested(frame, "eligibility", "leading_usable_samples"),
+            "eligibility.reason": nested(frame, "eligibility", "reason"),
+            "reference_control.ready": nested(frame, "reference_control", "ready"),
+            "degraded.active": nested(frame, "degraded", "active"),
+            "degraded.reason": nested(frame, "degraded", "reason"),
+            "curvature.lookahead_distance_m": nested(frame, "curvature", "lookahead_distance_m"),
+            "curvature.curvature_command": nested(frame, "curvature", "curvature_command"),
+            "curvature.computed": nested(frame, "curvature", "computed"),
+            "yaw_control.yaw_rate_target": nested(frame, "yaw_control", "yaw_rate_target"),
         }
         if frame_type != "telemetry" or self._capture_telemetry:
             self._csv.write(row)
@@ -438,14 +443,14 @@ class AssistantSession:
                 self._csv.flush()
                 log(
                     "[telemetry] "
-                    f"phase={frame.get('motion_phase')} module={frame.get('active_module')} "
-                    f"scene={frame.get('scene_phase')} ref={frame.get('reference_mode')} "
-                    f"lookahead_m={frame.get('lookahead_distance_m')} "
-                    f"curvature_command={frame.get('curvature_command')} "
+                    f"phase={frame.get('motion_phase')} ref={nested(frame, 'reference', 'mode')} "
+                    f"lookahead_m={nested(frame, 'curvature', 'lookahead_distance_m')} "
+                    f"curvature_command={nested(frame, 'curvature', 'curvature_command')} "
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
-                    f"override={frame.get('target_speed_override_value')!r} raw_turn={frame.get('raw_turn_output')} "
-                    f"applied_turn={frame.get('applied_turn_output')}"
+                    f"override={frame.get('target_speed_override_value')!r} "
+                    f"raw_turn={nested(frame, 'actuator', 'raw_turn_output')} "
+                    f"applied_turn={nested(frame, 'actuator', 'applied_turn_output')}"
                 )
             return
 

@@ -8,8 +8,8 @@
 
 #include "platform/assistant_protocol.hpp"
 #include "platform/assistant_link.hpp"
-#include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
+#include "port/runtime_parameter_types.hpp"
 #include "runtime/runtime_state.hpp"
 
 namespace ls2k::runtime {
@@ -20,10 +20,6 @@ public:
     void Tick(RuntimeState& state, port::DiagnosticSink& diagnostics);
 
 private:
-    enum class PublishPolicy {
-        kControlOnly,
-        kControlAndMedia,
-    };
     enum class DeferredMotionIntentType {
         kNone,
         kStart,
@@ -37,11 +33,6 @@ private:
 
     void EnqueueFeedback(std::string line);
     void FlushFeedback(port::DiagnosticSink& diagnostics);
-    PublishPolicy DeterminePublishPolicy(const ControlDebugSnapshot& snapshot,
-                                        bool session_boundary_reset) const;
-    void UpdatePublishPolicy(PublishPolicy next_policy,
-                             port::DiagnosticSink& diagnostics,
-                             uint64_t now_ms);
     void ResetDeferredMotionIntent();
     void DeferMotionIntent(DeferredMotionIntentType type, std::uint64_t seq, uint64_t now_ms);
     void ApplyDeferredMotionIntentIfReady(RuntimeState& state,
@@ -64,20 +55,11 @@ private:
     bool configured_ = false;
     bool enabled_ = false;
     bool periodic_publish_armed_ = false;
-    uint64_t last_wave_publish_ms_ = 0;
     uint64_t last_telemetry_publish_ms_ = 0;
-    uint64_t last_image_publish_ms_ = 0;
-    uint64_t last_wave_cycle_ = 0;
     uint64_t last_telemetry_cycle_ = 0;
-    uint64_t last_image_frame_id_ = 0;
     int telemetry_interval_ms_ = 40;
-    int waveform_interval_ms_ = 40;
-    int image_interval_ms_ = 80;
-    port::RuntimeParameters params_{};
     std::deque<std::string> pending_feedback_{};
     platform::AssistantLink link_{};
-    PublishPolicy publish_policy_ = PublishPolicy::kControlAndMedia;
-    bool control_priority_connection_ = false;
     DeferredMotionIntent deferred_motion_intent_{};
 };
 

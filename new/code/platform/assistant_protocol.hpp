@@ -48,23 +48,67 @@ struct AssistantStatusView {
     double effective_speed_target = 0.0;
 };
 
+struct AssistantReferenceView {
+    std::string mode = "none";
+    std::string source = "none";
+};
+
+struct AssistantPerceptionHealthView {
+    bool projector_ok = false;
+    std::string reason = "projector_invalid";
+};
+
+struct AssistantEligibilityView {
+    bool usable = false;
+    std::uint64_t leading_usable_samples = 0;
+    double leading_min_forward_m = 0.0;
+    double leading_max_forward_m = 0.0;
+    double lookahead_distance_m = 0.0;
+    std::string reason = "no_reference_facts";
+};
+
+struct AssistantCurvatureView {
+    bool computed = false;
+    double lookahead_distance_m = 0.0;
+    double curvature_command = 0.0;
+    std::string reason = "reference_unusable";
+};
+
+struct AssistantReferenceControlView {
+    bool ready = false;
+    std::string reason = "reference_unusable";
+};
+
+struct AssistantSafetyGateView {
+    bool veto_active = true;
+    std::string reason = "perception_stale";
+};
+
+struct AssistantDegradedView {
+    bool active = false;
+    std::string reason = "none";
+};
+
+struct AssistantYawControlView {
+    double yaw_rate_target = 0.0;
+};
+
+struct AssistantActuatorView {
+    int raw_turn_output = 0;
+    int applied_turn_output = 0;
+};
+
 struct AssistantTelemetryView {
     std::string motion_phase = "DISARMED";
-    std::string active_module = "straight";
-    std::string scene_phase = "idle";
-    std::string scene_override_source = "none";
-    std::string reference_mode = "centerline";
-    double near_lateral_error = 0.0;
-    double far_heading_error = 0.0;
-    double preview_curvature = 0.0;
-    double lookahead_distance_m = 0.0;
-    double lookahead_lateral_error = 0.0;
-    double lookahead_heading_error = 0.0;
-    double reference_curvature = 0.0;
-    double curvature_command = 0.0;
-    double yaw_rate_target = 0.0;
-    double visible_range_m = 0.0;
-    double track_confidence = 0.0;
+    AssistantPerceptionHealthView perception_health{};
+    AssistantReferenceView reference{};
+    AssistantEligibilityView eligibility{};
+    AssistantCurvatureView curvature{};
+    AssistantReferenceControlView reference_control{};
+    AssistantSafetyGateView safety_gate{};
+    AssistantDegradedView degraded{};
+    AssistantYawControlView yaw_control{};
+    AssistantActuatorView actuator{};
     bool tuning_mode_enabled = false;
     bool turn_suppressed = false;
     bool target_speed_override_enabled = false;
@@ -76,29 +120,6 @@ struct AssistantTelemetryView {
     double right_measured_speed = 0.0;
     int left_pwm_command = 0;
     int right_pwm_command = 0;
-    int raw_turn_output = 0;
-    int applied_turn_output = 0;
-    std::string circle_direction = "none";
-    std::string circle_reference_mode = "none";
-    double circle_heading_delta_deg = 0.0;
-    double circle_yaw_accum_deg = 0.0;
-    std::string circle_path_phase = "none";
-    double reference_compatibility_error_m = 0.0;
-    std::string reference_source = "none";
-    bool circle_entry_signal_active = false;
-    bool inner_island_memory_active = false;
-    int inner_island_memory_age = 0;
-    double inner_island_memory_confidence = 0.0;
-    bool left_inner_island_present = false;
-    bool right_inner_island_present = false;
-    bool inner_edge_compatible = false;
-    bool inner_island_trace_present = false;
-    double inner_island_trace_start_forward_m = 0.0;
-    double inner_island_trace_end_forward_m = 0.0;
-    double inner_island_trace_confidence = 0.0;
-    int inner_island_trace_support_layers = 0;
-    int inner_island_trace_gap_layers = 0;
-    int inner_island_rejected_far_segments = 0;
 };
 
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed);

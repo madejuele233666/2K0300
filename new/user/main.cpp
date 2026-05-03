@@ -1,6 +1,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -8,8 +9,10 @@
 
 #include "platform/bootstrap.hpp"
 #include "port/diagnostics.hpp"
+#include "port/perf_counter.hpp"
 #include "runtime/assistant_service.hpp"
 #include "runtime/control_loop.hpp"
+#include "runtime/low_voltage_sampler.hpp"
 #include "runtime/perception_frontend.hpp"
 #include "runtime/shutdown.hpp"
 #include "runtime/startup.hpp"
@@ -208,9 +211,14 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
                           " pulse_ms=" + std::to_string(pulse_ms),
                       ls2k::port::NowMs()});
 
-    const ls2k::port::LowVoltageSample power_sample = platform.power->SampleLowVoltage(diagnostics);
-    const bool low_voltage_emergency =
-        runtime_state.low_voltage_emergency.load() || !power_sample.valid || power_sample.emergency;
+    ls2k::port::LowVoltageSample power_sample{};
+    {
+        std::lock_guard<std::mutex> lock(runtime_state.shared_mutex);
+        power_sample = runtime_state.low_voltage_last_sample;
+    }
+    const bool low_voltage_emergency = runtime_state.low_voltage_emergency.load() ||
+                                       !power_sample.valid ||
+                                       power_sample.emergency;
     if (low_voltage_emergency) {
         std::ostringstream blocked;
         blocked << "bench PWM pulse blocked by low-voltage fail-safe"
@@ -275,6 +283,7 @@ int main() {
 
     ls2k::port::StdoutDiagnostics diagnostics;
     diagnostics.Info("main.start", "starting ls2k migration runtime");
+    (void)ls2k::port::InitializePerfCounter();
 
     ls2k::port::HardwareProfile profile{};
     ls2k::port::RuntimeParameters params{};
@@ -331,8 +340,10 @@ int main() {
         return 1;
     }
 
-    ls2k::runtime::PerceptionFrontend perception(
-        *platform.camera, *platform.power, runtime_state, diagnostics);
+    ls2k::runtime::PerceptionFrontend perception(*platform.camera, runtime_state, diagnostics);
+    (void)perception.Configure(params);
+    ls2k::runtime::LowVoltageSampler low_voltage_sampler;
+    low_voltage_sampler.Configure(params);
     ls2k::runtime::AssistantService assistant_service;
     ls2k::runtime::SteeringMediaService steering_media_service;
     assistant_service.Start(params, diagnostics);
@@ -341,10 +352,12 @@ int main() {
     EmitHarnessContext(diagnostics, automation);
 
     const uint64_t loop_start_ms = ls2k::port::NowMs();
+    uint64_t last_perf_report_ms = loop_start_ms;
     int processed_frames = 0;
     bool auto_reset_sent = false;
 
     while (!runtime_state.stop_requested.load()) {
+        LS2K_PERF_SCOPE(ls2k::port::PerfStage::kMainLoop);
         if (g_start_signal != 0) {
             g_start_signal = 0;
             RequestStart(runtime_state, diagnostics, "SIGUSR2");
@@ -367,6 +380,10 @@ int main() {
         }
 
         const uint64_t now_ms = ls2k::port::NowMs();
+        if (now_ms >= last_perf_report_ms && now_ms - last_perf_report_ms >= 1000U) {
+            ls2k::port::EmitPerfWindowDiagnostics(diagnostics, now_ms);
+            last_perf_report_ms = now_ms;
+        }
         const uint64_t elapsed_ms = now_ms >= loop_start_ms ? now_ms - loop_start_ms : 0;
         if (automation.auto_start && !runtime_state.automation_start_fired &&
             elapsed_ms >= static_cast<uint64_t>(automation.auto_start_delay_ms)) {
@@ -374,6 +391,7 @@ int main() {
             RequestStart(runtime_state, diagnostics, "LS2K_AUTO_START");
         }
 
+        low_voltage_sampler.Tick(*platform.power, runtime_state, diagnostics, now_ms);
         perception.ProcessOneFrame(params);
         assistant_service.Tick(runtime_state, diagnostics);
         steering_media_service.Tick(runtime_state, diagnostics);

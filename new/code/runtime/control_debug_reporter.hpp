@@ -3,8 +3,8 @@
 
 #include <cstdint>
 
-#include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
+#include "port/runtime_parameter_types.hpp"
 #include "runtime/control_debug_snapshot.hpp"
 
 namespace ls2k::runtime {

@@ -45,7 +45,7 @@ bool AssistantLink::Initialize(const port::RuntimeParameters& params, port::Diag
     ready_ = false;
     disconnect_pending_ = false;
     last_state_code_ = static_cast<int>(true_ls2k0300::AssistantBridgeState::kUnconfigured);
-    max_target_speed_ = params.Speed_base;
+    max_target_speed_ = params.running_speed_target;
     inbound_buffer_.clear();
     if (!params.assistant_enabled) {
         return false;
@@ -118,47 +118,6 @@ bool AssistantLink::PublishJsonLine(const std::string& line,
         }
         diagnostics.Emit({port::DiagnosticLevel::kWarning,
                           "assistant.json.failed",
-                          detail,
-                          port::NowMs()});
-    }
-    return ok;
-}
-
-bool AssistantLink::PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics) {
-    if (!ready_) {
-        return false;
-    }
-    const bool was_ready = ready_;
-    std::string detail;
-    const bool ok = true_ls2k0300::SendAssistantOscilloscope(frame.values, frame.channel_count, detail);
-    if (!ok) {
-        ready_ = true_ls2k0300::AssistantBridgeReady();
-        if (was_ready && !ready_) {
-            disconnect_pending_ = true;
-        }
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "assistant.wave.failed",
-                          detail,
-                          port::NowMs()});
-    }
-    return ok;
-}
-
-bool AssistantLink::PublishImage(const port::CameraCapture& capture, port::DiagnosticSink& diagnostics) {
-    if (!ready_ || !capture.has_frame) {
-        return false;
-    }
-    const bool was_ready = ready_;
-    std::string detail;
-    const bool ok = true_ls2k0300::SendAssistantImage(
-        capture.frame.gray.data(), capture.frame.width, capture.frame.height, detail);
-    if (!ok) {
-        ready_ = true_ls2k0300::AssistantBridgeReady();
-        if (was_ready && !ready_) {
-            disconnect_pending_ = true;
-        }
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "assistant.image.failed",
                           detail,
                           port::NowMs()});
     }

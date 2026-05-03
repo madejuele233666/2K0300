@@ -1,7 +1,7 @@
 #ifndef LS2K_LEGACY_WHEEL_PID_HPP
 #define LS2K_LEGACY_WHEEL_PID_HPP
 
-#include "port/control_types.hpp"
+#include "port/runtime_parameter_types.hpp"
 
 namespace ls2k::legacy {
 
@@ -12,11 +12,11 @@ public:
     int Compute(double target_speed, double measured_speed, int pwm_limit);
 
 private:
-    double p_ = 240.0;
-    double i_ = 10.0;
-    double d_ = 20.0;
-    double integral_limit_ = 2200.0;
-    double measurement_filter_alpha_ = 0.3;
+    double p_ = 84.0;
+    double i_ = 2.4;
+    double d_ = 0.75;
+    double integral_limit_ = 5000.0;
+    double measurement_filter_alpha_ = 0.4;
     double last_error_ = 0.0;
     double integral_ = 0.0;
     double filtered_measured_speed_ = 0.0;

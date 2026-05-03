@@ -1,21 +1,15 @@
 #ifndef LS2K_PLATFORM_ASSISTANT_LINK_HPP
 #define LS2K_PLATFORM_ASSISTANT_LINK_HPP
 
-#include <array>
 #include <cstddef>
 #include <string>
 #include <vector>
 
 #include "platform/assistant_protocol.hpp"
-#include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
+#include "port/runtime_parameter_types.hpp"
 
 namespace ls2k::platform {
-
-struct AssistantWaveformFrame {
-    std::array<float, 8> values{};
-    std::size_t channel_count = 0;
-};
 
 struct AssistantPollResult {
     bool ready = false;
@@ -36,8 +30,6 @@ public:
     bool PublishJsonLine(const std::string& line,
                          AssistantJsonSendReliability reliability,
                          port::DiagnosticSink& diagnostics);
-    bool PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics);
-    bool PublishImage(const port::CameraCapture& capture, port::DiagnosticSink& diagnostics);
     bool Ready() const;
 
 private:

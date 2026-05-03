@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "platform/steering_media_protocol.hpp"
-#include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
+#include "port/runtime_parameter_types.hpp"
 
 namespace ls2k::platform {
 
@@ -34,7 +34,8 @@ struct SteeringMediaTransportPollResult {
 
 enum class SteeringMediaTransportSendResult {
     kSent = 0,
-    kBusy,
+    kAcceptedInFlight,
+    kBusyRejected,
     kDisconnected,
     kError,
 };

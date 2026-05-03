@@ -8,6 +8,8 @@
 #include <cmath>
 #include <string>
 
+#include "port/perf_counter.hpp"
+
 namespace ls2k::runtime {
 namespace {
 
@@ -23,9 +25,10 @@ ControlGateInputs BuildControlGateInputs(const port::PerceptionResult& perceptio
     inputs.perception_fresh = perception.fresh;
     inputs.perception_capture_time_ms = perception.capture_time_ms;
     inputs.perception_publish_time_ms = perception.publish_time_ms;
-    inputs.perception_emergency_veto = perception.emergency_veto;
+    inputs.perception_projector_ok = perception.perception_health.projector_ok;
+    inputs.reference_control_ready = perception.reference_control.ready;
     inputs.low_voltage_emergency = low_voltage_emergency;
-    inputs.imu_valid = imu.valid || perception.imu_grace_active;
+    inputs.imu_valid = imu.valid;
     inputs.encoder_valid = encoder.valid;
     inputs.now_ms = now_ms;
     inputs.perception_stale_ms = params.perception_stale_ms;
@@ -47,7 +50,7 @@ MotionSupervisorInputs BuildMotionSupervisorInputs(bool startup_complete,
     inputs.startup_complete = startup_complete;
     inputs.gate_clear = !gate.veto_active;
     inputs.now_ms = now_ms;
-    inputs.running_speed_target = ResolveRuntimeSpeedTarget(tuning_snapshot, params.Speed_base, now_ms);
+    inputs.running_speed_target = ResolveRuntimeSpeedTarget(tuning_snapshot, params.running_speed_target, now_ms);
     inputs.encoder_mean_abs = (std::abs(encoder.left) + std::abs(encoder.right)) / 2;
     inputs.motion_unveto_confirm_cycles = params.motion_unveto_confirm_cycles;
     inputs.motion_spinup_ms = params.motion_spinup_ms;
@@ -162,7 +165,7 @@ struct ControlDebugSnapshotInputs {
     const MotionDecision& final_motion;
     const RuntimeTuningSnapshot& tuning_snapshot;
     const legacy::WheelSpeedTargets& snapshot_wheel_targets;
-    const legacy::CameraTurnComputation& camera_turn;
+    const legacy::YawRateTargetComputation& yaw_rate_target_result;
     const legacy::GyroTurnComputation& gyro_turn;
     uint64_t now_ms = 0;
     uint64_t cycle_count = 0;
@@ -187,11 +190,7 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.target_speed_override_enabled = override_active;
     debug_snapshot.target_speed_override_value =
         override_active ? inputs.tuning_snapshot.target_speed_override_value : 0.0;
-    debug_snapshot.effective_speed_target =
-        inputs.final_motion.effective_speed_target *
-        std::clamp(perception.control_model.valid ? perception.control_model.speed_limit_scale : 1.0,
-                   0.0,
-                   1.0);
+    debug_snapshot.effective_speed_target = inputs.final_motion.effective_speed_target;
     debug_snapshot.left_speed_target = inputs.snapshot_wheel_targets.left;
     debug_snapshot.right_speed_target = inputs.snapshot_wheel_targets.right;
     debug_snapshot.left_measured_speed = static_cast<double>(inputs.encoder.left);
@@ -205,114 +204,49 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.steering.valid = inputs.steering_terms_valid;
     debug_snapshot.steering.frame_id = perception.frame_id;
     debug_snapshot.steering.capture_time_ms = perception.capture_time_ms;
-    debug_snapshot.steering.near_lateral_error = perception.near_lateral_error;
-    debug_snapshot.steering.far_heading_error = perception.far_heading_error;
-    debug_snapshot.steering.preview_curvature = perception.preview_curvature;
-    debug_snapshot.steering.raw_near_lateral_error = perception.control_model.raw_near_lateral_error;
-    debug_snapshot.steering.raw_far_heading_error = perception.control_model.raw_far_heading_error;
-    debug_snapshot.steering.raw_preview_curvature = perception.control_model.raw_preview_curvature;
-    debug_snapshot.steering.lookahead_distance_m = perception.control_model.lookahead_distance_m;
-    debug_snapshot.steering.lookahead_lateral_error = perception.control_model.lookahead_lateral_error;
-    debug_snapshot.steering.lookahead_heading_error = perception.control_model.lookahead_heading_error;
-    debug_snapshot.steering.reference_curvature = perception.control_model.reference_curvature;
-    debug_snapshot.steering.raw_lookahead_lateral_error =
-        perception.control_model.raw_lookahead_lateral_error;
-    debug_snapshot.steering.raw_lookahead_heading_error =
-        perception.control_model.raw_lookahead_heading_error;
-    debug_snapshot.steering.raw_reference_curvature = perception.control_model.raw_reference_curvature;
-    debug_snapshot.steering.trusted_error_active = perception.control_model.trusted_error_active;
-    debug_snapshot.steering.trusted_error_weight_near =
-        perception.control_model.trusted_error_weight_near;
-    debug_snapshot.steering.trusted_error_weight_far =
-        perception.control_model.trusted_error_weight_far;
-    debug_snapshot.steering.trusted_error_weight_lookahead =
-        perception.control_model.trusted_error_weight_lookahead;
-    debug_snapshot.steering.trusted_error_weight_curvature =
-        perception.control_model.trusted_error_weight_curvature;
-    debug_snapshot.steering.curvature_command = perception.control_model.curvature_command;
-    debug_snapshot.steering.yaw_rate_target = perception.control_model.yaw_rate_target;
-    debug_snapshot.steering.visible_range_m = perception.visible_range_m;
-    debug_snapshot.steering.scene_width_expand_ratio = perception.scene_observation.width_expand_ratio;
-    debug_snapshot.steering.scene_cross_bilateral_open_score_m =
-        perception.scene_observation.cross_bilateral_open_score_m;
-    debug_snapshot.steering.scene_cross_bilateral_open =
-        perception.scene_observation.cross_bilateral_open;
-    debug_snapshot.steering.scene_cross_candidate = perception.scene_observation.cross_candidate;
-    debug_snapshot.steering.scene_zebra_candidate = perception.scene_observation.zebra_candidate;
-    debug_snapshot.steering.scene_circle_left_candidate =
-        perception.scene_observation.circle_left_candidate;
-    debug_snapshot.steering.scene_circle_right_candidate =
-        perception.scene_observation.circle_right_candidate;
-    debug_snapshot.steering.scene_left_open_score = perception.scene_observation.left_open_score;
-    debug_snapshot.steering.scene_right_open_score = perception.scene_observation.right_open_score;
-    debug_snapshot.steering.scene_left_contract_score =
-        perception.scene_observation.left_contract_score;
-    debug_snapshot.steering.scene_right_contract_score =
-        perception.scene_observation.right_contract_score;
-    debug_snapshot.steering.scene_left_boundary_heading_abs_rad =
-        perception.scene_observation.left_boundary_heading_abs_rad;
-    debug_snapshot.steering.scene_right_boundary_heading_abs_rad =
-        perception.scene_observation.right_boundary_heading_abs_rad;
-    debug_snapshot.steering.scene_circle_left_opposite_straight =
-        perception.scene_observation.circle_left_opposite_straight;
-    debug_snapshot.steering.scene_circle_right_opposite_straight =
-        perception.scene_observation.circle_right_opposite_straight;
-    debug_snapshot.steering.lateral_error = perception.lateral_error;
-    debug_snapshot.steering.heading_error = perception.heading_error;
-    debug_snapshot.steering.curvature = perception.curvature;
-    debug_snapshot.steering.track_confidence = perception.track_confidence;
-    debug_snapshot.steering.track_valid = perception.track_valid;
-    debug_snapshot.steering.sign_flip_blocked = perception.sign_flip_blocked;
-    debug_snapshot.steering.imu_grace_active = perception.imu_grace_active;
-    debug_snapshot.steering.gyro_heading_delta_deg = perception.gyro_heading_delta_deg;
-    debug_snapshot.steering.gyro_consistency_score = perception.gyro_consistency_score;
     debug_snapshot.steering.threshold = perception.threshold;
-    debug_snapshot.steering.threshold_veto = perception.threshold_veto;
-    debug_snapshot.steering.active_module = perception.active_module;
-    debug_snapshot.steering.scene_phase = perception.scene_phase;
-    debug_snapshot.steering.scene_override_source = perception.scene_override_source;
-    debug_snapshot.steering.reference_mode = perception.reference_mode;
-    debug_snapshot.steering.roadblock_interface_state = perception.roadblock_interface_state;
-    debug_snapshot.steering.circle_direction = perception.circle_direction;
-    debug_snapshot.steering.circle_reference_mode = perception.circle_reference_mode;
-    debug_snapshot.steering.circle_heading_delta_deg = perception.circle_heading_delta_deg;
-    debug_snapshot.steering.circle_yaw_accum_deg = perception.circle_yaw_accum_deg;
-    debug_snapshot.steering.circle_path_phase = perception.circle_path_phase;
-    debug_snapshot.steering.reference_compatibility_error_m =
-        perception.reference_compatibility_error_m;
-    debug_snapshot.steering.reference_source = perception.reference_source;
-    debug_snapshot.steering.circle_entry_signal_active = perception.circle_entry_signal_active;
-    debug_snapshot.steering.inner_island_memory_active = perception.inner_island_memory_active;
-    debug_snapshot.steering.inner_island_memory_age = perception.inner_island_memory_age;
-    debug_snapshot.steering.inner_island_memory_confidence =
-        perception.inner_island_memory_confidence;
-    debug_snapshot.steering.left_inner_island_present = perception.left_inner_island_present;
-    debug_snapshot.steering.right_inner_island_present = perception.right_inner_island_present;
-    debug_snapshot.steering.inner_edge_compatible = perception.inner_edge_compatible;
-    debug_snapshot.steering.inner_island_trace_present = perception.inner_island_trace_present;
-    debug_snapshot.steering.inner_island_trace_start_forward_m =
-        perception.inner_island_trace_start_forward_m;
-    debug_snapshot.steering.inner_island_trace_end_forward_m =
-        perception.inner_island_trace_end_forward_m;
-    debug_snapshot.steering.inner_island_trace_confidence =
-        perception.inner_island_trace_confidence;
-    debug_snapshot.steering.inner_island_trace_support_layers =
-        perception.inner_island_trace_support_layers;
-    debug_snapshot.steering.inner_island_trace_gap_layers =
-        perception.inner_island_trace_gap_layers;
-    debug_snapshot.steering.inner_island_rejected_far_segments =
-        perception.inner_island_rejected_far_segments;
-    debug_snapshot.steering.roadblock_active = perception.roadblock_active;
-    debug_snapshot.steering.resolved_fuzzy_p = inputs.camera_turn.resolved_fuzzy_p;
-    debug_snapshot.steering.camera_p_term = inputs.camera_turn.camera_p_term;
-    debug_snapshot.steering.camera_d_term = inputs.camera_turn.camera_d_term;
-    debug_snapshot.steering.w_target = inputs.camera_turn.w_target;
-    debug_snapshot.steering.gyro_z = inputs.gyro_turn.gyro_z;
-    debug_snapshot.steering.gyro_error = inputs.gyro_turn.gyro_error;
-    debug_snapshot.steering.gyro_p_term = inputs.gyro_turn.gyro_p_term;
-    debug_snapshot.steering.gyro_d_term = inputs.gyro_turn.gyro_d_term;
-    debug_snapshot.steering.raw_turn_output = inputs.raw_turn_output;
-    debug_snapshot.steering.applied_turn_output = inputs.applied_turn_output;
+    debug_snapshot.steering.perception_health.projector_ok = perception.perception_health.projector_ok;
+    debug_snapshot.steering.perception_health.reason = perception.perception_health.reason;
+    debug_snapshot.steering.reference.mode = perception.reference_mode;
+    debug_snapshot.steering.reference.source = perception.reference_source;
+    debug_snapshot.steering.eligibility.usable = perception.reference_usability.usable;
+    debug_snapshot.steering.eligibility.leading_usable_samples =
+        perception.reference_usability.leading_usable_samples;
+    debug_snapshot.steering.eligibility.leading_min_forward_m =
+        perception.reference_usability.leading_min_forward_m;
+    debug_snapshot.steering.eligibility.leading_max_forward_m =
+        perception.reference_usability.leading_max_forward_m;
+    debug_snapshot.steering.eligibility.lookahead_distance_m =
+        perception.reference_usability.lookahead_distance_m;
+    debug_snapshot.steering.eligibility.reason = perception.reference_usability.reason;
+    debug_snapshot.steering.curvature.computed = perception.reference_curvature.computed;
+    debug_snapshot.steering.curvature.lookahead_distance_m =
+        perception.reference_curvature.lookahead_distance_m;
+    debug_snapshot.steering.curvature.curvature_command =
+        perception.reference_curvature.curvature_command;
+    debug_snapshot.steering.curvature.reason = perception.reference_curvature.reason;
+    debug_snapshot.steering.reference_control.ready = perception.reference_control.ready;
+    debug_snapshot.steering.reference_control.reason = perception.reference_control.reason;
+    debug_snapshot.steering.safety_gate.veto_active = inputs.gate.veto_active;
+    debug_snapshot.steering.safety_gate.reason = ToString(inputs.gate.veto_reason);
+    debug_snapshot.steering.degraded.active = perception.reference_control.degraded;
+    debug_snapshot.steering.degraded.reason =
+        perception.reference_control.degraded ? perception.reference_control.reason : "none";
+    debug_snapshot.steering.yaw_control.yaw_rate_target =
+        inputs.yaw_rate_target_result.yaw_rate_target;
+    debug_snapshot.steering.actuator.raw_turn_output = inputs.raw_turn_output;
+    debug_snapshot.steering.actuator.applied_turn_output = inputs.applied_turn_output;
+
+    debug_snapshot.steering_internal.valid = inputs.steering_terms_valid;
+    debug_snapshot.steering_internal.frame_id = perception.frame_id;
+    debug_snapshot.steering_internal.capture_time_ms = perception.capture_time_ms;
+    debug_snapshot.steering_internal.yaw_rate_gain = inputs.yaw_rate_target_result.yaw_rate_gain;
+    debug_snapshot.steering_internal.yaw_rate_candidate =
+        inputs.yaw_rate_target_result.yaw_rate_candidate;
+    debug_snapshot.steering_internal.gyro_z = inputs.gyro_turn.gyro_z;
+    debug_snapshot.steering_internal.gyro_error = inputs.gyro_turn.gyro_error;
+    debug_snapshot.steering_internal.gyro_p_term = inputs.gyro_turn.gyro_p_term;
+    debug_snapshot.steering_internal.gyro_d_term = inputs.gyro_turn.gyro_d_term;
     return debug_snapshot;
 }
 
@@ -385,17 +319,17 @@ port::ActuatorCommand ApplyProhibitReverse(const port::ActuatorCommand& previous
     return command;
 }
 
-// 全局重置所有控制器和运行时转向状态
-void ResetControllerState(legacy::LegacyPidControl& pid,
-                          legacy::LegacyAttitudeLogic& attitude,
+// 全局重置控制器，并请求 perception owner 在下一帧重置自己的记忆。
+void ResetControllerState(legacy::SteeringYawController& yaw_controller,
                           legacy::WheelPidController& left_wheel_pid,
                           legacy::WheelPidController& right_wheel_pid,
+                          port::SteeringControlMemory& control_memory,
                           RuntimeState& state) {
-    pid.Reset();
-    attitude.Reset();
+    yaw_controller.Reset();
     left_wheel_pid.Reset();
     right_wheel_pid.Reset();
-    ResetSteeringRuntimeState(state.steering_state);
+    ResetSteeringControlMemory(control_memory);
+    state.perception_memory_reset_generation.fetch_add(1);
 }
 
 // 发射运动阶段诊断 —— 阶段转换、启动阻塞、故障复位准备状态
@@ -598,9 +532,8 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     }
 
     params_ = params;
-    pid_.Configure(params_);
-    pid_.Reset();
-    attitude_.Reset();
+    yaw_controller_.Configure(params_);
+    yaw_controller_.Reset();
     wheel_target_mixer_.Configure(params_);
     left_wheel_pid_.Configure(params_.left_wheel_pid);
     right_wheel_pid_.Configure(params_.right_wheel_pid);
@@ -613,7 +546,8 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     state_.actuators_armed = false;
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
-    ResetSteeringRuntimeState(state_.steering_state);
+    ResetSteeringControlMemory(steering_control_memory_);
+    state_.perception_memory_reset_generation.fetch_add(1);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -705,7 +639,8 @@ void ControlLoop::ResetDisarmedControlState() {
     state_.last_command = {};
     state_.control_observation = {};
     state_.control_debug_snapshot = {};
-    ResetSteeringRuntimeState(state_.steering_state);
+    ResetSteeringControlMemory(steering_control_memory_);
+    state_.perception_memory_reset_generation.fetch_add(1);
     state_.motion_state.phase = MotionPhase::kDisarmed;
     state_.motion_state.phase_entry_ms = port::NowMs();
     state_.motion_state.fail_safe_latched_at_ms = 0;
@@ -724,7 +659,8 @@ void ControlLoop::LatchTimerFailureState(uint64_t now_ms) {
     state_.control_observation.hold_disarmed = true;
     state_.control_observation.motion_reset_ready = false;
     state_.control_debug_snapshot = {};
-    ResetSteeringRuntimeState(state_.steering_state);
+    ResetSteeringControlMemory(steering_control_memory_);
+    state_.perception_memory_reset_generation.fetch_add(1);
     state_.control_debug_snapshot.valid = true;
     state_.control_debug_snapshot.timestamp_ms = now_ms;
     state_.control_debug_snapshot.motion_phase = MotionPhase::kFailSafeLatched;
@@ -742,26 +678,23 @@ void ControlLoop::LatchTimerFailureState(uint64_t now_ms) {
 // 采样（低电压/IMU/编码器/感知）→ 门控评估 → 运动监督 →
 // 转向计算（PID + 陀螺仪）→ 执行器命令组合 → 诊断输出
 void ControlLoop::Tick() {
+    LS2K_PERF_SCOPE(port::PerfStage::kControlTick);
     if (!running_) {
         return;
     }
 
     // --- 第 1 阶段：传感器采样 ---
-    const port::LowVoltageSample low_voltage = platform_.power->SampleLowVoltage(diagnostics_);
-    const bool low_voltage_emergency = !low_voltage.valid || low_voltage.emergency;
-    const bool previous_low_voltage = state_.low_voltage_emergency.load();
-    if (low_voltage_emergency != previous_low_voltage) {
-        diagnostics_.Emit({low_voltage_emergency ? port::DiagnosticLevel::kFailSafe
-                                                 : port::DiagnosticLevel::kInfo,
-                           "power.low_voltage.transition",
-                           low_voltage_emergency ? "runtime low-voltage state transitioned to emergency"
-                                                 : "runtime low-voltage state cleared",
-                           port::NowMs()});
+    const bool low_voltage_emergency = state_.low_voltage_emergency.load();
+    port::ImuSample imu{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kControlImuRead);
+        imu = platform_.imu->Read(diagnostics_);
     }
-    state_.low_voltage_emergency.store(low_voltage_emergency);
-
-    const port::ImuSample imu = platform_.imu->Read(diagnostics_);
-    const port::EncoderDelta encoder = platform_.encoder->ReadDelta(diagnostics_);
+    port::EncoderDelta encoder{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kControlEncoderRead);
+        encoder = platform_.encoder->ReadDelta(diagnostics_);
+    }
 
     port::PerceptionResult perception{};
     port::ActuatorCommand previous_command{};
@@ -783,8 +716,12 @@ void ControlLoop::Tick() {
 
     const uint64_t now_ms = port::NowMs();
     // --- 第 2 阶段：门控评估 ---
-    const ControlGateDecision gate =
-        EvaluateControlGate(BuildControlGateInputs(perception, imu, encoder, low_voltage_emergency, now_ms, params_));
+    ControlGateDecision gate{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kControlDecision);
+        gate =
+            EvaluateControlGate(BuildControlGateInputs(perception, imu, encoder, low_voltage_emergency, now_ms, params_));
+    }
     EmitVetoDiagnostics(diagnostics_, gate, now_ms);
     EmitGateIntervalDiagnostics(diagnostics_,
                                 have_gate_interval_,
@@ -800,7 +737,11 @@ void ControlLoop::Tick() {
         state_.startup_complete, previous_motion_state, motion_intent, tuning_snapshot, gate, encoder, now_ms, params_));
 
     if (motion.reset_controllers) {
-        ResetControllerState(pid_, attitude_, left_wheel_pid_, right_wheel_pid_, state_);
+        ResetControllerState(yaw_controller_,
+                             left_wheel_pid_,
+                             right_wheel_pid_,
+                             steering_control_memory_,
+                             state_);
     }
 
     port::ActuatorCommand command{};
@@ -808,7 +749,7 @@ void ControlLoop::Tick() {
     bool hold_disarmed = false;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
-    legacy::CameraTurnComputation camera_turn{};
+    legacy::YawRateTargetComputation yaw_rate_target_result{};
     legacy::GyroTurnComputation gyro_turn{};
     bool steering_terms_valid = perception.published && perception.fresh &&
                                perception.frame_id != 0 && perception.capture_time_ms != 0;
@@ -823,22 +764,17 @@ void ControlLoop::Tick() {
         // to zero even if the legacy speed controller still carries residual integral state.
         command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
-        attitude_.UpdateFromImu(imu, static_cast<float>(params_.control_period_ms) / 1000.0F);
-        const double constrained_speed_target =
-            motion.effective_speed_target *
-            std::clamp(perception.control_model.valid ? perception.control_model.speed_limit_scale : 1.0,
-                       0.0,
-                       1.0);
-        camera_turn =
-            pid_.ComputeTurnTarget(perception, constrained_speed_target, state_.steering_state.controller_memory);
-        gyro_turn = pid_.ComputeGyroTurn(camera_turn.w_target,
-                                        imu.gyro_z,
-                                        imu.valid,
-                                        state_.steering_state.controller_memory);
+        const double constrained_speed_target = motion.effective_speed_target;
+        yaw_rate_target_result =
+            yaw_controller_.ComputeYawRateTarget(perception.reference_curvature.curvature_command,
+                                                 constrained_speed_target,
+                                                 steering_control_memory_.controller_memory);
+        gyro_turn = yaw_controller_.ComputeGyroTurn(yaw_rate_target_result.yaw_rate_target,
+                                                   imu.gyro_z,
+                                                   steering_control_memory_.controller_memory);
         raw_turn_output = ClampTurnOutput(
             gyro_turn.raw_turn_output,
-            motion.turn_limit_scale *
-                (perception.control_model.valid ? perception.control_model.turn_limit_scale : 1.0),
+            motion.turn_limit_scale,
             params_.raw_turn_output_limit);
         applied_turn_output = raw_turn_output;
         if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
@@ -879,7 +815,11 @@ void ControlLoop::Tick() {
         stop_completion_inputs.shaped_command_zero = current_effective_command_zero;
         final_motion = motion_supervisor_.Evaluate(stop_completion_inputs);
         if (final_motion.reset_controllers && !motion.reset_controllers) {
-            ResetControllerState(pid_, attitude_, left_wheel_pid_, right_wheel_pid_, state_);
+        ResetControllerState(yaw_controller_,
+                             left_wheel_pid_,
+                             right_wheel_pid_,
+                                 steering_control_memory_,
+                                 state_);
         }
     }
     EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
@@ -890,6 +830,7 @@ void ControlLoop::Tick() {
     if (diagnostics_only_motor || hold_disarmed) {
         platform_.motor->Disable(diagnostics_);
     } else {
+        LS2K_PERF_SCOPE(port::PerfStage::kControlApply);
         apply_ok = platform_.motor->Apply(command, diagnostics_);
     }
 
@@ -906,7 +847,7 @@ void ControlLoop::Tick() {
                                    final_motion,
                                    tuning_snapshot,
                                    snapshot_wheel_targets,
-                                   camera_turn,
+                                   yaw_rate_target_result,
                                    gyro_turn,
                                    now_ms,
                                    state_.control_cycle_count.load() + 1,
@@ -928,9 +869,6 @@ void ControlLoop::Tick() {
         state_.control_observation = observation;
         state_.control_debug_snapshot = debug_snapshot;
         state_.actuators_armed = observation.actuators_armed;
-        if (observation.apply_outcome == ControlApplyOutcome::kDriveCommandApplied) {
-            state_.steering_state.drive_cycle_count = std::min(state_.steering_state.drive_cycle_count + 1, 200);
-        }
     }
     ++state_.control_cycle_count;
 }

@@ -71,127 +71,61 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
     steering_message << "phase=" << ToString(snapshot.motion_phase)
                      << " frame_id=" << snapshot.steering.frame_id
                      << " capture_time_ms=" << snapshot.steering.capture_time_ms
-                     << " near_lateral_error=" << snapshot.steering.near_lateral_error
-                     << " far_heading_error=" << snapshot.steering.far_heading_error
-                     << " preview_curvature=" << snapshot.steering.preview_curvature
-                     << " raw_near_lateral_error=" << snapshot.steering.raw_near_lateral_error
-                     << " raw_far_heading_error=" << snapshot.steering.raw_far_heading_error
-                     << " raw_preview_curvature=" << snapshot.steering.raw_preview_curvature
-                     << " lookahead_distance_m=" << snapshot.steering.lookahead_distance_m
-                     << " lookahead_lateral_error=" << snapshot.steering.lookahead_lateral_error
-                     << " lookahead_heading_error=" << snapshot.steering.lookahead_heading_error
-                     << " reference_curvature=" << snapshot.steering.reference_curvature
-                     << " raw_lookahead_lateral_error="
-                     << snapshot.steering.raw_lookahead_lateral_error
-                     << " raw_lookahead_heading_error="
-                     << snapshot.steering.raw_lookahead_heading_error
-                     << " raw_reference_curvature=" << snapshot.steering.raw_reference_curvature
-                     << " trusted_error_active="
-                     << BoolToken(snapshot.steering.trusted_error_active)
-                     << " trusted_error_weight_near="
-                     << snapshot.steering.trusted_error_weight_near
-                     << " trusted_error_weight_far="
-                     << snapshot.steering.trusted_error_weight_far
-                     << " trusted_error_weight_lookahead="
-                     << snapshot.steering.trusted_error_weight_lookahead
-                     << " trusted_error_weight_curvature="
-                     << snapshot.steering.trusted_error_weight_curvature
-                     << " curvature_command=" << snapshot.steering.curvature_command
-                     << " yaw_rate_target=" << snapshot.steering.yaw_rate_target
-                     << " visible_range_m=" << snapshot.steering.visible_range_m
-                     << " scene_evidence.width_expand_ratio="
-                     << snapshot.steering.scene_width_expand_ratio
-                     << " scene_evidence.cross_bilateral_open_score_m="
-                     << snapshot.steering.scene_cross_bilateral_open_score_m
-                     << " scene_evidence.cross_bilateral_open="
-                     << BoolToken(snapshot.steering.scene_cross_bilateral_open)
-                     << " scene_evidence.cross_candidate="
-                     << BoolToken(snapshot.steering.scene_cross_candidate)
-                     << " scene_evidence.zebra_candidate="
-                     << BoolToken(snapshot.steering.scene_zebra_candidate)
-                     << " scene_evidence.circle_left_candidate="
-                     << BoolToken(snapshot.steering.scene_circle_left_candidate)
-                     << " scene_evidence.circle_right_candidate="
-                     << BoolToken(snapshot.steering.scene_circle_right_candidate)
-                     << " scene_evidence.left_open_score="
-                     << snapshot.steering.scene_left_open_score
-                     << " scene_evidence.right_open_score="
-                     << snapshot.steering.scene_right_open_score
-                     << " scene_evidence.left_contract_score="
-                     << snapshot.steering.scene_left_contract_score
-                     << " scene_evidence.right_contract_score="
-                     << snapshot.steering.scene_right_contract_score
-                     << " scene_evidence.left_boundary_heading_abs_rad="
-                     << snapshot.steering.scene_left_boundary_heading_abs_rad
-                     << " scene_evidence.right_boundary_heading_abs_rad="
-                     << snapshot.steering.scene_right_boundary_heading_abs_rad
-                     << " scene_evidence.circle_left_opposite_straight="
-                     << BoolToken(snapshot.steering.scene_circle_left_opposite_straight)
-                     << " scene_evidence.circle_right_opposite_straight="
-                     << BoolToken(snapshot.steering.scene_circle_right_opposite_straight)
-                     << " track_confidence=" << snapshot.steering.track_confidence
-                     << " track_valid=" << BoolToken(snapshot.steering.track_valid)
-                     << " sign_flip_blocked=" << BoolToken(snapshot.steering.sign_flip_blocked)
-                     << " imu_grace_active=" << BoolToken(snapshot.steering.imu_grace_active)
-                     << " gyro_heading_delta_deg=" << snapshot.steering.gyro_heading_delta_deg
-                     << " gyro_consistency_score=" << snapshot.steering.gyro_consistency_score
+                     << " perception_health.projector_ok="
+                     << BoolToken(snapshot.steering.perception_health.projector_ok)
+                     << " perception_health.reason=" << snapshot.steering.perception_health.reason
+                     << " reference.mode=" << snapshot.steering.reference.mode
+                     << " reference.source=" << snapshot.steering.reference.source
+                     << " eligibility.usable=" << BoolToken(snapshot.steering.eligibility.usable)
+                     << " eligibility.leading_usable_samples="
+                     << snapshot.steering.eligibility.leading_usable_samples
+                     << " eligibility.leading_min_forward_m="
+                     << snapshot.steering.eligibility.leading_min_forward_m
+                     << " eligibility.leading_max_forward_m="
+                     << snapshot.steering.eligibility.leading_max_forward_m
+                     << " eligibility.lookahead_distance_m="
+                     << snapshot.steering.eligibility.lookahead_distance_m
+                     << " eligibility.reason=" << snapshot.steering.eligibility.reason
+                     << " curvature.computed=" << BoolToken(snapshot.steering.curvature.computed)
+                     << " curvature.lookahead_distance_m="
+                     << snapshot.steering.curvature.lookahead_distance_m
+                     << " curvature.curvature_command=" << snapshot.steering.curvature.curvature_command
+                     << " curvature.reason=" << snapshot.steering.curvature.reason
+                     << " reference_control.ready="
+                     << BoolToken(snapshot.steering.reference_control.ready)
+                     << " reference_control.reason=" << snapshot.steering.reference_control.reason
+                     << " safety_gate.veto_active="
+                     << BoolToken(snapshot.steering.safety_gate.veto_active)
+                     << " safety_gate.reason=" << snapshot.steering.safety_gate.reason
+                     << " degraded.active=" << BoolToken(snapshot.steering.degraded.active)
+                     << " degraded.reason=" << snapshot.steering.degraded.reason
+                     << " yaw_control.yaw_rate_target="
+                     << snapshot.steering.yaw_control.yaw_rate_target
                      << " threshold=" << snapshot.steering.threshold
-                     << " threshold_veto=" << BoolToken(snapshot.steering.threshold_veto)
-                     << " active_module=" << snapshot.steering.active_module
-                     << " scene_phase=" << snapshot.steering.scene_phase
-                     << " reference_mode=" << snapshot.steering.reference_mode
-                     << " scene_override_source=" << snapshot.steering.scene_override_source
-                     << " circle_direction=" << snapshot.steering.circle_direction
-                     << " circle_reference_mode=" << snapshot.steering.circle_reference_mode
-                     << " circle_heading_delta_deg=" << snapshot.steering.circle_heading_delta_deg
-                     << " circle_yaw_accum_deg=" << snapshot.steering.circle_yaw_accum_deg
-                     << " circle_path_phase=" << snapshot.steering.circle_path_phase
-                     << " reference_compatibility_error_m="
-                     << snapshot.steering.reference_compatibility_error_m
-                     << " reference_source=" << snapshot.steering.reference_source
-                     << " circle_entry_signal_active="
-                     << BoolToken(snapshot.steering.circle_entry_signal_active)
-                     << " inner_island_memory_active="
-                     << BoolToken(snapshot.steering.inner_island_memory_active)
-                     << " inner_island_memory_age="
-                     << snapshot.steering.inner_island_memory_age
-                     << " inner_island_memory_confidence="
-                     << snapshot.steering.inner_island_memory_confidence
-                     << " left_inner_island_present="
-                     << BoolToken(snapshot.steering.left_inner_island_present)
-                     << " right_inner_island_present="
-                     << BoolToken(snapshot.steering.right_inner_island_present)
-                     << " inner_edge_compatible="
-                     << BoolToken(snapshot.steering.inner_edge_compatible)
-                     << " inner_island_trace_present="
-                     << BoolToken(snapshot.steering.inner_island_trace_present)
-                     << " inner_island_trace_start_forward_m="
-                     << snapshot.steering.inner_island_trace_start_forward_m
-                     << " inner_island_trace_end_forward_m="
-                     << snapshot.steering.inner_island_trace_end_forward_m
-                     << " inner_island_trace_confidence="
-                     << snapshot.steering.inner_island_trace_confidence
-                     << " inner_island_trace_support_layers="
-                     << snapshot.steering.inner_island_trace_support_layers
-                     << " inner_island_trace_gap_layers="
-                     << snapshot.steering.inner_island_trace_gap_layers
-                     << " inner_island_rejected_far_segments="
-                     << snapshot.steering.inner_island_rejected_far_segments
-                     << " roadblock_interface_state=" << snapshot.steering.roadblock_interface_state
-                     << " roadblock_active=" << BoolToken(snapshot.steering.roadblock_active)
-                     << " resolved_fuzzy_p=" << snapshot.steering.resolved_fuzzy_p
-                     << " camera_p_term=" << snapshot.steering.camera_p_term
-                     << " camera_d_term=" << snapshot.steering.camera_d_term
-                     << " w_target=" << snapshot.steering.w_target
-                     << " gyro_z=" << snapshot.steering.gyro_z
-                     << " gyro_error=" << snapshot.steering.gyro_error
-                     << " gyro_p_term=" << snapshot.steering.gyro_p_term
-                     << " gyro_d_term=" << snapshot.steering.gyro_d_term
-                     << " raw_turn_output=" << snapshot.steering.raw_turn_output
-                     << " applied_turn_output=" << snapshot.steering.applied_turn_output;
+                     << " actuator.raw_turn_output=" << snapshot.steering.actuator.raw_turn_output
+                     << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output;
     diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
                       "control.steering_snapshot",
                       steering_message.str(),
+                      now_ms});
+
+    if (!snapshot.steering_internal.valid) {
+        return;
+    }
+
+    std::ostringstream internal_message;
+    internal_message << "phase=" << ToString(snapshot.motion_phase)
+                     << " frame_id=" << snapshot.steering_internal.frame_id
+                     << " capture_time_ms=" << snapshot.steering_internal.capture_time_ms
+                     << " yaw_rate_gain=" << snapshot.steering_internal.yaw_rate_gain
+                     << " yaw_rate_candidate=" << snapshot.steering_internal.yaw_rate_candidate
+                     << " gyro_z=" << snapshot.steering_internal.gyro_z
+                     << " gyro_error=" << snapshot.steering_internal.gyro_error
+                     << " gyro_p_term=" << snapshot.steering_internal.gyro_p_term
+                     << " gyro_d_term=" << snapshot.steering_internal.gyro_d_term;
+    diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
+                      "control.steering_internal",
+                      internal_message.str(),
                       now_ms});
 }
 

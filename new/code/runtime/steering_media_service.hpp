@@ -4,8 +4,8 @@
 #include <cstdint>
 
 #include "platform/steering_media_link.hpp"
-#include "port/control_types.hpp"
 #include "port/diagnostics.hpp"
+#include "port/runtime_parameter_types.hpp"
 #include "runtime/runtime_state.hpp"
 
 namespace ls2k::runtime {
