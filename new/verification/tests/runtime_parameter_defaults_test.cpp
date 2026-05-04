@@ -69,6 +69,11 @@ void ExpectNear(double actual, double expected, const std::string& label) {
     }
 }
 
+void ExpectInRange(double value, double min_value, double max_value, const std::string& label) {
+    Expect(std::isfinite(value), label + " must be finite");
+    Expect(value >= min_value && value <= max_value, label + " outside documented range");
+}
+
 void ExpectInt(int actual, double expected, const std::string& label) {
     Expect(actual == static_cast<int>(expected), label + " mismatch");
 }
@@ -133,9 +138,10 @@ int main(int argc, char** argv) {
         ExpectInt(params.motion_fault_rearm_hold_ms,
                   NumberField(json, "motion_fault_rearm_hold_ms"),
                   "motion_fault_rearm_hold_ms");
-        ExpectNear(params.wheel_turn_target_scale,
-                   NumberField(json, "wheel_turn_target_scale"),
-                   "wheel_turn_target_scale");
+        Expect(json.find("\"turn_output_to_wheel_delta_gain\"") == std::string::npos,
+               "default_params.json must not retain turn_output_to_wheel_delta_gain alias");
+        Expect(json.find("\"wheel_turn_target_scale\"") == std::string::npos,
+               "default_params.json must not retain wheel_turn_target_scale alias");
         ExpectInt(params.control_snapshot_emit_interval_ms,
                   NumberField(json, "control_snapshot_emit_interval_ms"),
                   "control_snapshot_emit_interval_ms");
@@ -209,24 +215,34 @@ int main(int argc, char** argv) {
                   "BEV_CLASSIFICATION.HOLD_LAST_MAX_CYCLES");
 
         const std::string control_model = ObjectBody(json, "BEV_CONTROL_MODEL");
-        ExpectNear(params.bev_control_model.lookahead_visible_range_ratio,
-                   NumberField(control_model, "LOOKAHEAD_VISIBLE_RANGE_RATIO"),
-                   "BEV_CONTROL_MODEL.LOOKAHEAD_VISIBLE_RANGE_RATIO");
-        ExpectNear(params.bev_control_model.lookahead_min_m,
-                   NumberField(control_model, "LOOKAHEAD_MIN_M"),
-                   "BEV_CONTROL_MODEL.LOOKAHEAD_MIN_M");
-        ExpectNear(params.bev_control_model.lookahead_max_m,
-                   NumberField(control_model, "LOOKAHEAD_MAX_M"),
-                   "BEV_CONTROL_MODEL.LOOKAHEAD_MAX_M");
-        ExpectNear(params.bev_control_model.pure_pursuit_gain,
-                   NumberField(control_model, "PURE_PURSUIT_GAIN"),
-                   "BEV_CONTROL_MODEL.PURE_PURSUIT_GAIN");
-        ExpectNear(params.bev_control_model.curvature_command_limit,
-                   NumberField(control_model, "CURVATURE_COMMAND_LIMIT"),
-                   "BEV_CONTROL_MODEL.CURVATURE_COMMAND_LIMIT");
-        ExpectNear(params.bev_control_model.curvature_to_yaw_rate_target_gain,
-                   NumberField(control_model, "CURVATURE_TO_YAW_RATE_TARGET_GAIN"),
-                   "BEV_CONTROL_MODEL.CURVATURE_TO_YAW_RATE_TARGET_GAIN");
+        ExpectNear(params.bev_control_model.lateral_error_far_weight,
+                   NumberField(control_model, "LATERAL_ERROR_FAR_WEIGHT"),
+                   "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
+        ExpectInRange(params.bev_control_model.lateral_error_far_weight,
+                      0.0,
+                      1.0,
+                      "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
+        ExpectNear(params.bev_control_model.lateral_error_to_wheel_delta_gain,
+                   NumberField(control_model, "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN"),
+                   "BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN");
+        ExpectInRange(params.bev_control_model.lateral_error_to_wheel_delta_gain,
+                      0.0,
+                      1000.0,
+                      "BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN");
+        Expect(control_model.find("\"LOOKAHEAD_VISIBLE_RANGE_RATIO\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain LOOKAHEAD_VISIBLE_RANGE_RATIO");
+        Expect(control_model.find("\"LOOKAHEAD_MIN_M\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain LOOKAHEAD_MIN_M");
+        Expect(control_model.find("\"LOOKAHEAD_MAX_M\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain LOOKAHEAD_MAX_M");
+        Expect(control_model.find("\"PURE_PURSUIT_GAIN\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain PURE_PURSUIT_GAIN");
+        Expect(control_model.find("\"CURVATURE_COMMAND_LIMIT\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain CURVATURE_COMMAND_LIMIT");
+        Expect(control_model.find("\"CURVATURE_TO_TURN_OUTPUT_GAIN\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain CURVATURE_TO_TURN_OUTPUT_GAIN");
+        Expect(control_model.find("\"CURVATURE_TO_YAW_RATE_TARGET_GAIN\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain CURVATURE_TO_YAW_RATE_TARGET_GAIN alias");
         ExpectInt(params.bev_control_model.min_leading_reference_samples,
                   NumberField(control_model, "MIN_LEADING_REFERENCE_SAMPLES"),
                   "BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES");

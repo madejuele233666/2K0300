@@ -5,7 +5,7 @@
 #include <string>
 
 #include "port/reference_control_readiness_types.hpp"
-#include "port/reference_curvature_types.hpp"
+#include "port/reference_lateral_error_types.hpp"
 #include "port/reference_usability_types.hpp"
 
 namespace ls2k::port {
@@ -32,7 +32,7 @@ struct PerceptionResult {
 
     PerceptionHealth perception_health{};
     ReferenceUsability reference_usability{};
-    ReferenceCurvatureEstimate reference_curvature{};
+    ReferenceLateralErrorEstimate reference_lateral_error{};
     ReferenceControlReadiness reference_control{};
 };
 

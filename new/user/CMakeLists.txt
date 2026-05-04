@@ -85,7 +85,7 @@ set(NEW_SRCS
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_bev_simple_perception.cpp
     ../code/legacy/steering_reference_usability.cpp
-    ../code/legacy/steering_reference_curvature.cpp
+    ../code/legacy/steering_reference_lateral_error.cpp
     ../code/legacy/steering_reference_control_readiness.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/perception_frontend.cpp
@@ -172,17 +172,17 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
-        reference_usability_curvature_test
-        ../verification/tests/reference_usability_curvature_test.cpp
+        reference_usability_lateral_error_test
+        ../verification/tests/reference_usability_lateral_error_test.cpp
         ../code/legacy/steering_reference_usability.cpp
-        ../code/legacy/steering_reference_curvature.cpp
+        ../code/legacy/steering_reference_lateral_error.cpp
         ../code/legacy/steering_reference_control_readiness.cpp
         ../code/port/perf_counter.cpp
         ../code/legacy/steering_yaw_controller.cpp
         ../code/runtime/control_decision.cpp
     )
     target_link_libraries(
-        reference_usability_curvature_test
+        reference_usability_lateral_error_test
         pthread
         m
     )
@@ -246,7 +246,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_reference_usability.cpp
-        ../code/legacy/steering_reference_curvature.cpp
+        ../code/legacy/steering_reference_lateral_error.cpp
         ../code/legacy/steering_reference_control_readiness.cpp
         ../code/port/perf_counter.cpp
     )

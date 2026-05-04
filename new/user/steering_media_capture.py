@@ -58,13 +58,26 @@ class SteeringMediaListener:
             "metadata_path": str(output_dir / "frame_metadata.jsonl"),
             "frame_dir": str(output_dir / "frames"),
             "frame_count": 0,
+            "payload_bytes": 0,
             "receiver_error": None,
             "first_host_receive_monotonic_ms": None,
             "last_host_receive_monotonic_ms": None,
+            "first_frame_host_receive_monotonic_ms": None,
+            "last_frame_host_receive_monotonic_ms": None,
+            "min_frame_interval_ms": None,
+            "max_frame_interval_ms": None,
+            "mean_frame_interval_ms": None,
+            "effective_fps": 0.0,
+            "last_frame_id": None,
+            "last_capture_time_ms": None,
         }
         self._metadata_lock = threading.Lock()
         self._ever_connected = False
         self._accept_timeout_logged = False
+        self._last_frame_receive_monotonic_ms: Optional[int] = None
+        self._frame_interval_total_ms = 0
+        self._frame_interval_count = 0
+        self._last_progress_log_ms = 0
 
     def start(self) -> None:
         self._output_dir.mkdir(parents=True, exist_ok=True)
@@ -90,12 +103,25 @@ class SteeringMediaListener:
         if self._thread is not None:
             self._thread.join(timeout=2.0)
             self._thread = None
+        self._finalize_summary()
         summary_path = self._output_dir / "summary.json"
         with summary_path.open("w", encoding="utf-8") as file:
             json.dump(self._summary, file, indent=2, ensure_ascii=False)
             file.write("\n")
         self._summary["summary_path"] = str(summary_path)
         return dict(self._summary)
+
+    def _finalize_summary(self) -> None:
+        if self._frame_interval_count > 0:
+            self._summary["mean_frame_interval_ms"] = (
+                self._frame_interval_total_ms / self._frame_interval_count
+            )
+        first_frame_ms = self._summary.get("first_frame_host_receive_monotonic_ms")
+        last_frame_ms = self._summary.get("last_frame_host_receive_monotonic_ms")
+        frame_count = int(self._summary.get("frame_count", 0) or 0)
+        if isinstance(first_frame_ms, int) and isinstance(last_frame_ms, int) and frame_count > 1:
+            duration_s = max(0.001, (last_frame_ms - first_frame_ms) / 1000.0)
+            self._summary["effective_fps"] = (frame_count - 1) / duration_s
 
     def _run(self) -> None:
         assert self._server is not None
@@ -231,6 +257,7 @@ class SteeringMediaListener:
         frame_id = int(header.get("frame_id", 0))
         frame_path = self._output_dir / "frames" / f"frame-{frame_id:06d}.raw"
         frame_path.write_bytes(payload)
+        self._update_frame_stats(header, payload, receive_monotonic_ms)
         metadata = {
             "host_received_utc": utc_timestamp(),
             "host_received_monotonic_ms": receive_monotonic_ms,
@@ -242,16 +269,63 @@ class SteeringMediaListener:
             with metadata_path.open("a", encoding="utf-8") as file:
                 file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
         self._summary["frame_count"] = int(self._summary["frame_count"]) + 1
-        if self._summary["frame_count"] % 25 == 0:
+        if self._should_log_progress(receive_monotonic_ms):
             steering = header.get("steering_snapshot", {})
             self._log(
                 "[media] "
-                f"frame_id={frame_id} phase={header.get('motion_phase')} "
+                f"frames={self._summary['frame_count']} frame_id={frame_id} "
+                f"fps={self._summary.get('effective_fps', 0.0):.2f} "
+                f"phase={header.get('motion_phase')} "
                 f"ref={nested(steering, 'reference', 'mode')} "
                 f"source={nested(steering, 'reference', 'source')} "
-                f"lookahead_m={nested(steering, 'curvature', 'lookahead_distance_m')} "
-                f"curvature_command={nested(steering, 'curvature', 'curvature_command')} "
-                f"yaw_rate_target={nested(steering, 'yaw_control', 'yaw_rate_target')} "
+                f"usable={nested(steering, 'eligibility', 'usable')} "
+                f"gate={nested(steering, 'safety_gate', 'reason')} "
+                f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
+                f"turn_output_target={nested(steering, 'yaw_control', 'turn_output_target')} "
                 f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
                 f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
             )
+
+    def _update_frame_stats(
+        self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int
+    ) -> None:
+        first_frame_ms = self._summary["first_frame_host_receive_monotonic_ms"]
+        self._summary["first_frame_host_receive_monotonic_ms"] = (
+            receive_monotonic_ms if first_frame_ms is None else first_frame_ms
+        )
+        self._summary["last_frame_host_receive_monotonic_ms"] = receive_monotonic_ms
+        self._summary["payload_bytes"] = int(self._summary["payload_bytes"]) + len(payload)
+        self._summary["last_frame_id"] = header.get("frame_id")
+        self._summary["last_capture_time_ms"] = header.get("capture_time_ms")
+
+        if self._last_frame_receive_monotonic_ms is not None:
+            interval_ms = receive_monotonic_ms - self._last_frame_receive_monotonic_ms
+            self._frame_interval_total_ms += interval_ms
+            self._frame_interval_count += 1
+            min_interval = self._summary["min_frame_interval_ms"]
+            max_interval = self._summary["max_frame_interval_ms"]
+            self._summary["min_frame_interval_ms"] = (
+                interval_ms if min_interval is None else min(int(min_interval), interval_ms)
+            )
+            self._summary["max_frame_interval_ms"] = (
+                interval_ms if max_interval is None else max(int(max_interval), interval_ms)
+            )
+            self._summary["mean_frame_interval_ms"] = (
+                self._frame_interval_total_ms / self._frame_interval_count
+            )
+
+        self._last_frame_receive_monotonic_ms = receive_monotonic_ms
+        frame_count = int(self._summary.get("frame_count", 0) or 0) + 1
+        first = self._summary.get("first_frame_host_receive_monotonic_ms")
+        if isinstance(first, int) and frame_count > 1:
+            duration_s = max(0.001, (receive_monotonic_ms - first) / 1000.0)
+            self._summary["effective_fps"] = (frame_count - 1) / duration_s
+
+    def _should_log_progress(self, receive_monotonic_ms: int) -> bool:
+        if self._last_progress_log_ms == 0:
+            self._last_progress_log_ms = receive_monotonic_ms
+            return True
+        if receive_monotonic_ms - self._last_progress_log_ms < 1000:
+            return False
+        self._last_progress_log_ms = receive_monotonic_ms
+        return True

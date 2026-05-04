@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Local assistant peer simulator for host-workflow verification."""
+"""Local assistant peer simulator for host-workflow verification.
+
+All telemetry emitted by this script is synthetic and is not board/runtime
+authority.
+"""
 
 from __future__ import annotations
 
@@ -58,25 +62,27 @@ def emit_telemetry(connection: socket.socket,
                 "right_measured_speed": right_measured,
                 "left_pwm_command": int(left_target * 100),
                 "right_pwm_command": int(right_target * 100),
+                "telemetry_source": "simulate_assistant_peer_synthetic",
                 "reference": {"mode": "interval_center", "source": "simple_interval_center"},
                 "eligibility": {
                     "usable": True,
                     "leading_usable_samples": 4,
                     "leading_min_forward_m": 0.061,
                     "leading_max_forward_m": 0.249,
-                    "lookahead_distance_m": 0.2,
                     "reason": "ok",
                 },
-                "curvature": {
+                "lateral_error": {
                     "computed": True,
-                    "lookahead_distance_m": 0.2,
-                    "curvature_command": raw_turn / 12000.0,
+                    "synthetic": True,
+                    "weighted_lateral_error_m": raw_turn / 12000.0,
+                    "weighted_sample_count": 4,
+                    "weight_sum": 3.75,
                     "reason": "ok",
                 },
                 "reference_control": {"ready": True, "reason": "ok"},
                 "safety_gate": {"veto_active": False, "reason": "none"},
                 "degraded": {"active": False, "reason": "none"},
-                "yaw_control": {"yaw_rate_target": 0.0},
+                "yaw_control": {"turn_output_target": 0.0},
                 "actuator": {
                     "raw_turn_output": raw_turn,
                     "applied_turn_output": applied_turn,

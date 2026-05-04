@@ -9,8 +9,8 @@
 namespace ls2k::port {
 
 struct BEVControllerMemory {
-    float yaw_rate_target_last = 0.0F;
-    float curvature_command_last = 0.0F;
+    float turn_output_target_last = 0.0F;
+    float weighted_lateral_error_last = 0.0F;
     float gyro_error_last = 0.0F;
     float gyro_i_accumulator = 0.0F;
     float last_gain_scale = 1.0F;

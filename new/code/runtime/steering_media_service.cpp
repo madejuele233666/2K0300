@@ -4,6 +4,7 @@
 // 通过 SteeringMediaLink 发送到外部媒体接收端（如远程监控）。
 
 #include <algorithm>
+#include <sstream>
 #include <utility>
 
 #include "port/perf_counter.hpp"
@@ -41,6 +42,8 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
     publish_interval_ms_ = std::max(0, params.steering_media_publish_interval_ms);
     last_image_publish_ms_ = 0;
     last_image_frame_id_ = 0;
+    last_summary_ms_ = port::NowMs();
+    ResetWindowStats();
     params_ = params;
     if (!enabled_) {
         diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -50,6 +53,47 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
         return;
     }
     (void)link_.Initialize(params, diagnostics);
+}
+
+void SteeringMediaService::ResetWindowStats() {
+    window_stats_ = WindowStats{};
+}
+
+void SteeringMediaService::MaybeEmitWindowSummary(std::uint64_t now_ms,
+                                                  port::DiagnosticSink& diagnostics) {
+    if (last_summary_ms_ == 0) {
+        last_summary_ms_ = now_ms;
+        return;
+    }
+    if (now_ms < last_summary_ms_ || now_ms - last_summary_ms_ < 1000U) {
+        return;
+    }
+
+    std::ostringstream message;
+    message << "ticks=" << window_stats_.ticks
+            << " ready=" << (link_.Ready() ? "true" : "false")
+            << " config_sent=" << (config_sent_ ? "true" : "false")
+            << " publish_interval_ms=" << publish_interval_ms_
+            << " last_frame_id=" << last_image_frame_id_
+            << " not_ready=" << window_stats_.not_ready
+            << " pending_flush_sent=" << window_stats_.pending_flush_sent
+            << " config_attempts=" << window_stats_.config_attempts
+            << " config_sent_count=" << window_stats_.config_sent
+            << " config_wait=" << window_stats_.config_wait
+            << " skip_no_capture=" << window_stats_.skip_no_capture
+            << " skip_zero_frame=" << window_stats_.skip_zero_frame
+            << " skip_disarmed=" << window_stats_.skip_disarmed
+            << " skip_duplicate=" << window_stats_.skip_duplicate
+            << " skip_interval=" << window_stats_.skip_interval
+            << " image_sent=" << window_stats_.image_sent
+            << " image_queued=" << window_stats_.image_queued
+            << " image_unavailable=" << window_stats_.image_unavailable;
+    diagnostics.Emit({port::DiagnosticLevel::kInfo,
+                      "steering_media.summary",
+                      message.str(),
+                      now_ms});
+    last_summary_ms_ = now_ms;
+    ResetWindowStats();
 }
 
 // 构建参数配置快照 —— 导出当前运行时参数到媒体协议格式
@@ -85,19 +129,19 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.eligibility.leading_usable_samples = snapshot.eligibility.leading_usable_samples;
     view.eligibility.leading_min_forward_m = snapshot.eligibility.leading_min_forward_m;
     view.eligibility.leading_max_forward_m = snapshot.eligibility.leading_max_forward_m;
-    view.eligibility.lookahead_distance_m = snapshot.eligibility.lookahead_distance_m;
     view.eligibility.reason = snapshot.eligibility.reason;
-    view.curvature.computed = snapshot.curvature.computed;
-    view.curvature.lookahead_distance_m = snapshot.curvature.lookahead_distance_m;
-    view.curvature.curvature_command = snapshot.curvature.curvature_command;
-    view.curvature.reason = snapshot.curvature.reason;
+    view.lateral_error.computed = snapshot.lateral_error.computed;
+    view.lateral_error.weighted_lateral_error_m = snapshot.lateral_error.weighted_lateral_error_m;
+    view.lateral_error.weighted_sample_count = snapshot.lateral_error.weighted_sample_count;
+    view.lateral_error.weight_sum = snapshot.lateral_error.weight_sum;
+    view.lateral_error.reason = snapshot.lateral_error.reason;
     view.reference_control.ready = snapshot.reference_control.ready;
     view.reference_control.reason = snapshot.reference_control.reason;
     view.safety_gate.veto_active = snapshot.safety_gate.veto_active;
     view.safety_gate.reason = snapshot.safety_gate.reason;
     view.degraded.active = snapshot.degraded.active;
     view.degraded.reason = snapshot.degraded.reason;
-    view.yaw_control.yaw_rate_target = snapshot.yaw_control.yaw_rate_target;
+    view.yaw_control.turn_output_target = snapshot.yaw_control.turn_output_target;
     view.actuator.raw_turn_output = snapshot.actuator.raw_turn_output;
     view.actuator.applied_turn_output = snapshot.actuator.applied_turn_output;
     return view;
@@ -111,20 +155,31 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     }
 
     const std::uint64_t now_ms = port::NowMs();
+    window_stats_.ticks += 1U;
     const platform::SteeringMediaLinkPollResult poll_result = link_.Poll(diagnostics);
     if (poll_result.became_ready || poll_result.connection_lost) {
         config_sent_ = false;
         last_image_frame_id_ = 0;
     }
 
-    (void)link_.FlushPendingImage(diagnostics);
+    if (link_.FlushPendingImage(diagnostics)) {
+        window_stats_.pending_flush_sent += 1U;
+    }
     if (!poll_result.ready) {
+        window_stats_.not_ready += 1U;
+        MaybeEmitWindowSummary(now_ms, diagnostics);
         return;
     }
 
     if (!config_sent_) {
+        window_stats_.config_attempts += 1U;
         config_sent_ = link_.PublishConfigSnapshot(BuildConfigSnapshot(now_ms), diagnostics);
+        if (config_sent_) {
+            window_stats_.config_sent += 1U;
+        }
         if (!config_sent_) {
+            window_stats_.config_wait += 1U;
+            MaybeEmitWindowSummary(now_ms, diagnostics);
             return;
         }
     }
@@ -140,14 +195,30 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     }
 
     if (!have_capture || snapshot.steering.frame_id == 0) {
+        if (!have_capture) {
+            window_stats_.skip_no_capture += 1U;
+        }
+        if (snapshot.steering.frame_id == 0) {
+            window_stats_.skip_zero_frame += 1U;
+        }
+        MaybeEmitWindowSummary(now_ms, diagnostics);
+        return;
+    }
+    if (snapshot.motion_phase == MotionPhase::kDisarmed) {
+        window_stats_.skip_disarmed += 1U;
+        MaybeEmitWindowSummary(now_ms, diagnostics);
         return;
     }
     if (capture_handle.frame_id == last_image_frame_id_) {
+        window_stats_.skip_duplicate += 1U;
+        MaybeEmitWindowSummary(now_ms, diagnostics);
         return;
     }
     if (publish_interval_ms_ > 0 && last_image_publish_ms_ != 0 &&
         now_ms >= last_image_publish_ms_ &&
         now_ms - last_image_publish_ms_ < static_cast<std::uint64_t>(publish_interval_ms_)) {
+        window_stats_.skip_interval += 1U;
+        MaybeEmitWindowSummary(now_ms, diagnostics);
         return;
     }
 
@@ -168,6 +239,14 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
         last_image_publish_ms_ = now_ms;
         last_image_frame_id_ = capture_handle.frame_id;
     }
+    if (result == platform::SteeringMediaPublishResult::kSent) {
+        window_stats_.image_sent += 1U;
+    } else if (result == platform::SteeringMediaPublishResult::kQueued) {
+        window_stats_.image_queued += 1U;
+    } else {
+        window_stats_.image_unavailable += 1U;
+    }
+    MaybeEmitWindowSummary(now_ms, diagnostics);
 }
 
 }  // namespace ls2k::runtime

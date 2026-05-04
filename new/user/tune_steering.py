@@ -81,15 +81,27 @@ class StreamingCsvRecorder:
         "right_pwm_command",
         "actuator.raw_turn_output",
         "actuator.applied_turn_output",
-        "reference_control.ready",
-        "degraded.active",
-        "degraded.reason",
-        "curvature.lookahead_distance_m",
-        "curvature.curvature_command",
-        "curvature.computed",
-        "yaw_control.yaw_rate_target",
+        "perception_health.projector_ok",
+        "perception_health.reason",
         "reference.mode",
         "reference.source",
+        "eligibility.usable",
+        "eligibility.leading_usable_samples",
+        "eligibility.leading_min_forward_m",
+        "eligibility.leading_max_forward_m",
+        "eligibility.reason",
+        "reference_control.ready",
+        "reference_control.reason",
+        "safety_gate.veto_active",
+        "safety_gate.reason",
+        "degraded.active",
+        "degraded.reason",
+        "lateral_error.weighted_lateral_error_m",
+        "lateral_error.weighted_sample_count",
+        "lateral_error.weight_sum",
+        "lateral_error.computed",
+        "lateral_error.reason",
+        "yaw_control.turn_output_target",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -324,15 +336,29 @@ class PassiveAssistantListener:
             "right_pwm_command": frame.get("right_pwm_command", ""),
             "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
             "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
-            "reference_control.ready": nested(frame, "reference_control", "ready"),
-            "degraded.active": nested(frame, "degraded", "active"),
-            "degraded.reason": nested(frame, "degraded", "reason"),
-            "curvature.lookahead_distance_m": nested(frame, "curvature", "lookahead_distance_m"),
-            "curvature.curvature_command": nested(frame, "curvature", "curvature_command"),
-            "curvature.computed": nested(frame, "curvature", "computed"),
-            "yaw_control.yaw_rate_target": nested(frame, "yaw_control", "yaw_rate_target"),
+            "perception_health.projector_ok": nested(frame, "perception_health", "projector_ok"),
+            "perception_health.reason": nested(frame, "perception_health", "reason"),
             "reference.mode": nested(frame, "reference", "mode"),
             "reference.source": nested(frame, "reference", "source"),
+            "eligibility.usable": nested(frame, "eligibility", "usable"),
+            "eligibility.leading_usable_samples": nested(frame, "eligibility", "leading_usable_samples"),
+            "eligibility.leading_min_forward_m": nested(frame, "eligibility", "leading_min_forward_m"),
+            "eligibility.leading_max_forward_m": nested(frame, "eligibility", "leading_max_forward_m"),
+            "eligibility.reason": nested(frame, "eligibility", "reason"),
+            "reference_control.ready": nested(frame, "reference_control", "ready"),
+            "reference_control.reason": nested(frame, "reference_control", "reason"),
+            "safety_gate.veto_active": nested(frame, "safety_gate", "veto_active"),
+            "safety_gate.reason": nested(frame, "safety_gate", "reason"),
+            "degraded.active": nested(frame, "degraded", "active"),
+            "degraded.reason": nested(frame, "degraded", "reason"),
+            "lateral_error.weighted_lateral_error_m": nested(
+                frame, "lateral_error", "weighted_lateral_error_m"
+            ),
+            "lateral_error.weighted_sample_count": nested(frame, "lateral_error", "weighted_sample_count"),
+            "lateral_error.weight_sum": nested(frame, "lateral_error", "weight_sum"),
+            "lateral_error.computed": nested(frame, "lateral_error", "computed"),
+            "lateral_error.reason": nested(frame, "lateral_error", "reason"),
+            "yaw_control.turn_output_target": nested(frame, "yaw_control", "turn_output_target"),
         }
         self._csv.write(row)
         if frame_type != "telemetry":
@@ -363,9 +389,10 @@ class PassiveAssistantListener:
                     "[control] "
                     f"telemetry phase={frame.get('motion_phase')} "
                     f"ref={nested(frame, 'reference', 'mode')} source={nested(frame, 'reference', 'source')} "
-                    f"lookahead_m={nested(frame, 'curvature', 'lookahead_distance_m')} "
-                    f"curvature_command={nested(frame, 'curvature', 'curvature_command')} "
-                    f"yaw_rate_target={nested(frame, 'yaw_control', 'yaw_rate_target')} "
+                    f"usable={nested(frame, 'eligibility', 'usable')} "
+                    f"gate={nested(frame, 'safety_gate', 'reason')} "
+                    f"lateral_error={nested(frame, 'lateral_error', 'weighted_lateral_error_m')} "
+                    f"turn_output_target={nested(frame, 'yaw_control', 'turn_output_target')} "
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"raw_turn={nested(frame, 'actuator', 'raw_turn_output')} "
@@ -487,13 +514,14 @@ class BoardSteeringLogCapture:
                     self._summary["snapshot_count"] = int(self._summary["snapshot_count"]) + 1
                     if int(self._summary["snapshot_count"]) % 25 == 0:
                         self._log(
-	                            "[board] "
-	                            f"snapshot frame_id={snapshot.get('frame_id')} "
-	                            f"ref={nested(snapshot, 'reference', 'mode')} "
+                            "[board] "
+                            f"snapshot frame_id={snapshot.get('frame_id')} "
+                            f"ref={nested(snapshot, 'reference', 'mode')} "
                             f"source={nested(snapshot, 'reference', 'source')} "
-                            f"lookahead_m={nested(snapshot, 'curvature', 'lookahead_distance_m')} "
-                            f"curvature_command={nested(snapshot, 'curvature', 'curvature_command')} "
-                            f"yaw_rate_target={nested(snapshot, 'yaw_control', 'yaw_rate_target')} "
+                            f"usable={nested(snapshot, 'eligibility', 'usable')} "
+                            f"gate={nested(snapshot, 'safety_gate', 'reason')} "
+                            f"lateral_error={nested(snapshot, 'lateral_error', 'weighted_lateral_error_m')} "
+                            f"turn_output_target={nested(snapshot, 'yaw_control', 'turn_output_target')} "
                             f"raw_turn={nested(snapshot, 'actuator', 'raw_turn_output')} "
                             f"applied_turn={nested(snapshot, 'actuator', 'applied_turn_output')}"
                         )
@@ -626,14 +654,29 @@ def build_steering_media_alignment(output_dir: Path, board_summary: Dict[str, An
                 "board_capture_time_ms": matched.get("capture_time_ms"),
                 "match_mode": match_mode,
                 "capture_time_delta_ms": capture_delta_ms,
+                "perception_health.projector_ok": nested(matched, "perception_health", "projector_ok"),
+                "perception_health.reason": nested(matched, "perception_health", "reason"),
                 "reference.mode": nested(matched, "reference", "mode"),
                 "reference.source": nested(matched, "reference", "source"),
+                "eligibility.usable": nested(matched, "eligibility", "usable"),
+                "eligibility.leading_usable_samples": nested(matched, "eligibility", "leading_usable_samples"),
+                "eligibility.leading_min_forward_m": nested(matched, "eligibility", "leading_min_forward_m"),
+                "eligibility.leading_max_forward_m": nested(matched, "eligibility", "leading_max_forward_m"),
+                "eligibility.reason": nested(matched, "eligibility", "reason"),
                 "reference_control.ready": nested(matched, "reference_control", "ready"),
+                "reference_control.reason": nested(matched, "reference_control", "reason"),
+                "safety_gate.veto_active": nested(matched, "safety_gate", "veto_active"),
+                "safety_gate.reason": nested(matched, "safety_gate", "reason"),
                 "degraded.active": nested(matched, "degraded", "active"),
                 "degraded.reason": nested(matched, "degraded", "reason"),
-                "curvature.lookahead_distance_m": nested(matched, "curvature", "lookahead_distance_m"),
-                "curvature.curvature_command": nested(matched, "curvature", "curvature_command"),
-                "yaw_control.yaw_rate_target": nested(matched, "yaw_control", "yaw_rate_target"),
+                "lateral_error.computed": nested(matched, "lateral_error", "computed"),
+                "lateral_error.reason": nested(matched, "lateral_error", "reason"),
+                "lateral_error.weighted_lateral_error_m": nested(
+                    matched, "lateral_error", "weighted_lateral_error_m"
+                ),
+                "lateral_error.weighted_sample_count": nested(matched, "lateral_error", "weighted_sample_count"),
+                "lateral_error.weight_sum": nested(matched, "lateral_error", "weight_sum"),
+                "yaw_control.turn_output_target": nested(matched, "yaw_control", "turn_output_target"),
                 "actuator.raw_turn_output": nested(matched, "actuator", "raw_turn_output"),
                 "actuator.applied_turn_output": nested(matched, "actuator", "applied_turn_output"),
             }

@@ -83,14 +83,14 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << snapshot.steering.eligibility.leading_min_forward_m
                      << " eligibility.leading_max_forward_m="
                      << snapshot.steering.eligibility.leading_max_forward_m
-                     << " eligibility.lookahead_distance_m="
-                     << snapshot.steering.eligibility.lookahead_distance_m
                      << " eligibility.reason=" << snapshot.steering.eligibility.reason
-                     << " curvature.computed=" << BoolToken(snapshot.steering.curvature.computed)
-                     << " curvature.lookahead_distance_m="
-                     << snapshot.steering.curvature.lookahead_distance_m
-                     << " curvature.curvature_command=" << snapshot.steering.curvature.curvature_command
-                     << " curvature.reason=" << snapshot.steering.curvature.reason
+                     << " lateral_error.computed=" << BoolToken(snapshot.steering.lateral_error.computed)
+                     << " lateral_error.weighted_lateral_error_m="
+                     << snapshot.steering.lateral_error.weighted_lateral_error_m
+                     << " lateral_error.weighted_sample_count="
+                     << snapshot.steering.lateral_error.weighted_sample_count
+                     << " lateral_error.weight_sum=" << snapshot.steering.lateral_error.weight_sum
+                     << " lateral_error.reason=" << snapshot.steering.lateral_error.reason
                      << " reference_control.ready="
                      << BoolToken(snapshot.steering.reference_control.ready)
                      << " reference_control.reason=" << snapshot.steering.reference_control.reason
@@ -99,8 +99,8 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " safety_gate.reason=" << snapshot.steering.safety_gate.reason
                      << " degraded.active=" << BoolToken(snapshot.steering.degraded.active)
                      << " degraded.reason=" << snapshot.steering.degraded.reason
-                     << " yaw_control.yaw_rate_target="
-                     << snapshot.steering.yaw_control.yaw_rate_target
+                     << " yaw_control.turn_output_target="
+                     << snapshot.steering.yaw_control.turn_output_target
                      << " threshold=" << snapshot.steering.threshold
                      << " actuator.raw_turn_output=" << snapshot.steering.actuator.raw_turn_output
                      << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output;
@@ -114,11 +114,13 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
     }
 
     std::ostringstream internal_message;
-    internal_message << "phase=" << ToString(snapshot.motion_phase)
+    internal_message << "authority=internal_debug_only"
+                     << " phase=" << ToString(snapshot.motion_phase)
                      << " frame_id=" << snapshot.steering_internal.frame_id
                      << " capture_time_ms=" << snapshot.steering_internal.capture_time_ms
-                     << " yaw_rate_gain=" << snapshot.steering_internal.yaw_rate_gain
-                     << " yaw_rate_candidate=" << snapshot.steering_internal.yaw_rate_candidate
+                     << " lateral_error_gain=" << snapshot.steering_internal.lateral_error_gain
+                     << " speed_scale=" << snapshot.steering_internal.speed_scale
+                     << " turn_output_candidate=" << snapshot.steering_internal.turn_output_candidate
                      << " gyro_z=" << snapshot.steering_internal.gyro_z
                      << " gyro_error=" << snapshot.steering_internal.gyro_error
                      << " gyro_p_term=" << snapshot.steering_internal.gyro_p_term

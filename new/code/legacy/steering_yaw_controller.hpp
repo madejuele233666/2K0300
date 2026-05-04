@@ -6,10 +6,11 @@
 
 namespace ls2k::legacy {
 
-struct YawRateTargetComputation {
-    float yaw_rate_gain = 0.0F;
-    float yaw_rate_candidate = 0.0F;
-    float yaw_rate_target = 0.0F;
+struct TurnOutputTargetComputation {
+    float lateral_error_gain = 0.0F;
+    float speed_scale = 0.0F;
+    float turn_output_candidate = 0.0F;
+    float turn_output_target = 0.0F;
 };
 
 struct GyroTurnComputation {
@@ -25,10 +26,10 @@ public:
     void Configure(const port::RuntimeParameters& params);
     void Reset();
 
-    YawRateTargetComputation ComputeYawRateTarget(float curvature_command,
-                                                  double effective_speed_target,
-                                                  port::BEVControllerMemory& memory);
-    GyroTurnComputation ComputeGyroTurn(float yaw_rate_target,
+    TurnOutputTargetComputation ComputeTurnOutputTarget(float weighted_lateral_error_m,
+                                                        double effective_speed_target,
+                                                        port::BEVControllerMemory& memory);
+    GyroTurnComputation ComputeGyroTurn(float turn_output_target,
                                         float gyro_z,
                                         port::BEVControllerMemory& memory);
 
@@ -37,7 +38,7 @@ private:
     float gyro_i_ = 0.0F;
     float gyro_d_ = 0.0F;
     float running_speed_target_ = 100.0F;
-    float curvature_to_yaw_rate_target_gain_ = 12000.0F;
+    float lateral_error_to_wheel_delta_gain_ = 180.0F;
 };
 
 }  // namespace ls2k::legacy

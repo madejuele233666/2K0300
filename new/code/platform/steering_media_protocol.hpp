@@ -47,14 +47,14 @@ struct SteeringMediaEligibilityView {
     std::uint64_t leading_usable_samples = 0;
     double leading_min_forward_m = 0.0;
     double leading_max_forward_m = 0.0;
-    double lookahead_distance_m = 0.0;
     std::string reason = "no_reference_facts";
 };
 
-struct SteeringMediaCurvatureView {
+struct SteeringMediaLateralErrorView {
     bool computed = false;
-    double lookahead_distance_m = 0.0;
-    double curvature_command = 0.0;
+    double weighted_lateral_error_m = 0.0;
+    std::uint64_t weighted_sample_count = 0;
+    double weight_sum = 0.0;
     std::string reason = "reference_unusable";
 };
 
@@ -74,7 +74,7 @@ struct SteeringMediaDegradedView {
 };
 
 struct SteeringMediaYawControlView {
-    double yaw_rate_target = 0.0;
+    double turn_output_target = 0.0;
 };
 
 struct SteeringMediaActuatorView {
@@ -87,7 +87,7 @@ struct SteeringMediaSnapshotView {
     SteeringMediaPerceptionHealthView perception_health{};
     SteeringMediaReferenceView reference{};
     SteeringMediaEligibilityView eligibility{};
-    SteeringMediaCurvatureView curvature{};
+    SteeringMediaLateralErrorView lateral_error{};
     SteeringMediaReferenceControlView reference_control{};
     SteeringMediaSafetyGateView safety_gate{};
     SteeringMediaDegradedView degraded{};

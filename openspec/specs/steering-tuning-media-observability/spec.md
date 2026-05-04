@@ -4,27 +4,22 @@
 Define the project-owned steering-tuning observability surface, including the runtime steering snapshot, the separate steering media sidecar, and the preserved evidence bundle used for review.
 
 ## Requirements
-### Requirement: Runtime Steering Snapshot Exposes The Steering Chain
-The runtime SHALL expose a project-owned steering tuning snapshot that can explain one control cycle's perception result, camera outer-loop contribution, gyro inner-loop contribution, and final turn application. At minimum, the accepted snapshot SHALL include:
+### Requirement: Runtime Steering Snapshot Exposes The Current Reference/Control Chain
+The runtime SHALL expose a project-owned steering tuning snapshot that can explain one control cycle from perception health through selected reference facts, reference usability, curvature, reference-control readiness, safety gate, yaw target, and final actuator output. At minimum, the accepted snapshot SHALL include these grouped objects:
 
-- `lateral_error`
-- `highest_line`
-- `threshold`
-- `threshold_veto`
-- `resolved_fuzzy_p`
-- `camera_p_term`
-- `camera_d_term`
-- `w_target`
-- `gyro_z`
-- `gyro_error`
-- `gyro_p_term`
-- `gyro_d_term`
-- `raw_turn_output`
-- `applied_turn_output`
+- `perception_health`
+- `reference`
+- `eligibility`
+- `curvature`
+- `reference_control`
+- `safety_gate`
+- `degraded`
+- `yaw_control`
+- `actuator`
 
 #### Scenario: Steering-chain evidence is visible without assistant rendering
 - **WHEN** reviewers inspect project-owned diagnostics, structured export, or harness-visible evidence during a steering tuning run
-- **THEN** they SHALL be able to identify the accepted steering snapshot fields above from a project-owned non-assistant evidence surface such as `control.steering_snapshot`
+- **THEN** they SHALL be able to identify the accepted steering snapshot groups above from a project-owned non-assistant evidence surface such as `control.steering_snapshot`
 - **AND** assistant connectivity or vendor-only image rendering SHALL NOT be required to explain the steering chain
 
 ### Requirement: Steering Media Uses A Separate Read-Only Board-To-Host Session
@@ -60,23 +55,20 @@ The accepted first-release `config_snapshot` SHALL be sent once after the media 
 - `media_publish_interval_ms`
 - `param_snapshot`
 
-The accepted first-release `config_snapshot.param_snapshot` object SHALL use these exact keys:
+The accepted `config_snapshot.param_snapshot` object SHALL include the current runtime parameter groups needed to interpret steering media evidence:
 
-- `pid_turn_camera_d`
-- `pid_turn_gyro_camera_d`
-- `p_mode`
-- `speed_base`
+- `running_speed_target`
+- `yaw_rate_pid`
 - `control_period_ms`
+- `low_voltage_sample_interval_ms`
+- `low_voltage_raw_threshold`
+- `raw_turn_output_limit`
+- `BEV_PROJECTOR`
+- `BEV_GEOMETRY`
+- `BEV_CLASSIFICATION`
+- `BEV_CONTROL_MODEL`
 
-Those keys SHALL carry the startup-loaded values corresponding to the read-only whitelist:
-
-- `PID_TURN_CAMERA.D`
-- `PID_TURN_GYRO_CAMERA.D`
-- `P_Mode`
-- `Speed_base`
-- `control_period_ms`
-
-The accepted first-release `image_frame` SHALL carry a raw `160x128` grayscale payload. Its JSON header SHALL use this exact top-level object shape:
+The accepted `image_frame` SHALL carry a raw grayscale payload whose dimensions are declared in the same frame header. Its JSON header SHALL use this top-level object shape:
 
 - `type="image_frame"`
 - `frame_id`
@@ -84,35 +76,20 @@ The accepted first-release `image_frame` SHALL carry a raw `160x128` grayscale p
 - `publish_time_ms`
 - `motion_phase`
 - `pixel_format="gray8"`
-- `width=160`
-- `height=128`
+- `width`
+- `height`
 - `steering_snapshot`
 
-The accepted first-release `image_frame.steering_snapshot` object SHALL use these exact keys:
-
-- `lateral_error`
-- `highest_line`
-- `threshold`
-- `threshold_veto`
-- `resolved_fuzzy_p`
-- `camera_p_term`
-- `camera_d_term`
-- `w_target`
-- `gyro_z`
-- `gyro_error`
-- `gyro_p_term`
-- `gyro_d_term`
-- `raw_turn_output`
-- `applied_turn_output`
+The accepted `image_frame.steering_snapshot` object SHALL use the same grouped steering snapshot contract as `control.steering_snapshot`.
 
 #### Scenario: First-release host tooling can parse the media contract deterministically
 - **WHEN** implementers build the board-side steering media publisher and the accepted host recorder
 - **THEN** they SHALL be able to interoperate through one documented length-prefixed binary envelope with `config_snapshot` and `image_frame`
 - **AND** the host SHALL NOT need a second undocumented framing model to recover image payload size or steering metadata
 
-#### Scenario: Image payload size is fixed for the first release
+#### Scenario: Image payload size is declared and validated
 - **WHEN** the runtime publishes an accepted `image_frame`
-- **THEN** the payload SHALL contain exactly `160 * 128` grayscale bytes
+- **THEN** the payload SHALL contain exactly `width * height` grayscale bytes
 - **AND** the header and envelope lengths SHALL be sufficient for the host to validate that payload deterministically
 
 ### Requirement: Steering Media Publication Is Non-Blocking And Drop-Tolerant

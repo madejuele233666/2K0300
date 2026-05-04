@@ -125,18 +125,27 @@ class CsvRecorder:
         "right_pwm_command",
         "actuator.raw_turn_output",
         "actuator.applied_turn_output",
+        "perception_health.projector_ok",
+        "perception_health.reason",
         "reference.mode",
         "reference.source",
         "eligibility.usable",
         "eligibility.leading_usable_samples",
+        "eligibility.leading_min_forward_m",
+        "eligibility.leading_max_forward_m",
         "eligibility.reason",
         "reference_control.ready",
+        "reference_control.reason",
+        "safety_gate.veto_active",
+        "safety_gate.reason",
         "degraded.active",
         "degraded.reason",
-        "curvature.lookahead_distance_m",
-        "curvature.curvature_command",
-        "curvature.computed",
-        "yaw_control.yaw_rate_target",
+        "lateral_error.weighted_lateral_error_m",
+        "lateral_error.weighted_sample_count",
+        "lateral_error.weight_sum",
+        "lateral_error.computed",
+        "lateral_error.reason",
+        "yaw_control.turn_output_target",
     ]
 
     def __init__(self, path: Path) -> None:
@@ -394,18 +403,29 @@ class AssistantSession:
             "right_pwm_command": frame.get("right_pwm_command", ""),
             "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
             "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
+            "perception_health.projector_ok": nested(frame, "perception_health", "projector_ok"),
+            "perception_health.reason": nested(frame, "perception_health", "reason"),
             "reference.mode": nested(frame, "reference", "mode"),
             "reference.source": nested(frame, "reference", "source"),
             "eligibility.usable": nested(frame, "eligibility", "usable"),
             "eligibility.leading_usable_samples": nested(frame, "eligibility", "leading_usable_samples"),
+            "eligibility.leading_min_forward_m": nested(frame, "eligibility", "leading_min_forward_m"),
+            "eligibility.leading_max_forward_m": nested(frame, "eligibility", "leading_max_forward_m"),
             "eligibility.reason": nested(frame, "eligibility", "reason"),
             "reference_control.ready": nested(frame, "reference_control", "ready"),
+            "reference_control.reason": nested(frame, "reference_control", "reason"),
+            "safety_gate.veto_active": nested(frame, "safety_gate", "veto_active"),
+            "safety_gate.reason": nested(frame, "safety_gate", "reason"),
             "degraded.active": nested(frame, "degraded", "active"),
             "degraded.reason": nested(frame, "degraded", "reason"),
-            "curvature.lookahead_distance_m": nested(frame, "curvature", "lookahead_distance_m"),
-            "curvature.curvature_command": nested(frame, "curvature", "curvature_command"),
-            "curvature.computed": nested(frame, "curvature", "computed"),
-            "yaw_control.yaw_rate_target": nested(frame, "yaw_control", "yaw_rate_target"),
+            "lateral_error.weighted_lateral_error_m": nested(
+                frame, "lateral_error", "weighted_lateral_error_m"
+            ),
+            "lateral_error.weighted_sample_count": nested(frame, "lateral_error", "weighted_sample_count"),
+            "lateral_error.weight_sum": nested(frame, "lateral_error", "weight_sum"),
+            "lateral_error.computed": nested(frame, "lateral_error", "computed"),
+            "lateral_error.reason": nested(frame, "lateral_error", "reason"),
+            "yaw_control.turn_output_target": nested(frame, "yaw_control", "turn_output_target"),
         }
         if frame_type != "telemetry" or self._capture_telemetry:
             self._csv.write(row)
@@ -444,8 +464,9 @@ class AssistantSession:
                 log(
                     "[telemetry] "
                     f"phase={frame.get('motion_phase')} ref={nested(frame, 'reference', 'mode')} "
-                    f"lookahead_m={nested(frame, 'curvature', 'lookahead_distance_m')} "
-                    f"curvature_command={nested(frame, 'curvature', 'curvature_command')} "
+                    f"usable={nested(frame, 'eligibility', 'usable')} "
+                    f"gate={nested(frame, 'safety_gate', 'reason')} "
+                    f"lateral_error={nested(frame, 'lateral_error', 'weighted_lateral_error_m')} "
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"override={frame.get('target_speed_override_value')!r} "
@@ -624,16 +645,10 @@ def load_control_alignment_rows(csv_path: Path) -> list[Dict[str, Any]]:
             elapsed_ms_raw = row.get("elapsed_ms", "")
             if not host_monotonic_ms_raw or not elapsed_ms_raw:
                 continue
-            rows.append(
-                {
-                    "host_monotonic_ms": int(host_monotonic_ms_raw),
-                    "elapsed_ms": int(elapsed_ms_raw),
-                    "frame_type": row.get("frame_type", ""),
-                    "event": row.get("event", ""),
-                    "cmd": row.get("cmd", ""),
-                    "outcome": row.get("outcome", ""),
-                }
-            )
+            normalized = {name: row.get(name, "") for name in CsvRecorder.FIELDNAMES}
+            normalized["host_monotonic_ms"] = int(host_monotonic_ms_raw)
+            normalized["elapsed_ms"] = int(elapsed_ms_raw)
+            rows.append(normalized)
     return rows
 
 
@@ -711,6 +726,31 @@ def build_alignment_bundle(
                 "nearest_control_cmd": nearest["cmd"],
                 "nearest_control_outcome": nearest["outcome"],
                 "delta_to_nearest_control_ms": delta_ms,
+                "perception_health.projector_ok": nearest.get("perception_health.projector_ok", ""),
+                "perception_health.reason": nearest.get("perception_health.reason", ""),
+                "reference.mode": nearest.get("reference.mode", ""),
+                "reference.source": nearest.get("reference.source", ""),
+                "eligibility.usable": nearest.get("eligibility.usable", ""),
+                "eligibility.leading_usable_samples": nearest.get("eligibility.leading_usable_samples", ""),
+                "eligibility.leading_min_forward_m": nearest.get("eligibility.leading_min_forward_m", ""),
+                "eligibility.leading_max_forward_m": nearest.get("eligibility.leading_max_forward_m", ""),
+                "eligibility.reason": nearest.get("eligibility.reason", ""),
+                "reference_control.ready": nearest.get("reference_control.ready", ""),
+                "reference_control.reason": nearest.get("reference_control.reason", ""),
+                "safety_gate.veto_active": nearest.get("safety_gate.veto_active", ""),
+                "safety_gate.reason": nearest.get("safety_gate.reason", ""),
+                "degraded.active": nearest.get("degraded.active", ""),
+                "degraded.reason": nearest.get("degraded.reason", ""),
+                "lateral_error.computed": nearest.get("lateral_error.computed", ""),
+                "lateral_error.reason": nearest.get("lateral_error.reason", ""),
+                "lateral_error.weighted_lateral_error_m": nearest.get(
+                    "lateral_error.weighted_lateral_error_m", ""
+                ),
+                "lateral_error.weighted_sample_count": nearest.get("lateral_error.weighted_sample_count", ""),
+                "lateral_error.weight_sum": nearest.get("lateral_error.weight_sum", ""),
+                "yaw_control.turn_output_target": nearest.get("yaw_control.turn_output_target", ""),
+                "actuator.raw_turn_output": nearest.get("actuator.raw_turn_output", ""),
+                "actuator.applied_turn_output": nearest.get("actuator.applied_turn_output", ""),
             }
             alignment_records.append(record)
             file.write(json.dumps(record, ensure_ascii=False) + "\n")

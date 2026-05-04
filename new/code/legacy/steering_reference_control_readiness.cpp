@@ -4,15 +4,15 @@ namespace ls2k::legacy {
 
 port::ReferenceControlReadiness EvaluateReferenceControlReadiness(
     const port::ReferenceUsability& selected_usability,
-    const port::ReferenceCurvatureEstimate& curvature,
+    const port::ReferenceLateralErrorEstimate& lateral_error,
     bool hold_selected) {
     port::ReferenceControlReadiness readiness{};
     if (!selected_usability.usable) {
         readiness.reason = "reference_unusable";
         return readiness;
     }
-    if (!curvature.computed) {
-        readiness.reason = "curvature_uncomputed";
+    if (!lateral_error.computed) {
+        readiness.reason = "lateral_error_uncomputed";
         return readiness;
     }
 

@@ -63,14 +63,14 @@ struct AssistantEligibilityView {
     std::uint64_t leading_usable_samples = 0;
     double leading_min_forward_m = 0.0;
     double leading_max_forward_m = 0.0;
-    double lookahead_distance_m = 0.0;
     std::string reason = "no_reference_facts";
 };
 
-struct AssistantCurvatureView {
+struct AssistantLateralErrorView {
     bool computed = false;
-    double lookahead_distance_m = 0.0;
-    double curvature_command = 0.0;
+    double weighted_lateral_error_m = 0.0;
+    std::uint64_t weighted_sample_count = 0;
+    double weight_sum = 0.0;
     std::string reason = "reference_unusable";
 };
 
@@ -90,7 +90,7 @@ struct AssistantDegradedView {
 };
 
 struct AssistantYawControlView {
-    double yaw_rate_target = 0.0;
+    double turn_output_target = 0.0;
 };
 
 struct AssistantActuatorView {
@@ -103,7 +103,7 @@ struct AssistantTelemetryView {
     AssistantPerceptionHealthView perception_health{};
     AssistantReferenceView reference{};
     AssistantEligibilityView eligibility{};
-    AssistantCurvatureView curvature{};
+    AssistantLateralErrorView lateral_error{};
     AssistantReferenceControlView reference_control{};
     AssistantSafetyGateView safety_gate{};
     AssistantDegradedView degraded{};

@@ -71,16 +71,12 @@ struct BEVGeometryParameters {
 struct BEVClassificationParameters {
     float white_confidence_min = 0.55F;
     float unknown_confidence_min = 0.25F;
-    int hold_last_max_cycles = 8;
+    int hold_last_max_cycles = 32;
 };
 
 struct BEVControlModelParameters {
-    double lookahead_visible_range_ratio = 0.35;
-    double lookahead_min_m = 0.160043;
-    double lookahead_max_m = 0.259087;
-    double pure_pursuit_gain = 1.0;
-    double curvature_command_limit = 0.12;
-    double curvature_to_yaw_rate_target_gain = 12000.0;
+    double lateral_error_far_weight = 0.0;
+    double lateral_error_to_wheel_delta_gain = 600.0;
     int min_leading_reference_samples = 3;
 };
 

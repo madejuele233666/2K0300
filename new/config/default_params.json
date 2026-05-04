@@ -1,7 +1,7 @@
 {
-  "RUNNING_SPEED_TARGET": 100.0,
+  "RUNNING_SPEED_TARGET": 300.0,
   "YAW_RATE_PID": {
-    "P": 0.5,
+    "P": 12.0,
     "I": 0.0,
     "D": 0.0
   },
@@ -24,18 +24,17 @@
   "control_period_ms": 5,
   "perception_stale_ms": 120,
   "pwm_limit": 5000,
-  "raw_turn_output_limit": 8000,
+  "raw_turn_output_limit": 3000,
   "pwm_floor": 0,
-  "prohibit_reverse_pwm": 1,
-  "prohibit_reverse_pwm_step_limit": 280,
+  "prohibit_reverse_pwm": 0,
+  "prohibit_reverse_pwm_step_limit": 1000,
   "motion_unveto_confirm_cycles": 3,
-  "motion_spinup_ms": 600,
-  "motion_turn_limit_spinup": 0.35,
-  "motion_pwm_step_limit": 280,
+  "motion_spinup_ms": 800,
+  "motion_turn_limit_spinup": 1.0,
+  "motion_pwm_step_limit": 3000,
   "motion_stop_ms": 300,
   "motion_stop_encoder_threshold": 8,
   "motion_fault_rearm_hold_ms": 600,
-  "wheel_turn_target_scale": 100.0,
   "control_snapshot_emit_interval_ms": 100,
   "assistant_enabled": 1,
   "steering_media_enabled": 1,
@@ -68,9 +67,9 @@
     "TARGET_LATERAL_3": 0.21
   },
   "BEV_GEOMETRY": {
-    "FORWARD_SAMPLE_0": 0.061000,
+    "FORWARD_SAMPLE_0": 0.061,
     "FORWARD_SAMPLE_1": 0.123565,
-    "FORWARD_SAMPLE_2": 0.186130,
+    "FORWARD_SAMPLE_2": 0.18613,
     "FORWARD_SAMPLE_3": 0.248696,
     "FORWARD_SAMPLE_4": 0.311261,
     "FORWARD_SAMPLE_5": 0.373826,
@@ -89,24 +88,20 @@
     "FORWARD_SAMPLE_18": 1.187174,
     "FORWARD_SAMPLE_19": 1.249739,
     "FORWARD_SAMPLE_20": 1.312304,
-    "FORWARD_SAMPLE_21": 1.374870,
+    "FORWARD_SAMPLE_21": 1.37487,
     "FORWARD_SAMPLE_22": 1.437435,
-    "FORWARD_SAMPLE_23": 1.500000,
+    "FORWARD_SAMPLE_23": 1.5,
     "SEARCH_LATERAL_LIMIT_M": 0.65,
     "LATERAL_STEP_M": 0.02
   },
   "BEV_CLASSIFICATION": {
     "WHITE_CONFIDENCE_MIN": 0.55,
     "UNKNOWN_CONFIDENCE_MIN": 0.25,
-    "HOLD_LAST_MAX_CYCLES": 8
+    "HOLD_LAST_MAX_CYCLES": 32
   },
   "BEV_CONTROL_MODEL": {
-    "LOOKAHEAD_VISIBLE_RANGE_RATIO": 0.35,
-    "LOOKAHEAD_MIN_M": 0.160043,
-    "LOOKAHEAD_MAX_M": 0.259087,
-    "PURE_PURSUIT_GAIN": 1.0,
-    "CURVATURE_COMMAND_LIMIT": 0.12,
-    "CURVATURE_TO_YAW_RATE_TARGET_GAIN": 12000,
+    "LATERAL_ERROR_FAR_WEIGHT": 0.0,
+    "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN": 600,
     "MIN_LEADING_REFERENCE_SAMPLES": 3
   },
   "assistant_tcp": {

@@ -52,9 +52,9 @@ The accepted first-release `set_target_speed.value` SHALL use the runtime's exis
 - it is encoded as a JSON number
 - it is finite
 - it is greater than or equal to `0`
-- it is less than or equal to the startup-loaded `Speed_base`
+- it is less than or equal to the startup-loaded `RUNNING_SPEED_TARGET`
 
-If `set_target_speed.value` is invalid (missing, non-numeric, non-finite, negative, or greater than the startup-loaded `Speed_base`), the runtime SHALL reject the command with `outcome="rejected"` and a human-readable `reason` string describing the violation, and it SHALL NOT alter the active tuning snapshot, active override value, or override expiry.
+If `set_target_speed.value` is invalid (missing, non-numeric, non-finite, negative, or greater than the startup-loaded `RUNNING_SPEED_TARGET`), the runtime SHALL reject the command with `outcome="rejected"` and a human-readable `reason` string describing the violation, and it SHALL NOT alter the active tuning snapshot, active override value, or override expiry.
 
 The accepted first-release ACK feedback SHALL identify at minimum:
 

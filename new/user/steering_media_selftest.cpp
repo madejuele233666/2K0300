@@ -1,10 +1,12 @@
 #include <cstdint>
 #include <cstdlib>
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -145,26 +147,27 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.eligibility.leading_usable_samples = 4;
     snapshot.steering.eligibility.leading_min_forward_m = 0.061;
     snapshot.steering.eligibility.leading_max_forward_m = 0.25;
-    snapshot.steering.eligibility.lookahead_distance_m = 0.25;
     snapshot.steering.eligibility.reason = "ok";
-    snapshot.steering.curvature.computed = true;
-    snapshot.steering.curvature.lookahead_distance_m = 0.25;
-    snapshot.steering.curvature.curvature_command = -0.09;
-    snapshot.steering.curvature.reason = "ok";
+    snapshot.steering.lateral_error.computed = true;
+    snapshot.steering.lateral_error.weighted_lateral_error_m = -0.09;
+    snapshot.steering.lateral_error.weighted_sample_count = 4;
+    snapshot.steering.lateral_error.weight_sum = 3.75;
+    snapshot.steering.lateral_error.reason = "ok";
     snapshot.steering.reference_control.ready = true;
     snapshot.steering.reference_control.reason = "reference_hold";
     snapshot.steering.safety_gate.veto_active = false;
     snapshot.steering.safety_gate.reason = "none";
     snapshot.steering.degraded.active = true;
     snapshot.steering.degraded.reason = "reference_hold";
-    snapshot.steering.yaw_control.yaw_rate_target = -0.18;
+    snapshot.steering.yaw_control.turn_output_target = -0.18;
     snapshot.steering.actuator.raw_turn_output = -17;
     snapshot.steering.actuator.applied_turn_output = -15;
     snapshot.steering_internal.valid = true;
     snapshot.steering_internal.frame_id = 7;
     snapshot.steering_internal.capture_time_ms = 88;
-    snapshot.steering_internal.yaw_rate_gain = 18.0;
-    snapshot.steering_internal.yaw_rate_candidate = -2.0;
+    snapshot.steering_internal.lateral_error_gain = 18.0;
+    snapshot.steering_internal.speed_scale = 1.2;
+    snapshot.steering_internal.turn_output_candidate = -2.0;
     snapshot.steering_internal.gyro_z = 0.2;
     snapshot.steering_internal.gyro_error = -0.1;
     snapshot.steering_internal.gyro_p_term = -0.3;
@@ -177,18 +180,18 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     const std::string& message = diagnostics.events[1].message;
     Require(diagnostics.events[1].code == "control.steering_snapshot",
             "second diagnostic must be control.steering_snapshot");
-    Require(Contains(message, "curvature.lookahead_distance_m=0.25"),
-            "steering snapshot must expose lookahead distance");
     Require(Contains(message, "eligibility.leading_min_forward_m=0.061"),
             "steering snapshot must expose leading minimum forward distance");
     Require(Contains(message, "eligibility.leading_max_forward_m=0.25"),
             "steering snapshot must expose leading maximum forward distance");
-    Require(Contains(message, "eligibility.lookahead_distance_m=0.25"),
-            "steering snapshot must expose eligibility lookahead distance");
-    Require(Contains(message, "curvature.curvature_command=-0.09"),
-            "steering snapshot must expose curvature command");
-    Require(Contains(message, "yaw_control.yaw_rate_target=-0.18"),
-            "steering snapshot must expose yaw rate target");
+    Require(Contains(message, "lateral_error.weighted_lateral_error_m=-0.09"),
+            "steering snapshot must expose weighted lateral error");
+    Require(Contains(message, "lateral_error.weighted_sample_count=4"),
+            "steering snapshot must expose weighted lateral sample count");
+    Require(Contains(message, "lateral_error.weight_sum=3.75"),
+            "steering snapshot must expose lateral-error weight sum");
+    Require(Contains(message, "yaw_control.turn_output_target=-0.18"),
+            "steering snapshot must expose turn-output target");
     Require(Contains(message, "perception_health.projector_ok=true"),
             "steering snapshot must expose perception health");
     Require(Contains(message, "reference_control.ready=true"),
@@ -227,16 +230,20 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "public steering snapshot must not expose threshold veto internals");
     Require(!Contains(message, std::string("roadblock_") + "interface_state"),
             "public steering snapshot must not expose roadblock internals");
-    Require(!Contains(message, "yaw_rate_gain"),
+    Require(!Contains(message, "lateral_error_gain"),
             "public steering snapshot must not expose PID internals");
 
     const std::string& internal_message = diagnostics.events[2].message;
     Require(diagnostics.events[2].code == "control.steering_internal",
             "third diagnostic must be internal steering diagnostics");
+    Require(Contains(internal_message, "authority=internal_debug_only"),
+            "internal steering diagnostics must identify non-authority scope");
     Require(!Contains(internal_message, std::string("roadblock_") + "interface_state"),
             "internal steering diagnostics must not expose removed roadblock state");
-    Require(Contains(internal_message, "yaw_rate_gain=18"),
+    Require(Contains(internal_message, "lateral_error_gain=18"),
             "internal steering diagnostics must expose PID internals");
+    Require(Contains(internal_message, "speed_scale=1.2"),
+            "internal steering diagnostics must expose speed scaling");
 }
 
 void TestConfigEnvelopeIsMinimalBevContract() {
@@ -249,11 +256,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.yaw_rate_pid_d = 0.0;
     config.param_snapshot.control_period_ms = 5;
     config.param_snapshot.low_voltage_raw_threshold = 400;
+    config.param_snapshot.raw_turn_output_limit = 8000;
+    config.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
+    config.param_snapshot.bev_control_model.lateral_error_far_weight = 0.25;
     config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
     config.param_snapshot.bev_classification.white_confidence_min = 0.60F;
-    config.param_snapshot.bev_control_model.lookahead_min_m = 0.16;
-    config.param_snapshot.bev_control_model.curvature_command_limit = 0.25;
 
     std::vector<std::uint8_t> encoded;
     std::string error;
@@ -274,6 +282,14 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include yaw-rate PID group");
     Require(Contains(header_json, "\"low_voltage_raw_threshold\":400"),
             "config snapshot must include low-voltage raw threshold");
+    Require(Contains(header_json, "\"raw_turn_output_limit\":8000"),
+            "config snapshot must include raw turn output limit");
+    Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
+            "config snapshot must include lateral-error-to-wheel-delta gain");
+    Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
+            "config snapshot must include lateral-error far weight");
+    Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
+            "config snapshot must not include removed mixer gain");
     Require(!Contains(header_json, std::string("pid_turn_") + "camera"),
             "config snapshot must not include removed camera PID parameters");
     Require(Contains(header_json, "\"BEV_PROJECTOR\""),
@@ -290,10 +306,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include white classification confidence");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "config snapshot must include BEV control model group");
-    Require(Contains(header_json, "\"CURVATURE_COMMAND_LIMIT\":0.25"),
-            "config snapshot must include curvature command limit");
-    Require(Contains(header_json, "\"CURVATURE_TO_YAW_RATE_TARGET_GAIN\""),
-            "config snapshot must include yaw-rate target gain");
+    Require(!Contains(header_json, "\"CURVATURE_COMMAND_LIMIT\""),
+            "config snapshot must not include removed curvature command limit");
+    Require(!Contains(header_json, "\"CURVATURE_TO_TURN_OUTPUT_GAIN\""),
+            "config snapshot must not include removed curvature-to-turn-output gain");
+    Require(!Contains(header_json, "\"CURVATURE_TO_YAW_RATE_TARGET_GAIN\""),
+            "config snapshot must not include removed yaw-rate target gain");
     Require(Contains(header_json, "\"MIN_LEADING_REFERENCE_SAMPLES\""),
             "config snapshot must include configured leading reference minimum");
     Require(!Contains(header_json, std::string("CURVATURE_TO_") + "W_" + "TARGET_GAIN"),
@@ -461,6 +479,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.yaw_rate_pid_d = 0.0;
     params.running_speed_target = 100.0;
     params.control_period_ms = 5;
+    params.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
+    params.bev_control_model.lateral_error_far_weight = 0.25;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -479,19 +499,19 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.eligibility.leading_usable_samples = 4;
         state.control_debug_snapshot.steering.eligibility.leading_min_forward_m = 0.061;
         state.control_debug_snapshot.steering.eligibility.leading_max_forward_m = 0.25;
-        state.control_debug_snapshot.steering.eligibility.lookahead_distance_m = 0.25;
         state.control_debug_snapshot.steering.eligibility.reason = "ok";
-        state.control_debug_snapshot.steering.curvature.computed = true;
-        state.control_debug_snapshot.steering.curvature.lookahead_distance_m = 0.25;
-        state.control_debug_snapshot.steering.curvature.curvature_command = -0.10;
-        state.control_debug_snapshot.steering.curvature.reason = "ok";
+        state.control_debug_snapshot.steering.lateral_error.computed = true;
+        state.control_debug_snapshot.steering.lateral_error.weighted_lateral_error_m = -0.10;
+        state.control_debug_snapshot.steering.lateral_error.weighted_sample_count = 4;
+        state.control_debug_snapshot.steering.lateral_error.weight_sum = 3.75;
+        state.control_debug_snapshot.steering.lateral_error.reason = "ok";
         state.control_debug_snapshot.steering.reference_control.ready = true;
         state.control_debug_snapshot.steering.reference_control.reason = "ok";
         state.control_debug_snapshot.steering.safety_gate.veto_active = false;
         state.control_debug_snapshot.steering.safety_gate.reason = "none";
         state.control_debug_snapshot.steering.degraded.active = false;
         state.control_debug_snapshot.steering.degraded.reason = "none";
-        state.control_debug_snapshot.steering.yaw_control.yaw_rate_target = -0.20;
+        state.control_debug_snapshot.steering.yaw_control.turn_output_target = -0.20;
         FillMatchingCapture(state, 41, 1234);
     }
 
@@ -518,6 +538,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV projector settings");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "service config snapshot must expose BEV control settings");
+    Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
+            "service config snapshot must expose lateral-error-to-wheel-delta gain");
+    Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
+            "service config snapshot must expose lateral-error far weight");
+    Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
+            "service config snapshot must not expose removed mixer gain");
     Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),
             "service config snapshot must not expose removed BEV path policy");
 
@@ -535,12 +561,16 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include reference-control readiness");
     Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),
             "image frame must include safety gate");
-    Require(Contains(header_json, "\"lookahead_distance_m\":0.25"),
-            "image frame must include lookahead distance");
-    Require(Contains(header_json, "\"curvature_command\":-0.1"),
-            "image frame must include curvature command");
-    Require(Contains(header_json, "\"yaw_rate_target\":-0.2"),
-            "image frame must include yaw rate target");
+    Require(Contains(header_json, "\"lateral_error\":{\"computed\":true"),
+            "image frame must include lateral-error group");
+    Require(Contains(header_json, "\"weighted_lateral_error_m\":-0.1"),
+            "image frame must include weighted lateral error");
+    Require(Contains(header_json, "\"weighted_sample_count\":4"),
+            "image frame must include lateral-error sample count");
+    Require(Contains(header_json, "\"weight_sum\":3.75"),
+            "image frame must include lateral-error weight sum");
+    Require(Contains(header_json, "\"turn_output_target\":-0.2"),
+            "image frame must include turn-output target");
     Require(Contains(header_json, "\"reference\":{\"mode\":\"interval_center\",\"source\":\"simple_interval_center\"}"),
             "image frame must include nested reference facts");
     Require(!Contains(header_json, "\"reference_mode\""),
@@ -567,7 +597,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must not include threshold veto internals");
     Require(!Contains(header_json, std::string("\"roadblock_") + "interface_state\""),
             "image frame must not include roadblock internals");
-    Require(!Contains(header_json, "\"yaw_rate_gain\""),
+    Require(!Contains(header_json, "\"lateral_error_gain\""),
             "image frame must not include PID internals");
 }
 
@@ -616,6 +646,81 @@ void TestServicePublishesFromRecentMatchingCapture() {
             "service must publish the capture that exactly matches steering snapshot metadata");
 }
 
+void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
+    auto* fake_transport = new FakeSteeringMediaTransport();
+    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
+        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    CollectingDiagnostics diagnostics;
+
+    ls2k::port::RuntimeParameters params{};
+    params.assistant_tcp.host = "127.0.0.1";
+    params.steering_media_enabled = true;
+    params.steering_media_port = 8890;
+    params.steering_media_publish_interval_ms = 0;
+    service.Start(params, diagnostics);
+
+    ls2k::runtime::RuntimeState state{};
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        state.control_debug_snapshot.valid = true;
+        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.steering.valid = true;
+        state.control_debug_snapshot.steering.frame_id = 1;
+        state.control_debug_snapshot.steering.capture_time_ms = 10;
+        FillMatchingCapture(state, 1, 10);
+    }
+
+    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    service.Tick(state, diagnostics);
+    Require(fake_transport->sent_frames.size() == 1,
+            "DISARMED tick should publish only config_snapshot and skip image_frame");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        state.control_debug_snapshot.steering.frame_id = 2;
+        state.control_debug_snapshot.steering.capture_time_ms = 20;
+        FillMatchingCapture(state, 2, 20);
+    }
+    service.Tick(state, diagnostics);
+    Require(fake_transport->sent_frames.size() == 1,
+            "second DISARMED tick should still skip image_frame");
+
+    bool saw_disarmed_skip_summary = false;
+    for (const auto& event : diagnostics.events) {
+        if (event.code == "steering_media.summary" && Contains(event.message, "skip_disarmed=")) {
+            saw_disarmed_skip_summary = true;
+        }
+    }
+    Require(saw_disarmed_skip_summary,
+            "steering_media.summary must report skip_disarmed for skipped non-running images");
+
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+        state.control_debug_snapshot.steering.frame_id = 3;
+        state.control_debug_snapshot.steering.capture_time_ms = 30;
+        FillMatchingCapture(state, 3, 30);
+    }
+    service.Tick(state, diagnostics);
+    Require(fake_transport->sent_frames.size() == 2,
+            "RUNNING tick should publish an image_frame after DISARMED images were skipped");
+
+    std::string header_json;
+    std::vector<std::uint8_t> payload;
+    std::string error;
+    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.back().data(),
+                                                        fake_transport->sent_frames.back().size(),
+                                                        header_json,
+                                                        payload,
+                                                        error),
+            "RUNNING image frame should decode");
+    Require(Contains(header_json, "\"type\":\"image_frame\""),
+            "RUNNING publish must be an image_frame");
+    Require(Contains(header_json, "\"motion_phase\":\"RUNNING\""),
+            "RUNNING image frame must preserve motion phase");
+}
+
 }  // namespace
 
 int main() {
@@ -627,6 +732,7 @@ int main() {
         TestLinkDoesNotCacheFrameAcceptedInFlight();
         TestServicePublishesConfigSnapshotOnReadyTransition();
         TestServicePublishesFromRecentMatchingCapture();
+        TestServiceSkipsDisarmedImagesAndPublishesRunningImage();
     } catch (const std::exception& error) {
         std::cerr << "steering_media_selftest failed: " << error.what() << "\n";
         return EXIT_FAILURE;

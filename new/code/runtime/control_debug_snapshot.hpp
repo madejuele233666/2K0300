@@ -28,14 +28,14 @@ struct ReferenceEligibilityDebugView {
     std::size_t leading_usable_samples = 0;
     double leading_min_forward_m = 0.0;
     double leading_max_forward_m = 0.0;
-    double lookahead_distance_m = 0.0;
     std::string reason = "no_reference_facts";
 };
 
-struct CurvatureDebugView {
+struct LateralErrorDebugView {
     bool computed = false;
-    double lookahead_distance_m = 0.0;
-    double curvature_command = 0.0;
+    double weighted_lateral_error_m = 0.0;
+    std::size_t weighted_sample_count = 0;
+    double weight_sum = 0.0;
     std::string reason = "reference_unusable";
 };
 
@@ -55,7 +55,7 @@ struct DegradedDebugView {
 };
 
 struct YawControlDebugView {
-    double yaw_rate_target = 0.0;
+    double turn_output_target = 0.0;
 };
 
 struct SteeringActuatorDebugView {
@@ -72,7 +72,7 @@ struct SteeringDebugSnapshot {
     PerceptionHealthDebugView perception_health{};
     ReferenceDebugView reference{};
     ReferenceEligibilityDebugView eligibility{};
-    CurvatureDebugView curvature{};
+    LateralErrorDebugView lateral_error{};
     ReferenceControlDebugView reference_control{};
     SafetyGateDebugView safety_gate{};
     DegradedDebugView degraded{};
@@ -80,13 +80,14 @@ struct SteeringDebugSnapshot {
     SteeringActuatorDebugView actuator{};
 };
 
-// 转向内部诊断 —— yaw-loop internals.
+// 转向内部诊断 —— non-authority yaw-loop internals for tuning evidence only.
 struct SteeringInternalDebugSnapshot {
     bool valid = false;
     std::uint64_t frame_id = 0;
     std::uint64_t capture_time_ms = 0;
-    double yaw_rate_gain = 0.0;
-    double yaw_rate_candidate = 0.0;
+    double lateral_error_gain = 0.0;
+    double speed_scale = 0.0;
+    double turn_output_candidate = 0.0;
     double gyro_z = 0.0;
     double gyro_error = 0.0;
     double gyro_p_term = 0.0;
@@ -111,7 +112,6 @@ struct ControlDebugSnapshot {
     double right_measured_speed = 0.0;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
-    int turn_pwm_command = 0;
     int left_pwm_command = 0;
     int right_pwm_command = 0;
     bool emergency_stop = true;

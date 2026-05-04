@@ -147,14 +147,13 @@ int ClampTurnOutput(float turn_output, double turn_limit_scale, int pwm_limit) {
 // 构建快照轮速目标（停止/禁止行驶时返回零值）
 legacy::WheelSpeedTargets BuildSnapshotWheelTargets(const MotionDecision& decision,
                                                     int applied_turn_output,
-                                                    const legacy::WheelTargetMixer& mixer,
-                                                    int pwm_limit) {
+                                                    const legacy::WheelTargetMixer& mixer) {
     if (decision.require_emergency_stop || decision.hold_disarmed || !decision.allow_drive) {
         return {};
     }
 
-    const int snapshot_turn_pwm = decision.state.phase == MotionPhase::kStopping ? 0 : applied_turn_output;
-    return mixer.Compute(decision.effective_speed_target, snapshot_turn_pwm, pwm_limit);
+    const int snapshot_turn_output = decision.state.phase == MotionPhase::kStopping ? 0 : applied_turn_output;
+    return mixer.Compute(decision.effective_speed_target, snapshot_turn_output);
 }
 
 struct ControlDebugSnapshotInputs {
@@ -165,7 +164,7 @@ struct ControlDebugSnapshotInputs {
     const MotionDecision& final_motion;
     const RuntimeTuningSnapshot& tuning_snapshot;
     const legacy::WheelSpeedTargets& snapshot_wheel_targets;
-    const legacy::YawRateTargetComputation& yaw_rate_target_result;
+    const legacy::TurnOutputTargetComputation& turn_output_target_result;
     const legacy::GyroTurnComputation& gyro_turn;
     uint64_t now_ms = 0;
     uint64_t cycle_count = 0;
@@ -197,7 +196,6 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.right_measured_speed = static_cast<double>(inputs.encoder.right);
     debug_snapshot.raw_turn_output = inputs.raw_turn_output;
     debug_snapshot.applied_turn_output = inputs.applied_turn_output;
-    debug_snapshot.turn_pwm_command = inputs.applied_turn_output;
     debug_snapshot.left_pwm_command = inputs.command.left_pwm;
     debug_snapshot.right_pwm_command = inputs.command.right_pwm;
     debug_snapshot.emergency_stop = inputs.command.emergency_stop;
@@ -216,15 +214,14 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         perception.reference_usability.leading_min_forward_m;
     debug_snapshot.steering.eligibility.leading_max_forward_m =
         perception.reference_usability.leading_max_forward_m;
-    debug_snapshot.steering.eligibility.lookahead_distance_m =
-        perception.reference_usability.lookahead_distance_m;
     debug_snapshot.steering.eligibility.reason = perception.reference_usability.reason;
-    debug_snapshot.steering.curvature.computed = perception.reference_curvature.computed;
-    debug_snapshot.steering.curvature.lookahead_distance_m =
-        perception.reference_curvature.lookahead_distance_m;
-    debug_snapshot.steering.curvature.curvature_command =
-        perception.reference_curvature.curvature_command;
-    debug_snapshot.steering.curvature.reason = perception.reference_curvature.reason;
+    debug_snapshot.steering.lateral_error.computed = perception.reference_lateral_error.computed;
+    debug_snapshot.steering.lateral_error.weighted_lateral_error_m =
+        perception.reference_lateral_error.weighted_lateral_error_m;
+    debug_snapshot.steering.lateral_error.weighted_sample_count =
+        perception.reference_lateral_error.weighted_sample_count;
+    debug_snapshot.steering.lateral_error.weight_sum = perception.reference_lateral_error.weight_sum;
+    debug_snapshot.steering.lateral_error.reason = perception.reference_lateral_error.reason;
     debug_snapshot.steering.reference_control.ready = perception.reference_control.ready;
     debug_snapshot.steering.reference_control.reason = perception.reference_control.reason;
     debug_snapshot.steering.safety_gate.veto_active = inputs.gate.veto_active;
@@ -232,17 +229,20 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.steering.degraded.active = perception.reference_control.degraded;
     debug_snapshot.steering.degraded.reason =
         perception.reference_control.degraded ? perception.reference_control.reason : "none";
-    debug_snapshot.steering.yaw_control.yaw_rate_target =
-        inputs.yaw_rate_target_result.yaw_rate_target;
+    debug_snapshot.steering.yaw_control.turn_output_target =
+        inputs.turn_output_target_result.turn_output_target;
     debug_snapshot.steering.actuator.raw_turn_output = inputs.raw_turn_output;
     debug_snapshot.steering.actuator.applied_turn_output = inputs.applied_turn_output;
 
     debug_snapshot.steering_internal.valid = inputs.steering_terms_valid;
     debug_snapshot.steering_internal.frame_id = perception.frame_id;
     debug_snapshot.steering_internal.capture_time_ms = perception.capture_time_ms;
-    debug_snapshot.steering_internal.yaw_rate_gain = inputs.yaw_rate_target_result.yaw_rate_gain;
-    debug_snapshot.steering_internal.yaw_rate_candidate =
-        inputs.yaw_rate_target_result.yaw_rate_candidate;
+    debug_snapshot.steering_internal.lateral_error_gain =
+        inputs.turn_output_target_result.lateral_error_gain;
+    debug_snapshot.steering_internal.speed_scale =
+        inputs.turn_output_target_result.speed_scale;
+    debug_snapshot.steering_internal.turn_output_candidate =
+        inputs.turn_output_target_result.turn_output_candidate;
     debug_snapshot.steering_internal.gyro_z = inputs.gyro_turn.gyro_z;
     debug_snapshot.steering_internal.gyro_error = inputs.gyro_turn.gyro_error;
     debug_snapshot.steering_internal.gyro_p_term = inputs.gyro_turn.gyro_p_term;
@@ -534,7 +534,6 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
     params_ = params;
     yaw_controller_.Configure(params_);
     yaw_controller_.Reset();
-    wheel_target_mixer_.Configure(params_);
     left_wheel_pid_.Configure(params_.left_wheel_pid);
     right_wheel_pid_.Configure(params_.right_wheel_pid);
     left_wheel_pid_.Reset();
@@ -749,7 +748,7 @@ void ControlLoop::Tick() {
     bool hold_disarmed = false;
     int raw_turn_output = 0;
     int applied_turn_output = 0;
-    legacy::YawRateTargetComputation yaw_rate_target_result{};
+    legacy::TurnOutputTargetComputation turn_output_target_result{};
     legacy::GyroTurnComputation gyro_turn{};
     bool steering_terms_valid = perception.published && perception.fresh &&
                                perception.frame_id != 0 && perception.capture_time_ms != 0;
@@ -765,11 +764,11 @@ void ControlLoop::Tick() {
         command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
     } else {
         const double constrained_speed_target = motion.effective_speed_target;
-        yaw_rate_target_result =
-            yaw_controller_.ComputeYawRateTarget(perception.reference_curvature.curvature_command,
-                                                 constrained_speed_target,
-                                                 steering_control_memory_.controller_memory);
-        gyro_turn = yaw_controller_.ComputeGyroTurn(yaw_rate_target_result.yaw_rate_target,
+        turn_output_target_result =
+            yaw_controller_.ComputeTurnOutputTarget(perception.reference_lateral_error.weighted_lateral_error_m,
+                                                    constrained_speed_target,
+                                                    steering_control_memory_.controller_memory);
+        gyro_turn = yaw_controller_.ComputeGyroTurn(turn_output_target_result.turn_output_target,
                                                    imu.gyro_z,
                                                    steering_control_memory_.controller_memory);
         raw_turn_output = ClampTurnOutput(
@@ -780,8 +779,7 @@ void ControlLoop::Tick() {
         if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
             applied_turn_output = 0;
         }
-        wheel_targets =
-            wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output, params_.pwm_limit);
+        wheel_targets = wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output);
         const int left_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
         const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
@@ -824,7 +822,7 @@ void ControlLoop::Tick() {
     }
     EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
     const legacy::WheelSpeedTargets snapshot_wheel_targets =
-        BuildSnapshotWheelTargets(final_motion, applied_turn_output, wheel_target_mixer_, params_.pwm_limit);
+        BuildSnapshotWheelTargets(final_motion, applied_turn_output, wheel_target_mixer_);
 
     bool apply_ok = true;
     if (diagnostics_only_motor || hold_disarmed) {
@@ -847,7 +845,7 @@ void ControlLoop::Tick() {
                                    final_motion,
                                    tuning_snapshot,
                                    snapshot_wheel_targets,
-                                   yaw_rate_target_result,
+                                   turn_output_target_result,
                                    gyro_turn,
                                    now_ms,
                                    state_.control_cycle_count.load() + 1,

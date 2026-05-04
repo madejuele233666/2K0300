@@ -11,7 +11,6 @@ struct ReferenceUsability {
     std::size_t leading_usable_samples = 0;
     float leading_min_forward_m = 0.0F;
     float leading_max_forward_m = 0.0F;
-    float lookahead_distance_m = 0.0F;
     std::string reason = "no_reference_facts";
 };
 

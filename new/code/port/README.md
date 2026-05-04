@@ -10,8 +10,8 @@ Do not create aggregate include headers for steering/reference/control types.
 - `bev_geometry_types.hpp`: BEV points, calibration, geometry, classification, and control-model parameters.
 - `bev_reference_types.hpp`: reference path facts, point source, hold state, and continuity result.
 - `reference_usability_types.hpp`: reference usability result.
-- `reference_curvature_types.hpp`: reference curvature result.
-- `reference_control_readiness_types.hpp`: selected reference and curvature readiness result.
+- `reference_lateral_error_types.hpp`: reference weighted lateral-error result.
+- `reference_control_readiness_types.hpp`: selected reference and lateral-error readiness result.
 - `perception_result.hpp`: runtime steering pipeline transport snapshot.
 - `steering_state_types.hpp`: owner-specific steering memory.
 - `sensor_sample_types.hpp`: IMU, encoder, and low-voltage samples.
@@ -23,8 +23,8 @@ Do not create aggregate include headers for steering/reference/control types.
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
 - BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.
-- Reference curvature includes BEV reference, reference usability, reference curvature, and runtime parameter types.
-- Reference-control readiness includes reference-control readiness, reference usability, and reference curvature types.
+- Reference lateral error includes BEV reference, reference usability, reference lateral-error, and runtime parameter types.
+- Reference-control readiness includes reference-control readiness, reference usability, and reference lateral-error types.
 - Otsu threshold includes only camera frame types.
 - Perception frontend includes camera frame, perception result, steering state, sensor sample, runtime parameter types, and layer function headers.
 - Steering yaw target includes steering state and runtime parameter types.
@@ -35,7 +35,7 @@ Do not create aggregate include headers for steering/reference/control types.
 
 - Active code must not include `port/control_types.hpp`.
 - Reference usability must not include `perception_result.hpp`.
-- Reference curvature must not include `perception_result.hpp`.
+- Reference lateral error must not include `perception_result.hpp`.
 - Steering yaw target must not include `perception_result.hpp`.
 - Reference-control readiness must not depend on low voltage, projector state, IMU, encoder, or stale timing.
 - BEV simple perception and reference hold builders must not depend on reference usability.
@@ -44,7 +44,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - Safety gate is the only owner of low voltage, perception health, stale, IMU, and encoder veto.
 - Low-voltage raw thresholds belong to the power adapter / low-voltage sampler owner, not perception, reference, readiness, or yaw.
 - Steering yaw target must not depend on readiness or control validity.
-- `source` and `mode` may be serialized or drawn, but must not decide usability, curvature, reference-control readiness, safety gate, or yaw target.
+- `source` and `mode` may be serialized or drawn, but must not decide usability, lateral error, reference-control readiness, safety gate, or yaw target.
 
 PerceptionResult is a runtime transport snapshot, not a dependency shortcut.
 

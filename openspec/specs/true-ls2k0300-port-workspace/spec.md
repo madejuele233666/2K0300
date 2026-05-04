@@ -48,12 +48,12 @@ The retarget SHALL record which vendor baseline, build entrypoint, runtime verif
 - **WHEN** implementation verification accepts a newer direct-match board runtime artifact as the current baseline for Phase A
 - **THEN** the roadmap/progress documents and phase-scoped evidence references SHALL align to that accepted artifact, SHALL name the exact accepted evidence path bundle, SHALL use the corresponding execution-evidence note to explain which earlier artifact was superseded, and SHALL treat that accepted baseline as the starting point for later checkpoint evidence rather than re-litigating startup-grade proof in every Phase A subtask
 
-### Requirement: Phase A Documents Separate Startup Proof From Closure Proof
-The `new/docs/race-finish-series.zh-CN/` Phase A roadmap/progress documents SHALL distinguish direct-match startup evidence from the remaining closure work for sensor quality, actuator proof, and control unlock.
+### Requirement: Historical Phase A Documents Are Superseded
+The historical `new/docs/superseded/race-finish-series.zh-CN/` Phase A roadmap/progress documents SHALL remain archived background. Current runtime, parameter, media, and verification authority SHALL come from root `README.md`, `new/config/default_params.md`, `new/code/port/README.md`, `new/user/README.md`, and active tests.
 
 #### Scenario: Direct-match startup is not described as unresolved
-- **WHEN** reviewers inspect the current roadmap, Phase A task list, and progress snapshot after the accepted direct-match board evidence bundle at `openspec/changes/archive/2026-04-15-fix-board-runtime-hardware-detection/verification/runtime-smoke-retry-2026-04-15.log`, `runtime-smoke-retry-2026-04-15.exit`, and `hardware-discovery-retry-2026-04-15.log` exists
-- **THEN** those documents SHALL state that startup-grade proof has already reached markers such as `imu.init`, `imu.detect`, `startup.complete`, or `control.start`, they SHALL use `runtime-smoke-execution-evidence.md` as the supersession note for earlier direct-match artifacts, and they SHALL NOT continue describing default direct-match startup as wholly unresolved
+- **WHEN** reviewers inspect the active documentation surface
+- **THEN** they SHALL NOT treat the historical Phase A roadmap as current authority for runtime, parameter, media, overlay, or verification decisions
 
 #### Scenario: Remaining Phase A gaps stay explicit
 - **WHEN** the same documents describe open work after startup-grade proof exists
@@ -89,12 +89,12 @@ Board-runtime verification evidence SHALL name the resolved hardware resources o
 - **WHEN** implementation verification reviews board smoke output for a direct-match startup run
 - **THEN** the resulting logs SHALL identify the resolved IMU node or discovery failure, the camera path, and any encoder/motor/ADC resource evidence needed to explain startup success or vetoed failure
 
-### Requirement: Phase A Closure Uses A Single Evidence-Oriented Checkpoint Flow
-The `new/docs/race-finish-series.zh-CN/` Phase A material and change-local verification references SHALL describe the remaining Phase A work as one closure flow with ordered checkpoints rather than as unrelated, parallel “nice to have” tasks.
+### Requirement: Phase A Closure History Remains Archived
+The historical Phase A material under `new/docs/superseded/race-finish-series.zh-CN/` SHALL remain available only as background for older evidence-oriented checkpoint decisions.
 
 #### Scenario: Checkpoints follow the control-critical dependency chain
-- **WHEN** reviewers inspect the Phase A task list, current progress snapshot, or a Phase A closure change
-- **THEN** they SHALL find the remaining work ordered as accepted baseline freeze, sensor trust closure, actuator trust closure, and final control-unlock/exit judgment, with exposure-policy decision either remaining as the default downstream closure step or being explicitly promoted earlier when perception or exposure is the dominant blocker, and downstream checkpoints SHALL NOT be described as complete while upstream trust prerequisites remain open
+- **WHEN** reviewers inspect current active docs
+- **THEN** they SHALL find the current simple reference/control contract rather than the old Phase A closure roadmap as active authority
 
 ### Requirement: Phase A Evidence Bundles Are Phase-Scoped And Decision-Oriented
 Phase A closure work SHALL emit phase-scoped evidence bundles that state what each checkpoint proves, what it does not prove, and whether the checkpoint blocks stage exit.
@@ -110,11 +110,11 @@ Phase A closure work SHALL end with an explicit stage-exit judgment rather than 
 - **WHEN** a Phase A closure change reaches implementation verification or final document sync
 - **THEN** the resulting progress and phase documents SHALL explicitly state whether Phase A exit conditions are met, which blockers remain if they are not met, and whether entry into `Phase B` is allowed
 
-### Requirement: Phase B Uses A Lifecycle-Oriented Evidence Flow
-The `new/docs/race-finish-series.zh-CN/` Phase B material and change-local verification references SHALL describe low-speed motion closure as a lifecycle-oriented flow that proves start, spinup, running, stop, and fail-safe recovery behavior rather than treating "car moved once" as sufficient evidence.
+### Requirement: Phase B Lifecycle Contract Is Not Owned By The Old Roadmap
+The runtime lifecycle contract SHALL be documented by active specs, code, tests, and current operator docs. The old `new/docs/superseded/race-finish-series.zh-CN/` Phase B material SHALL NOT be used as active authority.
 
 #### Scenario: Phase B evidence follows lifecycle checkpoints
-- **WHEN** reviewers inspect the Phase B document set, tasks, or verification notes
+- **WHEN** reviewers inspect active lifecycle specs, tasks, or verification notes
 - **THEN** they SHALL find explicit evidence targets for startup safety, shaped start behavior, low-speed running, controlled stop, and fail-safe recovery
 - **AND** the phase SHALL NOT be treated as complete based only on marker presence or a single non-zero motor command
 

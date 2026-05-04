@@ -418,6 +418,15 @@ bool ReadRequiredNestedInt(const cv::FileNode& root,
     return ReadIntegerValue(parent_node[child], value);
 }
 
+bool IsFiniteInRange(double value, double min_value, double max_value) {
+    return std::isfinite(value) && value >= min_value && value <= max_value;
+}
+
+bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
+    return IsFiniteInRange(params.lateral_error_far_weight, 0.0, 1.0) &&
+           IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
+}
+
 // 读取必填字符串值
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
     const cv::FileNode node = root[key];
@@ -556,7 +565,6 @@ public:
                         "motion_fault_rearm_hold_ms",
                         parsed.motion_fault_rearm_hold_ms,
                         optional_malformed);
-        ReadOptionalNumber(root, "wheel_turn_target_scale", parsed.wheel_turn_target_scale, optional_malformed);
         ReadOptionalInt(root,
                         "control_snapshot_emit_interval_ms",
                         parsed.control_snapshot_emit_interval_ms,
@@ -665,39 +673,22 @@ public:
         // --- BEV 控制模型参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_VISIBLE_RANGE_RATIO",
-                                 parsed.bev_control_model.lookahead_visible_range_ratio,
+                                 "LATERAL_ERROR_FAR_WEIGHT",
+                                 parsed.bev_control_model.lateral_error_far_weight,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_MIN_M",
-                                 parsed.bev_control_model.lookahead_min_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_MAX_M",
-                                 parsed.bev_control_model.lookahead_max_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "PURE_PURSUIT_GAIN",
-                                 parsed.bev_control_model.pure_pursuit_gain,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "CURVATURE_COMMAND_LIMIT",
-                                 parsed.bev_control_model.curvature_command_limit,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "CURVATURE_TO_YAW_RATE_TARGET_GAIN",
-                                 parsed.bev_control_model.curvature_to_yaw_rate_target_gain,
+                                 "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.lateral_error_to_wheel_delta_gain,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_CONTROL_MODEL",
                               "MIN_LEADING_REFERENCE_SAMPLES",
                               parsed.bev_control_model.min_leading_reference_samples,
                               optional_malformed);
+        if (!ValidateBEVControlModel(parsed.bev_control_model)) {
+            optional_malformed = true;
+        }
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",

@@ -8,7 +8,7 @@
 
 #include "legacy/steering_otsu_threshold.hpp"
 #include "legacy/steering_reference_control_readiness.hpp"
-#include "legacy/steering_reference_curvature.hpp"
+#include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
 #include "port/perf_counter.hpp"
 
@@ -54,7 +54,7 @@ port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
                                              const port::PerceptionHealth& health,
                                              const port::ReferenceContinuityResult& continuity,
                                              const port::ReferenceUsability& selected_usability,
-                                             const port::ReferenceCurvatureEstimate& curvature,
+                                             const port::ReferenceLateralErrorEstimate& lateral_error,
                                              const port::ReferenceControlReadiness& reference_control,
                                              uint64_t publish_time_ms) {
     port::PerceptionResult perception{};
@@ -69,7 +69,7 @@ port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
     perception.reference_source = continuity.source;
     perception.perception_health = health;
     perception.reference_usability = selected_usability;
-    perception.reference_curvature = curvature;
+    perception.reference_lateral_error = lateral_error;
     perception.reference_control = reference_control;
     return perception;
 }
@@ -187,7 +187,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
     }
     port::ReferenceContinuityResult continuity{};
     port::ReferenceUsability selected_usability{};
-    port::ReferenceCurvatureEstimate curvature{};
+    port::ReferenceLateralErrorEstimate lateral_error{};
     port::ReferenceControlReadiness reference_control{};
     port::PerceptionHealth health{};
     {
@@ -221,11 +221,11 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                     legacy::EvaluateReferenceUsability(continuity.reference_path, params);
             }
         }
-        curvature = legacy::ComputeReferenceCurvature(continuity.reference_path,
-                                                      selected_usability,
-                                                      params);
+        lateral_error = legacy::ComputeReferenceLateralError(continuity.reference_path,
+                                                            selected_usability,
+                                                            params);
         reference_control = legacy::EvaluateReferenceControlReadiness(selected_usability,
-                                                                      curvature,
+                                                                      lateral_error,
                                                                       continuity.hold_selected);
         perception_memory_.reference_hold = continuity.next_hold_state;
     }
@@ -235,7 +235,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                                                               health,
                                                               continuity,
                                                               selected_usability,
-                                                              curvature,
+                                                              lateral_error,
                                                               reference_control,
                                                               publish_time_ms);
 

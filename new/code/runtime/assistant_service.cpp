@@ -34,13 +34,14 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
         snapshot.steering.eligibility.leading_min_forward_m;
     telemetry.eligibility.leading_max_forward_m =
         snapshot.steering.eligibility.leading_max_forward_m;
-    telemetry.eligibility.lookahead_distance_m =
-        snapshot.steering.eligibility.lookahead_distance_m;
     telemetry.eligibility.reason = snapshot.steering.eligibility.reason;
-    telemetry.curvature.computed = snapshot.steering.curvature.computed;
-    telemetry.curvature.lookahead_distance_m = snapshot.steering.curvature.lookahead_distance_m;
-    telemetry.curvature.curvature_command = snapshot.steering.curvature.curvature_command;
-    telemetry.curvature.reason = snapshot.steering.curvature.reason;
+    telemetry.lateral_error.computed = snapshot.steering.lateral_error.computed;
+    telemetry.lateral_error.weighted_lateral_error_m =
+        snapshot.steering.lateral_error.weighted_lateral_error_m;
+    telemetry.lateral_error.weighted_sample_count =
+        snapshot.steering.lateral_error.weighted_sample_count;
+    telemetry.lateral_error.weight_sum = snapshot.steering.lateral_error.weight_sum;
+    telemetry.lateral_error.reason = snapshot.steering.lateral_error.reason;
     telemetry.perception_health.projector_ok = snapshot.steering.perception_health.projector_ok;
     telemetry.perception_health.reason = snapshot.steering.perception_health.reason;
     telemetry.reference_control.ready = snapshot.steering.reference_control.ready;
@@ -49,7 +50,7 @@ platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& 
     telemetry.safety_gate.reason = snapshot.steering.safety_gate.reason;
     telemetry.degraded.active = snapshot.steering.degraded.active;
     telemetry.degraded.reason = snapshot.steering.degraded.reason;
-    telemetry.yaw_control.yaw_rate_target = snapshot.steering.yaw_control.yaw_rate_target;
+    telemetry.yaw_control.turn_output_target = snapshot.steering.yaw_control.turn_output_target;
     telemetry.actuator.raw_turn_output = snapshot.steering.actuator.raw_turn_output;
     telemetry.actuator.applied_turn_output = snapshot.steering.actuator.applied_turn_output;
     telemetry.tuning_mode_enabled = snapshot.tuning_mode_enabled;

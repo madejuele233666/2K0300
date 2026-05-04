@@ -14,7 +14,7 @@
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
 #include "legacy/steering_reference_control_readiness.hpp"
-#include "legacy/steering_reference_curvature.hpp"
+#include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
 
 namespace {
@@ -31,7 +31,7 @@ struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
-    ls2k::port::ReferenceCurvatureEstimate curvature{};
+    ls2k::port::ReferenceLateralErrorEstimate lateral_error{};
     ls2k::port::ReferenceControlReadiness reference_control{};
     ls2k::port::SteeringPerceptionMemory next_memory{};
     bool memory_update_valid = false;
@@ -214,14 +214,12 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadIntField(block, "HOLD_LAST_MAX_CYCLES", params.bev_classification.hold_last_max_cycles);
     }
     if (ExtractObjectBlock(json, "BEV_CONTROL_MODEL", block)) {
-        ReadDoubleField(block, "LOOKAHEAD_VISIBLE_RANGE_RATIO", params.bev_control_model.lookahead_visible_range_ratio);
-        ReadDoubleField(block, "LOOKAHEAD_MIN_M", params.bev_control_model.lookahead_min_m);
-        ReadDoubleField(block, "LOOKAHEAD_MAX_M", params.bev_control_model.lookahead_max_m);
-        ReadDoubleField(block, "PURE_PURSUIT_GAIN", params.bev_control_model.pure_pursuit_gain);
-        ReadDoubleField(block, "CURVATURE_COMMAND_LIMIT", params.bev_control_model.curvature_command_limit);
         ReadDoubleField(block,
-                        "CURVATURE_TO_YAW_RATE_TARGET_GAIN",
-                        params.bev_control_model.curvature_to_yaw_rate_target_gain);
+                        "LATERAL_ERROR_FAR_WEIGHT",
+                        params.bev_control_model.lateral_error_far_weight);
+        ReadDoubleField(block,
+                        "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
+                        params.bev_control_model.lateral_error_to_wheel_delta_gain);
         ReadIntField(block,
                      "MIN_LEADING_REFERENCE_SAMPLES",
                      params.bev_control_model.min_leading_reference_samples);
@@ -419,12 +417,14 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << pipeline.selected_usability.leading_usable_samples
               << " eligibility.leading_min_forward_m=" << pipeline.selected_usability.leading_min_forward_m
               << " eligibility.leading_max_forward_m=" << pipeline.selected_usability.leading_max_forward_m
-              << " eligibility.lookahead_distance_m=" << pipeline.selected_usability.lookahead_distance_m
               << " eligibility.reason=" << pipeline.selected_usability.reason
-              << " curvature.computed=" << (pipeline.curvature.computed ? "true" : "false")
-              << " curvature.lookahead_distance_m=" << pipeline.curvature.lookahead_distance_m
-              << " curvature.curvature_command=" << pipeline.curvature.curvature_command
-              << " curvature.reason=" << pipeline.curvature.reason
+              << " lateral_error.computed=" << (pipeline.lateral_error.computed ? "true" : "false")
+              << " lateral_error.weighted_lateral_error_m="
+              << pipeline.lateral_error.weighted_lateral_error_m
+              << " lateral_error.weighted_sample_count="
+              << pipeline.lateral_error.weighted_sample_count
+              << " lateral_error.weight_sum=" << pipeline.lateral_error.weight_sum
+              << " lateral_error.reason=" << pipeline.lateral_error.reason
               << " reference_control.ready=" << (pipeline.reference_control.ready ? "true" : "false")
               << " reference_control.reason=" << pipeline.reference_control.reason
               << " degraded.active=" << (pipeline.reference_control.degraded ? "true" : "false")
@@ -494,13 +494,13 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                 ls2k::legacy::EvaluateReferenceUsability(result.continuity.reference_path, params);
         }
     }
-    result.curvature =
-        ls2k::legacy::ComputeReferenceCurvature(result.continuity.reference_path,
-                                                result.selected_usability,
-                                                params);
+    result.lateral_error =
+        ls2k::legacy::ComputeReferenceLateralError(result.continuity.reference_path,
+                                                  result.selected_usability,
+                                                  params);
     result.reference_control =
         ls2k::legacy::EvaluateReferenceControlReadiness(result.selected_usability,
-                                                        result.curvature,
+                                                        result.lateral_error,
                                                         result.continuity.hold_selected);
     result.next_memory = prior_memory;
     result.next_memory.reference_hold = result.continuity.next_hold_state;

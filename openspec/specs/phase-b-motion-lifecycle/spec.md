@@ -31,7 +31,7 @@ The Phase B runtime SHALL distinguish "gate is clear but motion is intentionally
 - **AND** it SHALL NOT report that state as the dominant `control.veto.*` reason
 
 #### Scenario: Runtime fault still forces fail-safe suppression
-- **WHEN** the vehicle is in `SPINUP`, `RUNNING`, or `STOPPING` and the safety gate becomes blocked by stale perception, invalid IMU, invalid encoder, low voltage, or perception emergency veto
+- **WHEN** the vehicle is in `SPINUP`, `RUNNING`, or `STOPPING` and the safety gate becomes blocked by low voltage, stale perception, invalid perception health, reference-control-not-ready, invalid IMU, or invalid encoder
 - **THEN** the runtime SHALL force actuator output back to fail-safe
 - **AND** it SHALL publish the corresponding `control.veto.*` reason and motion-fault state
 

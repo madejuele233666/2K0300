@@ -21,8 +21,8 @@ struct AssistantTcpParameters {
 };
 
 struct RuntimeParameters {
-    double running_speed_target = 100.0;
-    double yaw_rate_pid_p = 0.5;
+    double running_speed_target = 300.0;
+    double yaw_rate_pid_p = 12.0;
     double yaw_rate_pid_i = 0.0;
     double yaw_rate_pid_d = 0.0;
     int exp_light = 65;
@@ -31,18 +31,17 @@ struct RuntimeParameters {
     int control_period_ms = 5;
     int perception_stale_ms = 120;
     int pwm_limit = 5000;
-    int raw_turn_output_limit = 8000;
+    int raw_turn_output_limit = 3000;
     int pwm_floor = 0;
-    bool prohibit_reverse_pwm = true;
-    int prohibit_reverse_pwm_step_limit = 280;
+    bool prohibit_reverse_pwm = false;
+    int prohibit_reverse_pwm_step_limit = 1000;
     int motion_unveto_confirm_cycles = 3;
-    int motion_spinup_ms = 600;
-    double motion_turn_limit_spinup = 0.35;
-    int motion_pwm_step_limit = 280;
+    int motion_spinup_ms = 800;
+    double motion_turn_limit_spinup = 1.0;
+    int motion_pwm_step_limit = 3000;
     int motion_stop_ms = 300;
     int motion_stop_encoder_threshold = 8;
     int motion_fault_rearm_hold_ms = 600;
-    double wheel_turn_target_scale = 100.0;
     WheelPidParameters left_wheel_pid{};
     WheelPidParameters right_wheel_pid{96.0, 2.2, 0.2, 5000.0, 0.4};
 

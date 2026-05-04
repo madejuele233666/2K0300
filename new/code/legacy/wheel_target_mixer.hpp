@@ -1,8 +1,6 @@
 #ifndef LS2K_LEGACY_WHEEL_TARGET_MIXER_HPP
 #define LS2K_LEGACY_WHEEL_TARGET_MIXER_HPP
 
-#include "port/runtime_parameter_types.hpp"
-
 namespace ls2k::legacy {
 
 struct WheelSpeedTargets {
@@ -12,13 +10,8 @@ struct WheelSpeedTargets {
 
 class WheelTargetMixer {
 public:
-    void Configure(const port::RuntimeParameters& params);
     WheelSpeedTargets Compute(double effective_speed_target,
-                              int turn_pwm_command,
-                              int pwm_limit) const;
-
-private:
-    double turn_target_scale_ = 35.0;
+                              int applied_turn_output) const;
 };
 
 }  // namespace ls2k::legacy

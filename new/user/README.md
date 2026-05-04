@@ -105,7 +105,7 @@ CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
 - `steering_media_alignment.jsonl`
 - `summary.json`
 
-`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开分组转向合同：`reference.{mode,source}`、`eligibility.*`、`curvature.*`、`control.*`、`degraded.*`、`yaw_control.yaw_rate_target`、`actuator.{raw_turn_output,applied_turn_output}`。旧的 near/far 误差派生字段和旧扁平 reference/control 字段已经从协议中移除。
+`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开分组转向合同：`perception_health.*`、`reference.{mode,source}`、`eligibility.*`、`lateral_error.*`、`reference_control.*`、`safety_gate.*`、`degraded.*`、`yaw_control.turn_output_target`、`actuator.{raw_turn_output,applied_turn_output}`。旧的 near/far 误差派生字段和旧扁平 reference/control 字段已经从协议中移除。
 
 如果 steering media 已启用，`tuning` 会额外写出一组 sibling evidence：
 

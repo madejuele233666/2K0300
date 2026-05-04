@@ -7,8 +7,6 @@
 namespace ls2k::legacy {
 namespace {
 
-constexpr float kForwardEpsilonM = 1.0e-4F;
-
 bool IsReferencePointPresent(const port::BEVPathSample& sample) {
     return sample.present && std::isfinite(sample.point.forward_m) && std::isfinite(sample.point.lateral_m);
 }
@@ -20,18 +18,6 @@ std::size_t ConfiguredMinLeadingSamples(const port::RuntimeParameters& params) {
                    kMinSamplesForInterpolation,
                    static_cast<int>(port::kBevReferenceSampleCount));
     return static_cast<std::size_t>(bounded);
-}
-
-float ComputeRequestedLookahead(float leading_max_forward_m,
-                                const port::BEVControlModelParameters& model) {
-    const double min_lookahead = std::max(0.0, std::min(model.lookahead_min_m, model.lookahead_max_m));
-    const double max_lookahead = std::max(model.lookahead_min_m, model.lookahead_max_m);
-    const double requested =
-        std::clamp(static_cast<double>(leading_max_forward_m) *
-                       std::max(0.0, model.lookahead_visible_range_ratio),
-                   min_lookahead,
-                   max_lookahead);
-    return static_cast<float>(requested);
 }
 
 }  // namespace
@@ -63,15 +49,6 @@ port::ReferenceUsability EvaluateReferenceUsability(const port::BEVReferencePath
     }
     if (usability.leading_usable_samples < min_leading_samples) {
         usability.reason = "insufficient_leading_reference";
-        return usability;
-    }
-
-    const float lookahead_m =
-        ComputeRequestedLookahead(usability.leading_max_forward_m, params.bev_control_model);
-    usability.lookahead_distance_m = lookahead_m;
-    if (lookahead_m < usability.leading_min_forward_m - kForwardEpsilonM ||
-        lookahead_m > usability.leading_max_forward_m + kForwardEpsilonM) {
-        usability.reason = "lookahead_out_of_range";
         return usability;
     }
 
