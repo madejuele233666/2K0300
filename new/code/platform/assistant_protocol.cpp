@@ -291,6 +291,16 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     stream << ",\"reason\":";
     AppendJsonString(stream, telemetry.perception_health.reason);
     stream << "}";
+    stream << ",\"visual_reference\":{\"present\":";
+    AppendJsonBool(stream, telemetry.visual_reference.present);
+    stream << ",\"source\":";
+    AppendJsonString(stream, telemetry.visual_reference.source);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.visual_reference.reason);
+    stream << ",\"candidate_count\":" << telemetry.visual_reference.candidate_count;
+    stream << ",\"rejected_candidate_reason\":";
+    AppendJsonString(stream, telemetry.visual_reference.rejected_candidate_reason);
+    stream << "}";
     stream << ",\"reference\":{\"mode\":";
     AppendJsonString(stream, telemetry.reference.mode);
     stream << ",\"source\":";

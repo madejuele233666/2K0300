@@ -14,6 +14,7 @@
 ./debug.sh assistant off
 ./debug.sh tuning --sequence 20,40,60,100 --disabled-mode-checks --invalid-target-speed 170 --media-listen-port 8890
 ./debug.sh steering --duration-s 20
+CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ./debug.sh remote start normal
 ./debug.sh remote start smoke
 ./debug.sh remote status
@@ -91,11 +92,12 @@ CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
 ```bash
 ./debug.sh assistant local 8888 8890
 ./debug.sh build
-./debug.sh remote restart normal
-./debug.sh steering --duration-s 20
+CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ```
 
-这条 `steering` 路径不会发送 `enable_tuning_mode` 或目标速度覆盖命令，因此不会把运行时切进 `turn_suppressed=true` 的动态调参模式。输出 evidence bundle 默认落在 `../verification/steering-debug-<timestamp>/`，其中包含：
+这条 `steering` 路径不会发送 `enable_tuning_mode` 或目标速度覆盖命令，因此不会把运行时切进 `turn_suppressed=true` 的动态调参模式。passive capture 输出 evidence bundle 默认落在 `../verification/steering-debug-<timestamp>/`，其中包含：
+
+`steering drive` 是受控发车采集入口：它先启动 assistant/steering-media listener 并确认端口已绑定，再启动 normal runtime 的 `LS2K_AUTO_START=1` 和 `LS2K_AUTO_STOP_AFTER_MS=<drive-s>`；输出默认落在 `../verification/controlled-drive-<drive-s>s-<timestamp>/`。不要用两个独立终端手工拼接 listener 与 `remote restart normal`，否则板端可能在 listener 未就绪时先连接，日志表现为 `assistant.backoff Connection refused` / `steering_media.backoff Connection refused`。
 
 - `assistant_control.csv`
 - `assistant_summary.json`

@@ -123,6 +123,12 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.threshold = snapshot.threshold;
     view.perception_health.projector_ok = snapshot.perception_health.projector_ok;
     view.perception_health.reason = snapshot.perception_health.reason;
+    view.visual_reference.present = snapshot.visual_reference.present;
+    view.visual_reference.source = snapshot.visual_reference.source;
+    view.visual_reference.reason = snapshot.visual_reference.reason;
+    view.visual_reference.candidate_count = snapshot.visual_reference.candidate_count;
+    view.visual_reference.rejected_candidate_reason =
+        snapshot.visual_reference.rejected_candidate_reason;
     view.reference.mode = snapshot.reference.mode;
     view.reference.source = snapshot.reference.source;
     view.eligibility.usable = snapshot.eligibility.usable;

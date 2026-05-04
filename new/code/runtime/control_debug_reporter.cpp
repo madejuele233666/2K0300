@@ -74,6 +74,14 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " perception_health.projector_ok="
                      << BoolToken(snapshot.steering.perception_health.projector_ok)
                      << " perception_health.reason=" << snapshot.steering.perception_health.reason
+                     << " visual_reference.present="
+                     << BoolToken(snapshot.steering.visual_reference.present)
+                     << " visual_reference.source=" << snapshot.steering.visual_reference.source
+                     << " visual_reference.reason=" << snapshot.steering.visual_reference.reason
+                     << " visual_reference.candidate_count="
+                     << snapshot.steering.visual_reference.candidate_count
+                     << " visual_reference.rejected_candidate_reason="
+                     << snapshot.steering.visual_reference.rejected_candidate_reason
                      << " reference.mode=" << snapshot.steering.reference.mode
                      << " reference.source=" << snapshot.steering.reference.source
                      << " eligibility.usable=" << BoolToken(snapshot.steering.eligibility.usable)

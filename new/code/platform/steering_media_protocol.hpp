@@ -37,6 +37,14 @@ struct SteeringMediaReferenceView {
     std::string source = "none";
 };
 
+struct SteeringMediaVisualReferenceView {
+    bool present = false;
+    std::string source = "none";
+    std::string reason = "no_visual_reference_candidate";
+    std::uint64_t candidate_count = 0;
+    std::string rejected_candidate_reason = "none";
+};
+
 struct SteeringMediaPerceptionHealthView {
     bool projector_ok = false;
     std::string reason = "projector_invalid";
@@ -85,6 +93,7 @@ struct SteeringMediaActuatorView {
 struct SteeringMediaSnapshotView {
     int threshold = 0;
     SteeringMediaPerceptionHealthView perception_health{};
+    SteeringMediaVisualReferenceView visual_reference{};
     SteeringMediaReferenceView reference{};
     SteeringMediaEligibilityView eligibility{};
     SteeringMediaLateralErrorView lateral_error{};

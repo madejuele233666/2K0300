@@ -16,6 +16,8 @@
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
+#include "legacy/steering_visual_reference_orchestration.hpp"
+#include "port/steering_state_types.hpp"
 
 namespace {
 
@@ -29,6 +31,7 @@ using ls2k::port::RuntimeParameters;
 
 struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
+    ls2k::port::VisualReferenceSelection visual_selection{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
     ls2k::port::ReferenceLateralErrorEstimate lateral_error{};
@@ -410,6 +413,12 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
     std::cout << "overlay_algorithm=bev_simple_pipeline"
               << " perception_health.projector_ok=true"
               << " perception_health.reason=ok"
+              << " visual_reference.present=" << (pipeline.visual_selection.present ? "true" : "false")
+              << " visual_reference.source=" << pipeline.visual_selection.source
+              << " visual_reference.reason=" << pipeline.visual_selection.reason
+              << " visual_reference.candidate_count=" << pipeline.visual_selection.candidate_count
+              << " visual_reference.rejected_candidate_reason="
+              << pipeline.visual_selection.rejected_candidate_reason
               << " reference.mode=" << ls2k::legacy::ToString(pipeline.continuity.mode)
               << " reference.source=" << pipeline.continuity.source
               << " eligibility.usable=" << (pipeline.selected_usability.usable ? "true" : "false")
@@ -433,8 +442,20 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << " lateral_limit_m=" << bev.lateral_limit_m
               << " forward_max_m=" << bev.forward_max_m
               << "\n";
-    for (std::size_t index = 0; index < simple.reference_path.sampled_path.size(); ++index) {
-        const BEVPathSample& sample = simple.reference_path.sampled_path[index];
+    for (std::size_t index = 0;
+         index < pipeline.visual_selection.reference_path.sampled_path.size();
+         ++index) {
+        const BEVPathSample& sample =
+            pipeline.visual_selection.reference_path.sampled_path[index];
+        std::cout << "visual_path_point index=" << index
+                  << " present=" << (sample.present ? "true" : "false")
+                  << " forward_m=" << sample.point.forward_m
+                  << " lateral_m=" << sample.point.lateral_m
+                  << " source=" << ls2k::legacy::ToString(sample.source)
+                  << "\n";
+    }
+    for (std::size_t index = 0; index < pipeline.continuity.reference_path.sampled_path.size(); ++index) {
+        const BEVPathSample& sample = pipeline.continuity.reference_path.sampled_path[index];
         std::cout << "path_point index=" << index
                   << " present=" << (sample.present ? "true" : "false")
                   << " forward_m=" << sample.point.forward_m
@@ -471,14 +492,18 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                                          params,
                                                          projector,
                                                          &lut);
+    const ls2k::port::VisualReferenceCandidate line_candidate =
+        ls2k::legacy::MakeLineVisualReferenceCandidate(result.simple.reference_path,
+                                                       result.simple.reference_source);
+    result.visual_selection = ls2k::legacy::SelectVisualReference({line_candidate});
     const ls2k::port::ReferenceUsability current_usability =
-        ls2k::legacy::EvaluateReferenceUsability(result.simple.reference_path, params);
+        ls2k::legacy::EvaluateReferenceUsability(result.visual_selection.reference_path, params);
     if (current_usability.usable) {
-        result.continuity.reference_path = result.simple.reference_path;
-        result.continuity.mode = result.simple.reference_path.mode;
-        result.continuity.source = result.simple.reference_source;
+        result.continuity.reference_path = result.visual_selection.reference_path;
+        result.continuity.mode = result.visual_selection.reference_path.mode;
+        result.continuity.source = result.visual_selection.source;
         result.continuity.next_hold_state =
-            ls2k::legacy::MakeReferenceHoldState(result.simple.reference_path, params);
+            ls2k::legacy::MakeReferenceHoldState(result.visual_selection.reference_path, params);
         result.selected_usability = current_usability;
     } else {
         const ls2k::port::ReferenceContinuityResult hold_candidate =
@@ -578,10 +603,10 @@ int main(int argc, char** argv) {
             }
         }
 
-        BEVSimplePerceptionResult simple = pipeline.simple;
-        simple.reference_path = pipeline.continuity.reference_path;
-        simple.reference_mode = ls2k::legacy::ToString(pipeline.continuity.mode);
-        simple.reference_source = pipeline.continuity.source;
+        BEVSimplePerceptionResult selected_reference_overlay = pipeline.simple;
+        selected_reference_overlay.reference_path = pipeline.continuity.reference_path;
+        selected_reference_overlay.reference_mode = ls2k::legacy::ToString(pipeline.continuity.mode);
+        selected_reference_overlay.reference_source = pipeline.continuity.source;
         const BEVSimpleImage debug_bev = ls2k::legacy::BuildDebugDenseBevImage(frame.View(frame_id, 1),
                                                                                pipeline.threshold,
                                                                                params,
@@ -598,9 +623,9 @@ int main(int argc, char** argv) {
         if (!bev_only) {
             DrawRawPanel(image, frame, raw_x, raw_y);
         }
-        DrawBevPanel(image, debug_bev, simple, bev_x, bev_y);
+        DrawBevPanel(image, debug_bev, selected_reference_overlay, bev_x, bev_y);
         WriteBmp(output_path, image);
-        PrintSimpleDiagnostics(debug_bev, simple, pipeline, output_path);
+        PrintSimpleDiagnostics(debug_bev, pipeline.simple, pipeline, output_path);
     } catch (const std::exception& error) {
         std::cerr << "scene_overlay_probe failed: " << error.what() << "\n";
         return 1;

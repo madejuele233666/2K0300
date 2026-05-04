@@ -53,6 +53,14 @@ struct AssistantReferenceView {
     std::string source = "none";
 };
 
+struct AssistantVisualReferenceView {
+    bool present = false;
+    std::string source = "none";
+    std::string reason = "no_visual_reference_candidate";
+    std::uint64_t candidate_count = 0;
+    std::string rejected_candidate_reason = "none";
+};
+
 struct AssistantPerceptionHealthView {
     bool projector_ok = false;
     std::string reason = "projector_invalid";
@@ -101,6 +109,7 @@ struct AssistantActuatorView {
 struct AssistantTelemetryView {
     std::string motion_phase = "DISARMED";
     AssistantPerceptionHealthView perception_health{};
+    AssistantVisualReferenceView visual_reference{};
     AssistantReferenceView reference{};
     AssistantEligibilityView eligibility{};
     AssistantLateralErrorView lateral_error{};
