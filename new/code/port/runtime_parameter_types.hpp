@@ -4,6 +4,7 @@
 #include <string>
 
 #include "port/bev_geometry_types.hpp"
+#include "port/visual_element_evidence_types.hpp"
 
 namespace ls2k::port {
 
@@ -59,6 +60,7 @@ struct RuntimeParameters {
     BEVGeometryParameters bev_geometry{};
     BEVClassificationParameters bev_classification{};
     BEVControlModelParameters bev_control_model{};
+    BEVElementParameters bev_element{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

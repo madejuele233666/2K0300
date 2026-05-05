@@ -10,6 +10,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - `bev_geometry_types.hpp`: BEV points, calibration, geometry, classification, and control-model parameters.
 - `bev_reference_types.hpp`: reference path facts, point source, hold state, and continuity result.
 - `visual_reference_orchestration_types.hpp`: visual reference candidate and current visual selection summary.
+- `visual_element_evidence_types.hpp`: BEV visual element evidence facts and element-specific runtime parameters.
 - `reference_usability_types.hpp`: reference usability result.
 - `reference_lateral_error_types.hpp`: reference weighted lateral-error result.
 - `reference_control_readiness_types.hpp`: selected reference and lateral-error readiness result.
@@ -24,6 +25,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
 - BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
 - Visual-reference orchestration includes BEV reference and visual-reference orchestration types.
+- Visual element evidence includes BEV simple row facts, visual element evidence types, visual-reference candidate types, and runtime parameter types.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.
 - Reference lateral error includes BEV reference, reference usability, reference lateral-error, and runtime parameter types.
 - Reference-control readiness includes reference-control readiness, reference usability, and reference lateral-error types.

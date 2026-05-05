@@ -25,6 +25,20 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     ls2k::runtime::ControlDebugSnapshot snapshot{};
     snapshot.valid = true;
     snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+    snapshot.steering.element_evidence.cross_exit.present = true;
+    snapshot.steering.element_evidence.cross_exit.confidence = 0.82;
+    snapshot.steering.element_evidence.cross_exit.forward_min_m = 0.20;
+    snapshot.steering.element_evidence.cross_exit.forward_max_m = 0.42;
+    snapshot.steering.element_evidence.cross_exit.lateral_min_m = -0.35;
+    snapshot.steering.element_evidence.cross_exit.lateral_max_m = 0.36;
+    snapshot.steering.element_evidence.cross_exit.sampleable_count = 120;
+    snapshot.steering.element_evidence.cross_exit.supporting_white_count = 96;
+    snapshot.steering.element_evidence.cross_exit.unknown_count = 3;
+    snapshot.steering.element_evidence.cross_exit.reason = "present";
+    snapshot.steering.element_evidence.cross_exit.candidate.built = true;
+    snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
+    snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
+    snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
     snapshot.steering.visual_reference.present = true;
     snapshot.steering.visual_reference.source = "roadblock_bypass";
     snapshot.steering.visual_reference.reason = "special_visual_candidate_selected";
@@ -70,6 +84,14 @@ void TestSnapshotFactsMapToAssistantView() {
     const ls2k::platform::AssistantTelemetryView telemetry =
         ls2k::runtime::BuildAssistantTelemetryView(MakeSnapshot());
     Expect(telemetry.motion_phase == "RUNNING", "motion phase must be mapped");
+    Expect(telemetry.element_evidence.cross_exit.present,
+           "cross evidence presence must be copied");
+    Expect(telemetry.element_evidence.cross_exit.reason == "present",
+           "cross evidence reason must be copied");
+    Expect(telemetry.element_evidence.cross_exit.candidate.built,
+           "cross candidate build state must be copied");
+    Expect(!telemetry.element_evidence.cross_exit.candidate.included_in_arbitration,
+           "disabled cross candidate inclusion must be copied");
     Expect(telemetry.visual_reference.present,
            "visual reference presence must be copied");
     Expect(telemetry.visual_reference.source == "roadblock_bypass",
@@ -91,6 +113,12 @@ void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
     const ls2k::platform::AssistantTelemetryView telemetry =
         ls2k::runtime::BuildAssistantTelemetryView(MakeSnapshot());
     const std::string json = ls2k::platform::EncodeAssistantTelemetry(telemetry);
+    Expect(Contains(json, "\"element_evidence\":{\"cross_exit\":{\"present\":true"),
+           "assistant telemetry must include element evidence object");
+    Expect(Contains(json, "\"candidate\":{\"built\":true"),
+           "assistant telemetry must include element candidate summary");
+    Expect(Contains(json, "\"included_in_arbitration\":false"),
+           "assistant telemetry must expose disabled arbitration inclusion");
     Expect(Contains(json, "\"visual_reference\":{\"present\":true"),
            "assistant telemetry must include visual_reference object");
     Expect(Contains(json, "\"source\":\"roadblock_bypass\""),

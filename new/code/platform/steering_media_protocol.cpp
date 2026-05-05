@@ -64,6 +64,34 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << ",\"reason\":";
     AppendJsonString(stream, snapshot.perception_health.reason);
     stream << "}";
+    stream << ",\"element_evidence\":{\"cross_exit\":{";
+    stream << "\"present\":";
+    AppendJsonBool(stream, snapshot.element_evidence.cross_exit.present);
+    stream << ",\"confidence\":";
+    AppendJsonNumber(stream, snapshot.element_evidence.cross_exit.confidence);
+    stream << ",\"forward_min_m\":";
+    AppendJsonNumber(stream, snapshot.element_evidence.cross_exit.forward_min_m);
+    stream << ",\"forward_max_m\":";
+    AppendJsonNumber(stream, snapshot.element_evidence.cross_exit.forward_max_m);
+    stream << ",\"lateral_min_m\":";
+    AppendJsonNumber(stream, snapshot.element_evidence.cross_exit.lateral_min_m);
+    stream << ",\"lateral_max_m\":";
+    AppendJsonNumber(stream, snapshot.element_evidence.cross_exit.lateral_max_m);
+    stream << ",\"sampleable_count\":" << snapshot.element_evidence.cross_exit.sampleable_count;
+    stream << ",\"supporting_white_count\":"
+           << snapshot.element_evidence.cross_exit.supporting_white_count;
+    stream << ",\"unknown_count\":" << snapshot.element_evidence.cross_exit.unknown_count;
+    stream << ",\"reason\":";
+    AppendJsonString(stream, snapshot.element_evidence.cross_exit.reason);
+    stream << ",\"candidate\":{\"built\":";
+    AppendJsonBool(stream, snapshot.element_evidence.cross_exit.candidate.built);
+    stream << ",\"takeover_enabled\":";
+    AppendJsonBool(stream, snapshot.element_evidence.cross_exit.candidate.takeover_enabled);
+    stream << ",\"included_in_arbitration\":";
+    AppendJsonBool(stream, snapshot.element_evidence.cross_exit.candidate.included_in_arbitration);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, snapshot.element_evidence.cross_exit.candidate.reason);
+    stream << "}}}";
     stream << ",\"visual_reference\":{\"present\":";
     AppendJsonBool(stream, snapshot.visual_reference.present);
     stream << ",\"source\":";
@@ -261,6 +289,10 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
                      snapshot.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain);
     header << ",\"MIN_LEADING_REFERENCE_SAMPLES\":"
            << snapshot.param_snapshot.bev_control_model.min_leading_reference_samples;
+    header << "}";
+    header << ",\"BEV_ELEMENT\":{";
+    header << "\"CROSS_EXIT_TAKEOVER_ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element.cross_exit_takeover_enabled);
     header << "}";
     header << "}}";
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);

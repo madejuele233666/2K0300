@@ -5,11 +5,13 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 #include "legacy/steering_otsu_threshold.hpp"
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
+#include "legacy/steering_visual_element_evidence.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/perf_counter.hpp"
 
@@ -53,6 +55,7 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
 port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
                                              int threshold,
                                              const port::PerceptionHealth& health,
+                                             const port::VisualElementEvidenceFrame& element_evidence,
                                              const port::VisualReferenceSelection& visual_selection,
                                              const port::ReferenceContinuityResult& continuity,
                                              const port::ReferenceUsability& selected_usability,
@@ -70,6 +73,7 @@ port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
     perception.reference_mode = legacy::ToString(continuity.mode);
     perception.reference_source = continuity.source;
     perception.perception_health = health;
+    perception.element_evidence = element_evidence;
     perception.visual_reference_selection = visual_selection;
     perception.reference_usability = selected_usability;
     perception.reference_lateral_error = lateral_error;
@@ -193,6 +197,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
     port::ReferenceLateralErrorEstimate lateral_error{};
     port::ReferenceControlReadiness reference_control{};
     port::PerceptionHealth health{};
+    port::VisualElementEvidenceFrame element_evidence{};
     port::VisualReferenceSelection visual_selection{};
     {
         LS2K_PERF_SCOPE(port::PerfStage::kPerceptionBev);
@@ -204,7 +209,22 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         const port::VisualReferenceCandidate line_candidate =
             legacy::MakeLineVisualReferenceCandidate(current_facts.reference_path,
                                                      current_facts.reference_source);
-        visual_selection = legacy::SelectVisualReference({line_candidate});
+        element_evidence.cross_exit =
+            legacy::DetectCrossExitEvidence(current_facts.rows, params);
+        port::VisualElementCandidateSummary cross_candidate_summary{};
+        const port::VisualReferenceCandidate cross_candidate =
+            legacy::BuildCrossExitVisualReferenceCandidate(element_evidence.cross_exit,
+                                                          line_candidate,
+                                                          params,
+                                                          cross_candidate_summary);
+        element_evidence.cross_exit.candidate = cross_candidate_summary;
+        std::vector<port::VisualReferenceCandidate> candidates;
+        candidates.reserve(2U);
+        candidates.push_back(line_candidate);
+        if (cross_candidate_summary.included_in_arbitration) {
+            candidates.push_back(cross_candidate);
+        }
+        visual_selection = legacy::SelectVisualReference(candidates);
         const port::ReferenceUsability current_usability =
             legacy::EvaluateReferenceUsability(visual_selection.reference_path, params);
         if (current_usability.usable) {
@@ -241,6 +261,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
     port::PerceptionResult perception = BuildPerceptionResult(capture,
                                                               threshold,
                                                               health,
+                                                              element_evidence,
                                                               visual_selection,
                                                               continuity,
                                                               selected_usability,

@@ -74,6 +74,34 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " perception_health.projector_ok="
                      << BoolToken(snapshot.steering.perception_health.projector_ok)
                      << " perception_health.reason=" << snapshot.steering.perception_health.reason
+                     << " element_evidence.cross_exit.present="
+                     << BoolToken(snapshot.steering.element_evidence.cross_exit.present)
+                     << " element_evidence.cross_exit.confidence="
+                     << snapshot.steering.element_evidence.cross_exit.confidence
+                     << " element_evidence.cross_exit.forward_min_m="
+                     << snapshot.steering.element_evidence.cross_exit.forward_min_m
+                     << " element_evidence.cross_exit.forward_max_m="
+                     << snapshot.steering.element_evidence.cross_exit.forward_max_m
+                     << " element_evidence.cross_exit.lateral_min_m="
+                     << snapshot.steering.element_evidence.cross_exit.lateral_min_m
+                     << " element_evidence.cross_exit.lateral_max_m="
+                     << snapshot.steering.element_evidence.cross_exit.lateral_max_m
+                     << " element_evidence.cross_exit.sampleable_count="
+                     << snapshot.steering.element_evidence.cross_exit.sampleable_count
+                     << " element_evidence.cross_exit.supporting_white_count="
+                     << snapshot.steering.element_evidence.cross_exit.supporting_white_count
+                     << " element_evidence.cross_exit.unknown_count="
+                     << snapshot.steering.element_evidence.cross_exit.unknown_count
+                     << " element_evidence.cross_exit.reason="
+                     << snapshot.steering.element_evidence.cross_exit.reason
+                     << " element_evidence.cross_exit.candidate.built="
+                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.built)
+                     << " element_evidence.cross_exit.candidate.takeover_enabled="
+                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled)
+                     << " element_evidence.cross_exit.candidate.included_in_arbitration="
+                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration)
+                     << " element_evidence.cross_exit.candidate.reason="
+                     << snapshot.steering.element_evidence.cross_exit.candidate.reason
                      << " visual_reference.present="
                      << BoolToken(snapshot.steering.visual_reference.present)
                      << " visual_reference.source=" << snapshot.steering.visual_reference.source

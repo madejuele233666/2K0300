@@ -157,6 +157,7 @@ none
   - `BEV_GEOMETRY`
   - `BEV_CLASSIFICATION`
   - `BEV_CONTROL_MODEL`
+  - `BEV_ELEMENT`
 
 ### 元素扩展
 
@@ -295,6 +296,7 @@ debug JSON 分组应保持：
 ```json
 {
   "perception_health": {},
+  "element_evidence": {},
   "reference": {},
   "eligibility": {},
   "lateral_error": {},
@@ -317,7 +319,8 @@ steering media config snapshot 必须暴露当前真实参数，包括：
   "BEV_PROJECTOR": {},
   "BEV_GEOMETRY": {},
   "BEV_CLASSIFICATION": {},
-  "BEV_CONTROL_MODEL": {}
+  "BEV_CONTROL_MODEL": {},
+  "BEV_ELEMENT": {}
 }
 ```
 

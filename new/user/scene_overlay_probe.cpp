@@ -16,6 +16,7 @@
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
+#include "legacy/steering_visual_element_evidence.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/steering_state_types.hpp"
 
@@ -31,6 +32,7 @@ using ls2k::port::RuntimeParameters;
 
 struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
+    ls2k::port::VisualElementEvidenceFrame element_evidence{};
     ls2k::port::VisualReferenceSelection visual_selection{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
@@ -413,6 +415,34 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
     std::cout << "overlay_algorithm=bev_simple_pipeline"
               << " perception_health.projector_ok=true"
               << " perception_health.reason=ok"
+              << " element_evidence.cross_exit.present="
+              << (pipeline.element_evidence.cross_exit.present ? "true" : "false")
+              << " element_evidence.cross_exit.confidence="
+              << pipeline.element_evidence.cross_exit.confidence
+              << " element_evidence.cross_exit.forward_min_m="
+              << pipeline.element_evidence.cross_exit.forward_min_m
+              << " element_evidence.cross_exit.forward_max_m="
+              << pipeline.element_evidence.cross_exit.forward_max_m
+              << " element_evidence.cross_exit.lateral_min_m="
+              << pipeline.element_evidence.cross_exit.lateral_min_m
+              << " element_evidence.cross_exit.lateral_max_m="
+              << pipeline.element_evidence.cross_exit.lateral_max_m
+              << " element_evidence.cross_exit.sampleable_count="
+              << pipeline.element_evidence.cross_exit.sampleable_count
+              << " element_evidence.cross_exit.supporting_white_count="
+              << pipeline.element_evidence.cross_exit.supporting_white_count
+              << " element_evidence.cross_exit.unknown_count="
+              << pipeline.element_evidence.cross_exit.unknown_count
+              << " element_evidence.cross_exit.reason="
+              << pipeline.element_evidence.cross_exit.reason
+              << " element_evidence.cross_exit.candidate.built="
+              << (pipeline.element_evidence.cross_exit.candidate.built ? "true" : "false")
+              << " element_evidence.cross_exit.candidate.takeover_enabled="
+              << (pipeline.element_evidence.cross_exit.candidate.takeover_enabled ? "true" : "false")
+              << " element_evidence.cross_exit.candidate.included_in_arbitration="
+              << (pipeline.element_evidence.cross_exit.candidate.included_in_arbitration ? "true" : "false")
+              << " element_evidence.cross_exit.candidate.reason="
+              << pipeline.element_evidence.cross_exit.candidate.reason
               << " visual_reference.present=" << (pipeline.visual_selection.present ? "true" : "false")
               << " visual_reference.source=" << pipeline.visual_selection.source
               << " visual_reference.reason=" << pipeline.visual_selection.reason
@@ -495,7 +525,22 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     const ls2k::port::VisualReferenceCandidate line_candidate =
         ls2k::legacy::MakeLineVisualReferenceCandidate(result.simple.reference_path,
                                                        result.simple.reference_source);
-    result.visual_selection = ls2k::legacy::SelectVisualReference({line_candidate});
+    result.element_evidence.cross_exit =
+        ls2k::legacy::DetectCrossExitEvidence(result.simple.rows, params);
+    ls2k::port::VisualElementCandidateSummary cross_candidate_summary{};
+    const ls2k::port::VisualReferenceCandidate cross_candidate =
+        ls2k::legacy::BuildCrossExitVisualReferenceCandidate(result.element_evidence.cross_exit,
+                                                            line_candidate,
+                                                            params,
+                                                            cross_candidate_summary);
+    result.element_evidence.cross_exit.candidate = cross_candidate_summary;
+    std::vector<ls2k::port::VisualReferenceCandidate> candidates;
+    candidates.reserve(2U);
+    candidates.push_back(line_candidate);
+    if (cross_candidate_summary.included_in_arbitration) {
+        candidates.push_back(cross_candidate);
+    }
+    result.visual_selection = ls2k::legacy::SelectVisualReference(candidates);
     const ls2k::port::ReferenceUsability current_usability =
         ls2k::legacy::EvaluateReferenceUsability(result.visual_selection.reference_path, params);
     if (current_usability.usable) {
