@@ -80,10 +80,6 @@ int main() {
         Expect(!enabled.parse_failure, "enabled fixture should parse cleanly");
         Expect(enabled.bev_element.cross_exit_takeover_enabled,
                "CROSS_EXIT_TAKEOVER_ENABLED=1 should parse true");
-        Expect(enabled.bev_element_raster.enabled,
-               "missing BEV_ELEMENT_RASTER should keep raster enabled by default");
-        Expect(enabled.bev_element_raster.width == 320,
-               "missing BEV_ELEMENT_RASTER should use default raster width");
 
         const std::string absent_path = base + "_absent.json";
         WriteText(absent_path, MinimalRuntimeParametersJson(""));
@@ -94,10 +90,6 @@ int main() {
         Expect(!absent.parse_failure, "absent BEV_ELEMENT should parse cleanly");
         Expect(!absent.bev_element.cross_exit_takeover_enabled,
                "missing BEV_ELEMENT should keep takeover disabled");
-        Expect(absent.bev_element_raster.enabled,
-               "missing BEV_ELEMENT_RASTER should parse with enabled default");
-        Expect(absent.bev_element_raster.width == 320,
-               "missing BEV_ELEMENT_RASTER should parse with width default");
 
         const std::string malformed_path = base + "_malformed.json";
         WriteText(malformed_path,
@@ -114,24 +106,6 @@ int main() {
                "malformed CROSS_EXIT_TAKEOVER_ENABLED should fail closed");
         Expect(malformed_diagnostics.SawCode("params.parse"),
                "malformed CROSS_EXIT_TAKEOVER_ENABLED should emit params.parse");
-
-        const std::string malformed_raster_path = base + "_malformed_raster.json";
-        WriteText(malformed_raster_path,
-                  MinimalRuntimeParametersJson(
-                      "  \"BEV_ELEMENT_RASTER\": {\"ENABLED\": 1, \"WIDTH\": 1}"));
-        CaptureDiagnostics malformed_raster_diagnostics{};
-        const ls2k::port::RuntimeParameters malformed_raster =
-            LoadFixture(malformed_raster_path, malformed_raster_diagnostics);
-        Expect(malformed_raster.loaded_from_defaults,
-               "out-of-range BEV_ELEMENT_RASTER.WIDTH should fall back to defaults");
-        Expect(malformed_raster.parse_failure,
-               "out-of-range BEV_ELEMENT_RASTER.WIDTH should set parse_failure");
-        Expect(malformed_raster.bev_element_raster.enabled,
-               "raster fallback should keep default enabled");
-        Expect(malformed_raster.bev_element_raster.width == 320,
-               "raster fallback should keep default width");
-        Expect(malformed_raster_diagnostics.SawCode("params.parse"),
-               "out-of-range BEV_ELEMENT_RASTER.WIDTH should emit params.parse");
 
         std::cout << "param_store_load_runtime_parameters_test passed\n";
         return 0;

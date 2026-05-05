@@ -252,14 +252,6 @@ int main(int argc, char** argv) {
                    NumberField(element, "CROSS_EXIT_TAKEOVER_ENABLED"),
                    "BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED");
 
-        const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
-        ExpectBool(params.bev_element_raster.enabled,
-                   NumberField(element_raster, "ENABLED"),
-                   "BEV_ELEMENT_RASTER.ENABLED");
-        ExpectInt(params.bev_element_raster.width,
-                  NumberField(element_raster, "WIDTH"),
-                  "BEV_ELEMENT_RASTER.WIDTH");
-
         std::cout << "runtime_parameter_defaults_test passed\n";
         return 0;
     } catch (const std::exception& error) {

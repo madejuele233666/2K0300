@@ -10,7 +10,34 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     const ControlDebugSnapshot& snapshot) {
     platform::AssistantTelemetryView telemetry{};
     telemetry.motion_phase = ToString(snapshot.motion_phase);
-    telemetry.element_evidence = snapshot.steering.element_evidence;
+    telemetry.element_evidence.cross_exit.present =
+        snapshot.steering.element_evidence.cross_exit.present;
+    telemetry.element_evidence.cross_exit.confidence =
+        snapshot.steering.element_evidence.cross_exit.confidence;
+    telemetry.element_evidence.cross_exit.forward_min_m =
+        snapshot.steering.element_evidence.cross_exit.forward_min_m;
+    telemetry.element_evidence.cross_exit.forward_max_m =
+        snapshot.steering.element_evidence.cross_exit.forward_max_m;
+    telemetry.element_evidence.cross_exit.lateral_min_m =
+        snapshot.steering.element_evidence.cross_exit.lateral_min_m;
+    telemetry.element_evidence.cross_exit.lateral_max_m =
+        snapshot.steering.element_evidence.cross_exit.lateral_max_m;
+    telemetry.element_evidence.cross_exit.sampleable_count =
+        snapshot.steering.element_evidence.cross_exit.sampleable_count;
+    telemetry.element_evidence.cross_exit.supporting_white_count =
+        snapshot.steering.element_evidence.cross_exit.supporting_white_count;
+    telemetry.element_evidence.cross_exit.unknown_count =
+        snapshot.steering.element_evidence.cross_exit.unknown_count;
+    telemetry.element_evidence.cross_exit.reason =
+        snapshot.steering.element_evidence.cross_exit.reason;
+    telemetry.element_evidence.cross_exit.candidate.built =
+        snapshot.steering.element_evidence.cross_exit.candidate.built;
+    telemetry.element_evidence.cross_exit.candidate.takeover_enabled =
+        snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled;
+    telemetry.element_evidence.cross_exit.candidate.included_in_arbitration =
+        snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration;
+    telemetry.element_evidence.cross_exit.candidate.reason =
+        snapshot.steering.element_evidence.cross_exit.candidate.reason;
     telemetry.visual_reference.present = snapshot.steering.visual_reference.present;
     telemetry.visual_reference.source = snapshot.steering.visual_reference.source;
     telemetry.visual_reference.reason = snapshot.steering.visual_reference.reason;

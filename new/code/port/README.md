@@ -7,7 +7,6 @@ Do not create aggregate include headers for steering/reference/control types.
 ## Layered Type Headers
 
 - `camera_frame_types.hpp`: camera frame view/capture types.
-- `bev_element_raster_types.hpp`: runtime BEV element raster cell, projection-state, and parameter types.
 - `bev_geometry_types.hpp`: BEV points, calibration, geometry, classification, and control-model parameters.
 - `bev_reference_types.hpp`: reference path facts, point source, hold state, and continuity result.
 - `visual_reference_orchestration_types.hpp`: visual reference candidate and current visual selection summary.
@@ -25,14 +24,13 @@ Do not create aggregate include headers for steering/reference/control types.
 
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
 - BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
-- BEV element raster includes camera frame, BEV element raster, BEV geometry, and runtime parameter types.
 - Visual-reference orchestration includes BEV reference and visual-reference orchestration types.
 - Visual element evidence includes BEV simple row facts, visual element evidence types, visual-reference candidate types, and runtime parameter types.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.
 - Reference lateral error includes BEV reference, reference usability, reference lateral-error, and runtime parameter types.
 - Reference-control readiness includes reference-control readiness, reference usability, and reference lateral-error types.
 - Otsu threshold includes only camera frame types.
-- Perception frontend includes camera frame, perception result, steering state, sensor sample, runtime parameter types, and the single-frame perception pipeline.
+- Perception frontend includes camera frame, perception result, steering state, sensor sample, runtime parameter types, and layer function headers.
 - Steering yaw target includes steering state and runtime parameter types.
 - Protocol, media, and debug snapshot layers may include `perception_result.hpp` or their own protocol view types.
 - Tests include the concrete layer under test.
@@ -45,7 +43,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - Steering yaw target must not include `perception_result.hpp`.
 - Reference-control readiness must not depend on low voltage, projector state, IMU, encoder, or stale timing.
 - BEV simple perception and reference hold builders must not depend on reference usability.
-- The single-frame perception pipeline is the owner of current/hold/none reference selection.
+- Runtime frontend is the owner of current/hold/none reference selection.
 - Visual-reference orchestration is the only owner of current visual reference candidate selection.
 - Reference continuity remains the only owner of hold selection.
 - Assistant/debug transports must serialize published facts and must not recompute control facts.
@@ -58,9 +56,9 @@ PerceptionResult is a runtime transport snapshot, not a dependency shortcut.
 
 ## Memory Ownership
 
-- `SteeringFramePerceptionPipeline` owns `SteeringPerceptionMemory`: reference hold only.
+- `PerceptionFrontend` owns `SteeringPerceptionMemory`: reference hold only.
 - IMU health belongs to the control/safety path; perception must not own IMU safety memory or IMU grace state.
 - `ControlLoop` owns `SteeringControlMemory`: yaw controller memory.
 - `RuntimeState` does not store mixed steering memory. Runtime reset requests for perception memory use `perception_memory_reset_generation`.
-- `PerceptionResult` is assembled only by the single-frame perception pipeline from layer facts.
+- `PerceptionResult` is assembled only by the runtime frontend from layer facts.
 - Old camera PID parameters and the removed adaptive camera controller are absent from active code and JSON.

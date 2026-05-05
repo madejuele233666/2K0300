@@ -114,7 +114,6 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.bev_classification = params_.bev_classification;
     snapshot.param_snapshot.bev_control_model = params_.bev_control_model;
     snapshot.param_snapshot.bev_element = params_.bev_element;
-    snapshot.param_snapshot.bev_element_raster = params_.bev_element_raster;
     return snapshot;
 }
 
@@ -125,7 +124,26 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.threshold = snapshot.threshold;
     view.perception_health.projector_ok = snapshot.perception_health.projector_ok;
     view.perception_health.reason = snapshot.perception_health.reason;
-    view.element_evidence = snapshot.element_evidence;
+    view.element_evidence.cross_exit.present = snapshot.element_evidence.cross_exit.present;
+    view.element_evidence.cross_exit.confidence = snapshot.element_evidence.cross_exit.confidence;
+    view.element_evidence.cross_exit.forward_min_m = snapshot.element_evidence.cross_exit.forward_min_m;
+    view.element_evidence.cross_exit.forward_max_m = snapshot.element_evidence.cross_exit.forward_max_m;
+    view.element_evidence.cross_exit.lateral_min_m = snapshot.element_evidence.cross_exit.lateral_min_m;
+    view.element_evidence.cross_exit.lateral_max_m = snapshot.element_evidence.cross_exit.lateral_max_m;
+    view.element_evidence.cross_exit.sampleable_count =
+        snapshot.element_evidence.cross_exit.sampleable_count;
+    view.element_evidence.cross_exit.supporting_white_count =
+        snapshot.element_evidence.cross_exit.supporting_white_count;
+    view.element_evidence.cross_exit.unknown_count = snapshot.element_evidence.cross_exit.unknown_count;
+    view.element_evidence.cross_exit.reason = snapshot.element_evidence.cross_exit.reason;
+    view.element_evidence.cross_exit.candidate.built =
+        snapshot.element_evidence.cross_exit.candidate.built;
+    view.element_evidence.cross_exit.candidate.takeover_enabled =
+        snapshot.element_evidence.cross_exit.candidate.takeover_enabled;
+    view.element_evidence.cross_exit.candidate.included_in_arbitration =
+        snapshot.element_evidence.cross_exit.candidate.included_in_arbitration;
+    view.element_evidence.cross_exit.candidate.reason =
+        snapshot.element_evidence.cross_exit.candidate.reason;
     view.visual_reference.present = snapshot.visual_reference.present;
     view.visual_reference.source = snapshot.visual_reference.source;
     view.visual_reference.reason = snapshot.visual_reference.reason;

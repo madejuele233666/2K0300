@@ -16,7 +16,7 @@
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
 #include "legacy/steering_reference_usability.hpp"
-#include "legacy/steering_visual_element_pipeline.hpp"
+#include "legacy/steering_visual_element_evidence.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/steering_state_types.hpp"
 
@@ -29,12 +29,10 @@ using ls2k::port::BEVPathSample;
 using ls2k::port::LegacyCameraFrame;
 using ls2k::port::LegacyCameraFrameView;
 using ls2k::port::RuntimeParameters;
-using ls2k::port::VisualElementEvidenceFrame;
-using ls2k::port::VisualElementEvidenceRecord;
 
 struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
-    VisualElementEvidenceFrame element_evidence{};
+    ls2k::port::VisualElementEvidenceFrame element_evidence{};
     ls2k::port::VisualReferenceSelection visual_selection{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
@@ -44,10 +42,6 @@ struct ProbePipelineResult {
     bool memory_update_valid = false;
     int threshold = 0;
 };
-
-const char* BoolToken(bool value) {
-    return value ? "true" : "false";
-}
 
 struct Color {
     std::uint8_t r = 0;
@@ -449,8 +443,6 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << (pipeline.element_evidence.cross_exit.candidate.included_in_arbitration ? "true" : "false")
               << " element_evidence.cross_exit.candidate.reason="
               << pipeline.element_evidence.cross_exit.candidate.reason
-              << " element_evidence.records.count="
-              << pipeline.element_evidence.records.size()
               << " visual_reference.present=" << (pipeline.visual_selection.present ? "true" : "false")
               << " visual_reference.source=" << pipeline.visual_selection.source
               << " visual_reference.reason=" << pipeline.visual_selection.reason
@@ -480,41 +472,6 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << " lateral_limit_m=" << bev.lateral_limit_m
               << " forward_max_m=" << bev.forward_max_m
               << "\n";
-    for (std::size_t index = 0; index < pipeline.element_evidence.records.size(); ++index) {
-        const VisualElementEvidenceRecord& record = pipeline.element_evidence.records[index];
-        std::cout << "element_evidence.records[" << index << "].id=" << record.id
-                  << " element_evidence.records[" << index << "].present="
-                  << BoolToken(record.present)
-                  << " element_evidence.records[" << index << "].confidence="
-                  << record.confidence
-                  << " element_evidence.records[" << index << "].reason=" << record.reason
-                  << " element_evidence.records[" << index << "].bounds.forward_min_m="
-                  << record.bounds.forward_min_m
-                  << " element_evidence.records[" << index << "].bounds.forward_max_m="
-                  << record.bounds.forward_max_m
-                  << " element_evidence.records[" << index << "].bounds.lateral_min_m="
-                  << record.bounds.lateral_min_m
-                  << " element_evidence.records[" << index << "].bounds.lateral_max_m="
-                  << record.bounds.lateral_max_m
-                  << " element_evidence.records[" << index << "].support.sampleable_count="
-                  << record.support.sampleable_count
-                  << " element_evidence.records[" << index << "].support.supporting_white_count="
-                  << record.support.supporting_white_count
-                  << " element_evidence.records[" << index << "].support.supporting_black_count="
-                  << record.support.supporting_black_count
-                  << " element_evidence.records[" << index << "].support.unknown_count="
-                  << record.support.unknown_count
-                  << " element_evidence.records[" << index << "].candidate.built="
-                  << BoolToken(record.candidate.built)
-                  << " element_evidence.records[" << index << "].candidate.takeover_enabled="
-                  << BoolToken(record.candidate.takeover_enabled)
-                  << " element_evidence.records[" << index
-                  << "].candidate.included_in_arbitration="
-                  << BoolToken(record.candidate.included_in_arbitration)
-                  << " element_evidence.records[" << index << "].candidate.reason="
-                  << record.candidate.reason
-                  << "\n";
-    }
     for (std::size_t index = 0;
          index < pipeline.visual_selection.reference_path.sampled_path.size();
          ++index) {
@@ -568,18 +525,21 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     const ls2k::port::VisualReferenceCandidate line_candidate =
         ls2k::legacy::MakeLineVisualReferenceCandidate(result.simple.reference_path,
                                                        result.simple.reference_source);
-    ls2k::legacy::VisualElementPipelineInput element_input{};
-    element_input.sparse_rows = &result.simple.rows;
-    element_input.line_candidate = line_candidate;
-    const ls2k::legacy::VisualElementPipelineResult element_result =
-        ls2k::legacy::RunVisualElementPipeline(element_input, params);
-    result.element_evidence = element_result.evidence;
+    result.element_evidence.cross_exit =
+        ls2k::legacy::DetectCrossExitEvidence(result.simple.rows, params);
+    ls2k::port::VisualElementCandidateSummary cross_candidate_summary{};
+    const ls2k::port::VisualReferenceCandidate cross_candidate =
+        ls2k::legacy::BuildCrossExitVisualReferenceCandidate(result.element_evidence.cross_exit,
+                                                            line_candidate,
+                                                            params,
+                                                            cross_candidate_summary);
+    result.element_evidence.cross_exit.candidate = cross_candidate_summary;
     std::vector<ls2k::port::VisualReferenceCandidate> candidates;
-    candidates.reserve(1U + element_result.candidates.size());
+    candidates.reserve(2U);
     candidates.push_back(line_candidate);
-    candidates.insert(candidates.end(),
-                      element_result.candidates.begin(),
-                      element_result.candidates.end());
+    if (cross_candidate_summary.included_in_arbitration) {
+        candidates.push_back(cross_candidate);
+    }
     result.visual_selection = ls2k::legacy::SelectVisualReference(candidates);
     const ls2k::port::ReferenceUsability current_usability =
         ls2k::legacy::EvaluateReferenceUsability(result.visual_selection.reference_path, params);

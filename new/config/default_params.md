@@ -151,8 +151,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `BEV_PROJECTOR.VALID` | `1` | 投影是否可用。置 `0` 会让 perception health 失败，只用于 fail-safe 验证。 |
 | `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_true_bev_manual_forward_scale_v5` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
 | `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-true-bev-manual-forward-scale-20260428` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
-| `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse/raster authority。runtime 元素 raster 看 `BEV_ELEMENT_RASTER.WIDTH`。 |
-| `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。runtime 元素 raster 高度按 metric aspect 派生。 |
+| `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse authority。 |
+| `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。 |
 | `BEV_PROJECTOR.SOURCE_ROW_0` / `SOURCE_COL_0` | `220.0` / `19.0` | 近端左标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `220.0` / `305.0` | 近端右标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `68.0` / `108.0` | 远端左标定点在原图中的像素位置。 |
@@ -225,10 +225,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | 默认关闭。关闭时 `element_evidence.cross_exit` 仍会报告视觉事实和 candidate 构造状态，但 cross candidate 不进入 visual-reference arbitration；开启后也必须先通过 existing candidate validation、reference usability、lateral error、reference-control readiness 和 safety gate。 |
-| `BEV_ELEMENT_RASTER.ENABLED` | `1` | runtime BEV element raster | runtime 元素 raster 开关。默认开启，用于 circle/roadblock/ML 和后续连线判黑事实输入；关闭时 raster 不采样、不产出 sampleable cells，sparse line/cross 仍走原输入。 |
-| `BEV_ELEMENT_RASTER.WIDTH` | `320` | runtime BEV element raster | raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
 
-`cross_exit` 第一版只用于 evidence/debug。不要为了让车“看起来过十字”而用它直接改 actuator、yaw、safety 或 hold。现场先在 no-motion capture 中确认 `element_evidence.cross_exit.{present,confidence,reason,candidate.*}` 与 raw/BEV 画面对齐。generic element 扩展记录统一在 `element_evidence.records[]`，旧消费者只读 `cross_exit` 即可。
+`cross_exit` 第一版只用于 evidence/debug。不要为了让车“看起来过十字”而用它直接改 actuator、yaw、safety 或 hold。现场先在 no-motion capture 中确认 `element_evidence.cross_exit.{present,confidence,reason,candidate.*}` 与 raw/BEV 画面对齐。
 
 ## 13. 禁止使用历史参数思路调车
 

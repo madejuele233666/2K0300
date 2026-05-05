@@ -5,7 +5,14 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 
+#include "legacy/steering_otsu_threshold.hpp"
+#include "legacy/steering_reference_control_readiness.hpp"
+#include "legacy/steering_reference_lateral_error.hpp"
+#include "legacy/steering_reference_usability.hpp"
+#include "legacy/steering_visual_element_evidence.hpp"
+#include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/perf_counter.hpp"
 
 namespace ls2k::runtime {
@@ -45,6 +52,35 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     return fallback;
 }
 
+port::PerceptionResult BuildPerceptionResult(const port::CameraCapture& capture,
+                                             int threshold,
+                                             const port::PerceptionHealth& health,
+                                             const port::VisualElementEvidenceFrame& element_evidence,
+                                             const port::VisualReferenceSelection& visual_selection,
+                                             const port::ReferenceContinuityResult& continuity,
+                                             const port::ReferenceUsability& selected_usability,
+                                             const port::ReferenceLateralErrorEstimate& lateral_error,
+                                             const port::ReferenceControlReadiness& reference_control,
+                                             uint64_t publish_time_ms) {
+    port::PerceptionResult perception{};
+    perception.published = true;
+    perception.fresh = true;
+    perception.frame_id = capture.frame_id;
+    perception.capture_time_ms = capture.capture_time_ms;
+    perception.publish_time_ms = publish_time_ms;
+    perception.threshold = threshold;
+    perception.perception_tag = "bev_simple";
+    perception.reference_mode = legacy::ToString(continuity.mode);
+    perception.reference_source = continuity.source;
+    perception.perception_health = health;
+    perception.element_evidence = element_evidence;
+    perception.visual_reference_selection = visual_selection;
+    perception.reference_usability = selected_usability;
+    perception.reference_lateral_error = lateral_error;
+    perception.reference_control = reference_control;
+    return perception;
+}
+
 }  // namespace
 
 PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
@@ -53,7 +89,16 @@ PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
     : camera_(camera), state_(state), diagnostics_(diagnostics) {}
 
 bool PerceptionFrontend::Configure(const port::RuntimeParameters& params) {
-    return frame_pipeline_.Configure(params, diagnostics_);
+    projector_configured_ = projector_.Configure(params.bev_projector);
+    sample_lut_ = {};
+    diagnostics_.Emit({projector_configured_ ? port::DiagnosticLevel::kInfo
+                                             : port::DiagnosticLevel::kFailSafe,
+                       projector_configured_ ? "perception.projector.configured"
+                                             : "perception.projector.invalid",
+                       projector_configured_ ? "BEV projector configured once for runtime perception"
+                                             : "BEV projector configuration failed; perception will publish fail-safe fallback",
+                       port::NowMs()});
+    return projector_configured_;
 }
 
 bool PerceptionFrontend::ShouldMaterializeFrame(const port::RuntimeParameters& params) const {
@@ -79,7 +124,7 @@ void PerceptionFrontend::ConsumeMemoryResetRequest() {
     if (generation == consumed_perception_memory_reset_generation_) {
         return;
     }
-    frame_pipeline_.ResetMemory();
+    ResetSteeringPerceptionMemory(perception_memory_);
     consumed_perception_memory_reset_generation_ = generation;
 }
 
@@ -142,7 +187,87 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         return;
     }
 
-    port::PerceptionResult perception = frame_pipeline_.ProcessFrame(capture, params);
+    int threshold = 0;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionOtsu);
+        threshold = legacy::ComputeOtsuThreshold(capture.view);
+    }
+    port::ReferenceContinuityResult continuity{};
+    port::ReferenceUsability selected_usability{};
+    port::ReferenceLateralErrorEstimate lateral_error{};
+    port::ReferenceControlReadiness reference_control{};
+    port::PerceptionHealth health{};
+    port::VisualElementEvidenceFrame element_evidence{};
+    port::VisualReferenceSelection visual_selection{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionBev);
+        health.projector_ok = projector_.Valid();
+        health.reason = health.projector_ok ? "ok" : "projector_invalid";
+        const port::SteeringPerceptionMemory prior_memory = perception_memory_;
+        const legacy::BEVSimplePerceptionResult current_facts =
+            legacy::RunBEVSimplePerception(capture.view, threshold, params, projector_, &sample_lut_);
+        const port::VisualReferenceCandidate line_candidate =
+            legacy::MakeLineVisualReferenceCandidate(current_facts.reference_path,
+                                                     current_facts.reference_source);
+        element_evidence.cross_exit =
+            legacy::DetectCrossExitEvidence(current_facts.rows, params);
+        port::VisualElementCandidateSummary cross_candidate_summary{};
+        const port::VisualReferenceCandidate cross_candidate =
+            legacy::BuildCrossExitVisualReferenceCandidate(element_evidence.cross_exit,
+                                                          line_candidate,
+                                                          params,
+                                                          cross_candidate_summary);
+        element_evidence.cross_exit.candidate = cross_candidate_summary;
+        std::vector<port::VisualReferenceCandidate> candidates;
+        candidates.reserve(2U);
+        candidates.push_back(line_candidate);
+        if (cross_candidate_summary.included_in_arbitration) {
+            candidates.push_back(cross_candidate);
+        }
+        visual_selection = legacy::SelectVisualReference(candidates);
+        const port::ReferenceUsability current_usability =
+            legacy::EvaluateReferenceUsability(visual_selection.reference_path, params);
+        if (current_usability.usable) {
+            continuity.reference_path = visual_selection.reference_path;
+            continuity.mode = visual_selection.reference_path.mode;
+            continuity.source = visual_selection.source;
+            continuity.hold_selected = false;
+            continuity.next_hold_state =
+                legacy::MakeReferenceHoldState(visual_selection.reference_path, params);
+            selected_usability = current_usability;
+        } else {
+            const port::ReferenceContinuityResult hold_candidate =
+                legacy::BuildReferenceHoldCandidate(prior_memory.reference_hold, params);
+            const port::ReferenceUsability hold_usability =
+                legacy::EvaluateReferenceUsability(hold_candidate.reference_path, params);
+            if (hold_usability.usable) {
+                continuity = hold_candidate;
+                selected_usability = hold_usability;
+            } else {
+                continuity = {};
+                selected_usability =
+                    legacy::EvaluateReferenceUsability(continuity.reference_path, params);
+            }
+        }
+        lateral_error = legacy::ComputeReferenceLateralError(continuity.reference_path,
+                                                            selected_usability,
+                                                            params);
+        reference_control = legacy::EvaluateReferenceControlReadiness(selected_usability,
+                                                                      lateral_error,
+                                                                      continuity.hold_selected);
+        perception_memory_.reference_hold = continuity.next_hold_state;
+    }
+    const uint64_t publish_time_ms = port::NowMs();
+    port::PerceptionResult perception = BuildPerceptionResult(capture,
+                                                              threshold,
+                                                              health,
+                                                              element_evidence,
+                                                              visual_selection,
+                                                              continuity,
+                                                              selected_usability,
+                                                              lateral_error,
+                                                              reference_control,
+                                                              publish_time_ms);
 
     std::lock_guard<std::mutex> lock(state_.shared_mutex);
     (void)RememberCameraCapture(capture, params);

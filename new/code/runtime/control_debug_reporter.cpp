@@ -98,47 +98,12 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.built)
                      << " element_evidence.cross_exit.candidate.takeover_enabled="
                      << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled)
-	                     << " element_evidence.cross_exit.candidate.included_in_arbitration="
-	                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration)
-	                     << " element_evidence.cross_exit.candidate.reason="
-	                     << snapshot.steering.element_evidence.cross_exit.candidate.reason;
-    for (std::size_t index = 0; index < snapshot.steering.element_evidence.records.size(); ++index) {
-        const port::VisualElementEvidenceRecord& record =
-            snapshot.steering.element_evidence.records[index];
-        steering_message << " element_evidence.records[" << index << "].id=" << record.id
-                         << " element_evidence.records[" << index << "].present="
-                         << BoolToken(record.present)
-                         << " element_evidence.records[" << index << "].confidence="
-                         << record.confidence
-                         << " element_evidence.records[" << index << "].reason="
-                         << record.reason
-                         << " element_evidence.records[" << index << "].bounds.forward_min_m="
-                         << record.bounds.forward_min_m
-                         << " element_evidence.records[" << index << "].bounds.forward_max_m="
-                         << record.bounds.forward_max_m
-                         << " element_evidence.records[" << index << "].bounds.lateral_min_m="
-                         << record.bounds.lateral_min_m
-                         << " element_evidence.records[" << index << "].bounds.lateral_max_m="
-                         << record.bounds.lateral_max_m
-                         << " element_evidence.records[" << index << "].support.sampleable_count="
-                         << record.support.sampleable_count
-                         << " element_evidence.records[" << index << "].support.supporting_white_count="
-                         << record.support.supporting_white_count
-                         << " element_evidence.records[" << index << "].support.supporting_black_count="
-                         << record.support.supporting_black_count
-                         << " element_evidence.records[" << index << "].support.unknown_count="
-                         << record.support.unknown_count
-                         << " element_evidence.records[" << index << "].candidate.built="
-                         << BoolToken(record.candidate.built)
-                         << " element_evidence.records[" << index << "].candidate.takeover_enabled="
-                         << BoolToken(record.candidate.takeover_enabled)
-                         << " element_evidence.records[" << index << "].candidate.included_in_arbitration="
-                         << BoolToken(record.candidate.included_in_arbitration)
-                         << " element_evidence.records[" << index << "].candidate.reason="
-                         << record.candidate.reason;
-    }
-    steering_message << " visual_reference.present="
-	                     << BoolToken(snapshot.steering.visual_reference.present)
+                     << " element_evidence.cross_exit.candidate.included_in_arbitration="
+                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration)
+                     << " element_evidence.cross_exit.candidate.reason="
+                     << snapshot.steering.element_evidence.cross_exit.candidate.reason
+                     << " visual_reference.present="
+                     << BoolToken(snapshot.steering.visual_reference.present)
                      << " visual_reference.source=" << snapshot.steering.visual_reference.source
                      << " visual_reference.reason=" << snapshot.steering.visual_reference.reason
                      << " visual_reference.candidate_count="

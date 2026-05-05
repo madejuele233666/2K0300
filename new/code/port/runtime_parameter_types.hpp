@@ -3,7 +3,6 @@
 
 #include <string>
 
-#include "port/bev_element_raster_types.hpp"
 #include "port/bev_geometry_types.hpp"
 #include "port/visual_element_evidence_types.hpp"
 
@@ -62,7 +61,6 @@ struct RuntimeParameters {
     BEVClassificationParameters bev_classification{};
     BEVControlModelParameters bev_control_model{};
     BEVElementParameters bev_element{};
-    BEVElementRasterParameters bev_element_raster{};
     bool startup_critical_applied = false;
     bool loaded_from_defaults = false;
     bool parse_failure = false;

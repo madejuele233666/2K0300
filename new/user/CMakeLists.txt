@@ -84,16 +84,12 @@ set(NEW_SRCS
     ../code/legacy/steering_otsu_threshold.cpp
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_bev_simple_perception.cpp
-    ../code/legacy/steering_bev_element_raster.cpp
-    ../code/legacy/steering_cross_exit_element_evidence.cpp
     ../code/legacy/steering_visual_element_evidence.cpp
-    ../code/legacy/steering_visual_element_pipeline.cpp
     ../code/legacy/steering_visual_reference_orchestration.cpp
     ../code/legacy/steering_reference_usability.cpp
     ../code/legacy/steering_reference_lateral_error.cpp
     ../code/legacy/steering_reference_control_readiness.cpp
     ../code/runtime/startup.cpp
-    ../code/runtime/steering_frame_perception_pipeline.cpp
     ../code/runtime/perception_frontend.cpp
     ../code/runtime/low_voltage_sampler.cpp
     ../code/runtime/motion_supervisor.cpp
@@ -168,10 +164,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../verification/tests/bev_simple_perception_test.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
         ../code/legacy/steering_visual_element_evidence.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
-        ../code/legacy/steering_visual_element_pipeline.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/port/perf_counter.cpp
@@ -212,7 +205,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         visual_element_evidence_test
         ../verification/tests/visual_element_evidence_test.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
+        ../code/legacy/steering_visual_element_evidence.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp
     )
     target_link_libraries(
@@ -304,9 +297,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_otsu_threshold.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
-        ../code/legacy/steering_visual_element_pipeline.cpp
+        ../code/legacy/steering_visual_element_evidence.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/legacy/steering_reference_lateral_error.cpp

@@ -694,19 +694,6 @@ public:
                                "CROSS_EXIT_TAKEOVER_ENABLED",
                                parsed.bev_element.cross_exit_takeover_enabled,
                                optional_malformed);
-        ReadOptionalNestedBool(root,
-                               "BEV_ELEMENT_RASTER",
-                               "ENABLED",
-                               parsed.bev_element_raster.enabled,
-                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_ELEMENT_RASTER",
-                              "WIDTH",
-                              parsed.bev_element_raster.width,
-                              optional_malformed);
-        if (parsed.bev_element_raster.width < 2) {
-            optional_malformed = true;
-        }
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",

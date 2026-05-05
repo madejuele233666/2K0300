@@ -2,8 +2,7 @@
 
 // Simple BEV perception pipeline:
 // frame view -> virtual BEV sparse row scan -> row white intervals -> reference path.
-// Debug dense BEV remains output-only; runtime element raster is built by
-// steering_bev_element_raster.* and is not read back from debug media.
+// Dense BEV remains a debug-only artifact and is never read back by runtime control.
 
 #include <algorithm>
 #include <cmath>

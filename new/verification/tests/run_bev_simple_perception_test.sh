@@ -12,7 +12,6 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   "${REPO_ROOT}/new/verification/tests/bev_simple_perception_test.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_bev_element_raster.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_usability.cpp" \
   -o "${OUT_BIN}"
 
