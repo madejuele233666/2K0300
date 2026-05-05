@@ -260,8 +260,6 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"BEV_CONTROL_MODEL\":{";
     header << "\"LATERAL_ERROR_FAR_WEIGHT\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_control_model.lateral_error_far_weight);
-    header << ",\"LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX\":"
-           << snapshot.param_snapshot.bev_control_model.lateral_error_max_weighted_sample_index;
     header << ",\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":";
     AppendJsonNumber(header,
                      snapshot.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain);

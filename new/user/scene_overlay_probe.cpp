@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
@@ -191,13 +190,6 @@ void ReadIntField(const std::string& block, const std::string& key, int& out) {
     }
 }
 
-void ReadBoolField(const std::string& block, const std::string& key, bool& out) {
-    double value = 0.0;
-    if (ReadNumberField(block, key, value)) {
-        out = std::abs(value) > 0.5;
-    }
-}
-
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
     if (path.empty()) {
         return;
@@ -236,19 +228,12 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadDoubleField(block,
                         "LATERAL_ERROR_FAR_WEIGHT",
                         params.bev_control_model.lateral_error_far_weight);
-        ReadIntField(block,
-                     "LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX",
-                     params.bev_control_model.lateral_error_max_weighted_sample_index);
         ReadDoubleField(block,
                         "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
                         params.bev_control_model.lateral_error_to_wheel_delta_gain);
         ReadIntField(block,
                      "MIN_LEADING_REFERENCE_SAMPLES",
                      params.bev_control_model.min_leading_reference_samples);
-    }
-    if (ExtractObjectBlock(json, "BEV_ELEMENT_RASTER", block)) {
-        ReadBoolField(block, "ENABLED", params.bev_element_raster.enabled);
-        ReadIntField(block, "WIDTH", params.bev_element_raster.width);
     }
 }
 
@@ -575,20 +560,16 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                      ls2k::legacy::BEVSampleProjectionLut& lut) {
     ProbePipelineResult result{};
     result.threshold = ls2k::legacy::ComputeOtsuThreshold(frame_view);
-    const ls2k::legacy::BEVElementRasterFrame element_raster =
-        ls2k::legacy::BuildBEVElementRaster(frame_view, result.threshold, params, projector, nullptr);
     result.simple = ls2k::legacy::RunBEVSimplePerception(frame_view,
                                                          result.threshold,
                                                          params,
                                                          projector,
-                                                         &lut,
-                                                         &element_raster);
+                                                         &lut);
     const ls2k::port::VisualReferenceCandidate line_candidate =
         ls2k::legacy::MakeLineVisualReferenceCandidate(result.simple.reference_path,
                                                        result.simple.reference_source);
     ls2k::legacy::VisualElementPipelineInput element_input{};
     element_input.sparse_rows = &result.simple.rows;
-    element_input.element_raster = &element_raster;
     element_input.line_candidate = line_candidate;
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);

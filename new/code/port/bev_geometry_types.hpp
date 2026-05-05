@@ -75,8 +75,7 @@ struct BEVClassificationParameters {
 };
 
 struct BEVControlModelParameters {
-    double lateral_error_far_weight = 0.1;
-    int lateral_error_max_weighted_sample_index = 18;
+    double lateral_error_far_weight = 0.0;
     double lateral_error_to_wheel_delta_gain = 600.0;
     int min_leading_reference_samples = 3;
 };

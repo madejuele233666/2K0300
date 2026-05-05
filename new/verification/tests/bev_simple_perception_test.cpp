@@ -6,7 +6,6 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 #include "legacy/steering_bev_projector.hpp"
 #include "legacy/steering_bev_element_raster.hpp"
@@ -97,44 +96,6 @@ int CountPresentPathPoints(const ls2k::port::BEVReferencePath& reference,
         }
     }
     return count;
-}
-
-int CountPresentPathPoints(const ls2k::port::BEVReferencePath& reference) {
-    int count = 0;
-    for (const ls2k::port::BEVPathSample& sample : reference.sampled_path) {
-        if (sample.present) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-ls2k::legacy::BEVElementRasterFrame MakeWhiteElementRaster(
-    const ls2k::port::RuntimeParameters& params) {
-    ls2k::legacy::BEVElementRasterFrame raster{};
-    raster.valid = true;
-    raster.enabled = true;
-    raster.width = 101;
-    raster.lateral_limit_m = params.bev_geometry.search_lateral_limit_m;
-    raster.forward_max_m = params.bev_geometry.forward_samples_m.back();
-    const float metric_width = std::max(1.0e-4F, raster.lateral_limit_m * 2.0F);
-    const float scale_px_per_m = static_cast<float>(raster.width) / metric_width;
-    raster.height = std::max(2, static_cast<int>(std::lround(raster.forward_max_m * scale_px_per_m)));
-    const std::size_t cell_count = static_cast<std::size_t>(raster.width * raster.height);
-    raster.classes.assign(cell_count, ls2k::port::BEVElementRasterCellClass::kWhite);
-    raster.gray.assign(cell_count, 255U);
-    raster.projection_states.assign(cell_count,
-                                    ls2k::port::BEVElementRasterProjectionState::kSampleable);
-    return raster;
-}
-
-void PaintRasterMetricCell(ls2k::legacy::BEVElementRasterFrame& raster,
-                           const ls2k::port::BEVPoint& point,
-                           ls2k::port::BEVElementRasterCellClass klass) {
-    int x = 0;
-    int y = 0;
-    Expect(raster.MetricToCell(point, x, y), "test metric cell must be inside raster");
-    raster.classes[raster.Index(x, y)] = klass;
 }
 
 void TestBevClassificationAndRowIntervals() {
@@ -335,7 +296,7 @@ void TestHoldIsExplicitNonVisualSource() {
     Expect(!rejected.hold_selected, "geometry identity change must reject hold output");
 }
 
-void TestReferencePathStartsAtIndexZeroAndUsesRasterConnectivity() {
+void TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap() {
     ls2k::port::RuntimeParameters params{};
     std::vector<ls2k::legacy::BEVSimpleRowScan> rows(ls2k::port::kBevReferenceSampleCount);
     for (std::size_t index = 0; index < rows.size(); ++index) {
@@ -356,13 +317,12 @@ void TestReferencePathStartsAtIndexZeroAndUsesRasterConnectivity() {
     add_interval(3, 0.0F);
     add_interval(4, 0.0F);
     add_interval(5, 0.0F);
-    ls2k::legacy::BEVElementRasterFrame raster = MakeWhiteElementRaster(params);
     const ls2k::port::BEVReferencePath no_near =
-        ls2k::legacy::BuildReferencePath(rows, params, &raster);
+        ls2k::legacy::BuildReferencePath(rows, params);
     Expect(!ls2k::legacy::EvaluateReferenceUsability(no_near, params).usable,
            "far intervals must not be connected back when index zero is missing");
     Expect(CountPresentPathPoints(no_near, ls2k::port::BEVPathPointSource::kIntervalCenter) == 0,
-           "builder must publish no visual points before a leading segment starts at index zero");
+           "strict builder must publish no visual points before a leading segment starts at index zero");
 
     for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
         row.intervals.clear();
@@ -371,41 +331,14 @@ void TestReferencePathStartsAtIndexZeroAndUsesRasterConnectivity() {
     add_interval(1, 0.0F);
     add_interval(2, 0.0F);
     add_interval(5, 0.0F);
-    const ls2k::port::BEVReferencePath connected =
-        ls2k::legacy::BuildReferencePath(rows, params, &raster);
-    Expect(ls2k::legacy::EvaluateReferenceUsability(connected, params).usable,
+    const ls2k::port::BEVReferencePath stopped =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(ls2k::legacy::EvaluateReferenceUsability(stopped, params).usable,
            "first three leading intervals satisfy the configured control minimum");
-    Expect(CountPresentPathPoints(connected) == 6,
-           "clear raster connectivity must keep the far interval in the leading path");
-    Expect(CountPresentPathPoints(connected,
-                                  ls2k::port::BEVPathPointSource::kRasterConnected) == 2,
-           "missing rows bridged by clear raster connectivity must be marked as raster connected");
-    Expect(connected.sampled_path[5].present &&
-               connected.sampled_path[5].source == ls2k::port::BEVPathPointSource::kIntervalCenter,
-           "far observed interval remains an interval-center fact after connectivity succeeds");
-
-    PaintRasterMetricCell(raster,
-                          {0.5F * (params.bev_geometry.forward_samples_m[2] +
-                                   params.bev_geometry.forward_samples_m[5]),
-                           0.0F},
-                          ls2k::port::BEVElementRasterCellClass::kBlack);
-    const ls2k::port::BEVReferencePath blocked =
-        ls2k::legacy::BuildReferencePath(rows, params, &raster);
-    Expect(CountPresentPathPoints(blocked) == 3,
-           "black raster cells on the connecting line must stop before the far interval");
-    Expect(!blocked.sampled_path[5].present,
-           "black-blocked far interval must not enter the leading path");
-
-    for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
-        row.intervals.clear();
-    }
-    raster = MakeWhiteElementRaster(params);
-    add_interval(0, 0.0F);
-    add_interval(1, 0.35F);
-    const ls2k::port::BEVReferencePath lateral_jump =
-        ls2k::legacy::BuildReferencePath(rows, params, &raster);
-    Expect(lateral_jump.sampled_path[1].present,
-           "lateral jump threshold must not reject a clear raster-connected interval");
+    Expect(CountPresentPathPoints(stopped, ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "strict builder must stop at the first gap and not publish far reappearing intervals");
+    Expect(!stopped.sampled_path[5].present,
+           "strict builder must not reconnect far points across a gap");
 }
 
 void TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange() {
@@ -467,7 +400,7 @@ int main() {
         TestElementRasterSegmentTouchesBlack();
         TestBevGeometryControlsWideImageScan();
         TestHoldIsExplicitNonVisualSource();
-        TestReferencePathStartsAtIndexZeroAndUsesRasterConnectivity();
+        TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap();
         TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange();
     } catch (const TestFailure& failure) {
         std::cerr << "bev_simple_perception_test failed: " << failure.message << "\n";

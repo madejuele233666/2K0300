@@ -13,8 +13,6 @@
 
 namespace ls2k::legacy {
 
-struct BEVElementRasterFrame;
-
 enum class BEVSimplePixelClass {
     kInvalid,
     kUnknown,
@@ -111,14 +109,12 @@ bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
                                   const port::RuntimeParameters& params,
                                   const BEVProjector& projector);
 
-port::BEVReferencePath ExtractRasterConnectedLeadingReferenceSegment(
+port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
-    const port::RuntimeParameters& params,
-    const BEVElementRasterFrame* element_raster = nullptr);
+    const port::RuntimeParameters& params);
 
 port::BEVReferencePath BuildReferencePath(const std::vector<BEVSimpleRowScan>& rows,
-                                          const port::RuntimeParameters& params,
-                                          const BEVElementRasterFrame* element_raster = nullptr);
+                                          const port::RuntimeParameters& params);
 
 port::ReferenceHoldState MakeReferenceHoldState(const port::BEVReferencePath& current_visual_reference,
                                                 const port::RuntimeParameters& params);
@@ -135,8 +131,7 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
                                                  int threshold,
                                                  const port::RuntimeParameters& params,
                                                  const BEVProjector& projector,
-                                                 BEVSampleProjectionLut* lut,
-                                                 const BEVElementRasterFrame* element_raster = nullptr);
+                                                 BEVSampleProjectionLut* lut);
 
 }  // namespace ls2k::legacy
 

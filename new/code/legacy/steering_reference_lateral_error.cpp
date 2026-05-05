@@ -17,20 +17,9 @@ port::ReferenceLateralErrorEstimate UncomputedOutput(const std::string& reason) 
     return output;
 }
 
-std::size_t MaxWeightedSampleIndex(const port::BEVControlModelParameters& params) {
-    return static_cast<std::size_t>(
-        std::clamp(params.lateral_error_max_weighted_sample_index,
-                   0,
-                   static_cast<int>(port::kBevReferenceSampleCount - 1U)));
-}
-
-float ExponentialReferenceWeight(std::size_t index, std::size_t max_weighted_index, float far_weight) {
-    if (max_weighted_index == 0U) {
-        return 1.0F;
-    }
-    const float normalized_index =
-        static_cast<float>(index) / static_cast<float>(max_weighted_index);
-    return std::pow(far_weight, normalized_index);
+float LinearReferenceWeight(std::size_t index, float far_weight) {
+    constexpr float kDenominator = static_cast<float>(port::kBevReferenceSampleCount - 1U);
+    return 1.0F + (far_weight - 1.0F) * static_cast<float>(index) / kDenominator;
 }
 
 }  // namespace
@@ -43,10 +32,8 @@ port::ReferenceLateralErrorEstimate ComputeReferenceLateralError(
         return UncomputedOutput(usability.reason);
     }
 
-    const std::size_t max_weighted_index = MaxWeightedSampleIndex(params.bev_control_model);
-    const std::size_t max_weighted_count = max_weighted_index + 1U;
-    const std::size_t bounded_count = std::min(
-        {usability.leading_usable_samples, reference_path.sampled_path.size(), max_weighted_count});
+    const std::size_t bounded_count = std::min(usability.leading_usable_samples,
+                                               reference_path.sampled_path.size());
     float weighted_sum = 0.0F;
     float weight_sum = 0.0F;
     std::size_t used_count = 0;
@@ -56,7 +43,7 @@ port::ReferenceLateralErrorEstimate ComputeReferenceLateralError(
         if (!IsReferencePointPresent(sample)) {
             break;
         }
-        const float weight = ExponentialReferenceWeight(index, max_weighted_index, far_weight);
+        const float weight = LinearReferenceWeight(index, far_weight);
         weighted_sum += weight * sample.point.lateral_m;
         weight_sum += weight;
         ++used_count;
