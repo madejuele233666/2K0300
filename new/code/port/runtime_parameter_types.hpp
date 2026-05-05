@@ -24,7 +24,7 @@ struct AssistantTcpParameters {
 
 struct RuntimeParameters {
     double running_speed_target = 300.0;
-    double yaw_rate_pid_p = 12.0;
+    double yaw_rate_pid_p = 10.0;
     double yaw_rate_pid_i = 0.0;
     double yaw_rate_pid_d = 0.0;
     int exp_light = 65;
