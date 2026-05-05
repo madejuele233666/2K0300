@@ -34,6 +34,8 @@ std::atomic<std::uint64_t> g_ticks_per_us_x1000{1000000};
             return "perception.otsu";
         case PerfStage::kPerceptionBev:
             return "perception.bev";
+        case PerfStage::kPerceptionElementRaster:
+            return "perception.element_raster";
         case PerfStage::kControlTick:
             return "control.tick";
         case PerfStage::kControlImuRead:

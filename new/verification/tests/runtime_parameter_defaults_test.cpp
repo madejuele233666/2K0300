@@ -247,6 +247,19 @@ int main(int argc, char** argv) {
                   NumberField(control_model, "MIN_LEADING_REFERENCE_SAMPLES"),
                   "BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES");
 
+        const std::string element = ObjectBody(json, "BEV_ELEMENT");
+        ExpectBool(params.bev_element.cross_exit_takeover_enabled,
+                   NumberField(element, "CROSS_EXIT_TAKEOVER_ENABLED"),
+                   "BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED");
+
+        const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
+        ExpectBool(params.bev_element_raster.enabled,
+                   NumberField(element_raster, "ENABLED"),
+                   "BEV_ELEMENT_RASTER.ENABLED");
+        ExpectInt(params.bev_element_raster.width,
+                  NumberField(element_raster, "WIDTH"),
+                  "BEV_ELEMENT_RASTER.WIDTH");
+
         std::cout << "runtime_parameter_defaults_test passed\n";
         return 0;
     } catch (const std::exception& error) {

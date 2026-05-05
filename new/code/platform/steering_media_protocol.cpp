@@ -8,6 +8,8 @@
 #include <limits>
 #include <sstream>
 
+#include "platform/visual_element_evidence_json.hpp"
+
 namespace ls2k::platform {
 namespace {
 
@@ -64,6 +66,8 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << ",\"reason\":";
     AppendJsonString(stream, snapshot.perception_health.reason);
     stream << "}";
+    stream << ",\"element_evidence\":";
+    AppendVisualElementEvidenceJson(stream, snapshot.element_evidence);
     stream << ",\"visual_reference\":{\"present\":";
     AppendJsonBool(stream, snapshot.visual_reference.present);
     stream << ",\"source\":";
@@ -261,6 +265,15 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
                      snapshot.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain);
     header << ",\"MIN_LEADING_REFERENCE_SAMPLES\":"
            << snapshot.param_snapshot.bev_control_model.min_leading_reference_samples;
+    header << "}";
+    header << ",\"BEV_ELEMENT\":{";
+    header << "\"CROSS_EXIT_TAKEOVER_ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element.cross_exit_takeover_enabled);
+    header << "}";
+    header << ",\"BEV_ELEMENT_RASTER\":{";
+    header << "\"ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element_raster.enabled);
+    header << ",\"WIDTH\":" << snapshot.param_snapshot.bev_element_raster.width;
     header << "}";
     header << "}}";
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);

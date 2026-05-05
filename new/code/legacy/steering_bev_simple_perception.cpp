@@ -2,7 +2,8 @@
 
 // Simple BEV perception pipeline:
 // frame view -> virtual BEV sparse row scan -> row white intervals -> reference path.
-// Dense BEV remains a debug-only artifact and is never read back by runtime control.
+// Debug dense BEV remains output-only; runtime element raster is built by
+// steering_bev_element_raster.* and is not read back from debug media.
 
 #include <algorithm>
 #include <cmath>
@@ -244,17 +245,42 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
     row.row_px = static_cast<int>(row_index);
     const float min_width_m = std::max(0.02F, params.bev_geometry.lateral_step_m * 1.5F);
     int run_begin = -1;
+    bool have_sampleable_lateral = false;
     for (std::size_t lateral_index = 0; lateral_index <= lut.lateral_sample_count; ++lateral_index) {
         bool white = false;
         if (lateral_index < lut.lateral_sample_count) {
             const BEVSampleProjectionEntry& entry =
                 lut.entries[row_index * lut.lateral_sample_count + lateral_index];
+            BEVSimplePixelClass pixel_class = BEVSimplePixelClass::kInvalid;
             if (entry.state == BEVSampleProjectionState::kSampleable) {
                 std::uint8_t gray = 0;
                 if (SampleFrameBilinear(frame, entry.image_row_px, entry.image_col_px, gray)) {
-                    white = ClassifyBevPixel(gray, threshold, params.bev_classification) ==
-                            BEVSimplePixelClass::kWhite;
+                    pixel_class = ClassifyBevPixel(gray, threshold, params.bev_classification);
+                    const float lateral = LateralAtIndex(lateral_index,
+                                                         lut.lateral_limit_m,
+                                                         lut.lateral_step_m);
+                    if (!have_sampleable_lateral) {
+                        row.sampleable_left_m = lateral;
+                        row.sampleable_right_m = lateral;
+                        have_sampleable_lateral = true;
+                    } else {
+                        row.sampleable_left_m = std::min(row.sampleable_left_m, lateral);
+                        row.sampleable_right_m = std::max(row.sampleable_right_m, lateral);
+                    }
                 }
+            }
+            if (pixel_class == BEVSimplePixelClass::kWhite) {
+                ++row.white_count;
+            } else if (pixel_class == BEVSimplePixelClass::kBlack) {
+                ++row.black_count;
+            } else if (pixel_class == BEVSimplePixelClass::kUnknown) {
+                ++row.unknown_count;
+            } else {
+                ++row.unavailable_count;
+            }
+            if (pixel_class != BEVSimplePixelClass::kInvalid) {
+                ++row.sampleable_count;
+                white = pixel_class == BEVSimplePixelClass::kWhite;
             }
         }
 
@@ -281,6 +307,9 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
             }
             run_begin = -1;
         }
+    }
+    if (have_sampleable_lateral) {
+        row.sampleable_width_m = std::max(0.0F, row.sampleable_right_m - row.sampleable_left_m);
     }
     return row;
 }

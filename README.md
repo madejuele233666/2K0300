@@ -157,6 +157,7 @@ none
   - `BEV_GEOMETRY`
   - `BEV_CLASSIFICATION`
   - `BEV_CONTROL_MODEL`
+  - `BEV_ELEMENT`
 
 ### 元素扩展
 
@@ -205,15 +206,20 @@ sparse BEV row scans / BEV element raster
 - 不选择 hold。
 - 不判断 control。
 
-`steering_bev_element_raster.*`（后续扩展）
+`steering_bev_element_raster.*`
 
 - 负责从 camera frame / BEV projector 构建 BEV element raster。
 - 必须保留每个 raster sample 的投影/采样可用性，FOV 外、投影失败、图像边缘不能冒充元素事实。
 - 只服务 visual element evidence detector，不直接生成 selected reference、不做 hold、不判断 control。
 
-`steering_visual_element_evidence.*`（后续扩展）
+`steering_cross_exit_element_evidence.*`
 
-- 负责 cross / circle / roadblock / ML grounded element evidence detector 和对应 candidate builder。
+- 负责 cross grounded element evidence detector 和对应 candidate builder。
+- cross 行为默认不接管 arbitration，除非显式打开 `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED`。
+
+`steering_visual_element_pipeline.*`
+
+- 负责汇总 cross / circle / roadblock / ML grounded element evidence detector 和对应 candidate builder。
 - detector 输出 element evidence；candidate builder 输出 `VisualReferenceCandidate`。
 - 不直接写 `PerceptionResult`，不直接选择 selected reference，不执行 hold，不判断 usability / lateral error / readiness / safety / yaw。
 - 每个元素必须有独立测试覆盖 absent、low confidence、invalid geometry、gap rejection、candidate takeover disabled 等情况。
@@ -246,7 +252,13 @@ sparse BEV row scans / BEV element raster
 
 `perception_frontend.*`
 
-- runtime pipeline 编排 owner。
+- runtime capture/publish lifecycle owner。
+- 负责 camera capture、fault injection、empty-frame fallback、state publish、memory reset。
+- 不直接调用 cross / circle / roadblock / ML detector。
+
+`steering_frame_perception_pipeline.*`
+
+- runtime single-frame perception owner。
 - 负责调用 sparse perception、BEV element raster / evidence、visual reference orchestration 和 reference continuity。
 - 负责 current / hold / none selection，其中 hold 仍只属于 reference continuity 层。
 - 唯一组装 `PerceptionResult`。
@@ -295,6 +307,7 @@ debug JSON 分组应保持：
 ```json
 {
   "perception_health": {},
+  "element_evidence": {},
   "reference": {},
   "eligibility": {},
   "lateral_error": {},
@@ -317,7 +330,8 @@ steering media config snapshot 必须暴露当前真实参数，包括：
   "BEV_PROJECTOR": {},
   "BEV_GEOMETRY": {},
   "BEV_CLASSIFICATION": {},
-  "BEV_CONTROL_MODEL": {}
+  "BEV_CONTROL_MODEL": {},
+  "BEV_ELEMENT": {}
 }
 ```
 

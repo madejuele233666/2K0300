@@ -44,6 +44,14 @@ struct BEVSimpleRowScan {
     bool valid = false;
     float forward_m = 0.0F;
     int row_px = 0;
+    std::size_t sampleable_count = 0;
+    std::size_t white_count = 0;
+    std::size_t black_count = 0;
+    std::size_t unknown_count = 0;
+    std::size_t unavailable_count = 0;
+    float sampleable_left_m = 0.0F;
+    float sampleable_right_m = 0.0F;
+    float sampleable_width_m = 0.0F;
     std::vector<BEVSimpleWhiteInterval> intervals{};
 };
 

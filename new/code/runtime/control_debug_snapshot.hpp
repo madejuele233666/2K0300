@@ -10,6 +10,7 @@
 
 #include "runtime/control_decision.hpp"
 #include "runtime/motion_types.hpp"
+#include "port/visual_element_evidence_types.hpp"
 
 namespace ls2k::runtime {
 
@@ -78,6 +79,7 @@ struct SteeringDebugSnapshot {
     std::uint64_t capture_time_ms = 0;
     int threshold = 0;
     PerceptionHealthDebugView perception_health{};
+    port::VisualElementEvidenceFrame element_evidence{};
     VisualReferenceDebugView visual_reference{};
     ReferenceDebugView reference{};
     ReferenceEligibilityDebugView eligibility{};

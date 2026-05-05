@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <string>
 
+#include "port/visual_element_evidence_types.hpp"
+
 namespace ls2k::platform {
 
 // 助手命令类型枚举
@@ -106,9 +108,12 @@ struct AssistantActuatorView {
     int applied_turn_output = 0;
 };
 
+using AssistantElementEvidenceView = port::VisualElementEvidenceFrame;
+
 struct AssistantTelemetryView {
     std::string motion_phase = "DISARMED";
     AssistantPerceptionHealthView perception_health{};
+    AssistantElementEvidenceView element_evidence{};
     AssistantVisualReferenceView visual_reference{};
     AssistantReferenceView reference{};
     AssistantEligibilityView eligibility{};

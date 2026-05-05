@@ -113,6 +113,8 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.bev_geometry = params_.bev_geometry;
     snapshot.param_snapshot.bev_classification = params_.bev_classification;
     snapshot.param_snapshot.bev_control_model = params_.bev_control_model;
+    snapshot.param_snapshot.bev_element = params_.bev_element;
+    snapshot.param_snapshot.bev_element_raster = params_.bev_element_raster;
     return snapshot;
 }
 
@@ -123,6 +125,7 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.threshold = snapshot.threshold;
     view.perception_health.projector_ok = snapshot.perception_health.projector_ok;
     view.perception_health.reason = snapshot.perception_health.reason;
+    view.element_evidence = snapshot.element_evidence;
     view.visual_reference.present = snapshot.visual_reference.present;
     view.visual_reference.source = snapshot.visual_reference.source;
     view.visual_reference.reason = snapshot.visual_reference.reason;

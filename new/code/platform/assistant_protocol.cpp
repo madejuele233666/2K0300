@@ -11,6 +11,8 @@
 
 #include <opencv2/core/persistence.hpp>
 
+#include "platform/visual_element_evidence_json.hpp"
+
 namespace ls2k::platform {
 namespace {
 
@@ -291,6 +293,8 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     stream << ",\"reason\":";
     AppendJsonString(stream, telemetry.perception_health.reason);
     stream << "}";
+    stream << ",\"element_evidence\":";
+    AppendVisualElementEvidenceJson(stream, telemetry.element_evidence);
     stream << ",\"visual_reference\":{\"present\":";
     AppendJsonBool(stream, telemetry.visual_reference.present);
     stream << ",\"source\":";

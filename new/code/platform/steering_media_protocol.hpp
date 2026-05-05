@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "port/bev_geometry_types.hpp"
+#include "port/bev_element_raster_types.hpp"
+#include "port/visual_element_evidence_types.hpp"
 
 namespace ls2k::platform {
 
@@ -30,6 +32,8 @@ struct SteeringMediaParamSnapshotView {
     port::BEVGeometryParameters bev_geometry{};
     port::BEVClassificationParameters bev_classification{};
     port::BEVControlModelParameters bev_control_model{};
+    port::BEVElementParameters bev_element{};
+    port::BEVElementRasterParameters bev_element_raster{};
 };
 
 struct SteeringMediaReferenceView {
@@ -90,9 +94,12 @@ struct SteeringMediaActuatorView {
     int applied_turn_output = 0;
 };
 
+using SteeringMediaElementEvidenceView = port::VisualElementEvidenceFrame;
+
 struct SteeringMediaSnapshotView {
     int threshold = 0;
     SteeringMediaPerceptionHealthView perception_health{};
+    SteeringMediaElementEvidenceView element_evidence{};
     SteeringMediaVisualReferenceView visual_reference{};
     SteeringMediaReferenceView reference{};
     SteeringMediaEligibilityView eligibility{};

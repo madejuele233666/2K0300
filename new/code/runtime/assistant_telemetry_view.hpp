@@ -10,6 +10,7 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     const ControlDebugSnapshot& snapshot) {
     platform::AssistantTelemetryView telemetry{};
     telemetry.motion_phase = ToString(snapshot.motion_phase);
+    telemetry.element_evidence = snapshot.steering.element_evidence;
     telemetry.visual_reference.present = snapshot.steering.visual_reference.present;
     telemetry.visual_reference.source = snapshot.steering.visual_reference.source;
     telemetry.visual_reference.reason = snapshot.steering.visual_reference.reason;

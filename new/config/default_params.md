@@ -78,8 +78,9 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 3. 白点对但 `eligibility.usable=false`：看 `BEV_CLASSIFICATION.HOLD_LAST_MAX_CYCLES`、`BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES`、`BEV_GEOMETRY.FORWARD_SAMPLE_*`。
 4. 白点对但 `lateral_error` 不合理：看 row intervals、leading reference path 和 `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT`。
 5. lateral error 合理但转向幅度不对：看 `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`、`YAW_RATE_PID.*`、`raw_turn_output_limit`。
-6. 直行速度或左右轮跟随不对：看 `RUNNING_SPEED_TARGET`、`LEFT_WHEEL_PID.*`、`RIGHT_WHEEL_PID.*`。
-7. 起步、停止、fail-safe 恢复节奏不对：看 `motion_*`、`pwm_limit`、`pwm_floor`、反转保护和低电压参数。
+6. `element_evidence.cross_exit` 与画面不一致：先看 row intervals、sampleable/unknown 支撑和 `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` 是否仍为默认关闭。
+7. 直行速度或左右轮跟随不对：看 `RUNNING_SPEED_TARGET`、`LEFT_WHEEL_PID.*`、`RIGHT_WHEEL_PID.*`。
+8. 起步、停止、fail-safe 恢复节奏不对：看 `motion_*`、`pwm_limit`、`pwm_floor`、反转保护和低电压参数。
 
 ## 4. 速度、yaw 和轮速 PID
 
@@ -150,8 +151,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `BEV_PROJECTOR.VALID` | `1` | 投影是否可用。置 `0` 会让 perception health 失败，只用于 fail-safe 验证。 |
 | `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_true_bev_manual_forward_scale_v5` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
 | `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-true-bev-manual-forward-scale-20260428` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
-| `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse authority。 |
-| `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。 |
+| `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse/raster authority。runtime 元素 raster 看 `BEV_ELEMENT_RASTER.WIDTH`。 |
+| `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。runtime 元素 raster 高度按 metric aspect 派生。 |
 | `BEV_PROJECTOR.SOURCE_ROW_0` / `SOURCE_COL_0` | `220.0` / `19.0` | 近端左标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `220.0` / `305.0` | 近端右标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `68.0` / `108.0` | 远端左标定点在原图中的像素位置。 |
@@ -215,15 +216,25 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.25` | reference lateral error | 24 点线性权重的远端权重，近端固定为 `1.0`。合法范围 `[0.0, 1.0]`，越界参数按解析失败处理，不在公式里隐藏修正。减小会更重视近端；增大会让远端趋势更影响输出。 |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `180` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `36`。 |
+| `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | reference lateral error | 24 点线性权重的远端权重，近端固定为 `1.0`。合法范围 `[0.0, 1.0]`，越界参数按解析失败处理，不在公式里隐藏修正。减小会更重视近端；增大会让远端趋势更影响输出。 |
+| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `600` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `120`。 |
 | `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 从 index 0 开始连续 present 白点的最小数量。降低会更容易进入控制但容错差；提高更保守但可能频繁 unusable。小于数学下限时按 2 处理。 |
 
-## 12. 禁止使用历史参数思路调车
+## 12. BEV Element
+
+| 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
+| --- | ---: | --- | --- |
+| `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | 默认关闭。关闭时 `element_evidence.cross_exit` 仍会报告视觉事实和 candidate 构造状态，但 cross candidate 不进入 visual-reference arbitration；开启后也必须先通过 existing candidate validation、reference usability、lateral error、reference-control readiness 和 safety gate。 |
+| `BEV_ELEMENT_RASTER.ENABLED` | `1` | runtime BEV element raster | runtime 元素 raster 开关。默认开启，用于 circle/roadblock/ML 和后续连线判黑事实输入；关闭时 raster 不采样、不产出 sampleable cells，sparse line/cross 仍走原输入。 |
+| `BEV_ELEMENT_RASTER.WIDTH` | `320` | runtime BEV element raster | raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
+
+`cross_exit` 第一版只用于 evidence/debug。不要为了让车“看起来过十字”而用它直接改 actuator、yaw、safety 或 hold。现场先在 no-motion capture 中确认 `element_evidence.cross_exit.{present,confidence,reason,candidate.*}` 与 raw/BEV 画面对齐。generic element 扩展记录统一在 `element_evidence.records[]`，旧消费者只读 `cross_exit` 即可。
+
+## 13. 禁止使用历史参数思路调车
 
 不属于当前 `default_params.json` 的历史参数名、历史场景名、历史拓扑/策略字段，都不得作为 active 调参依据。需要查历史上下文时看 archive 文档；新的调参记录只写本文列出的当前参数和当前分层证据字段。
 
-## 13. 改参记录模板
+## 14. 改参记录模板
 
 每次赛道改参至少记录：
 
