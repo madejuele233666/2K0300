@@ -38,19 +38,31 @@ void TestExplicitInitializationAndWindowReset() {
         LS2K_PERF_SCOPE(ls2k::port::PerfStage::kControlTick);
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
+    {
+        LS2K_PERF_SCOPE(ls2k::port::PerfStage::kPerceptionElementRaster);
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
 
     CollectingDiagnostics diagnostics;
     ls2k::port::EmitPerfWindowDiagnostics(diagnostics, 1000);
     Expect(!diagnostics.events.empty(), "perf window emit must report recorded stages");
     bool saw_control_tick = false;
+    bool saw_element_raster = false;
     for (const ls2k::port::DiagnosticEvent& event : diagnostics.events) {
         saw_control_tick = saw_control_tick || Contains(event.message, "stage=control.tick");
+        saw_element_raster =
+            saw_element_raster || Contains(event.message, "stage=perception.element_raster");
         if (Contains(event.message, "stage=control.tick")) {
             Expect(Contains(event.message, "max_us="), "perf report must include window max");
             Expect(Contains(event.message, "last_us="), "perf report must include last duration");
         }
+        if (Contains(event.message, "stage=perception.element_raster")) {
+            Expect(Contains(event.message, "avg_us="), "raster perf report must include average");
+            Expect(Contains(event.message, "last_us="), "raster perf report must include last duration");
+        }
     }
     Expect(saw_control_tick, "perf report must include fixed control.tick stage name");
+    Expect(saw_element_raster, "perf report must include element raster stage name");
 
     diagnostics.events.clear();
     ls2k::port::EmitPerfWindowDiagnostics(diagnostics, 2000);

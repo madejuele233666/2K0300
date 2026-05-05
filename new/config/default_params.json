@@ -107,6 +107,10 @@
   "BEV_ELEMENT": {
     "CROSS_EXIT_TAKEOVER_ENABLED": 0
   },
+  "BEV_ELEMENT_RASTER": {
+    "ENABLED": 1,
+    "WIDTH": 320
+  },
   "assistant_tcp": {
     "host": "10.100.170.115",
     "port": 8888

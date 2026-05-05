@@ -21,6 +21,7 @@ enum class PerfStage : std::size_t {
     kPerceptionFrame,
     kPerceptionOtsu,
     kPerceptionBev,
+    kPerceptionElementRaster,
     kControlTick,
     kControlImuRead,
     kControlEncoderRead,

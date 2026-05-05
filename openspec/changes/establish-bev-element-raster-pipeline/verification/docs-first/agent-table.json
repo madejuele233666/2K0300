@@ -1,0 +1,17 @@
+{
+  "contract": "verification-cycle-agent-table-v1",
+  "change": "establish-bev-element-raster-pipeline",
+  "agents": [
+    {
+      "agent_id": "019df6c8-f452-78a1-9039-4bf11e8780a4",
+      "status": "non_active",
+      "last_verdict": "pass",
+      "coverage_status": "complete",
+      "exhaustive": true,
+      "scope": "full",
+      "findings_path": "attempt-3/findings.json",
+      "verifier_evidence_path": "attempt-3/verifier-evidence.json",
+      "updated_at": "2026-05-05T06:36:30Z"
+    }
+  ]
+}

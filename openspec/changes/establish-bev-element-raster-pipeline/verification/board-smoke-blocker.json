@@ -1,0 +1,39 @@
+{
+  "change": "establish-bev-element-raster-pipeline",
+  "recorded_at": "2026-05-05T07:25:44Z",
+  "status": "blocked",
+  "blocked_tasks": [
+    "5.8 Run the parameter-store load test updated for BEV_ELEMENT_RASTER.",
+    "5.11 Run board no-motion smoke."
+  ],
+  "observations": [
+    {
+      "check": "rtk ping -c 2 10.100.170.226",
+      "result": "failed with 100% packet loss in earlier board-access attempt"
+    },
+    {
+      "check": "rtk ip route get 10.100.170.226",
+      "result": "route uses 198.18.0.2 dev eth3 src 198.18.0.1, not a direct board WLAN source address"
+    },
+    {
+      "check": "rtk ssh root@10.100.170.226 hostname",
+      "result": "timed out during SSH banner exchange"
+    },
+    {
+      "check": "Windows Get-NetAdapter",
+      "result": "Realtek wired Ethernet adapter is disconnected; WLAN is up at 10.5.4.110"
+    },
+    {
+      "check": "10.5.4.0/24 port-22 scan",
+      "result": "only local host 10.5.4.110 exposed port 22; no board SSH endpoint found"
+    },
+    {
+      "check": "usbipd list and /dev/ttyUSB* /dev/ttyACM*",
+      "result": "COM6/COM7 serial devices are persisted in usbipd but not connected/attached to WSL; no WSL serial node is available"
+    }
+  ],
+  "required_to_unblock": [
+    "Reconnect or power the board on a reachable network path, or provide the current board IP.",
+    "If SSH remains unavailable, attach the board serial device to WSL so board-side IP/dropbear state can be inspected."
+  ]
+}

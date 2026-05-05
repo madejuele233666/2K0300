@@ -1,0 +1,57 @@
+{
+  "change": "establish-bev-element-raster-pipeline",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "019df705-8c97-73f3-b11f-d697e2e606e0",
+  "start_at": "2026-05-05T15:36:00+08:00",
+  "end_at": "2026-05-05T15:43:16+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "full",
+    "limitations": [
+      "Board-only `run_param_store_load_runtime_parameters_board_test.sh` could not be executed.",
+      "Board no-motion smoke for telemetry/media compatibility, raster cadence, and actuator-regression confirmation could not be executed."
+    ]
+  },
+  "review_coverage": {
+    "coverage_status": "partial",
+    "exhaustive": false,
+    "saturation_status": "non_exhaustive",
+    "review_basis": [
+      "Direct source inspection confirmed `scene_overlay_probe.cpp` now exposes `element_evidence.records.count` and flattened `element_evidence.records[index].*` output.",
+      "Direct source inspection confirmed `run_bev_simple_residual_check.sh` now statically guards for `element_evidence.records[` in `scene_overlay_probe.cpp`.",
+      "Rerun passed: `rtk bash new/verification/tests/run_bev_simple_residual_check.sh`",
+      "Rerun passed: `rtk bash new/verification/tests/run_steering_media_selftest.sh`",
+      "Rerun passed: `rtk env SKIP_UPLOAD=1 new/user/build.sh`",
+      "Host compile/run probe check passed and emitted `element_evidence.records.count=0`."
+    ],
+    "coverage_gaps": [
+      "Board-only parameter-store load validation remains blocked by board access.",
+      "Board no-motion smoke remains blocked by board access."
+    ]
+  },
+  "reviewed_paths": [
+    "/home/madejuele/projects/2K0300/new/user/scene_overlay_probe.cpp",
+    "/home/madejuele/projects/2K0300/new/verification/tests/run_bev_simple_residual_check.sh",
+    "/home/madejuele/projects/2K0300/new/verification/tests/run_steering_media_selftest.sh",
+    "/home/madejuele/projects/2K0300/new/user/build.sh",
+    "/home/madejuele/projects/2K0300/openspec/changes/establish-bev-element-raster-pipeline/verification/board-smoke-blocker.json",
+    "/home/madejuele/projects/2K0300/openspec/changes/establish-bev-element-raster-pipeline/tasks.md",
+    "/home/madejuele/projects/2K0300/openspec/changes/establish-bev-element-raster-pipeline/design.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/VERIFY-IMPLEMENTATION.md",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-core-v1.json",
+    "/home/madejuele/projects/2K0300/openspec/schemas/modules/verification-cycle/contracts/verification-cycle-openspec-adapter-v1.json"
+  ],
+  "skipped_paths": [
+    "/home/madejuele/projects/2K0300/new/verification/tests/run_param_store_load_runtime_parameters_board_test.sh",
+    "board no-motion smoke from `openspec/changes/establish-bev-element-raster-pipeline/tasks.md` item 5.11"
+  ],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

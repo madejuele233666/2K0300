@@ -1,0 +1,26 @@
+{
+  "change": "establish-bev-element-raster-pipeline",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "source-probe-generic-record-surface-missing",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The probe/overlay surface was included in the shared element-evidence rollout, but `scene_overlay_probe.cpp` still emits only the typed `cross_exit` fields and never exposes the new generic `element_evidence.records[...]` facts.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/tasks.md:47-49` marks overlay/probe surfaces as part of task 4.2, and `openspec/changes/establish-bev-element-raster-pipeline/design.md:63-64` defines the shared observability contract as `cross_exit` followed by generic `records`. In the implementation, `new/user/scene_overlay_probe.cpp:411-510` prints `element_evidence.cross_exit.*` plus visual-reference/path facts, but there is no corresponding `element_evidence.records[index].<field>` emission anywhere in that file.",
+      "recommendation": "Update the probe output to mirror generic element evidence records with the same `element_evidence.records[index].<field>` spelling used by the shared observability contract, or route probe serialization through a shared helper, and add regression coverage for the probe surface.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "source-board-verification-coverage-incomplete",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "Source-first verification coverage is still partial because the board-only parameter-store load test and no-motion smoke were not executed, so this attempt cannot claim complete/exhaustive implementation closure under `verify-sequence/default`.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/tasks.md:60-63` still leaves tasks 5.8 and 5.11 open. The user-provided blocker record at `openspec/changes/establish-bev-element-raster-pipeline/verification/board-smoke-blocker.json:1-38` shows the board is unreachable for SSH and has no attached serial path in WSL, which prevented `new/verification/tests/run_param_store_load_runtime_parameters_board_test.sh` and the no-motion smoke from running.",
+      "recommendation": "Restore board reachability or attach serial to WSL, then rerun the blocked board-only checks and repeat the source-first verifier pass so coverage can become complete and exhaustive.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

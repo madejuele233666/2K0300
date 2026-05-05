@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "port/bev_geometry_types.hpp"
+#include "port/bev_element_raster_types.hpp"
 #include "port/visual_element_evidence_types.hpp"
 
 namespace ls2k::platform {
@@ -32,6 +33,7 @@ struct SteeringMediaParamSnapshotView {
     port::BEVClassificationParameters bev_classification{};
     port::BEVControlModelParameters bev_control_model{};
     port::BEVElementParameters bev_element{};
+    port::BEVElementRasterParameters bev_element_raster{};
 };
 
 struct SteeringMediaReferenceView {
@@ -92,30 +94,7 @@ struct SteeringMediaActuatorView {
     int applied_turn_output = 0;
 };
 
-struct SteeringMediaElementCandidateView {
-    bool built = false;
-    bool takeover_enabled = false;
-    bool included_in_arbitration = false;
-    std::string reason = "not_built";
-};
-
-struct SteeringMediaCrossExitEvidenceView {
-    bool present = false;
-    double confidence = 0.0;
-    double forward_min_m = 0.0;
-    double forward_max_m = 0.0;
-    double lateral_min_m = 0.0;
-    double lateral_max_m = 0.0;
-    std::uint64_t sampleable_count = 0;
-    std::uint64_t supporting_white_count = 0;
-    std::uint64_t unknown_count = 0;
-    std::string reason = "not_evaluated";
-    SteeringMediaElementCandidateView candidate{};
-};
-
-struct SteeringMediaElementEvidenceView {
-    SteeringMediaCrossExitEvidenceView cross_exit{};
-};
+using SteeringMediaElementEvidenceView = port::VisualElementEvidenceFrame;
 
 struct SteeringMediaSnapshotView {
     int threshold = 0;

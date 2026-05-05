@@ -39,6 +39,21 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
     snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
     snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
+    ls2k::port::VisualElementEvidenceRecord record{};
+    record.id = "circle_left";
+    record.present = true;
+    record.confidence = 0.61F;
+    record.reason = "synthetic_test_record";
+    record.bounds.forward_min_m = 0.30F;
+    record.bounds.forward_max_m = 0.70F;
+    record.bounds.lateral_min_m = -0.42F;
+    record.bounds.lateral_max_m = -0.18F;
+    record.support.sampleable_count = 48;
+    record.support.supporting_white_count = 22;
+    record.support.supporting_black_count = 9;
+    record.support.unknown_count = 2;
+    record.candidate.reason = "not_built";
+    snapshot.steering.element_evidence.records.push_back(record);
     snapshot.steering.visual_reference.present = true;
     snapshot.steering.visual_reference.source = "roadblock_bypass";
     snapshot.steering.visual_reference.reason = "special_visual_candidate_selected";
@@ -92,6 +107,10 @@ void TestSnapshotFactsMapToAssistantView() {
            "cross candidate build state must be copied");
     Expect(!telemetry.element_evidence.cross_exit.candidate.included_in_arbitration,
            "disabled cross candidate inclusion must be copied");
+    Expect(telemetry.element_evidence.records.size() == 1U,
+           "generic element evidence records must be copied");
+    Expect(telemetry.element_evidence.records[0].id == "circle_left",
+           "generic element evidence record id must be copied");
     Expect(telemetry.visual_reference.present,
            "visual reference presence must be copied");
     Expect(telemetry.visual_reference.source == "roadblock_bypass",
@@ -119,6 +138,10 @@ void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
            "assistant telemetry must include element candidate summary");
     Expect(Contains(json, "\"included_in_arbitration\":false"),
            "assistant telemetry must expose disabled arbitration inclusion");
+    Expect(Contains(json, "\"records\":[{\"id\":\"circle_left\""),
+           "assistant telemetry must serialize generic element records");
+    Expect(Contains(json, "\"supporting_black_count\":9"),
+           "assistant telemetry must serialize generic record support fields");
     Expect(Contains(json, "\"visual_reference\":{\"present\":true"),
            "assistant telemetry must include visual_reference object");
     Expect(Contains(json, "\"source\":\"roadblock_bypass\""),

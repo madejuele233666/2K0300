@@ -3,10 +3,9 @@
 
 #include <cstdint>
 
-#include "legacy/steering_bev_projector.hpp"
-#include "legacy/steering_bev_simple_perception.hpp"
 #include "port/platform_adapter.hpp"
 #include "runtime/runtime_state.hpp"
+#include "runtime/steering_frame_perception_pipeline.hpp"
 
 namespace ls2k::runtime {
 
@@ -28,10 +27,7 @@ private:
     port::ICameraAdapter& camera_;
     RuntimeState& state_;
     port::DiagnosticSink& diagnostics_;
-    legacy::BEVProjector projector_{};
-    legacy::BEVSampleProjectionLut sample_lut_{};
-    port::SteeringPerceptionMemory perception_memory_{};
-    bool projector_configured_ = false;
+    SteeringFramePerceptionPipeline frame_pipeline_{};
     uint64_t processed_frames_ = 0;
     uint64_t consumed_perception_memory_reset_generation_ = 0;
 };

@@ -214,6 +214,11 @@ if ! grep -q "low_voltage_raw_threshold" new/code/platform/steering_media_protoc
   exit 1
 fi
 
+if ! grep -Fq 'element_evidence.records[' new/user/scene_overlay_probe.cpp; then
+  echo "bev_simple_residual_check failed: scene_overlay_probe must expose generic element evidence records" >&2
+  exit 1
+fi
+
 if rg -n "source ==|source !=|mode == port::ReferenceMode|mode != port::ReferenceMode|switch \\(mode\\)|ReferenceMode" \
   new/code/runtime \
   new/code/legacy/steering_reference_control_readiness.cpp \

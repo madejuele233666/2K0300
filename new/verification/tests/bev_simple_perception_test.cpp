@@ -8,6 +8,7 @@
 #include <string>
 
 #include "legacy/steering_bev_projector.hpp"
+#include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_reference_usability.hpp"
 
@@ -81,6 +82,11 @@ int CountClass(const ls2k::legacy::BEVSimpleImage& image, ls2k::legacy::BEVSimpl
     return static_cast<int>(std::count(image.classes.begin(), image.classes.end(), klass));
 }
 
+int CountRasterClass(const ls2k::legacy::BEVElementRasterFrame& raster,
+                     ls2k::port::BEVElementRasterCellClass klass) {
+    return static_cast<int>(std::count(raster.classes.begin(), raster.classes.end(), klass));
+}
+
 int CountPresentPathPoints(const ls2k::port::BEVReferencePath& reference,
                            ls2k::port::BEVPathPointSource source) {
     int count = 0;
@@ -148,6 +154,62 @@ void TestUnknownBandUsesCenterBrightnessOnly() {
            "near-threshold BEV pixels must classify as unknown");
     Expect(!ls2k::legacy::EvaluateReferenceUsability(result.reference_path, params).usable,
            "unknown pixels must not be promoted into white interval reference points");
+}
+
+void TestElementRasterClassificationAndCoordinates() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_element_raster.width = 320;
+    ls2k::legacy::BEVProjector projector = MakeProjector(params);
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+    DrawVehicleStripe(frame, projector, params, -0.18F, 0.18F, 255U);
+
+    ls2k::legacy::BEVElementRasterLut lut{};
+    const ls2k::legacy::BEVElementRasterFrame raster =
+        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), 100, params, projector, &lut);
+
+    Expect(raster.valid, "enabled element raster must build from a valid projector and frame");
+    Expect(raster.width == params.bev_element_raster.width,
+           "element raster width must follow BEV_ELEMENT_RASTER.WIDTH");
+    Expect(raster.height > 2, "element raster height must be derived from metric aspect ratio");
+    Expect(CountRasterClass(raster, ls2k::port::BEVElementRasterCellClass::kWhite) > 0,
+           "drawn BEV stripe must classify as white in the element raster");
+    Expect(CountRasterClass(raster, ls2k::port::BEVElementRasterCellClass::kBlack) > 0,
+           "background must classify as black in the element raster");
+
+    int cell_x = 0;
+    int cell_y = 0;
+    Expect(raster.MetricToCell({0.60F, 0.0F}, cell_x, cell_y),
+           "metric point inside raster must map to a cell");
+    const ls2k::port::BEVPoint round_trip = raster.CellToMetric(cell_x, cell_y);
+    Expect(std::abs(round_trip.lateral_m) < 0.01F,
+           "center metric point must round-trip near raster center");
+
+    params.bev_element_raster.enabled = false;
+    const ls2k::legacy::BEVElementRasterFrame disabled =
+        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), 100, params, projector, &lut);
+    Expect(!disabled.valid, "disabled element raster must be unavailable");
+    Expect(disabled.classes.empty(), "disabled element raster must expose no cells");
+}
+
+void TestElementRasterSegmentTouchesBlack() {
+    ls2k::legacy::BEVElementRasterFrame raster{};
+    raster.valid = true;
+    raster.enabled = true;
+    raster.width = 5;
+    raster.height = 5;
+    raster.lateral_limit_m = 0.5F;
+    raster.forward_max_m = 1.0F;
+    raster.classes.assign(25U, ls2k::port::BEVElementRasterCellClass::kWhite);
+    raster.gray.assign(25U, 255U);
+    raster.projection_states.assign(25U, ls2k::port::BEVElementRasterProjectionState::kSampleable);
+    raster.classes[raster.Index(2, 2)] = ls2k::port::BEVElementRasterCellClass::kBlack;
+
+    Expect(raster.SegmentTouchesBlackCells(0, 0, 4, 4),
+           "cell segment crossing a black cell must report black contact");
+    Expect(!raster.SegmentTouchesBlackCells(0, 4, 1, 4),
+           "cell segment without black cells must remain clear");
+    Expect(raster.SegmentTouchesBlack({1.0F, -0.5F}, {0.0F, 0.5F}),
+           "metric segment crossing a black cell must report black contact");
 }
 
 void TestBevGeometryControlsWideImageScan() {
@@ -334,6 +396,8 @@ int main() {
     try {
         TestBevClassificationAndRowIntervals();
         TestUnknownBandUsesCenterBrightnessOnly();
+        TestElementRasterClassificationAndCoordinates();
+        TestElementRasterSegmentTouchesBlack();
         TestBevGeometryControlsWideImageScan();
         TestHoldIsExplicitNonVisualSource();
         TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap();

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_visual_element_evidence.hpp"
+#include "legacy/steering_cross_exit_element_evidence.hpp"
 
 namespace {
 

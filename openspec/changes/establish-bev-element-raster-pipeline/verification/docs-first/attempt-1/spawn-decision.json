@@ -1,0 +1,19 @@
+{
+  "contract": "agent-spawn-decision-v1",
+  "change": "establish-bev-element-raster-pipeline",
+  "phase": "artifact_gate",
+  "requested_agent_type": "verify-reviewer",
+  "reason_code": "no_usable_active_agent",
+  "decision": "allow",
+  "recorded_at": "2026-05-05T06:16:35Z",
+  "prior_agent": {
+    "agent_id": null,
+    "status": "none",
+    "resumable": false
+  },
+  "evidence": {
+    "agent_table_path": "openspec/changes/establish-bev-element-raster-pipeline/verification/docs-first/agent-table.json",
+    "findings_path": "openspec/changes/establish-bev-element-raster-pipeline/verification/docs-first/attempt-1/findings.json",
+    "verifier_evidence_path": "openspec/changes/establish-bev-element-raster-pipeline/verification/docs-first/attempt-1/verifier-evidence.json"
+  }
+}

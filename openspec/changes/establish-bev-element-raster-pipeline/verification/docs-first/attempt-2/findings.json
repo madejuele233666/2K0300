@@ -1,0 +1,16 @@
+{
+  "change": "establish-bev-element-raster-pipeline",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "docs-generic-record-optionality-conflict",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The repaired generic-record contract is internally inconsistent about whether bounds and support facts are optional or always present, so implementers and consumers still do not have one unambiguous wire contract.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/specs/bev-visual-element-evidence/spec.md:4` says generic records carry \"optional metric bounds/support facts\", but `spec.md:6-15` immediately requires every record to use `bounds` and `support` keys, and `spec.md:28-32` says each record SHALL contain those required keys. The repaired design also presents stable `bounds` and `support` keys at `design.md:63`, so the spec currently mixes optional conceptual facts with mandatory wire fields without defining whether absent facts are omitted, null, or encoded some other way.",
+      "recommendation": "Clarify the generic-record contract in `bev-visual-element-evidence/spec.md` so it uses one rule consistently: either `bounds` and `support` are always present with defined empty/null encoding, or they are genuinely optional and may be omitted. Keep the same rule referenced by telemetry and steering-media specs.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

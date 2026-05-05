@@ -1,0 +1,36 @@
+{
+  "change": "establish-bev-element-raster-pipeline",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "docs-param-contract-gap",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The docs require `BEV_ELEMENT_RASTER` defaults, loading, validation, and rollback behavior, but the changed specs do not normatively define what the runtime must do when raster is disabled or when config is missing or invalid.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/design.md:45` says disabled raster returns an empty unavailable raster. `design.md:102-106` says missing config falls back to enabled defaults and rollback is disabling `BEV_ELEMENT_RASTER.ENABLED`. `tasks.md:33` requires defaults/loading/validation/docs. But `specs/runtime-speed-tuning-surface/spec.md:3-10` only requires snapshot publication of `BEV_ELEMENT_RASTER.ENABLED` and `WIDTH`, and `specs/bev-element-raster-pipeline/spec.md` has no requirement/scenario for disabled-raster behavior, missing-config fallback, or validation/range handling.",
+      "recommendation": "Add normative requirement text for `BEV_ELEMENT_RASTER` runtime semantics: disabled behavior, missing-config fallback defaults, and validation/range handling. The clearest place is `specs/bev-element-raster-pipeline/spec.md`, with snapshot specs only mirroring the resulting values.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "docs-generic-record-wire-shape-gap",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The design chooses a concrete generic extension-list shape, but the changed public specs do not define the exact serialized field name/location or stable record schema for those generic element records across steering snapshot, assistant telemetry, and media headers.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/design.md:59-67` chooses a generic `records` extension list written after `cross_exit`. `specs/bev-visual-element-evidence/spec.md:3-14` only says there is a generic extension record list with conceptual fields. `specs/assistant-telemetry-sidecar/spec.md:3-15` and `specs/steering-tuning-media-observability/spec.md:17-38` only require generic records to serialize after `cross_exit`, but do not name a public path such as `element_evidence.records` or define the exact per-record JSON keys.",
+      "recommendation": "Specify the exact public serialization contract for generic records: container path, required and optional keys per record, and ordering expectations shared by `control.steering_snapshot`, assistant telemetry, and steering media headers.",
+      "blocking": true,
+      "auto_fixable": false
+    },
+    {
+      "id": "docs-raster-performance-contract-gap",
+      "severity": "WARNING",
+      "dimension": "Completeness",
+      "problem": "The change treats raster performance evidence as part of the implementation and verification contract, but none of the declared spec deltas require a raster performance stage or define what observability must exist to review cadence impact.",
+      "evidence": "`openspec/changes/establish-bev-element-raster-pipeline/proposal.md:13,33` says the change adds performance evidence for the runtime raster stage and touches runtime performance stages. `design.md:47` names performance stage `kPerceptionElementRaster`. `tasks.md:36,63` require performance-stage evidence and board cadence checks. But the declared changed specs (`specs/bev-element-raster-pipeline/spec.md`, `specs/runtime-speed-tuning-surface/spec.md`, `specs/assistant-telemetry-sidecar/spec.md`, `specs/steering-tuning-media-observability/spec.md`) do not contain a normative requirement for that stage or any minimum raster performance observability surface.",
+      "recommendation": "Add or modify a spec delta to name the raster performance stage/output surface and the minimum evidence needed to verify runtime cadence and regression risk.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}
