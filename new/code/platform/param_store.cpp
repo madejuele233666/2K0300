@@ -689,11 +689,6 @@ public:
         if (!ValidateBEVControlModel(parsed.bev_control_model)) {
             optional_malformed = true;
         }
-        ReadOptionalNestedBool(root,
-                               "BEV_ELEMENT",
-                               "CROSS_EXIT_TAKEOVER_ENABLED",
-                               parsed.bev_element.cross_exit_takeover_enabled,
-                               optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",

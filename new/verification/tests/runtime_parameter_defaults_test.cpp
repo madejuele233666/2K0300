@@ -247,11 +247,6 @@ int main(int argc, char** argv) {
                   NumberField(control_model, "MIN_LEADING_REFERENCE_SAMPLES"),
                   "BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES");
 
-        const std::string element = ObjectBody(json, "BEV_ELEMENT");
-        ExpectBool(params.bev_element.cross_exit_takeover_enabled,
-                   NumberField(element, "CROSS_EXIT_TAKEOVER_ENABLED"),
-                   "BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED");
-
         std::cout << "runtime_parameter_defaults_test passed\n";
         return 0;
     } catch (const std::exception& error) {

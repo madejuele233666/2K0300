@@ -205,7 +205,6 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.steering.threshold = perception.threshold;
     debug_snapshot.steering.perception_health.projector_ok = perception.perception_health.projector_ok;
     debug_snapshot.steering.perception_health.reason = perception.perception_health.reason;
-    debug_snapshot.steering.element_evidence = perception.element_evidence;
     debug_snapshot.steering.visual_reference.present = perception.visual_reference_selection.present;
     debug_snapshot.steering.visual_reference.source = perception.visual_reference_selection.source;
     debug_snapshot.steering.visual_reference.reason = perception.visual_reference_selection.reason;

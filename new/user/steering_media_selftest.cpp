@@ -141,20 +141,6 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.threshold = 91;
     snapshot.steering.perception_health.projector_ok = true;
     snapshot.steering.perception_health.reason = "ok";
-    snapshot.steering.element_evidence.cross_exit.present = true;
-    snapshot.steering.element_evidence.cross_exit.confidence = 0.82F;
-    snapshot.steering.element_evidence.cross_exit.forward_min_m = 0.20F;
-    snapshot.steering.element_evidence.cross_exit.forward_max_m = 0.42F;
-    snapshot.steering.element_evidence.cross_exit.lateral_min_m = -0.35F;
-    snapshot.steering.element_evidence.cross_exit.lateral_max_m = 0.36F;
-    snapshot.steering.element_evidence.cross_exit.sampleable_count = 120;
-    snapshot.steering.element_evidence.cross_exit.supporting_white_count = 96;
-    snapshot.steering.element_evidence.cross_exit.unknown_count = 3;
-    snapshot.steering.element_evidence.cross_exit.reason = "present";
-    snapshot.steering.element_evidence.cross_exit.candidate.built = true;
-    snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
-    snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
-    snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
     snapshot.steering.visual_reference.present = true;
     snapshot.steering.visual_reference.source = "simple_interval_center";
     snapshot.steering.visual_reference.reason = "line_candidate_selected";
@@ -213,12 +199,6 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose turn-output target");
     Require(Contains(message, "perception_health.projector_ok=true"),
             "steering snapshot must expose perception health");
-    Require(Contains(message, "element_evidence.cross_exit.present=true"),
-            "steering snapshot must expose cross-exit evidence presence");
-    Require(Contains(message, "element_evidence.cross_exit.reason=present"),
-            "steering snapshot must expose cross-exit evidence reason");
-    Require(Contains(message, "element_evidence.cross_exit.candidate.included_in_arbitration=false"),
-            "steering snapshot must expose cross-exit arbitration inclusion");
     Require(Contains(message, "visual_reference.reason=line_candidate_selected"),
             "steering snapshot must expose visual reference orchestration reason");
     Require(Contains(message, "visual_reference.candidate_count=1"),
@@ -288,7 +268,6 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.raw_turn_output_limit = 8000;
     config.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
     config.param_snapshot.bev_control_model.lateral_error_far_weight = 0.25;
-    config.param_snapshot.bev_element.cross_exit_takeover_enabled = false;
     config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
     config.param_snapshot.bev_classification.white_confidence_min = 0.60F;
@@ -344,10 +323,6 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must not include removed yaw-rate target gain");
     Require(Contains(header_json, "\"MIN_LEADING_REFERENCE_SAMPLES\""),
             "config snapshot must include configured leading reference minimum");
-    Require(Contains(header_json, "\"BEV_ELEMENT\""),
-            "config snapshot must include BEV element group");
-    Require(Contains(header_json, "\"CROSS_EXIT_TAKEOVER_ENABLED\":false"),
-            "config snapshot must include default-off cross-exit takeover");
     Require(!Contains(header_json, std::string("CURVATURE_TO_") + "W_" + "TARGET_GAIN"),
             "config snapshot must not include removed legacy angular target gain key");
     Require(!Contains(header_json, std::string("\"BEV_") + "TOPOLOGY"),
@@ -527,20 +502,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
         state.control_debug_snapshot.steering.perception_health.projector_ok = true;
         state.control_debug_snapshot.steering.perception_health.reason = "ok";
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.present = true;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.confidence = 0.81F;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.forward_min_m = 0.20F;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.forward_max_m = 0.42F;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.lateral_min_m = -0.35F;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.lateral_max_m = 0.36F;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.sampleable_count = 120;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.supporting_white_count = 96;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.unknown_count = 3;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.reason = "present";
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.built = true;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
-        state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
         state.control_debug_snapshot.steering.visual_reference.present = true;
         state.control_debug_snapshot.steering.visual_reference.source = "simple_interval_center";
         state.control_debug_snapshot.steering.visual_reference.reason = "line_candidate_selected";
@@ -591,8 +552,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV projector settings");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "service config snapshot must expose BEV control settings");
-    Require(Contains(header_json, "\"BEV_ELEMENT\""),
-            "service config snapshot must expose BEV element settings");
     Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
             "service config snapshot must expose lateral-error-to-wheel-delta gain");
     Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
@@ -612,12 +571,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "second emitted frame must be image_frame");
     Require(Contains(header_json, "\"perception_health\":{\"projector_ok\":true"),
             "image frame must include perception health");
-    Require(Contains(header_json, "\"element_evidence\":{\"cross_exit\":{\"present\":true"),
-            "image frame must include cross-exit element evidence");
-    Require(Contains(header_json, "\"candidate\":{\"built\":true"),
-            "image frame must include cross-exit candidate summary");
-    Require(Contains(header_json, "\"included_in_arbitration\":false"),
-            "image frame must expose cross-exit arbitration inclusion");
     Require(Contains(header_json, "\"visual_reference\":{\"present\":true"),
             "image frame must include visual reference orchestration summary");
     Require(Contains(header_json, "\"candidate_count\":1"),

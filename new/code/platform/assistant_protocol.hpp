@@ -106,35 +106,9 @@ struct AssistantActuatorView {
     int applied_turn_output = 0;
 };
 
-struct AssistantElementCandidateView {
-    bool built = false;
-    bool takeover_enabled = false;
-    bool included_in_arbitration = false;
-    std::string reason = "not_built";
-};
-
-struct AssistantCrossExitEvidenceView {
-    bool present = false;
-    double confidence = 0.0;
-    double forward_min_m = 0.0;
-    double forward_max_m = 0.0;
-    double lateral_min_m = 0.0;
-    double lateral_max_m = 0.0;
-    std::uint64_t sampleable_count = 0;
-    std::uint64_t supporting_white_count = 0;
-    std::uint64_t unknown_count = 0;
-    std::string reason = "not_evaluated";
-    AssistantElementCandidateView candidate{};
-};
-
-struct AssistantElementEvidenceView {
-    AssistantCrossExitEvidenceView cross_exit{};
-};
-
 struct AssistantTelemetryView {
     std::string motion_phase = "DISARMED";
     AssistantPerceptionHealthView perception_health{};
-    AssistantElementEvidenceView element_evidence{};
     AssistantVisualReferenceView visual_reference{};
     AssistantReferenceView reference{};
     AssistantEligibilityView eligibility{};

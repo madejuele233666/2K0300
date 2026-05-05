@@ -7,7 +7,6 @@
 #include "port/reference_control_readiness_types.hpp"
 #include "port/reference_lateral_error_types.hpp"
 #include "port/reference_usability_types.hpp"
-#include "port/visual_element_evidence_types.hpp"
 #include "port/visual_reference_orchestration_types.hpp"
 
 namespace ls2k::port {
@@ -33,7 +32,6 @@ struct PerceptionResult {
     std::string reference_mode = "none";
 
     PerceptionHealth perception_health{};
-    VisualElementEvidenceFrame element_evidence{};
     VisualReferenceSelection visual_reference_selection{};
     ReferenceUsability reference_usability{};
     ReferenceLateralErrorEstimate reference_lateral_error{};

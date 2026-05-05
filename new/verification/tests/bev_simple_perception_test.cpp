@@ -113,18 +113,10 @@ void TestBevClassificationAndRowIntervals() {
            "row scanner must scan the configured BEV forward samples");
 
     bool saw_interval = false;
-    bool saw_row_support_stats = false;
     for (const ls2k::legacy::BEVSimpleRowScan& row : result.rows) {
         saw_interval = saw_interval || !row.intervals.empty();
-        saw_row_support_stats = saw_row_support_stats ||
-                                (row.sampleable_count > 0U &&
-                                 row.sampleable_width_m > 0.0F &&
-                                 row.white_count + row.black_count + row.unknown_count ==
-                                     row.sampleable_count);
     }
     Expect(saw_interval, "drawn BEV stripe must expose white interval facts");
-    Expect(saw_row_support_stats,
-           "row scanner must expose sample support stats without changing reference facts");
     Expect(ls2k::legacy::EvaluateReferenceUsability(result.reference_path, params).usable,
            "continuous white intervals must produce usable current facts");
     Expect(CountPresentPathPoints(result.reference_path,
