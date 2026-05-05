@@ -64,6 +64,16 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << ",\"reason\":";
     AppendJsonString(stream, snapshot.perception_health.reason);
     stream << "}";
+    stream << ",\"visual_reference\":{\"present\":";
+    AppendJsonBool(stream, snapshot.visual_reference.present);
+    stream << ",\"source\":";
+    AppendJsonString(stream, snapshot.visual_reference.source);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, snapshot.visual_reference.reason);
+    stream << ",\"candidate_count\":" << snapshot.visual_reference.candidate_count;
+    stream << ",\"rejected_candidate_reason\":";
+    AppendJsonString(stream, snapshot.visual_reference.rejected_candidate_reason);
+    stream << "}";
     stream << ",\"reference\":{\"mode\":";
     AppendJsonString(stream, snapshot.reference.mode);
     stream << ",\"source\":";
