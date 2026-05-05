@@ -84,7 +84,6 @@ set(NEW_SRCS
     ../code/legacy/steering_otsu_threshold.cpp
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_bev_simple_perception.cpp
-    ../code/legacy/steering_visual_reference_orchestration.cpp
     ../code/legacy/steering_reference_usability.cpp
     ../code/legacy/steering_reference_lateral_error.cpp
     ../code/legacy/steering_reference_control_readiness.cpp
@@ -163,7 +162,6 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../verification/tests/bev_simple_perception_test.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/port/perf_counter.cpp
     )
@@ -185,30 +183,6 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
     target_link_libraries(
         reference_usability_lateral_error_test
-        pthread
-        m
-    )
-
-    add_executable(
-        visual_reference_orchestration_test
-        ../verification/tests/visual_reference_orchestration_test.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
-    )
-    target_link_libraries(
-        visual_reference_orchestration_test
-        pthread
-        m
-    )
-
-    add_executable(
-        assistant_telemetry_selftest
-        ../verification/tests/assistant_telemetry_selftest.cpp
-        ../code/platform/assistant_protocol.cpp
-        ../code/runtime/motion_supervisor.cpp
-    )
-    target_link_libraries(
-        assistant_telemetry_selftest
-        ${OpenCV_LIBS}
         pthread
         m
     )
@@ -271,7 +245,6 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_otsu_threshold.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/legacy/steering_reference_lateral_error.cpp
         ../code/legacy/steering_reference_control_readiness.cpp

@@ -43,9 +43,7 @@ rtk bash new/verification/tests/run_runtime_parameter_defaults_test.sh
 rtk bash new/verification/tests/run_power_adapter_threshold_test.sh
 rtk bash new/verification/tests/run_startup_low_voltage_order_test.sh
 rtk bash new/verification/tests/run_bev_simple_perception_test.sh
-rtk bash new/verification/tests/run_visual_reference_orchestration_test.sh
 rtk bash new/verification/tests/run_reference_usability_lateral_error_test.sh
-rtk bash new/verification/tests/run_assistant_telemetry_selftest.sh
 rtk bash new/verification/tests/run_steering_media_selftest.sh
 rtk bash new/verification/tests/run_perf_counter_test.sh
 rtk bash new/verification/tests/run_bev_simple_residual_check.sh

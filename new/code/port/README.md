@@ -9,7 +9,6 @@ Do not create aggregate include headers for steering/reference/control types.
 - `camera_frame_types.hpp`: camera frame view/capture types.
 - `bev_geometry_types.hpp`: BEV points, calibration, geometry, classification, and control-model parameters.
 - `bev_reference_types.hpp`: reference path facts, point source, hold state, and continuity result.
-- `visual_reference_orchestration_types.hpp`: visual reference candidate and current visual selection summary.
 - `reference_usability_types.hpp`: reference usability result.
 - `reference_lateral_error_types.hpp`: reference weighted lateral-error result.
 - `reference_control_readiness_types.hpp`: selected reference and lateral-error readiness result.
@@ -23,7 +22,6 @@ Do not create aggregate include headers for steering/reference/control types.
 
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
 - BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
-- Visual-reference orchestration includes BEV reference and visual-reference orchestration types.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.
 - Reference lateral error includes BEV reference, reference usability, reference lateral-error, and runtime parameter types.
 - Reference-control readiness includes reference-control readiness, reference usability, and reference lateral-error types.
@@ -42,8 +40,6 @@ Do not create aggregate include headers for steering/reference/control types.
 - Reference-control readiness must not depend on low voltage, projector state, IMU, encoder, or stale timing.
 - BEV simple perception and reference hold builders must not depend on reference usability.
 - Runtime frontend is the owner of current/hold/none reference selection.
-- Visual-reference orchestration is the only owner of current visual reference candidate selection.
-- Reference continuity remains the only owner of hold selection.
 - Assistant/debug transports must serialize published facts and must not recompute control facts.
 - Safety gate is the only owner of low voltage, perception health, stale, IMU, and encoder veto.
 - Low-voltage raw thresholds belong to the power adapter / low-voltage sampler owner, not perception, reference, readiness, or yaw.

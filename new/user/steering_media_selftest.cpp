@@ -141,11 +141,6 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.threshold = 91;
     snapshot.steering.perception_health.projector_ok = true;
     snapshot.steering.perception_health.reason = "ok";
-    snapshot.steering.visual_reference.present = true;
-    snapshot.steering.visual_reference.source = "simple_interval_center";
-    snapshot.steering.visual_reference.reason = "line_candidate_selected";
-    snapshot.steering.visual_reference.candidate_count = 1;
-    snapshot.steering.visual_reference.rejected_candidate_reason = "none";
     snapshot.steering.reference.mode = "interval_center";
     snapshot.steering.reference.source = "simple_interval_center";
     snapshot.steering.eligibility.usable = true;
@@ -199,10 +194,6 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose turn-output target");
     Require(Contains(message, "perception_health.projector_ok=true"),
             "steering snapshot must expose perception health");
-    Require(Contains(message, "visual_reference.reason=line_candidate_selected"),
-            "steering snapshot must expose visual reference orchestration reason");
-    Require(Contains(message, "visual_reference.candidate_count=1"),
-            "steering snapshot must expose visual reference candidate count");
     Require(Contains(message, "reference_control.ready=true"),
             "steering snapshot must expose reference-control readiness");
     Require(Contains(message, "safety_gate.veto_active=false"),
@@ -502,11 +493,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
         state.control_debug_snapshot.steering.perception_health.projector_ok = true;
         state.control_debug_snapshot.steering.perception_health.reason = "ok";
-        state.control_debug_snapshot.steering.visual_reference.present = true;
-        state.control_debug_snapshot.steering.visual_reference.source = "simple_interval_center";
-        state.control_debug_snapshot.steering.visual_reference.reason = "line_candidate_selected";
-        state.control_debug_snapshot.steering.visual_reference.candidate_count = 1;
-        state.control_debug_snapshot.steering.visual_reference.rejected_candidate_reason = "none";
         state.control_debug_snapshot.steering.reference.mode = "interval_center";
         state.control_debug_snapshot.steering.reference.source = "simple_interval_center";
         state.control_debug_snapshot.steering.eligibility.usable = true;
@@ -571,10 +557,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "second emitted frame must be image_frame");
     Require(Contains(header_json, "\"perception_health\":{\"projector_ok\":true"),
             "image frame must include perception health");
-    Require(Contains(header_json, "\"visual_reference\":{\"present\":true"),
-            "image frame must include visual reference orchestration summary");
-    Require(Contains(header_json, "\"candidate_count\":1"),
-            "image frame must include visual reference candidate count");
     Require(Contains(header_json, "\"reference_control\":{\"ready\":true"),
             "image frame must include reference-control readiness");
     Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),

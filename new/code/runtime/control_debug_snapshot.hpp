@@ -18,14 +18,6 @@ struct ReferenceDebugView {
     std::string source = "none";
 };
 
-struct VisualReferenceDebugView {
-    bool present = false;
-    std::string source = "none";
-    std::string reason = "no_visual_reference_candidate";
-    std::size_t candidate_count = 0;
-    std::string rejected_candidate_reason = "none";
-};
-
 struct PerceptionHealthDebugView {
     bool projector_ok = false;
     std::string reason = "projector_invalid";
@@ -78,7 +70,6 @@ struct SteeringDebugSnapshot {
     std::uint64_t capture_time_ms = 0;
     int threshold = 0;
     PerceptionHealthDebugView perception_health{};
-    VisualReferenceDebugView visual_reference{};
     ReferenceDebugView reference{};
     ReferenceEligibilityDebugView eligibility{};
     LateralErrorDebugView lateral_error{};

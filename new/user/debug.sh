@@ -97,7 +97,6 @@ Usage:
   ./debug.sh remote logs
   ./debug.sh tuning [tune_speed.py args...]
   ./debug.sh steering [tune_steering.py args...]
-  ./debug.sh steering drive --drive-s <seconds> [tune_steering.py args...]
   ./debug.sh smoke run
   ./debug.sh smoke local
   ./debug.sh smoke help
@@ -108,7 +107,7 @@ Command groups:
   bench      run open-loop PWM/encoder bench workflows
   remote     start/stop/check the runtime process on the board
   tuning     run the Python host-side speed tuning workflow
-  steering   run passive steering capture, or coordinated capture + controlled drive
+  steering   run the passive host-side steering debug capture workflow
   smoke      execute the runtime smoke harness and collect a verification log
 
 Common env overrides:
@@ -827,12 +826,6 @@ steering_command() {
     require_local_file "${script_path}" "steering workflow"
     python_bin="$(resolve_python)"
 
-    if [[ "${1:-}" == "drive" ]]; then
-        shift || true
-        steering_drive_command "$@"
-        return 0
-    fi
-
     local has_listen_host=0
     local has_listen_port=0
     local has_media_port=0
@@ -911,233 +904,6 @@ steering_command() {
     fi
 
     "${python_bin}" "${script_path}" "${args[@]}"
-}
-
-steering_drive_usage() {
-    cat <<'EOF'
-Usage:
-  ./debug.sh steering drive --drive-s <seconds> [--output-dir <dir>] [--capture-duration-s <seconds>] [tune_steering.py args...]
-
-Behavior:
-  - starts the passive steering/media listeners first
-  - waits until both configured listeners have bound their host ports
-  - starts the normal runtime with LS2K_AUTO_START=1 and LS2K_AUTO_STOP_AFTER_MS=<drive-s>
-  - waits for the capture workflow to finish, then reports the evidence directory
-
-Safety:
-  normal controlled drive requires CONFIRM_POWERED_START=1.
-EOF
-}
-
-wait_for_capture_listener_ready() {
-    local log_path="$1"
-    local require_media="$2"
-    local capture_pid="$3"
-    local timeout_s="${4:-10}"
-    local deadline
-    deadline=$(( $(date +%s) + timeout_s ))
-
-    while true; do
-        if ! kill -0 "${capture_pid}" 2>/dev/null; then
-            log_error "steering capture exited before listeners became ready"
-            if [[ -f "${log_path}" ]]; then
-                tail -n 80 "${log_path}" >&2 || true
-            fi
-            return 1
-        fi
-
-        if [[ -f "${log_path}" ]] &&
-            grep -q '^\[control\] waiting for assistant connection' "${log_path}"; then
-            if [[ "${require_media}" != "1" ]] ||
-                grep -q '^\[media\] waiting for steering media connection' "${log_path}"; then
-                return 0
-            fi
-        fi
-
-        if (( $(date +%s) >= deadline )); then
-            log_error "timed out waiting for steering capture listeners to bind"
-            if [[ -f "${log_path}" ]]; then
-                tail -n 80 "${log_path}" >&2 || true
-            fi
-            return 1
-        fi
-        sleep 0.1
-    done
-}
-
-steering_drive_command() {
-    local drive_s=""
-    local capture_duration_s=""
-    local output_dir=""
-    local listener_ready_timeout_s=12
-    local -a capture_args=()
-
-    while [[ "$#" -gt 0 ]]; do
-        case "$1" in
-            --drive-s)
-                if [[ "$#" -lt 2 ]]; then
-                    log_error "--drive-s requires a value"
-                    return 1
-                fi
-                drive_s="$2"
-                shift 2
-                ;;
-            --drive-s=*)
-                drive_s="${1#*=}"
-                shift
-                ;;
-            --capture-duration-s)
-                if [[ "$#" -lt 2 ]]; then
-                    log_error "--capture-duration-s requires a value"
-                    return 1
-                fi
-                capture_duration_s="$2"
-                shift 2
-                ;;
-            --capture-duration-s=*)
-                capture_duration_s="${1#*=}"
-                shift
-                ;;
-            --listener-ready-timeout-s)
-                if [[ "$#" -lt 2 ]]; then
-                    log_error "--listener-ready-timeout-s requires a value"
-                    return 1
-                fi
-                listener_ready_timeout_s="$2"
-                shift 2
-                ;;
-            --listener-ready-timeout-s=*)
-                listener_ready_timeout_s="${1#*=}"
-                shift
-                ;;
-            --output-dir)
-                if [[ "$#" -lt 2 ]]; then
-                    log_error "--output-dir requires a value"
-                    return 1
-                fi
-                output_dir="$2"
-                capture_args+=("$1" "$2")
-                shift 2
-                ;;
-            --output-dir=*)
-                output_dir="${1#*=}"
-                capture_args+=("$1")
-                shift
-                ;;
-            -h|--help|help)
-                steering_drive_usage
-                return 0
-                ;;
-            *)
-                capture_args+=("$1")
-                shift
-                ;;
-        esac
-    done
-
-    if [[ -z "${drive_s}" ]]; then
-        log_error "steering drive requires --drive-s <seconds>"
-        steering_drive_usage >&2
-        return 1
-    fi
-    if [[ "${CONFIRM_POWERED_START:-0}" != "1" ]]; then
-        log_error "steering drive requires CONFIRM_POWERED_START=1"
-        return 1
-    fi
-
-    local drive_ms
-    drive_ms="$(python3 - "${drive_s}" <<'PY'
-import math
-import sys
-
-value = float(sys.argv[1])
-if not math.isfinite(value) or value <= 0.0:
-    raise SystemExit("drive seconds must be a positive finite number")
-print(int(round(value * 1000.0)))
-PY
-)" || return 1
-
-    if [[ -z "${capture_duration_s}" ]]; then
-        capture_duration_s="$(python3 - "${drive_s}" <<'PY'
-import math
-import sys
-
-value = float(sys.argv[1])
-print(max(30.0, value + 20.0))
-PY
-)"
-    fi
-
-    if [[ -z "${output_dir}" ]]; then
-        local timestamp
-        timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-        output_dir="${REPO_ROOT}/new/verification/controlled-drive-${drive_s}s-${timestamp}"
-        capture_args+=(--output-dir "${output_dir}")
-    fi
-    mkdir -p "${output_dir}"
-
-    local capture_log="${output_dir}/capture.log"
-    local require_media=0
-    if [[ "$(assistant_read_field media_enabled)" == "1" ]]; then
-        require_media=1
-    fi
-
-    log_info "starting steering capture before controlled drive"
-    log_info "capture output: ${output_dir}"
-    steering_command --duration-s "${capture_duration_s}" "${capture_args[@]}" >"${capture_log}" 2>&1 &
-    local capture_pid=$!
-
-    if ! wait_for_capture_listener_ready "${capture_log}" "${require_media}" "${capture_pid}" "${listener_ready_timeout_s}"; then
-        kill "${capture_pid}" 2>/dev/null || true
-        wait "${capture_pid}" 2>/dev/null || true
-        return 1
-    fi
-
-    log_info "capture listeners are ready; starting controlled drive for ${drive_s}s"
-    local remote_status=0
-    set +e
-    (remote_stop now)
-    remote_status=$?
-    set -e
-    if [[ "${remote_status}" -ne 0 ]]; then
-        log_error "failed to stop existing runtime before controlled drive"
-        kill "${capture_pid}" 2>/dev/null || true
-        wait "${capture_pid}" 2>/dev/null || true
-        tail -n 40 "${capture_log}" || true
-        log_info "capture log: ${capture_log}"
-        log_info "capture evidence: ${output_dir}"
-        return "${remote_status}"
-    fi
-
-    set +e
-    (
-        LS2K_AUTO_START=1 \
-        LS2K_AUTO_START_DELAY_MS="${LS2K_AUTO_START_DELAY_MS:-500}" \
-        LS2K_AUTO_STOP_AFTER_MS="${drive_ms}" \
-        CONFIRM_POWERED_START=1 \
-            remote_start normal
-    )
-    remote_status=$?
-    set -e
-    if [[ "${remote_status}" -ne 0 ]]; then
-        log_error "failed to start controlled drive runtime"
-        kill "${capture_pid}" 2>/dev/null || true
-        wait "${capture_pid}" 2>/dev/null || true
-        tail -n 40 "${capture_log}" || true
-        log_info "capture log: ${capture_log}"
-        log_info "capture evidence: ${output_dir}"
-        return "${remote_status}"
-    fi
-
-    local capture_status=0
-    set +e
-    wait "${capture_pid}"
-    capture_status=$?
-    set -e
-    tail -n 40 "${capture_log}" || true
-    log_info "capture log: ${capture_log}"
-    log_info "capture evidence: ${output_dir}"
-    return "${capture_status}"
 }
 
 bench_usage() {
