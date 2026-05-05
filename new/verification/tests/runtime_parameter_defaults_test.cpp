@@ -219,9 +219,16 @@ int main(int argc, char** argv) {
                    NumberField(control_model, "LATERAL_ERROR_FAR_WEIGHT"),
                    "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
         ExpectInRange(params.bev_control_model.lateral_error_far_weight,
-                      0.0,
+                      0.01,
                       1.0,
                       "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
+        ExpectInt(params.bev_control_model.lateral_error_max_weighted_sample_index,
+                  NumberField(control_model, "LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX"),
+                  "BEV_CONTROL_MODEL.LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX");
+        ExpectInRange(params.bev_control_model.lateral_error_max_weighted_sample_index,
+                      0.0,
+                      static_cast<double>(ls2k::port::kBevReferenceSampleCount - 1U),
+                      "BEV_CONTROL_MODEL.LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX");
         ExpectNear(params.bev_control_model.lateral_error_to_wheel_delta_gain,
                    NumberField(control_model, "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN"),
                    "BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN");

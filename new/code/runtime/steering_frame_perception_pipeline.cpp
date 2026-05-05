@@ -86,17 +86,22 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
         health.projector_ok = projector_.Valid();
         health.reason = health.projector_ok ? "ok" : "projector_invalid";
         const port::SteeringPerceptionMemory prior_memory = perception_memory_;
-        const legacy::BEVSimplePerceptionResult current_facts =
-            legacy::RunBEVSimplePerception(capture.view, threshold, params, projector_, &sample_lut_);
-        const port::VisualReferenceCandidate line_candidate =
-            legacy::MakeLineVisualReferenceCandidate(current_facts.reference_path,
-                                                     current_facts.reference_source);
-
         const legacy::BEVElementRasterFrame* raster_ptr = nullptr;
         {
             LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRaster);
             raster_ptr = &element_raster_builder_.Build(capture.view, threshold, params, projector_);
         }
+        const legacy::BEVSimplePerceptionResult current_facts =
+            legacy::RunBEVSimplePerception(capture.view,
+                                           threshold,
+                                           params,
+                                           projector_,
+                                           &sample_lut_,
+                                           raster_ptr);
+        const port::VisualReferenceCandidate line_candidate =
+            legacy::MakeLineVisualReferenceCandidate(current_facts.reference_path,
+                                                     current_facts.reference_source);
+
         legacy::VisualElementPipelineInput element_input{};
         element_input.sparse_rows = &current_facts.rows;
         element_input.element_raster = raster_ptr;

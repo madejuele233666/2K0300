@@ -423,7 +423,10 @@ bool IsFiniteInRange(double value, double min_value, double max_value) {
 }
 
 bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
-    return IsFiniteInRange(params.lateral_error_far_weight, 0.0, 1.0) &&
+    return IsFiniteInRange(params.lateral_error_far_weight, 0.01, 1.0) &&
+           params.lateral_error_max_weighted_sample_index >= 0 &&
+           params.lateral_error_max_weighted_sample_index <
+               static_cast<int>(port::kBevReferenceSampleCount) &&
            IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
 }
 
@@ -676,6 +679,11 @@ public:
                                  "LATERAL_ERROR_FAR_WEIGHT",
                                  parsed.bev_control_model.lateral_error_far_weight,
                                  optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_CONTROL_MODEL",
+                              "LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX",
+                              parsed.bev_control_model.lateral_error_max_weighted_sample_index,
+                              optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
                                  "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",

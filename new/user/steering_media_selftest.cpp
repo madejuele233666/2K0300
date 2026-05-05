@@ -299,6 +299,7 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.raw_turn_output_limit = 8000;
     config.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
     config.param_snapshot.bev_control_model.lateral_error_far_weight = 0.25;
+    config.param_snapshot.bev_control_model.lateral_error_max_weighted_sample_index = 7;
     config.param_snapshot.bev_element.cross_exit_takeover_enabled = false;
     config.param_snapshot.bev_element_raster.enabled = true;
     config.param_snapshot.bev_element_raster.width = 320;
@@ -331,6 +332,8 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include lateral-error-to-wheel-delta gain");
     Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
             "config snapshot must include lateral-error far weight");
+    Require(Contains(header_json, "\"LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX\":7"),
+            "config snapshot must include lateral-error max weighted sample index");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
             "config snapshot must not include removed mixer gain");
     Require(!Contains(header_json, std::string("pid_turn_") + "camera"),
@@ -532,6 +535,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.control_period_ms = 5;
     params.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
     params.bev_control_model.lateral_error_far_weight = 0.25;
+    params.bev_control_model.lateral_error_max_weighted_sample_index = 7;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -623,6 +627,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose lateral-error-to-wheel-delta gain");
     Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
             "service config snapshot must expose lateral-error far weight");
+    Require(Contains(header_json, "\"LATERAL_ERROR_MAX_WEIGHTED_SAMPLE_INDEX\":7"),
+            "service config snapshot must expose lateral-error max weighted sample index");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
             "service config snapshot must not expose removed mixer gain");
     Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),

@@ -17,6 +17,7 @@ enum class ReferenceMode {
 enum class BEVPathPointSource {
     kNone,
     kIntervalCenter,
+    kRasterConnected,
     kHold
 };
 

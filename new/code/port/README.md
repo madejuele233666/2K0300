@@ -24,7 +24,7 @@ Do not create aggregate include headers for steering/reference/control types.
 ## Allowed Dependencies
 
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
-- BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
+- BEV simple perception includes camera frame, BEV geometry, BEV reference, runtime parameter types, and may consume the runtime BEV element raster as a read-only connectivity fact.
 - BEV element raster includes camera frame, BEV element raster, BEV geometry, and runtime parameter types.
 - Visual-reference orchestration includes BEV reference and visual-reference orchestration types.
 - Visual element evidence includes BEV simple row facts, visual element evidence types, visual-reference candidate types, and runtime parameter types.

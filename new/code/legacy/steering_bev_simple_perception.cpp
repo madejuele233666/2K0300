@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <utility>
 
+#include "legacy/steering_bev_element_raster.hpp"
+
 namespace ls2k::legacy {
 namespace {
 
@@ -326,23 +328,15 @@ std::vector<BEVSimpleRowScan> ScanSparseRows(const port::LegacyCameraFrameView& 
     return rows;
 }
 
-const BEVSimpleWhiteInterval* ChooseInterval(const BEVSimpleRowScan& row,
-                                             bool have_previous,
-                                             float previous_lateral,
-                                             const port::RuntimeParameters& params) {
+const BEVSimpleWhiteInterval* ChooseNearestInterval(const BEVSimpleRowScan& row,
+                                                    float target_lateral) {
     if (row.intervals.empty()) {
         return nullptr;
     }
-    const float max_jump =
-        std::clamp(params.bev_geometry.lateral_step_m * 6.0F, 0.08F, 0.14F);
     const BEVSimpleWhiteInterval* best = nullptr;
     float best_cost = 0.0F;
     for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-        const float target = have_previous ? previous_lateral : 0.0F;
-        const float cost = std::abs(interval.center_m - target);
-        if (have_previous && cost > max_jump) {
-            continue;
-        }
+        const float cost = std::abs(interval.center_m - target_lateral);
         if (best == nullptr || cost < best_cost) {
             best = &interval;
             best_cost = cost;
@@ -351,39 +345,185 @@ const BEVSimpleWhiteInterval* ChooseInterval(const BEVSimpleRowScan& row,
     return best;
 }
 
+bool RasterSegmentClear(const BEVElementRasterFrame* raster,
+                        const port::BEVPoint& begin,
+                        const port::BEVPoint& end) {
+    if (raster == nullptr || !raster->valid) {
+        return false;
+    }
+    int x0 = 0;
+    int y0 = 0;
+    int x1 = 0;
+    int y1 = 0;
+    if (!raster->MetricToCell(begin, x0, y0) || !raster->MetricToCell(end, x1, y1)) {
+        return false;
+    }
+    return !raster->SegmentTouchesBlackCells(x0, y0, x1, y1);
+}
+
+bool SegmentAllowed(const BEVElementRasterFrame* raster,
+                    const port::BEVPathSample& previous_sample,
+                    std::size_t previous_index,
+                    std::size_t next_index,
+                    const BEVSimpleWhiteInterval& next_interval) {
+    if (!previous_sample.present) {
+        return true;
+    }
+    const port::BEVPoint next_point{next_interval.forward_m, next_interval.center_m};
+    if (raster != nullptr && raster->valid) {
+        return RasterSegmentClear(raster, previous_sample.point, next_point);
+    }
+    return next_index == previous_index + 1U;
+}
+
+const BEVSimpleWhiteInterval* ChooseConnectedInterval(const BEVSimpleRowScan& row,
+                                                      const port::BEVPathSample& previous_sample,
+                                                      std::size_t previous_index,
+                                                      std::size_t row_index,
+                                                      const BEVElementRasterFrame* raster) {
+    if (row.intervals.empty()) {
+        return nullptr;
+    }
+    const BEVSimpleWhiteInterval* best = nullptr;
+    float best_cost = 0.0F;
+    for (const BEVSimpleWhiteInterval& interval : row.intervals) {
+        if (!SegmentAllowed(raster, previous_sample, previous_index, row_index, interval)) {
+            continue;
+        }
+        const float cost = std::abs(interval.center_m - previous_sample.point.lateral_m);
+        if (best == nullptr || cost < best_cost) {
+            best = &interval;
+            best_cost = cost;
+        }
+    }
+    return best;
+}
+
+bool FindNextConnectedInterval(const std::vector<BEVSimpleRowScan>& rows,
+                               std::size_t search_index,
+                               bool have_previous,
+                               const port::BEVPathSample& previous_sample,
+                               std::size_t previous_index,
+                               const BEVElementRasterFrame* raster,
+                               std::size_t& selected_index,
+                               const BEVSimpleWhiteInterval*& selected_interval) {
+    selected_interval = nullptr;
+    if (!have_previous) {
+        if (search_index >= rows.size()) {
+            return false;
+        }
+        selected_interval = ChooseNearestInterval(rows[search_index], 0.0F);
+        selected_index = search_index;
+        return selected_interval != nullptr;
+    }
+
+    for (std::size_t row_index = search_index;
+         row_index < rows.size() && row_index < port::kBevReferenceSampleCount;
+         ++row_index) {
+        if (rows[row_index].intervals.empty() && (raster == nullptr || !raster->valid)) {
+            return false;
+        }
+        const BEVSimpleWhiteInterval* interval =
+            ChooseConnectedInterval(rows[row_index],
+                                    previous_sample,
+                                    previous_index,
+                                    row_index,
+                                    raster);
+        if (interval != nullptr) {
+            selected_index = row_index;
+            selected_interval = interval;
+            return true;
+        }
+    }
+    return false;
+}
+
+void FillConnectedReferenceSegment(port::BEVReferencePath& reference,
+                                   const port::RuntimeParameters& params,
+                                   std::size_t begin_index,
+                                   const port::BEVPathSample& begin_sample,
+                                   std::size_t end_index,
+                                   const BEVSimpleWhiteInterval& end_interval) {
+    const float begin_forward = begin_sample.point.forward_m;
+    const float begin_lateral = begin_sample.point.lateral_m;
+    const float end_forward = end_interval.forward_m;
+    const float end_lateral = end_interval.center_m;
+    const float forward_span = end_forward - begin_forward;
+    for (std::size_t fill_index = begin_index + 1U; fill_index <= end_index; ++fill_index) {
+        port::BEVPathSample& sample = reference.sampled_path[fill_index];
+        sample.present = true;
+        sample.point.forward_m = params.bev_geometry.forward_samples_m[fill_index];
+        const float t = std::abs(forward_span) > 1.0e-6F
+                            ? std::clamp((sample.point.forward_m - begin_forward) / forward_span,
+                                         0.0F,
+                                         1.0F)
+                            : 1.0F;
+        sample.point.lateral_m = begin_lateral + t * (end_lateral - begin_lateral);
+        sample.confidence = fill_index == end_index ? 1.0F : 0.75F;
+        sample.source = fill_index == end_index
+                            ? port::BEVPathPointSource::kIntervalCenter
+                            : port::BEVPathPointSource::kRasterConnected;
+    }
+}
+
 }  // namespace
 
-port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
+port::BEVReferencePath ExtractRasterConnectedLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
-    const port::RuntimeParameters& params) {
+    const port::RuntimeParameters& params,
+    const BEVElementRasterFrame* element_raster) {
     port::BEVReferencePath reference{};
     InitializeReferencePath(reference, params, port::ReferenceMode::kNone);
     bool have_previous = false;
-    float previous_lateral = 0.0F;
+    std::size_t previous_index = 0U;
 
-    for (std::size_t index = 0; index < rows.size() && index < reference.sampled_path.size(); ++index) {
-        port::BEVPathSample& sample = reference.sampled_path[index];
-        const BEVSimpleWhiteInterval* interval =
-            ChooseInterval(rows[index], have_previous, previous_lateral, params);
+    std::size_t index = 0U;
+    while (index < rows.size() && index < reference.sampled_path.size()) {
+        std::size_t selected_index = index;
+        const BEVSimpleWhiteInterval* interval = nullptr;
+        const port::BEVPathSample previous_sample =
+            have_previous ? reference.sampled_path[previous_index] : port::BEVPathSample{};
+        if (!FindNextConnectedInterval(rows,
+                                       index,
+                                       have_previous,
+                                       previous_sample,
+                                       previous_index,
+                                       element_raster,
+                                       selected_index,
+                                       interval)) {
+            break;
+        }
         if (interval == nullptr) {
             break;
         }
 
         reference.mode = port::ReferenceMode::kIntervalCenter;
-        sample.present = true;
-        sample.point.forward_m = interval->forward_m;
-        sample.point.lateral_m = interval->center_m;
-        sample.confidence = 1.0F;
-        sample.source = port::BEVPathPointSource::kIntervalCenter;
-        previous_lateral = interval->center_m;
+        if (!have_previous) {
+            port::BEVPathSample& sample = reference.sampled_path[selected_index];
+            sample.present = true;
+            sample.point.forward_m = interval->forward_m;
+            sample.point.lateral_m = interval->center_m;
+            sample.confidence = 1.0F;
+            sample.source = port::BEVPathPointSource::kIntervalCenter;
+        } else {
+            FillConnectedReferenceSegment(reference,
+                                          params,
+                                          previous_index,
+                                          previous_sample,
+                                          selected_index,
+                                          *interval);
+        }
+        previous_index = selected_index;
         have_previous = true;
+        index = selected_index + 1U;
     }
     return reference;
 }
 
 port::BEVReferencePath BuildReferencePath(const std::vector<BEVSimpleRowScan>& rows,
-                                          const port::RuntimeParameters& params) {
-    return ExtractStrictLeadingReferenceSegment(rows, params);
+                                          const port::RuntimeParameters& params,
+                                          const BEVElementRasterFrame* element_raster) {
+    return ExtractRasterConnectedLeadingReferenceSegment(rows, params, element_raster);
 }
 
 port::ReferenceHoldState MakeReferenceHoldState(const port::BEVReferencePath& current_visual_reference,
@@ -535,6 +675,8 @@ const char* ToString(port::BEVPathPointSource source) {
             return "none";
         case port::BEVPathPointSource::kIntervalCenter:
             return "interval_center";
+        case port::BEVPathPointSource::kRasterConnected:
+            return "raster_connected";
         case port::BEVPathPointSource::kHold:
             return "hold";
     }
@@ -545,7 +687,8 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
                                                  int threshold,
                                                  const port::RuntimeParameters& params,
                                                  const BEVProjector& projector,
-                                                 BEVSampleProjectionLut* lut) {
+                                                 BEVSampleProjectionLut* lut,
+                                                 const BEVElementRasterFrame* element_raster) {
     BEVSimplePerceptionResult result{};
     result.threshold = threshold;
     BEVSampleProjectionLut local_lut{};
@@ -555,7 +698,7 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
     }
 
     result.rows = ScanSparseRows(frame, threshold, params, active_lut);
-    result.reference_path = BuildReferencePath(result.rows, params);
+    result.reference_path = BuildReferencePath(result.rows, params, element_raster);
     result.reference_mode = ToString(result.reference_path.mode);
     result.reference_source =
         result.reference_path.mode == port::ReferenceMode::kIntervalCenter ? "simple_interval_center" : "none";

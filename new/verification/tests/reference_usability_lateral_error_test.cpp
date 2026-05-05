@@ -182,21 +182,41 @@ void TestGapStopsWeightedSamples() {
     ExpectNear(output.weighted_lateral_error_m, 0.10F, 1.0e-6F, "far samples after a gap must not affect output");
 }
 
-void TestFarWeightUsesGlobalReferenceIndex() {
+void TestMaxWeightedSampleIndexStopsFarSamples() {
     ls2k::port::RuntimeParameters params{};
-    params.bev_control_model.min_leading_reference_samples = 2;
-    params.bev_control_model.lateral_error_far_weight = 0.25;
-    ls2k::port::BEVReferencePath path = MakePath(params, 2, 0.0F);
-    path.sampled_path[1].point.lateral_m = 1.0F;
+    params.bev_control_model.min_leading_reference_samples = 3;
+    params.bev_control_model.lateral_error_max_weighted_sample_index = 3;
+    ls2k::port::BEVReferencePath path = MakePath(params, 8, 0.10F);
+    for (int index = 4; index < 8; ++index) {
+        path.sampled_path[static_cast<std::size_t>(index)].point.lateral_m = 0.60F;
+    }
 
     const auto output = ComputeLateralError(path, params);
-    const float second_weight = 1.0F + (0.25F - 1.0F) / 23.0F;
-    const float expected = second_weight / (1.0F + second_weight);
-    Expect(output.computed, "two-point leading segment must produce lateral error");
+    Expect(output.computed, "leading segment must produce lateral error");
+    Expect(output.weighted_sample_count == 4,
+           "lateral error must stop at the configured max weighted sample index");
+    ExpectNear(output.weighted_lateral_error_m,
+               0.10F,
+               1.0e-6F,
+               "samples beyond the configured weighted horizon must not affect output");
+}
+
+void TestFarWeightUsesConfiguredExponentialEndpoint() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_control_model.min_leading_reference_samples = 4;
+    params.bev_control_model.lateral_error_far_weight = 0.25;
+    params.bev_control_model.lateral_error_max_weighted_sample_index = 3;
+    ls2k::port::BEVReferencePath path = MakePath(params, 4, 0.0F);
+    path.sampled_path[3].point.lateral_m = 1.0F;
+
+    const auto output = ComputeLateralError(path, params);
+    const float expected = 0.25F / (1.0F + std::pow(0.25F, 1.0F / 3.0F) +
+                                    std::pow(0.25F, 2.0F / 3.0F) + 0.25F);
+    Expect(output.computed, "four-point leading segment must produce lateral error");
     ExpectNear(output.weighted_lateral_error_m,
                expected,
                1.0e-5F,
-               "linear weighting must use the 24-point global index");
+               "exponential weighting must reach far weight at the configured endpoint");
 }
 
 void TestTurnOutputTargetUsesLateralErrorGainAndUnclampedSpeedScale() {
@@ -316,7 +336,8 @@ int main() {
         TestConstantOffsetReferencePreservesOffset();
         TestNearSamplesHaveMoreWeightThanFarSamples();
         TestGapStopsWeightedSamples();
-        TestFarWeightUsesGlobalReferenceIndex();
+        TestMaxWeightedSampleIndexStopsFarSamples();
+        TestFarWeightUsesConfiguredExponentialEndpoint();
         TestTurnOutputTargetUsesLateralErrorGainAndUnclampedSpeedScale();
         TestGyroTurnUsesGateApprovedGyroValueOnly();
         TestReferenceControlReadinessUsesHoldSelectedNotReferenceSource();
