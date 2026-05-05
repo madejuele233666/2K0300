@@ -194,6 +194,62 @@ sparse BEV row scans / BEV element raster
 - 第一版新增元素必须默认只进入 evidence/debug；candidate 可以构造但 takeover 默认关闭，直到对应 detector、candidate builder、离线帧和受控发车证据都稳定。
 - ML 只能落成 BEV metric visual evidence；不得绕过 candidate builder 直接输出模式、路径接管结论、速度、转角或 actuator 意图。
 
+### 当前 circle + ML 并行开发边界
+
+当前并行开发只做 circle 和 ML 的 visual element evidence，不做 ordinary path 优化。ordinary path 相关行为冻结：
+
+- 不改 `steering_bev_simple_perception.*`。
+- 不删除 lateral jump。
+- 不新增普通路径远近点连线判黑。
+- 不改变 `BEVReferencePath` 近端连续语义。
+- 不改变 hold、usability、lateral error、readiness、safety、yaw 或 actuator。
+
+circle 与 ML 的共同输入只能来自当前帧视觉事实：
+
+- 首选输入是 `BEVElementRasterFrame`。
+- 不各自重新做 camera -> BEV 投影。
+- 不各自重新构建 dense/debug BEV。
+- 不把 overlay/media/debug 输出反向当 detector 输入。
+- 不读取 hold memory、safety、IMU、encoder、yaw memory、actuator 或 control phase。
+
+circle 分支职责：
+
+- 新增 `steering_circle_element_evidence.*`。
+- 从 `BEVElementRasterFrame` 产生 `circle_left` / `circle_right` evidence。
+- evidence 必须包含 present、confidence、BEV metric support/bounds、projection/sampleability、reason。
+- 第一阶段只输出 evidence/debug，不 push circle `VisualReferenceCandidate`。
+- 不继承 archive 里的 opening score、scene FSM、inner island memory 或 trusted path 逻辑。
+
+ML 分支职责：
+
+- 新增独立 ML evidence / inference adapter 文件，例如 `steering_ml_element_evidence.*`。
+- ML 输出必须先转换成可解释 BEV metric evidence，再进入 element extension record。
+- evidence 必须标识 model/version、input raster contract、confidence、BEV metric support/bounds、reason。
+- ML 不得直接输出 reference mode、candidate takeover、速度、转角、safety gate 或 actuator 意图。
+- ML 推理失败、模型缺失、输入不可采样时必须输出 absent / not_evaluated evidence，而不是静默改控制链路。
+
+cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` 聚合层：
+
+- cross detector 不知道 circle。
+- circle detector 不知道 cross。
+- pipeline 可根据 `cross_exit.present` 给 circle evidence 标记 suppressed reason。
+- suppression 不删除原始 circle detector 事实；debug 应能看出 raw evidence 与 suppressed result 的区别。
+- suppression 不影响 ML evidence，除非后续有独立的、明确定义的 ML suppression 合同。
+
+并行开发文件所有权：
+
+- circle 分支主要修改 `steering_circle_element_evidence.*` 和对应测试。
+- ML 分支主要修改 ML adapter/evidence 文件和对应测试。
+- 共享修改只允许集中在 `steering_visual_element_pipeline.*` 的注册/聚合点。
+- 协议新增字段优先走 element extension record，不为每个新元素反复改老 typed 字段。
+- 如果确实需要新增共享 helper，必须先放在 raster/evidence 层，并证明 circle 与 ML 都只依赖它的事实输出。
+
+合并顺序建议：
+
+1. 先合入不改变 runtime 行为的 detector 文件和单测。
+2. 再合入 `steering_visual_element_pipeline.*` 注册行。
+3. 最后做板端 evidence capture；没有 evidence 稳定前不进入 visual reference arbitration。
+
 ## 3. 代码细节
 
 ### 核心文件边界
