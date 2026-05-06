@@ -59,6 +59,15 @@ struct VisualElementEvidenceFrame {
 
 struct BEVElementParameters {
     bool cross_exit_takeover_enabled = false;
+    float cross_wide_row_white_ratio_min = 0.95F;
+    bool circle_evidence_enabled = true;
+    int circle_min_support_rows = 4;
+    int circle_min_sampleable_per_row = 16;
+    float circle_open_expansion_min_m = 0.05F;
+    float circle_opening_expansion_ratio_min = 0.10F;
+    float circle_opposite_straight_drift_max_m = 0.06F;
+    float circle_opposite_shrink_ratio_min = 0.10F;
+    float circle_present_confidence_min = 0.65F;
 };
 
 }  // namespace ls2k::port

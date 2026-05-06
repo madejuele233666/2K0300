@@ -14,6 +14,9 @@
 
 namespace {
 
+static_assert(sizeof(ls2k::port::BEVElementRasterCellClass) == 1);
+static_assert(sizeof(ls2k::port::BEVElementRasterProjectionState) == 1);
+
 struct TestFailure {
     std::string message;
 };
@@ -200,7 +203,6 @@ void TestElementRasterSegmentTouchesBlack() {
     raster.lateral_limit_m = 0.5F;
     raster.forward_max_m = 1.0F;
     raster.classes.assign(25U, ls2k::port::BEVElementRasterCellClass::kWhite);
-    raster.gray.assign(25U, 255U);
     raster.projection_states.assign(25U, ls2k::port::BEVElementRasterProjectionState::kSampleable);
     raster.classes[raster.Index(2, 2)] = ls2k::port::BEVElementRasterCellClass::kBlack;
 

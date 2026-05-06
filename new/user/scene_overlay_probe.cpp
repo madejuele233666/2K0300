@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
@@ -127,6 +129,132 @@ bool ReadNumberField(const std::string& text, const std::string& key, double& ou
     return true;
 }
 
+bool LocateFieldValue(const std::string& text, const std::string& key, std::size_t& value_pos) {
+    const std::string quoted = "\"" + key + "\"";
+    const std::size_t key_pos = text.find(quoted);
+    if (key_pos == std::string::npos) {
+        return false;
+    }
+    const std::size_t colon_pos = text.find(':', key_pos + quoted.size());
+    if (colon_pos == std::string::npos) {
+        return false;
+    }
+    value_pos = colon_pos + 1U;
+    while (value_pos < text.size() &&
+           std::isspace(static_cast<unsigned char>(text[value_pos])) != 0) {
+        ++value_pos;
+    }
+    return value_pos < text.size();
+}
+
+bool ReadBoolToken(const std::string& text, std::size_t value_pos, bool& out) {
+    if (value_pos >= text.size()) {
+        return false;
+    }
+    if (text[value_pos] == '"') {
+        const std::size_t end_pos = text.find('"', value_pos + 1U);
+        if (end_pos == std::string::npos) {
+            return false;
+        }
+        const std::string token = text.substr(value_pos + 1U, end_pos - value_pos - 1U);
+        if (token == "true" || token == "TRUE" || token == "1" ||
+            token == "yes" || token == "on") {
+            out = true;
+            return true;
+        }
+        if (token == "false" || token == "FALSE" || token == "0" ||
+            token == "no" || token == "off") {
+            out = false;
+            return true;
+        }
+        return false;
+    }
+    if (text.compare(value_pos, 4U, "true") == 0) {
+        out = true;
+        return true;
+    }
+    if (text.compare(value_pos, 5U, "false") == 0) {
+        out = false;
+        return true;
+    }
+    return false;
+}
+
+enum class FieldReadStatus {
+    kMissing,
+    kRead,
+    kMalformed,
+};
+
+enum class ObjectBlockStatus {
+    kMissing,
+    kRead,
+    kMalformed,
+};
+
+bool ValueHasTerminator(const std::string& text, const char* end) {
+    std::size_t pos = static_cast<std::size_t>(end - text.c_str());
+    while (pos < text.size() && std::isspace(static_cast<unsigned char>(text[pos])) != 0) {
+        ++pos;
+    }
+    return pos >= text.size() || text[pos] == ',' || text[pos] == '}';
+}
+
+FieldReadStatus ReadStrictNumberField(const std::string& text,
+                                      const std::string& key,
+                                      double& out) {
+    std::size_t value_pos = 0U;
+    if (!LocateFieldValue(text, key, value_pos)) {
+        return FieldReadStatus::kMissing;
+    }
+    const char* begin = text.c_str() + value_pos;
+    char* end = nullptr;
+    const double value = std::strtod(begin, &end);
+    if (begin == end || !ValueHasTerminator(text, end)) {
+        return FieldReadStatus::kMalformed;
+    }
+    out = value;
+    return FieldReadStatus::kRead;
+}
+
+FieldReadStatus ReadStrictIntField(const std::string& text,
+                                   const std::string& key,
+                                   int& out) {
+    std::size_t value_pos = 0U;
+    if (!LocateFieldValue(text, key, value_pos)) {
+        return FieldReadStatus::kMissing;
+    }
+    const char* begin = text.c_str() + value_pos;
+    char* end = nullptr;
+    const long value = std::strtol(begin, &end, 10);
+    if (begin == end || !ValueHasTerminator(text, end)) {
+        return FieldReadStatus::kMalformed;
+    }
+    out = static_cast<int>(value);
+    return FieldReadStatus::kRead;
+}
+
+void ReadStrictBoolField(const std::string& block,
+                         const std::string& key,
+                         bool& out,
+                         bool& malformed) {
+    std::size_t value_pos = 0U;
+    if (!LocateFieldValue(block, key, value_pos)) {
+        return;
+    }
+    bool bool_value = out;
+    if (ReadBoolToken(block, value_pos, bool_value)) {
+        out = bool_value;
+        return;
+    }
+    int int_value = 0;
+    if (ReadStrictIntField(block, key, int_value) == FieldReadStatus::kRead) {
+        out = int_value != 0;
+        return;
+    }
+    malformed = true;
+}
+
 bool ExtractObjectBlock(const std::string& text, const std::string& key, std::string& out) {
     const std::string quoted = "\"" + key + "\"";
     const std::size_t key_pos = text.find(quoted);
@@ -169,6 +297,48 @@ bool ExtractObjectBlock(const std::string& text, const std::string& key, std::st
     return false;
 }
 
+ObjectBlockStatus ExtractStrictObjectBlock(const std::string& text,
+                                           const std::string& key,
+                                           std::string& out) {
+    std::size_t open_pos = 0U;
+    if (!LocateFieldValue(text, key, open_pos)) {
+        return ObjectBlockStatus::kMissing;
+    }
+    if (text[open_pos] != '{') {
+        return ObjectBlockStatus::kMalformed;
+    }
+    int depth = 0;
+    bool in_string = false;
+    bool escaped = false;
+    for (std::size_t pos = open_pos; pos < text.size(); ++pos) {
+        const char c = text[pos];
+        if (in_string) {
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+            continue;
+        }
+        if (c == '"') {
+            in_string = true;
+            continue;
+        }
+        if (c == '{') {
+            ++depth;
+        } else if (c == '}') {
+            --depth;
+            if (depth == 0) {
+                out = text.substr(open_pos, pos - open_pos + 1U);
+                return ObjectBlockStatus::kRead;
+            }
+        }
+    }
+    return ObjectBlockStatus::kMalformed;
+}
+
 void ReadFloatField(const std::string& block, const std::string& key, float& out) {
     double value = 0.0;
     if (ReadNumberField(block, key, value)) {
@@ -188,6 +358,55 @@ void ReadIntField(const std::string& block, const std::string& key, int& out) {
     if (ReadNumberField(block, key, value)) {
         out = static_cast<int>(std::lround(value));
     }
+}
+
+void ReadStrictFloatField(const std::string& block,
+                          const std::string& key,
+                          float& out,
+                          bool& malformed) {
+    double value = 0.0;
+    const FieldReadStatus status = ReadStrictNumberField(block, key, value);
+    if (status == FieldReadStatus::kRead) {
+        out = static_cast<float>(value);
+    } else if (status == FieldReadStatus::kMalformed) {
+        malformed = true;
+    }
+}
+
+void ReadStrictIntField(const std::string& block,
+                        const std::string& key,
+                        int& out,
+                        bool& malformed) {
+    int value = 0;
+    const FieldReadStatus status = ReadStrictIntField(block, key, value);
+    if (status == FieldReadStatus::kRead) {
+        out = value;
+    } else if (status == FieldReadStatus::kMalformed) {
+        malformed = true;
+    }
+}
+
+bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& params) {
+    return std::isfinite(params.cross_wide_row_white_ratio_min) &&
+           params.cross_wide_row_white_ratio_min >= 0.0F &&
+           params.cross_wide_row_white_ratio_min <= 1.0F &&
+           params.circle_min_support_rows >= 1 &&
+           params.circle_min_sampleable_per_row >= 1 &&
+           std::isfinite(params.circle_open_expansion_min_m) &&
+           params.circle_open_expansion_min_m >= 1.0e-4F &&
+           params.circle_open_expansion_min_m <= 2.0F &&
+           std::isfinite(params.circle_opening_expansion_ratio_min) &&
+           params.circle_opening_expansion_ratio_min >= 1.0e-4F &&
+           params.circle_opening_expansion_ratio_min <= 10.0F &&
+           std::isfinite(params.circle_opposite_straight_drift_max_m) &&
+           params.circle_opposite_straight_drift_max_m >= 0.0F &&
+           params.circle_opposite_straight_drift_max_m <= 2.0F &&
+           std::isfinite(params.circle_opposite_shrink_ratio_min) &&
+           params.circle_opposite_shrink_ratio_min >= 1.0e-4F &&
+           params.circle_opposite_shrink_ratio_min <= 10.0F &&
+           std::isfinite(params.circle_present_confidence_min) &&
+           params.circle_present_confidence_min >= 0.0F &&
+           params.circle_present_confidence_min <= 1.0F;
 }
 
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
@@ -234,6 +453,69 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadIntField(block,
                      "MIN_LEADING_REFERENCE_SAMPLES",
                      params.bev_control_model.min_leading_reference_samples);
+    }
+    bool element_malformed = false;
+    ObjectBlockStatus object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT", block);
+    if (object_status == ObjectBlockStatus::kMalformed) {
+        element_malformed = true;
+    } else if (object_status == ObjectBlockStatus::kRead) {
+        ReadStrictBoolField(block,
+                            "CROSS_EXIT_TAKEOVER_ENABLED",
+                            params.bev_element.cross_exit_takeover_enabled,
+                            element_malformed);
+        ReadStrictFloatField(block,
+                             "CROSS_WIDE_ROW_WHITE_RATIO_MIN",
+                             params.bev_element.cross_wide_row_white_ratio_min,
+                             element_malformed);
+        ReadStrictBoolField(block,
+                            "CIRCLE_EVIDENCE_ENABLED",
+                            params.bev_element.circle_evidence_enabled,
+                            element_malformed);
+        ReadStrictIntField(block,
+                           "CIRCLE_MIN_SUPPORT_ROWS",
+                           params.bev_element.circle_min_support_rows,
+                           element_malformed);
+        ReadStrictIntField(block,
+                           "CIRCLE_MIN_SAMPLEABLE_PER_ROW",
+                           params.bev_element.circle_min_sampleable_per_row,
+                           element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_OPEN_EXPANSION_MIN_M",
+                             params.bev_element.circle_open_expansion_min_m,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_OPENING_EXPANSION_RATIO_MIN",
+                             params.bev_element.circle_opening_expansion_ratio_min,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M",
+                             params.bev_element.circle_opposite_straight_drift_max_m,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN",
+                             params.bev_element.circle_opposite_shrink_ratio_min,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_PRESENT_CONFIDENCE_MIN",
+                             params.bev_element.circle_present_confidence_min,
+                             element_malformed);
+        if (!ValidProbeBEVElementParameters(params.bev_element)) {
+            element_malformed = true;
+        }
+    }
+    object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT_RASTER", block);
+    if (object_status == ObjectBlockStatus::kMalformed) {
+        element_malformed = true;
+    } else if (object_status == ObjectBlockStatus::kRead) {
+        ReadStrictBoolField(block, "ENABLED", params.bev_element_raster.enabled, element_malformed);
+        ReadStrictIntField(block, "WIDTH", params.bev_element_raster.width, element_malformed);
+        if (params.bev_element_raster.width < 2) {
+            element_malformed = true;
+        }
+    }
+    if (element_malformed) {
+        params = RuntimeParameters{};
+        return;
     }
 }
 
@@ -557,7 +839,8 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                      const RuntimeParameters& params,
                                      const ls2k::port::SteeringPerceptionMemory& prior_memory,
                                      ls2k::legacy::BEVProjector& projector,
-                                     ls2k::legacy::BEVSampleProjectionLut& lut) {
+                                     ls2k::legacy::BEVSampleProjectionLut& lut,
+                                     ls2k::legacy::BEVElementRasterBuilder& element_raster_builder) {
     ProbePipelineResult result{};
     result.threshold = ls2k::legacy::ComputeOtsuThreshold(frame_view);
     result.simple = ls2k::legacy::RunBEVSimplePerception(frame_view,
@@ -570,6 +853,9 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                                        result.simple.reference_source);
     ls2k::legacy::VisualElementPipelineInput element_input{};
     element_input.sparse_rows = &result.simple.rows;
+    const ls2k::legacy::BEVElementRasterFrame& element_raster =
+        element_raster_builder.Build(frame_view, result.threshold, params, projector);
+    element_input.element_raster = &element_raster;
     element_input.line_candidate = line_candidate;
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);
@@ -666,13 +952,19 @@ int main(int argc, char** argv) {
             throw std::runtime_error("failed to configure BEV projector");
         }
         ls2k::legacy::BEVSampleProjectionLut lut{};
+        ls2k::legacy::BEVElementRasterBuilder element_raster_builder{};
         ls2k::port::SteeringPerceptionMemory prior_memory{};
         std::uint64_t frame_id = 1;
         for (const std::string& warmup_path : warmup_paths) {
             const LegacyCameraFrame warmup_frame = ReadRawFrame(warmup_path);
             const LegacyCameraFrameView warmup_view = warmup_frame.View(frame_id++, 1);
             const ProbePipelineResult warmup =
-                RunProbePipeline(warmup_view, params, prior_memory, projector, lut);
+                RunProbePipeline(warmup_view,
+                                 params,
+                                 prior_memory,
+                                 projector,
+                                 lut,
+                                 element_raster_builder);
             if (warmup.memory_update_valid) {
                 prior_memory = warmup.next_memory;
             }
@@ -682,7 +974,12 @@ int main(int argc, char** argv) {
         ProbePipelineResult pipeline{};
         for (int cycle = 0; cycle < confirm_cycles; ++cycle) {
             const LegacyCameraFrameView frame_view = frame.View(frame_id++, 1);
-            pipeline = RunProbePipeline(frame_view, params, prior_memory, projector, lut);
+            pipeline = RunProbePipeline(frame_view,
+                                        params,
+                                        prior_memory,
+                                        projector,
+                                        lut,
+                                        element_raster_builder);
             if (pipeline.memory_update_valid) {
                 prior_memory = pipeline.next_memory;
             }

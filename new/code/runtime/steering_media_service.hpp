@@ -44,6 +44,7 @@ private:
     bool configured_ = false;
     bool enabled_ = false;
     bool config_sent_ = false;
+    bool publish_disarmed_ = false;
     int publish_interval_ms_ = 80;
     std::uint64_t last_image_publish_ms_ = 0;
     std::uint64_t last_image_frame_id_ = 0;

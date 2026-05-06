@@ -250,3 +250,12 @@ The accepted steering tuning workflow for this change SHALL expose steering-rela
 - **WHEN** the host workflow captures steering tuning evidence for a run
 - **THEN** it MAY record the current startup-loaded steering parameter snapshot as part of steering media observability
 - **AND** the accepted first-release command set SHALL NOT include any steering-parameter write or override command
+
+### Requirement: Runtime Parameter Snapshots Include BEV Element Raster Settings
+The accepted runtime parameter snapshot surfaces SHALL include `BEV_ELEMENT_RASTER` so host tools and evidence bundles can interpret whether runtime raster facts were enabled and what raster width was used.
+
+#### Scenario: Parameter snapshot carries raster settings
+- **WHEN** the runtime publishes a config or telemetry parameter snapshot that includes BEV steering context
+- **THEN** the snapshot SHALL include `BEV_ELEMENT_RASTER.ENABLED`
+- **AND** it SHALL include `BEV_ELEMENT_RASTER.WIDTH`
+- **AND** the values SHALL reflect the startup-loaded runtime parameters or their documented fallback defaults

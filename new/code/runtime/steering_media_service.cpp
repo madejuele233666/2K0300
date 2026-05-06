@@ -39,6 +39,7 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
     configured_ = true;
     enabled_ = params.steering_media_enabled;
     config_sent_ = false;
+    publish_disarmed_ = params.steering_media_publish_disarmed;
     publish_interval_ms_ = std::max(0, params.steering_media_publish_interval_ms);
     last_image_publish_ms_ = 0;
     last_image_frame_id_ = 0;
@@ -213,7 +214,7 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
         MaybeEmitWindowSummary(now_ms, diagnostics);
         return;
     }
-    if (snapshot.motion_phase == MotionPhase::kDisarmed) {
+    if (!publish_disarmed_ && snapshot.motion_phase == MotionPhase::kDisarmed) {
         window_stats_.skip_disarmed += 1U;
         MaybeEmitWindowSummary(now_ms, diagnostics);
         return;

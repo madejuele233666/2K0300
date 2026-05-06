@@ -427,6 +427,17 @@ bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
            IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
 }
 
+bool ValidateBEVElement(const port::BEVElementParameters& params) {
+    return IsFiniteInRange(params.cross_wide_row_white_ratio_min, 0.0, 1.0) &&
+           params.circle_min_support_rows >= 1 &&
+           params.circle_min_sampleable_per_row >= 1 &&
+           IsFiniteInRange(params.circle_open_expansion_min_m, 1.0e-4, 2.0) &&
+           IsFiniteInRange(params.circle_opening_expansion_ratio_min, 1.0e-4, 10.0) &&
+           IsFiniteInRange(params.circle_opposite_straight_drift_max_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_opposite_shrink_ratio_min, 1.0e-4, 10.0) &&
+           IsFiniteInRange(params.circle_present_confidence_min, 0.0, 1.0);
+}
+
 // 读取必填字符串值
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
     const cv::FileNode node = root[key];
@@ -576,6 +587,10 @@ public:
                         "steering_media_publish_interval_ms",
                         parsed.steering_media_publish_interval_ms,
                         optional_malformed);
+        ReadOptionalBool(root,
+                         "steering_media_publish_disarmed",
+                         parsed.steering_media_publish_disarmed,
+                         optional_malformed);
         ReadOptionalInt(root,
                         "low_voltage_sample_interval_ms",
                         parsed.low_voltage_sample_interval_ms,
@@ -694,6 +709,54 @@ public:
                                "CROSS_EXIT_TAKEOVER_ENABLED",
                                parsed.bev_element.cross_exit_takeover_enabled,
                                optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CROSS_WIDE_ROW_WHITE_RATIO_MIN",
+                                 parsed.bev_element.cross_wide_row_white_ratio_min,
+                                 optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "BEV_ELEMENT",
+                               "CIRCLE_EVIDENCE_ENABLED",
+                               parsed.bev_element.circle_evidence_enabled,
+                               optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_MIN_SUPPORT_ROWS",
+                              parsed.bev_element.circle_min_support_rows,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_MIN_SAMPLEABLE_PER_ROW",
+                              parsed.bev_element.circle_min_sampleable_per_row,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_OPEN_EXPANSION_MIN_M",
+                                 parsed.bev_element.circle_open_expansion_min_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_OPENING_EXPANSION_RATIO_MIN",
+                                 parsed.bev_element.circle_opening_expansion_ratio_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M",
+                                 parsed.bev_element.circle_opposite_straight_drift_max_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN",
+                                 parsed.bev_element.circle_opposite_shrink_ratio_min,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_PRESENT_CONFIDENCE_MIN",
+                                 parsed.bev_element.circle_present_confidence_min,
+                                 optional_malformed);
+        if (!ValidateBEVElement(parsed.bev_element)) {
+            optional_malformed = true;
+        }
         ReadOptionalNestedBool(root,
                                "BEV_ELEMENT_RASTER",
                                "ENABLED",

@@ -9,7 +9,12 @@ source "${SCRIPT_DIR}/common_steering_test_build.sh"
 compile_test_binary \
   "${OUT_BIN}" \
   "${REPO_ROOT}/new/verification/tests/visual_element_evidence_test.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_element_raster.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_circle_element_evidence.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_cross_exit_element_evidence.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_visual_element_pipeline.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_visual_reference_orchestration.cpp"
 
 "${OUT_BIN}"

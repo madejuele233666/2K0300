@@ -1,5 +1,5 @@
 {
-  "RUNNING_SPEED_TARGET": 300.0,
+  "RUNNING_SPEED_TARGET": 200.0,
   "YAW_RATE_PID": {
     "P": 10.0,
     "I": 0.0,
@@ -45,18 +45,18 @@
   "camera_frame_height": 240,
   "BEV_PROJECTOR": {
     "VALID": 1,
-    "PROJECTOR_ID": "bev_projector_true_bev_manual_forward_scale_v5",
-    "PROJECTOR_HASH": "bev-projector-true-bev-manual-forward-scale-20260428",
+    "PROJECTOR_ID": "bev_projector_true_bev_long_straight_v6",
+    "PROJECTOR_HASH": "bev-projector-long-straight-20260506",
     "DEBUG_GRID_WIDTH": 160,
     "DEBUG_GRID_HEIGHT": 128,
     "SOURCE_ROW_0": 220.0,
     "SOURCE_COL_0": 19.0,
     "SOURCE_ROW_1": 220.0,
-    "SOURCE_COL_1": 305.0,
+    "SOURCE_COL_1": 300.0,
     "SOURCE_ROW_2": 68.0,
-    "SOURCE_COL_2": 108.0,
+    "SOURCE_COL_2": 121.0,
     "SOURCE_ROW_3": 68.0,
-    "SOURCE_COL_3": 220.0,
+    "SOURCE_COL_3": 204.0,
     "TARGET_FORWARD_0": 0.061,
     "TARGET_LATERAL_0": -0.21,
     "TARGET_FORWARD_1": 0.061,
@@ -105,7 +105,16 @@
     "MIN_LEADING_REFERENCE_SAMPLES": 3
   },
   "BEV_ELEMENT": {
-    "CROSS_EXIT_TAKEOVER_ENABLED": 0
+    "CROSS_EXIT_TAKEOVER_ENABLED": 0,
+    "CROSS_WIDE_ROW_WHITE_RATIO_MIN": 0.95,
+    "CIRCLE_EVIDENCE_ENABLED": 1,
+    "CIRCLE_MIN_SUPPORT_ROWS": 4,
+    "CIRCLE_MIN_SAMPLEABLE_PER_ROW": 16,
+    "CIRCLE_OPEN_EXPANSION_MIN_M": 0.05,
+    "CIRCLE_OPENING_EXPANSION_RATIO_MIN": 0.1,
+    "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M": 0.06,
+    "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN": 0.1,
+    "CIRCLE_PRESENT_CONFIDENCE_MIN": 0.65
   },
   "BEV_ELEMENT_RASTER": {
     "ENABLED": 1,

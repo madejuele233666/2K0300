@@ -85,6 +85,7 @@ set(NEW_SRCS
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_bev_simple_perception.cpp
     ../code/legacy/steering_bev_element_raster.cpp
+    ../code/legacy/steering_circle_element_evidence.cpp
     ../code/legacy/steering_cross_exit_element_evidence.cpp
     ../code/legacy/steering_visual_element_evidence.cpp
     ../code/legacy/steering_visual_element_pipeline.cpp
@@ -169,6 +170,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_bev_element_raster.cpp
+        ../code/legacy/steering_circle_element_evidence.cpp
         ../code/legacy/steering_visual_element_evidence.cpp
         ../code/legacy/steering_cross_exit_element_evidence.cpp
         ../code/legacy/steering_visual_element_pipeline.cpp
@@ -212,7 +214,12 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         visual_element_evidence_test
         ../verification/tests/visual_element_evidence_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_bev_simple_perception.cpp
+        ../code/legacy/steering_bev_element_raster.cpp
+        ../code/legacy/steering_circle_element_evidence.cpp
         ../code/legacy/steering_cross_exit_element_evidence.cpp
+        ../code/legacy/steering_visual_element_pipeline.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp
     )
     target_link_libraries(
@@ -305,6 +312,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_bev_element_raster.cpp
+        ../code/legacy/steering_circle_element_evidence.cpp
         ../code/legacy/steering_cross_exit_element_evidence.cpp
         ../code/legacy/steering_visual_element_pipeline.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp

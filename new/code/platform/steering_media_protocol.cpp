@@ -269,6 +269,25 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"BEV_ELEMENT\":{";
     header << "\"CROSS_EXIT_TAKEOVER_ENABLED\":";
     AppendJsonBool(header, snapshot.param_snapshot.bev_element.cross_exit_takeover_enabled);
+    header << ",\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.cross_wide_row_white_ratio_min);
+    header << ",\"CIRCLE_EVIDENCE_ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element.circle_evidence_enabled);
+    header << ",\"CIRCLE_MIN_SUPPORT_ROWS\":"
+           << snapshot.param_snapshot.bev_element.circle_min_support_rows;
+    header << ",\"CIRCLE_MIN_SAMPLEABLE_PER_ROW\":"
+           << snapshot.param_snapshot.bev_element.circle_min_sampleable_per_row;
+    header << ",\"CIRCLE_OPEN_EXPANSION_MIN_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_open_expansion_min_m);
+    header << ",\"CIRCLE_OPENING_EXPANSION_RATIO_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_opening_expansion_ratio_min);
+    header << ",\"CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_element.circle_opposite_straight_drift_max_m);
+    header << ",\"CIRCLE_OPPOSITE_SHRINK_RATIO_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_opposite_shrink_ratio_min);
+    header << ",\"CIRCLE_PRESENT_CONFIDENCE_MIN\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_present_confidence_min);
     header << "}";
     header << ",\"BEV_ELEMENT_RASTER\":{";
     header << "\"ENABLED\":";

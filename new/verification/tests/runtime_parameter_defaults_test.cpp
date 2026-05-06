@@ -251,6 +251,57 @@ int main(int argc, char** argv) {
         ExpectBool(params.bev_element.cross_exit_takeover_enabled,
                    NumberField(element, "CROSS_EXIT_TAKEOVER_ENABLED"),
                    "BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED");
+        ExpectNear(params.bev_element.cross_wide_row_white_ratio_min,
+                   NumberField(element, "CROSS_WIDE_ROW_WHITE_RATIO_MIN"),
+                   "BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN");
+        ExpectInRange(params.bev_element.cross_wide_row_white_ratio_min,
+                      0.0,
+                      1.0,
+                      "BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN");
+        ExpectBool(params.bev_element.circle_evidence_enabled,
+                   NumberField(element, "CIRCLE_EVIDENCE_ENABLED"),
+                   "BEV_ELEMENT.CIRCLE_EVIDENCE_ENABLED");
+        ExpectInt(params.bev_element.circle_min_support_rows,
+                  NumberField(element, "CIRCLE_MIN_SUPPORT_ROWS"),
+                  "BEV_ELEMENT.CIRCLE_MIN_SUPPORT_ROWS");
+        ExpectInt(params.bev_element.circle_min_sampleable_per_row,
+                  NumberField(element, "CIRCLE_MIN_SAMPLEABLE_PER_ROW"),
+                  "BEV_ELEMENT.CIRCLE_MIN_SAMPLEABLE_PER_ROW");
+        ExpectNear(params.bev_element.circle_open_expansion_min_m,
+                   NumberField(element, "CIRCLE_OPEN_EXPANSION_MIN_M"),
+                   "BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M");
+        ExpectInRange(params.bev_element.circle_open_expansion_min_m,
+                      1.0e-4,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M");
+        ExpectNear(params.bev_element.circle_opening_expansion_ratio_min,
+                   NumberField(element, "CIRCLE_OPENING_EXPANSION_RATIO_MIN"),
+                   "BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN");
+        ExpectInRange(params.bev_element.circle_opening_expansion_ratio_min,
+                      1.0e-4,
+                      10.0,
+                      "BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN");
+        ExpectNear(params.bev_element.circle_opposite_straight_drift_max_m,
+                   NumberField(element, "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M"),
+                   "BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M");
+        ExpectInRange(params.bev_element.circle_opposite_straight_drift_max_m,
+                      0.0,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M");
+        ExpectNear(params.bev_element.circle_opposite_shrink_ratio_min,
+                   NumberField(element, "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN"),
+                   "BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN");
+        ExpectInRange(params.bev_element.circle_opposite_shrink_ratio_min,
+                      1.0e-4,
+                      10.0,
+                      "BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN");
+        ExpectNear(params.bev_element.circle_present_confidence_min,
+                   NumberField(element, "CIRCLE_PRESENT_CONFIDENCE_MIN"),
+                   "BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN");
+        ExpectInRange(params.bev_element.circle_present_confidence_min,
+                      0.0,
+                      1.0,
+                      "BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN");
 
         const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
         ExpectBool(params.bev_element_raster.enabled,

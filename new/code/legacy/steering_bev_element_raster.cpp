@@ -11,7 +11,6 @@
 namespace ls2k::legacy {
 namespace {
 
-constexpr std::uint8_t kInvalidGray = 0U;
 constexpr int kBilinearWeightScale = 256;
 
 bool SameCalibration(const port::BEVProjectorCalibration& lhs,
@@ -164,9 +163,6 @@ void PrepareRasterStorage(BEVElementRasterFrame& raster,
     raster.lateral_limit_m = lut.lateral_limit_m;
     raster.forward_max_m = lut.forward_max_m;
     const std::size_t cell_count = static_cast<std::size_t>(lut.width * lut.height);
-    if (raster.gray.size() != cell_count) {
-        raster.gray.resize(cell_count);
-    }
     if (raster.classes.size() != cell_count) {
         raster.classes.resize(cell_count);
     }
@@ -190,7 +186,6 @@ BEVElementRasterFrame BuildRasterFromLut(const port::LegacyCameraFrameView& fram
         const BEVElementRasterLutEntry& entry = lut.entries[index];
         raster.projection_states[index] = entry.state;
         if (entry.state != port::BEVElementRasterProjectionState::kSampleable) {
-            raster.gray[index] = kInvalidGray;
             raster.classes[index] = port::BEVElementRasterCellClass::kInvalid;
             continue;
         }
@@ -202,7 +197,6 @@ BEVElementRasterFrame BuildRasterFromLut(const port::LegacyCameraFrameView& fram
         const std::uint8_t gray =
             static_cast<std::uint8_t>((weighted_sum + (kBilinearWeightScale / 2)) /
                                       kBilinearWeightScale);
-        raster.gray[index] = gray;
         raster.classes[index] = class_table[gray];
     }
     return raster;

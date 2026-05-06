@@ -24,9 +24,9 @@ struct BEVProjectorCalibration {
     bool valid = true;
     std::array<ImagePoint, kBevCalibrationPointCount> source_points{
         {ImagePoint{220.0F, 19.0F},
-         ImagePoint{220.0F, 305.0F},
-         ImagePoint{68.0F, 108.0F},
-         ImagePoint{68.0F, 220.0F}}};
+         ImagePoint{220.0F, 300.0F},
+         ImagePoint{68.0F, 121.0F},
+         ImagePoint{68.0F, 204.0F}}};
     std::array<BEVPoint, kBevCalibrationPointCount> target_points{
         {BEVPoint{0.061F, -0.21F},
          BEVPoint{0.061F, 0.21F},
@@ -34,8 +34,8 @@ struct BEVProjectorCalibration {
          BEVPoint{0.610F, 0.21F}}};
     int debug_grid_width = 160;
     int debug_grid_height = 128;
-    std::string projector_id = "bev_projector_true_bev_manual_forward_scale_v5";
-    std::string projector_hash = "bev-projector-true-bev-manual-forward-scale-20260428";
+    std::string projector_id = "bev_projector_true_bev_long_straight_v6";
+    std::string projector_hash = "bev-projector-long-straight-20260506";
 };
 
 struct BEVGeometryParameters {
@@ -76,7 +76,7 @@ struct BEVClassificationParameters {
 
 struct BEVControlModelParameters {
     double lateral_error_far_weight = 0.0;
-    double lateral_error_to_wheel_delta_gain = 600.0;
+    double lateral_error_to_wheel_delta_gain = 500.0;
     int min_leading_reference_samples = 3;
 };
 

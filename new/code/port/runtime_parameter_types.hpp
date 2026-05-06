@@ -23,7 +23,7 @@ struct AssistantTcpParameters {
 };
 
 struct RuntimeParameters {
-    double running_speed_target = 300.0;
+    double running_speed_target = 250.0;
     double yaw_rate_pid_p = 10.0;
     double yaw_rate_pid_i = 0.0;
     double yaw_rate_pid_d = 0.0;
@@ -53,6 +53,7 @@ struct RuntimeParameters {
     bool steering_media_enabled = true;
     int steering_media_port = 8890;
     int steering_media_publish_interval_ms = 120;
+    bool steering_media_publish_disarmed = false;
     int low_voltage_sample_interval_ms = 1000;
 
     int camera_frame_width = 320;

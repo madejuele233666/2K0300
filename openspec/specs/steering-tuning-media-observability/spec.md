@@ -69,6 +69,7 @@ The accepted `config_snapshot.param_snapshot` object SHALL include the current r
 - `BEV_CLASSIFICATION`
 - `BEV_CONTROL_MODEL`
 - `BEV_ELEMENT`
+- `BEV_ELEMENT_RASTER`
 
 The accepted `image_frame` SHALL carry a raw grayscale payload whose dimensions are declared in the same frame header. Its JSON header SHALL use this top-level object shape:
 
@@ -111,7 +112,7 @@ The accepted steering tuning workflow SHALL preserve a minimal project-owned evi
 - **AND** reviewers SHALL be able to explain a steering event without depending on undocumented manual alignment steps
 
 ### Requirement: Public Steering Snapshots Expose Element Evidence Facts
-The project-owned public steering snapshot SHALL include a read-only `element_evidence` group. The first accepted element evidence group SHALL be `cross_exit`, and it SHALL expose detector facts plus candidate summary status without becoming a control authority.
+The project-owned public steering snapshot SHALL include a read-only `element_evidence` group serialized through the shared element-evidence serializer. The typed `cross_exit` group SHALL remain stable and generic element records MAY be appended without requiring old consumers to understand them.
 
 #### Scenario: Steering snapshot includes cross-exit evidence facts
 - **WHEN** reviewers inspect `control.steering_snapshot`
@@ -119,8 +120,14 @@ The project-owned public steering snapshot SHALL include a read-only `element_ev
 - **AND** they SHALL find `element_evidence.cross_exit.candidate` fields for `built`, `takeover_enabled`, `included_in_arbitration`, and `reason`
 - **AND** they SHALL NOT need archive-only topology, scene, or policy fields to explain the evidence
 
+#### Scenario: Steering snapshot can append generic element records
+- **WHEN** generic element evidence records are present
+- **THEN** the public steering snapshot SHALL serialize those records at `element_evidence.records` after the stable `cross_exit` group
+- **AND** each record SHALL follow the stable generic record schema defined by `bev-visual-element-evidence`
+- **AND** old consumers that only read `cross_exit` SHALL remain compatible
+
 ### Requirement: Steering Media Mirrors Element Evidence In Image Headers
-The steering media `image_frame.steering_snapshot` object SHALL mirror the public steering snapshot `element_evidence` group so image evidence and control evidence can be aligned from the same media bundle.
+The steering media `image_frame.steering_snapshot` object SHALL mirror the public steering snapshot `element_evidence` group through the shared element-evidence serializer so image evidence and control evidence can be aligned from the same media bundle.
 
 #### Scenario: Image frame header carries cross-exit evidence
 - **WHEN** the runtime publishes an accepted steering media `image_frame`
@@ -129,9 +136,15 @@ The steering media `image_frame.steering_snapshot` object SHALL mirror the publi
 - **AND** the raw grayscale payload framing and read-only media session semantics SHALL remain unchanged
 
 ### Requirement: Steering Media Config Snapshot Includes Element Parameters
-The steering media `config_snapshot.param_snapshot` object SHALL include `BEV_ELEMENT` so element evidence and candidate inclusion behavior can be interpreted from a captured media bundle.
+The steering media `config_snapshot.param_snapshot` object SHALL include `BEV_ELEMENT` and `BEV_ELEMENT_RASTER` so element evidence, raster context, and candidate inclusion behavior can be interpreted from a captured media bundle.
 
 #### Scenario: Config snapshot carries cross-exit takeover state
 - **WHEN** the runtime publishes a steering media `config_snapshot`
 - **THEN** the JSON header SHALL include `param_snapshot.BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED`
 - **AND** the field SHALL reflect the startup-loaded runtime parameter value
+
+#### Scenario: Config snapshot carries raster context
+- **WHEN** the runtime publishes a steering media `config_snapshot`
+- **THEN** the JSON header SHALL include `param_snapshot.BEV_ELEMENT_RASTER.ENABLED`
+- **AND** it SHALL include `param_snapshot.BEV_ELEMENT_RASTER.WIDTH`
+- **AND** those fields SHALL reflect startup-loaded runtime parameter values

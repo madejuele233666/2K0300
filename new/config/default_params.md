@@ -86,7 +86,7 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `RUNNING_SPEED_TARGET` | `140.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
+| `RUNNING_SPEED_TARGET` | `250.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
 | `YAW_RATE_PID.P` | `10.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 lateral-error 前馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 `LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`。 |
 | `YAW_RATE_PID.I` | `0.0` | gyro feedback | gyro 反馈积分。当前默认不用。只有长期同向 gyro 偏差且 P/D 不能解决时小幅增加；积分过大会拖尾。 |
 | `YAW_RATE_PID.D` | `0.0` | gyro feedback | 抑制 gyro 反馈误差变化。抖动和过冲明显时增加；过大时转向变钝。 |
@@ -149,14 +149,14 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 调参方法与证据 |
 | --- | --- | --- |
 | `BEV_PROJECTOR.VALID` | `1` | 投影是否可用。置 `0` 会让 perception health 失败，只用于 fail-safe 验证。 |
-| `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_true_bev_manual_forward_scale_v5` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
-| `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-true-bev-manual-forward-scale-20260428` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
+| `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_true_bev_long_straight_v6` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
+| `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-long-straight-20260506` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
 | `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse/raster authority。runtime 元素 raster 看 `BEV_ELEMENT_RASTER.WIDTH`。 |
 | `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。runtime 元素 raster 高度按 metric aspect 派生。 |
 | `BEV_PROJECTOR.SOURCE_ROW_0` / `SOURCE_COL_0` | `220.0` / `19.0` | 近端左标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `220.0` / `305.0` | 近端右标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `68.0` / `108.0` | 远端左标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_3` / `SOURCE_COL_3` | `68.0` / `220.0` | 远端右标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `220.0` / `300.0` | 近端右标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `68.0` / `121.0` | 远端左标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_3` / `SOURCE_COL_3` | `68.0` / `204.0` | 远端右标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.TARGET_FORWARD_0` / `TARGET_LATERAL_0` | `0.061` / `-0.21` | 近端左标定点对应的车辆坐标。 |
 | `BEV_PROJECTOR.TARGET_FORWARD_1` / `TARGET_LATERAL_1` | `0.061` / `0.21` | 近端右标定点对应的车辆坐标。 |
 | `BEV_PROJECTOR.TARGET_FORWARD_2` / `TARGET_LATERAL_2` | `0.61` / `-0.21` | 远端左标定点对应的车辆坐标。 |
@@ -217,7 +217,7 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | reference lateral error | 24 点线性权重的远端权重，近端固定为 `1.0`。合法范围 `[0.0, 1.0]`，越界参数按解析失败处理，不在公式里隐藏修正。减小会更重视近端；增大会让远端趋势更影响输出。 |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `600` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `120`。 |
+| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `500` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `100`。 |
 | `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 从 index 0 开始连续 present 白点的最小数量。降低会更容易进入控制但容错差；提高更保守但可能频繁 unusable。小于数学下限时按 2 处理。 |
 
 ## 12. BEV Element
@@ -225,6 +225,15 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | 默认关闭。关闭时 `element_evidence.cross_exit` 仍会报告视觉事实和 candidate 构造状态，但 cross candidate 不进入 visual-reference arbitration；开启后也必须先通过 existing candidate validation、reference usability、lateral error、reference-control readiness 和 safety gate。 |
+| `BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN` | `0.95` | visual element evidence | cross 宽白行的最低白点占比。用于把“横向够宽但白点并不接近整行”的 circle/bend 误判压掉；可在 evidence 重放中评估是否提高到 `0.98`。 |
+| `BEV_ELEMENT.CIRCLE_EVIDENCE_ENABLED` | `1` | visual element evidence | circle Phase 1 识别开关。关闭时仍输出 circle generic records，但 present 为 false，reason 指向 disabled/not evaluated；不影响 line、cross、hold、safety、yaw 或 actuator。 |
+| `BEV_ELEMENT.CIRCLE_MIN_SUPPORT_ROWS` | `4` | visual element evidence | circle detector 需要参与 near/far 对比的最少 raster row 数。不足时 fail closed。 |
+| `BEV_ELEMENT.CIRCLE_MIN_SAMPLEABLE_PER_ROW` | `16` | visual element evidence | 每行最少可采样 cell 数。用于防止 FOV 外、投影失败或不可采样行冒充开口。 |
+| `BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M` | `0.05` | visual element evidence | circle 开口的最小绝对外扩量。和 ratio 阈值共同定义“明显外扩”，避免 `0.13m -> 0.15m` 这类小抖动被当成开口。 |
+| `BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN` | `0.10` | visual element evidence | circle/cross 开口的局部相邻行外扩比例阈值。允许外扩后小幅回落；例如 reach 序列 `0.10, 0.30, 0.29` 仍可视为开口。 |
+| `BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M` | `0.06` | visual element evidence | 对侧边界拟合残差上限。circle 要求对侧能被一条简单直线解释；拟合残差过大，或拟合线显示对侧明显内缩时按弯道/非 circle fail closed。 |
+| `BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN` | `0.10` | visual element evidence | 对侧明显内缩比例阈值。一侧外扩且对侧内缩时按 bend/非 circle fail closed。 |
+| `BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN` | `0.65` | visual element evidence | circle present 置信度阈值。低于阈值时保留 support/bounds/debug，但 present=false。 |
 | `BEV_ELEMENT_RASTER.ENABLED` | `1` | runtime BEV element raster | runtime 元素 raster 开关。默认开启，用于 circle/roadblock/ML 和后续连线判黑事实输入；关闭时 raster 不采样、不产出 sampleable cells，sparse line/cross 仍走原输入。 |
 | `BEV_ELEMENT_RASTER.WIDTH` | `320` | runtime BEV element raster | raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
 

@@ -1,16 +1,18 @@
 #ifndef LS2K_PORT_BEV_ELEMENT_RASTER_TYPES_HPP
 #define LS2K_PORT_BEV_ELEMENT_RASTER_TYPES_HPP
 
+#include <cstdint>
+
 namespace ls2k::port {
 
-enum class BEVElementRasterCellClass {
+enum class BEVElementRasterCellClass : std::uint8_t {
     kInvalid,
     kUnknown,
     kBlack,
     kWhite,
 };
 
-enum class BEVElementRasterProjectionState {
+enum class BEVElementRasterProjectionState : std::uint8_t {
     kUnavailable,
     kSampleable,
     kOutsideFrame,

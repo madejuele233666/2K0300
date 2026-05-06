@@ -361,6 +361,16 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include BEV element group");
     Require(Contains(header_json, "\"CROSS_EXIT_TAKEOVER_ENABLED\":false"),
             "config snapshot must include default-off cross-exit takeover");
+    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
+            "config snapshot must include cross wide-row white-ratio threshold");
+    Require(Contains(header_json, "\"CIRCLE_EVIDENCE_ENABLED\":true"),
+            "config snapshot must include circle evidence enablement");
+    Require(Contains(header_json, "\"CIRCLE_OPENING_EXPANSION_RATIO_MIN\":0.10000000149"),
+            "config snapshot must include circle opening-ratio threshold");
+    Require(Contains(header_json, "\"CIRCLE_OPPOSITE_SHRINK_RATIO_MIN\":0.10000000149"),
+            "config snapshot must include circle opposite-shrink threshold");
+    Require(Contains(header_json, "\"CIRCLE_PRESENT_CONFIDENCE_MIN\":0.649999976158"),
+            "config snapshot must include circle confidence threshold");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "config snapshot must include BEV element raster group");
     Require(Contains(header_json, "\"WIDTH\":320"),
@@ -617,6 +627,10 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV control settings");
     Require(Contains(header_json, "\"BEV_ELEMENT\""),
             "service config snapshot must expose BEV element settings");
+    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
+            "service config snapshot must expose cross white-ratio settings");
+    Require(Contains(header_json, "\"CIRCLE_EVIDENCE_ENABLED\":true"),
+            "service config snapshot must expose circle evidence settings");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "service config snapshot must expose BEV element raster settings");
     Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
@@ -750,6 +764,7 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
     params.steering_media_enabled = true;
     params.steering_media_port = 8890;
     params.steering_media_publish_interval_ms = 0;
+    params.steering_media_publish_disarmed = false;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -814,6 +829,51 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
             "RUNNING image frame must preserve motion phase");
 }
 
+void TestServiceCanPublishDisarmedImagesForCalibration() {
+    auto* fake_transport = new FakeSteeringMediaTransport();
+    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
+        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    CollectingDiagnostics diagnostics;
+
+    ls2k::port::RuntimeParameters params{};
+    params.assistant_tcp.host = "127.0.0.1";
+    params.steering_media_enabled = true;
+    params.steering_media_port = 8890;
+    params.steering_media_publish_interval_ms = 0;
+    params.steering_media_publish_disarmed = true;
+    service.Start(params, diagnostics);
+
+    ls2k::runtime::RuntimeState state{};
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        state.control_debug_snapshot.valid = true;
+        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.steering.valid = true;
+        state.control_debug_snapshot.steering.frame_id = 8;
+        state.control_debug_snapshot.steering.capture_time_ms = 80;
+        FillMatchingCapture(state, 8, 80);
+    }
+
+    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    service.Tick(state, diagnostics);
+    Require(fake_transport->sent_frames.size() >= 2,
+            "enabled calibration mode should publish a DISARMED image_frame");
+
+    std::string header_json;
+    std::vector<std::uint8_t> payload;
+    std::string error;
+    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+                                                        fake_transport->sent_frames[1].size(),
+                                                        header_json,
+                                                        payload,
+                                                        error),
+            "DISARMED calibration image frame should decode");
+    Require(Contains(header_json, "\"type\":\"image_frame\""),
+            "calibration publish must be an image_frame");
+    Require(Contains(header_json, "\"motion_phase\":\"DISARMED\""),
+            "calibration image frame must preserve DISARMED motion phase");
+}
+
 }  // namespace
 
 int main() {
@@ -826,6 +886,7 @@ int main() {
         TestServicePublishesConfigSnapshotOnReadyTransition();
         TestServicePublishesFromRecentMatchingCapture();
         TestServiceSkipsDisarmedImagesAndPublishesRunningImage();
+        TestServiceCanPublishDisarmedImagesForCalibration();
     } catch (const std::exception& error) {
         std::cerr << "steering_media_selftest failed: " << error.what() << "\n";
         return EXIT_FAILURE;

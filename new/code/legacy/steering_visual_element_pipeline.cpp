@@ -1,8 +1,40 @@
 #include "legacy/steering_visual_element_pipeline.hpp"
 
+#include "legacy/steering_circle_element_evidence.hpp"
 #include "legacy/steering_cross_exit_element_evidence.hpp"
 
 namespace ls2k::legacy {
+namespace {
+
+port::VisualElementEvidenceRecord MakeEffectiveCircleRecord(
+    port::VisualElementEvidenceRecord raw,
+    const char* id,
+    bool suppress_by_cross) {
+    raw.id = id;
+    raw.candidate.built = false;
+    raw.candidate.takeover_enabled = false;
+    raw.candidate.included_in_arbitration = false;
+    raw.candidate.reason = "evidence_only";
+    if (suppress_by_cross && raw.present) {
+        raw.present = false;
+        raw.reason = "suppressed_by_cross_exit";
+    }
+    return raw;
+}
+
+void AppendCircleEvidence(port::VisualElementEvidenceFrame& evidence,
+                          const CircleElementEvidenceResult& circle) {
+    evidence.records.push_back(circle.left_raw);
+    evidence.records.push_back(circle.right_raw);
+    evidence.records.push_back(MakeEffectiveCircleRecord(circle.left_raw,
+                                                         "circle_left",
+                                                         evidence.cross_exit.present));
+    evidence.records.push_back(MakeEffectiveCircleRecord(circle.right_raw,
+                                                         "circle_right",
+                                                         evidence.cross_exit.present));
+}
+
+}  // namespace
 
 VisualElementPipelineResult RunVisualElementPipeline(const VisualElementPipelineInput& input,
                                                      const port::RuntimeParameters& params) {
@@ -23,7 +55,9 @@ VisualElementPipelineResult RunVisualElementPipeline(const VisualElementPipeline
         result.candidates.push_back(cross_candidate);
     }
 
-    (void)input.element_raster;
+    const CircleElementEvidenceResult circle =
+        DetectCircleElementEvidence(input.element_raster, params);
+    AppendCircleEvidence(result.evidence, circle);
     return result;
 }
 

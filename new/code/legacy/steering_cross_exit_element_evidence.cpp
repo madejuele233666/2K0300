@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <vector>
 
 namespace ls2k::legacy {
 namespace {
@@ -11,8 +12,12 @@ constexpr std::size_t kCrossMinContiguousWideRows = 3U;
 constexpr std::size_t kCrossMinSampleablePerRow = 8U;
 constexpr float kCrossMinWideWidthM = 0.52F;
 constexpr float kCrossMinSampleableWidthRatio = 0.65F;
+constexpr float kCrossMinBilateralReachM = 0.35F;
+constexpr float kCrossMinBilateralBalance = 0.50F;
 constexpr float kCrossUnknownRatioMax = 0.25F;
 constexpr float kCrossPresentConfidenceMin = 0.70F;
+constexpr float kRatioDenominatorFloor = 1.0e-4F;
+constexpr std::size_t kOpeningSustainRows = 2U;
 
 float Clamp01(float value) {
     return std::clamp(value, 0.0F, 1.0F);
@@ -28,6 +33,17 @@ struct CrossRunAccumulator {
     std::size_t sampleable_count = 0;
     std::size_t supporting_white_count = 0;
     std::size_t unknown_count = 0;
+};
+
+struct BoundaryOpeningFacts {
+    bool left_open = false;
+    bool right_open = false;
+};
+
+struct CrossBoundaryObservation {
+    float forward_m = 0.0F;
+    float left_reach_m = 0.0F;
+    float right_reach_m = 0.0F;
 };
 
 const BEVSimpleWhiteInterval* WidestInterval(const BEVSimpleRowScan& row) {
@@ -69,6 +85,70 @@ bool BetterRun(const CrossRunAccumulator& candidate, const CrossRunAccumulator& 
     return candidate.score_sum > best.score_sum;
 }
 
+float GrowthRatio(float near_reach, float far_reach) {
+    return (far_reach - near_reach) / std::max(kRatioDenominatorFloor, near_reach);
+}
+
+float Reach(const CrossBoundaryObservation& observation, bool use_left) {
+    return use_left ? observation.left_reach_m : observation.right_reach_m;
+}
+
+float SustainedGrowthRatio(const std::vector<CrossBoundaryObservation>& observations,
+                           bool use_left) {
+    if (observations.size() <= kOpeningSustainRows) {
+        return 0.0F;
+    }
+    float best = 0.0F;
+    for (std::size_t split = 1U;
+         split + kOpeningSustainRows <= observations.size();
+         ++split) {
+        float sustained_reach = Reach(observations[split], use_left);
+        for (std::size_t offset = 1U; offset < kOpeningSustainRows; ++offset) {
+            sustained_reach =
+                std::min(sustained_reach, Reach(observations[split + offset], use_left));
+        }
+        best = std::max(best,
+                        GrowthRatio(Reach(observations[split - 1U], use_left),
+                                    sustained_reach));
+    }
+    return best;
+}
+
+BoundaryOpeningFacts AssessCrossOpenings(const std::vector<BEVSimpleRowScan>& rows,
+                                         const port::RuntimeParameters& params) {
+    std::vector<CrossBoundaryObservation> observations;
+    for (const BEVSimpleRowScan& row : rows) {
+        if (!row.valid || row.sampleable_count < kCrossMinSampleablePerRow) {
+            continue;
+        }
+        const BEVSimpleWhiteInterval* interval = WidestInterval(row);
+        if (interval == nullptr) {
+            continue;
+        }
+        CrossBoundaryObservation observation{};
+        observation.forward_m = row.forward_m;
+        observation.left_reach_m = std::max(0.0F, -interval->left_m);
+        observation.right_reach_m = std::max(0.0F, interval->right_m);
+        observations.push_back(observation);
+    }
+    std::sort(observations.begin(),
+              observations.end(),
+              [](const CrossBoundaryObservation& lhs, const CrossBoundaryObservation& rhs) {
+                  return lhs.forward_m < rhs.forward_m;
+              });
+    if (observations.size() < kCrossMinContiguousWideRows) {
+        return {};
+    }
+
+    const float opening_ratio_min =
+        std::max(kRatioDenominatorFloor, params.bev_element.circle_opening_expansion_ratio_min);
+
+    BoundaryOpeningFacts facts{};
+    facts.left_open = SustainedGrowthRatio(observations, true) >= opening_ratio_min;
+    facts.right_open = SustainedGrowthRatio(observations, false) >= opening_ratio_min;
+    return facts;
+}
+
 bool HasLeadingVisualReference(const port::BEVReferencePath& reference) {
     if (reference.mode != port::ReferenceMode::kIntervalCenter ||
         !reference.sampled_path[0].present) {
@@ -106,6 +186,9 @@ port::CrossExitElementEvidence DetectCrossExitEvidence(
     CrossRunAccumulator best{};
     const float expected_sampleable_width =
         std::max(0.0F, 2.0F * params.bev_geometry.search_lateral_limit_m);
+    const BoundaryOpeningFacts opening = AssessCrossOpenings(rows, params);
+    const float white_ratio_min =
+        std::clamp(params.bev_element.cross_wide_row_white_ratio_min, 0.0F, 1.0F);
 
     const auto finish_run = [&current, &best]() {
         if (current.row_count > 0U && BetterRun(current, best)) {
@@ -129,8 +212,15 @@ port::CrossExitElementEvidence DetectCrossExitEvidence(
         const float unknown_ratio =
             static_cast<float>(row.unknown_count) /
             std::max(1.0F, static_cast<float>(row.sampleable_count));
+        const float white_ratio =
+            static_cast<float>(row.white_count) /
+            std::max(1.0F, static_cast<float>(row.sampleable_count));
         const BEVSimpleWhiteInterval* interval = WidestInterval(row);
         if (interval == nullptr || unknown_ratio > kCrossUnknownRatioMax) {
+            finish_run();
+            continue;
+        }
+        if (white_ratio < white_ratio_min) {
             finish_run();
             continue;
         }
@@ -144,12 +234,26 @@ port::CrossExitElementEvidence DetectCrossExitEvidence(
             continue;
         }
 
+        const float left_reach_m = std::max(0.0F, -interval->left_m);
+        const float right_reach_m = std::max(0.0F, interval->right_m);
+        const float bilateral_balance =
+            std::min(left_reach_m, right_reach_m) /
+            std::max(1.0e-4F, std::max(left_reach_m, right_reach_m));
+        if (left_reach_m < kCrossMinBilateralReachM ||
+            right_reach_m < kCrossMinBilateralReachM ||
+            bilateral_balance < kCrossMinBilateralBalance) {
+            finish_run();
+            continue;
+        }
+
         saw_wide_row = true;
         const float width_score = Clamp01(interval->width_m / std::max(1.0e-4F, width_threshold));
+        const float white_score =
+            Clamp01(white_ratio / std::max(kRatioDenominatorFloor, white_ratio_min));
         const float unknown_score = Clamp01(1.0F - unknown_ratio / kCrossUnknownRatioMax);
-        const float support_score =
-            Clamp01(row_sampleable_width / std::max(1.0e-4F, expected_sampleable_width));
-        const float score = Clamp01(0.55F * width_score + 0.30F * unknown_score + 0.15F * support_score);
+        const float balance_score = Clamp01(bilateral_balance / kCrossMinBilateralBalance);
+        const float score = Clamp01(0.40F * width_score + 0.30F * white_score +
+                                    0.15F * unknown_score + 0.15F * balance_score);
         AddWideRow(current, row, *interval, score);
     }
     finish_run();
@@ -159,6 +263,10 @@ port::CrossExitElementEvidence DetectCrossExitEvidence(
         return evidence;
     }
     if (!saw_wide_row || best.row_count < kCrossMinContiguousWideRows) {
+        evidence.reason = "wide_white_rows_absent";
+        return evidence;
+    }
+    if (!opening.left_open || !opening.right_open) {
         evidence.reason = "wide_white_rows_absent";
         return evidence;
     }

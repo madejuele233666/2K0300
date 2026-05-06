@@ -42,7 +42,6 @@ struct BEVElementRasterFrame {
     int height = 0;
     float lateral_limit_m = 0.0F;
     float forward_max_m = 0.0F;
-    std::vector<std::uint8_t> gray{};
     std::vector<port::BEVElementRasterCellClass> classes{};
     std::vector<port::BEVElementRasterProjectionState> projection_states{};
 
