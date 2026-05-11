@@ -78,8 +78,6 @@ run_probe_case() {
   require_token "${log_path}" "${case_name}" "element_evidence.records[3].id=circle_right"
   require_token "${log_path}" "${case_name}" "element_evidence.records[0].candidate.reason=evidence_only"
   require_token "${log_path}" "${case_name}" "element_evidence.records[1].candidate.reason=evidence_only"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[2].candidate.reason=evidence_only"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[3].candidate.reason=evidence_only"
 
   local token
   for token in "$@"; do
@@ -96,7 +94,15 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[3].present=false"
+  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.takeover_enabled=false" \
+  "element_evidence.records[2].candidate.included_in_arbitration=false" \
+  "element_evidence.records[2].candidate.reason=takeover_disabled" \
+  "element_evidence.records[3].present=false" \
+  "circle_entry.left.present=true" \
+  "circle_entry.left.reason=present" \
+  "circle_entry.left.frontier_count=" \
+  "circle_entry.left.centerline_count="
 
 disabled_params_path="${ARTIFACT_DIR}/circle-evidence-disabled.json"
 python3 - "${PARAMS_PATH}" "${disabled_params_path}" <<'PY'
@@ -123,8 +129,12 @@ run_probe_case \
   "element_evidence.records[1].reason=circle_evidence_disabled" \
   "element_evidence.records[2].present=false" \
   "element_evidence.records[2].reason=circle_evidence_disabled" \
+  "element_evidence.records[2].candidate.built=false" \
+  "element_evidence.records[2].candidate.reason=circle_evidence_disabled" \
   "element_evidence.records[3].present=false" \
-  "element_evidence.records[3].reason=circle_evidence_disabled"
+  "element_evidence.records[3].reason=circle_evidence_disabled" \
+  "element_evidence.records[3].candidate.built=false" \
+  "element_evidence.records[3].candidate.reason=circle_evidence_disabled"
 
 invalid_confidence_params_path="${ARTIFACT_DIR}/circle-invalid-confidence.json"
 python3 - "${PARAMS_PATH}" "${invalid_confidence_params_path}" <<'PY'
@@ -150,7 +160,10 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[3].present=false"
+  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.reason=takeover_disabled" \
+  "element_evidence.records[3].present=false" \
+  "circle_entry.left.present=true"
 
 non_object_element_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element.json"
 python3 - "${PARAMS_PATH}" "${non_object_element_params_path}" <<'PY'
@@ -177,7 +190,10 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[3].present=false"
+  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.reason=takeover_disabled" \
+  "element_evidence.records[3].present=false" \
+  "circle_entry.left.present=true"
 
 non_object_raster_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element-raster.json"
 python3 - "${PARAMS_PATH}" "${non_object_raster_params_path}" <<'PY'
@@ -204,7 +220,43 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[3].present=false"
+  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.reason=takeover_disabled" \
+  "element_evidence.records[3].present=false" \
+  "circle_entry.left.present=true"
+
+takeover_params_path="${ARTIFACT_DIR}/circle-entry-takeover-enabled.json"
+python3 - "${PARAMS_PATH}" "${takeover_params_path}" <<'PY'
+import json
+import sys
+
+source_path, target_path = sys.argv[1:3]
+with open(source_path, "r", encoding="utf-8") as file:
+    params = json.load(file)
+params.setdefault("BEV_ELEMENT", {})["CIRCLE_ENTRY_TAKEOVER_ENABLED"] = 1
+with open(target_path, "w", encoding="utf-8") as file:
+    json.dump(params, file, indent=2)
+    file.write("\n")
+PY
+
+for case_name in circle-1 circle-2 circle-3; do
+  run_probe_case \
+    "${case_name}" \
+    --label "${case_name}-takeover-enabled" \
+    --params "${takeover_params_path}" \
+    "element_evidence.cross_exit.present=false" \
+    "element_evidence.records[0].present=true" \
+    "element_evidence.records[1].present=false" \
+    "element_evidence.records[2].present=true" \
+    "element_evidence.records[2].candidate.built=true" \
+    "element_evidence.records[2].candidate.takeover_enabled=true" \
+    "element_evidence.records[2].candidate.included_in_arbitration=true" \
+    "element_evidence.records[2].candidate.reason=included_in_arbitration" \
+    "element_evidence.records[3].present=false" \
+    "circle_entry.left.present=true" \
+    "visual_reference.source=circle_left" \
+    "visual_reference.reason=special_visual_candidate_selected"
+done
 
 for case_name in circle-1 circle-3; do
   run_probe_case \
@@ -215,7 +267,12 @@ for case_name in circle-1 circle-3; do
     "element_evidence.records[1].present=false" \
     "element_evidence.records[2].present=true" \
     "element_evidence.records[2].reason=present" \
-    "element_evidence.records[3].present=false"
+    "element_evidence.records[2].candidate.built=true" \
+    "element_evidence.records[2].candidate.takeover_enabled=false" \
+    "element_evidence.records[2].candidate.included_in_arbitration=false" \
+    "element_evidence.records[2].candidate.reason=takeover_disabled" \
+    "element_evidence.records[3].present=false" \
+    "circle_entry.left.present=true"
 done
 
 for case_name in cross-1 cross-2 cross-3; do
@@ -225,7 +282,9 @@ for case_name in cross-1 cross-2 cross-3; do
     "element_evidence.records[0].present=false" \
     "element_evidence.records[1].present=false" \
     "element_evidence.records[2].present=false" \
-    "element_evidence.records[3].present=false"
+    "element_evidence.records[2].candidate.built=false" \
+    "element_evidence.records[3].present=false" \
+    "element_evidence.records[3].candidate.built=false"
 done
 
 for case_name in bend-1 bend-2 bend-3; do
@@ -235,7 +294,9 @@ for case_name in bend-1 bend-2 bend-3; do
     "element_evidence.records[0].present=false" \
     "element_evidence.records[1].present=false" \
     "element_evidence.records[2].present=false" \
-    "element_evidence.records[3].present=false"
+    "element_evidence.records[2].candidate.built=false" \
+    "element_evidence.records[3].present=false" \
+    "element_evidence.records[3].candidate.built=false"
 done
 
 echo "scene_overlay_probe authority-baseline passed"

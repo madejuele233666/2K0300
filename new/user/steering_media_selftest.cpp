@@ -371,6 +371,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include circle opposite-shrink threshold");
     Require(Contains(header_json, "\"CIRCLE_PRESENT_CONFIDENCE_MIN\":0.649999976158"),
             "config snapshot must include circle confidence threshold");
+    Require(Contains(header_json, "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":false"),
+            "config snapshot must include default-off circle entry takeover");
+    Require(Contains(header_json, "\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":0.0799999982119"),
+            "config snapshot must include circle entry direction threshold");
+    Require(Contains(header_json, "\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\":0.119999997318"),
+            "config snapshot must include circle entry join threshold");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "config snapshot must include BEV element raster group");
     Require(Contains(header_json, "\"WIDTH\":320"),
@@ -631,6 +637,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose cross white-ratio settings");
     Require(Contains(header_json, "\"CIRCLE_EVIDENCE_ENABLED\":true"),
             "service config snapshot must expose circle evidence settings");
+    Require(Contains(header_json, "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":false"),
+            "service config snapshot must expose circle entry takeover settings");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "service config snapshot must expose BEV element raster settings");
     Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),

@@ -51,15 +51,15 @@ Coverage report:
 ### Decision 1: Add Typed Entry Facts To The Circle Detector, Not To The Generic Wire Shape
 
 - Problem: the builder needs frontier and centerline facts, while existing telemetry/media consumers only require stable generic records.
-- Alternatives: add new public generic-record fields, make the builder rescan the raster, or extend `CircleElementEvidenceResult` with typed internal facts.
-- Choice: extend `CircleElementEvidenceResult` with left/right entry facts while keeping `VisualElementEvidenceRecord` unchanged. Raw/effective generic records stay as the public wire shape; typed facts are internal C++ data passed from detector to pipeline/builder.
+- Alternatives: add new public generic-record fields, make the builder rescan the raster, extend `CircleElementEvidenceResult` with typed internal facts only, or carry typed facts through a pipeline-owned debug surface.
+- Choice: extend `CircleElementEvidenceResult` with left/right entry facts while keeping `VisualElementEvidenceRecord` unchanged. Raw/effective generic records stay as the public wire shape; typed facts are internal C++ data passed from detector to pipeline/builder, and `VisualElementPipelineResult` gets a debug-only circle-entry diagnostics carrier for `scene_overlay_probe` to print.
 - Why this option: it keeps Phase 1 telemetry compatibility, avoids duplicate recognition in the builder, and preserves the detector/builder split.
-- Stack Equivalent: `BEVElementRasterFrame` -> `CircleElementEvidenceResult::{left_raw,right_raw,left_entry,right_entry}` -> pipeline effective record selection -> circle candidate builder.
-- Named Deliverables: updated `steering_circle_element_evidence.hpp/.cpp`, internal point/fact structs, candidate builder function, tests that assert generic record JSON shape remains unchanged.
-- Failure Semantics: absent or invalid typed entry facts do not change raw/effective Phase 1 presence; they only prevent candidate build and set candidate summary reason.
+- Stack Equivalent: `BEVElementRasterFrame` -> `CircleElementEvidenceResult::{left_raw,right_raw,left_entry,right_entry}` -> pipeline effective record selection -> circle candidate builder + `VisualElementPipelineResult.circle_entry_diagnostics` -> probe print fields.
+- Named Deliverables: updated `steering_circle_element_evidence.hpp/.cpp`, updated `steering_visual_element_pipeline.hpp`, internal point/fact structs, debug diagnostics structs, candidate builder function, and tests that assert generic record JSON shape remains unchanged.
+- Failure Semantics: absent or invalid typed entry facts do not change raw/effective Phase 1 presence; they only prevent candidate build, set candidate summary reason, and expose absent debug diagnostics to the probe.
 - Boundary Examples: detector may read raster classes/projection states/metric conversion and `BEV_ELEMENT` params; it may not read cross evidence, line candidate, hold state, safety, IMU, encoder, yaw, actuator, or `PerceptionResult`.
 - Contrast Structure: recognition remains in the detector; candidate construction remains in the builder; serialization remains generic.
-- Verification Hook: unit tests for record shape stability plus board/probe evidence that `element_evidence.records[*]` keys are unchanged when entry facts are present.
+- Verification Hook: unit tests for record shape stability plus board/probe evidence that `element_evidence.records[*]` keys are unchanged while probe-only circle entry diagnostics are still printable when entry facts are present.
 
 ### Decision 2: Identify The Inner Edge As A Rear-Side Frontier Of The Near-Connected White Component
 
@@ -116,15 +116,15 @@ Coverage report:
 ### Decision 6: Keep Observability In Probe And Existing Evidence Surfaces
 
 - Problem: implementation needs offline and board-visible evidence for thresholds and selected paths without turning debug output into an input.
-- Alternatives: rely only on unit tests, add a second debug-only detector, or extend existing probe/evidence output.
-- Choice: extend `scene_overlay_probe` and test logs to expose circle entry facts/candidate summary while still driving detection from runtime raster facts.
+- Alternatives: rely only on unit tests, add a second debug-only detector, put typed fields into the generic evidence wire shape, or extend existing pipeline/probe diagnostics.
+- Choice: extend `VisualElementPipelineResult` with debug-only circle entry diagnostics and update `scene_overlay_probe` to print those fields alongside the existing generic evidence and candidate summary. The probe still drives detection from runtime raster facts and does not read rendered overlay pixels.
 - Why this option: it reuses the Phase 1 authority-baseline loop and makes threshold tuning inspectable.
-- Stack Equivalent: raw fixture/current frame -> runtime raster -> visual element pipeline -> printed record/candidate/source fields -> test assertions.
-- Named Deliverables: probe print fields for entry reason/direction/half-width/path summary, authority-baseline expectations, optional takeover-enabled probe parameter fixture.
+- Stack Equivalent: raw fixture/current frame -> runtime raster -> visual element pipeline evidence/candidates/debug diagnostics -> printed record/candidate/source/entry fields -> test assertions.
+- Named Deliverables: `VisualElementPipelineResult` debug diagnostics carrier, probe print fields for entry reason/direction/half-width/path summary, authority-baseline expectations, optional takeover-enabled probe parameter fixture, and `scene_overlay_probe.cpp` local parameter parser support for all `CIRCLE_ENTRY_*` keys.
 - Failure Semantics: probe failures or absent entry facts do not alter runtime control; they only fail offline validation.
-- Boundary Examples: overlay rendering may visualize frontier/path; detectors and builders do not read overlay pixels.
+- Boundary Examples: overlay rendering may visualize frontier/path; detectors and builders do not read overlay pixels. Probe takeover-enabled checks must either parse `CIRCLE_ENTRY_TAKEOVER_ENABLED` through `LoadRuntimeParamsJson`/`ValidProbeBEVElementParameters` or explicitly route probe params through the shared runtime loader before asserting selected-source behavior.
 - Contrast Structure: observability follows the runtime fact chain rather than creating a parallel authority.
-- Verification Hook: authority-baseline probe for `circle-1/2/3`, `cross-1/2/3`, and `bend-1/2/3`; board media/assistant evidence after upload.
+- Verification Hook: authority-baseline probe for `circle-1/2/3`, `cross-1/2/3`, and `bend-1/2/3`; probe parameter override tests for the new `CIRCLE_ENTRY_*` fields; board media/assistant evidence after upload.
 
 ## Independent Verification Plan (STANDARD/STRICT)
 
@@ -157,7 +157,9 @@ This change does not require a repository-index refresh for artifact creation. I
 ## Migration Plan
 
 - Extend circle evidence structs and detector internals with typed entry facts while preserving existing generic record output.
+- Extend `VisualElementPipelineResult` with a debug-only circle entry diagnostics carrier that `scene_overlay_probe` can read without changing assistant/media generic evidence records.
 - Add append-only `BEV_ELEMENT` entry parameters and keep takeover disabled by default.
+- Extend both the shared runtime parameter loader and the probe-local `LoadRuntimeParamsJson`/`ValidProbeBEVElementParameters` path for all `CIRCLE_ENTRY_*` fields.
 - Implement circle entry candidate builder and integrate it in `steering_visual_element_pipeline.*` after effective records are determined.
 - Update offline probe output and authority-baseline tests for built/default-excluded and takeover-enabled behavior.
 - Run unit tests, authority-baseline probe, visual-reference orchestration regression, runtime parameter regression, media regression, no-upload build, `git diff --check`, and `code-index refresh`.

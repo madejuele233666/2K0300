@@ -68,6 +68,11 @@ struct BEVElementParameters {
     float circle_opposite_straight_drift_max_m = 0.06F;
     float circle_opposite_shrink_ratio_min = 0.10F;
     float circle_present_confidence_min = 0.65F;
+    bool circle_entry_takeover_enabled = false;
+    int circle_entry_min_frontier_points = 4;
+    float circle_entry_direction_min_lateral_m = 0.08F;
+    float circle_entry_max_interpolation_gap_m = 0.12F;
+    float circle_entry_max_join_jump_m = 0.12F;
 };
 
 }  // namespace ls2k::port

@@ -234,6 +234,11 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M` | `0.06` | visual element evidence | 对侧边界拟合残差上限。circle 要求对侧能被一条简单直线解释；拟合残差过大，或拟合线显示对侧明显内缩时按弯道/非 circle fail closed。 |
 | `BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN` | `0.10` | visual element evidence | 对侧明显内缩比例阈值。一侧外扩且对侧内缩时按 bend/非 circle fail closed。 |
 | `BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN` | `0.65` | visual element evidence | circle present 置信度阈值。低于阈值时保留 support/bounds/debug，但 present=false。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | circle Phase 2 entry reference candidate 的显式接管开关。默认关闭；关闭时可报告 candidate built，但不进入 visual-reference arbitration。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_MIN_FRONTIER_POINTS` | `4` | visual element candidate evidence | circle entry 后方黑白 frontier chain 的最少点数。不足时 fail closed，不构造 circle candidate。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M` | `0.08` | visual element candidate evidence | frontier 首尾净侧向变化阈值。左环岛要求整体向左上，右环岛要求整体向右上；不要求逐点单调。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M` | `0.12` | visual element candidate path | 同一 circle frontier chain 内允许插值的最大 forward gap。不会跨 unknown/unavailable/FOV 或不相关 chain 补点。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M` | `0.12` | visual element candidate path | 近端连通白区 centerline 切到 frontier-derived centerline 时允许的最大横向跳变。超限时不构造 circle candidate。 |
 | `BEV_ELEMENT_RASTER.ENABLED` | `1` | runtime BEV element raster | runtime 元素 raster 开关。默认开启，用于 circle/roadblock/ML 和后续连线判黑事实输入；关闭时 raster 不采样、不产出 sampleable cells，sparse line/cross 仍走原输入。 |
 | `BEV_ELEMENT_RASTER.WIDTH` | `320` | runtime BEV element raster | raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
 

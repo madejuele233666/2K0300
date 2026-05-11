@@ -288,6 +288,18 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_opposite_shrink_ratio_min);
     header << ",\"CIRCLE_PRESENT_CONFIDENCE_MIN\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_present_confidence_min);
+    header << ",\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element.circle_entry_takeover_enabled);
+    header << ",\"CIRCLE_ENTRY_MIN_FRONTIER_POINTS\":"
+           << snapshot.param_snapshot.bev_element.circle_entry_min_frontier_points;
+    header << ",\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_element.circle_entry_direction_min_lateral_m);
+    header << ",\"CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_element.circle_entry_max_interpolation_gap_m);
+    header << ",\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_entry_max_join_jump_m);
     header << "}";
     header << ",\"BEV_ELEMENT_RASTER\":{";
     header << "\"ENABLED\":";

@@ -83,7 +83,12 @@ int main() {
                       "\"CIRCLE_OPENING_EXPANSION_RATIO_MIN\": 0.12,"
                       "\"CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M\": 0.06,"
                       "\"CIRCLE_OPPOSITE_SHRINK_RATIO_MIN\": 0.14,"
-                      "\"CIRCLE_PRESENT_CONFIDENCE_MIN\": 0.75}"));
+                      "\"CIRCLE_PRESENT_CONFIDENCE_MIN\": 0.75,"
+                      "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\": 1,"
+                      "\"CIRCLE_ENTRY_MIN_FRONTIER_POINTS\": 6,"
+                      "\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\": 0.09,"
+                      "\"CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M\": 0.13,"
+                      "\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\": 0.11}"));
         CaptureDiagnostics enabled_diagnostics{};
         const ls2k::port::RuntimeParameters enabled =
             LoadFixture(enabled_path, enabled_diagnostics);
@@ -109,6 +114,18 @@ int main() {
                "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN should parse");
         Expect(std::abs(enabled.bev_element.circle_present_confidence_min - 0.75F) < 1.0e-6F,
                "CIRCLE_PRESENT_CONFIDENCE_MIN should parse");
+        Expect(enabled.bev_element.circle_entry_takeover_enabled,
+               "CIRCLE_ENTRY_TAKEOVER_ENABLED=1 should parse true");
+        Expect(enabled.bev_element.circle_entry_min_frontier_points == 6,
+               "CIRCLE_ENTRY_MIN_FRONTIER_POINTS should parse");
+        Expect(std::abs(enabled.bev_element.circle_entry_direction_min_lateral_m - 0.09F) <
+                   1.0e-6F,
+               "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M should parse");
+        Expect(std::abs(enabled.bev_element.circle_entry_max_interpolation_gap_m - 0.13F) <
+                   1.0e-6F,
+               "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M should parse");
+        Expect(std::abs(enabled.bev_element.circle_entry_max_join_jump_m - 0.11F) < 1.0e-6F,
+               "CIRCLE_ENTRY_MAX_JOIN_JUMP_M should parse");
         Expect(enabled.bev_element_raster.enabled,
                "missing BEV_ELEMENT_RASTER should keep raster enabled by default");
         Expect(enabled.bev_element_raster.width == 320,
@@ -138,6 +155,19 @@ int main() {
         Expect(std::abs(absent.bev_element.circle_opposite_shrink_ratio_min - 0.10F) <
                    1.0e-6F,
                "missing BEV_ELEMENT should keep circle shrink-ratio default");
+        Expect(!absent.bev_element.circle_entry_takeover_enabled,
+               "missing BEV_ELEMENT should keep circle entry takeover disabled");
+        Expect(absent.bev_element.circle_entry_min_frontier_points == 4,
+               "missing BEV_ELEMENT should keep circle entry frontier count default");
+        Expect(std::abs(absent.bev_element.circle_entry_direction_min_lateral_m - 0.08F) <
+                   1.0e-6F,
+               "missing BEV_ELEMENT should keep circle entry direction default");
+        Expect(std::abs(absent.bev_element.circle_entry_max_interpolation_gap_m - 0.12F) <
+                   1.0e-6F,
+               "missing BEV_ELEMENT should keep circle entry interpolation default");
+        Expect(std::abs(absent.bev_element.circle_entry_max_join_jump_m - 0.12F) <
+                   1.0e-6F,
+               "missing BEV_ELEMENT should keep circle entry join default");
         Expect(absent.bev_element_raster.enabled,
                "missing BEV_ELEMENT_RASTER should parse with enabled default");
         Expect(absent.bev_element_raster.width == 320,
@@ -177,6 +207,22 @@ int main() {
                "circle fallback should keep default confidence threshold");
         Expect(malformed_circle_diagnostics.SawCode("params.parse"),
                "out-of-range circle confidence should emit params.parse");
+
+        const std::string malformed_entry_path = base + "_malformed_entry.json";
+        WriteText(malformed_entry_path,
+                  MinimalRuntimeParametersJson(
+                      "  \"BEV_ELEMENT\": {\"CIRCLE_ENTRY_MIN_FRONTIER_POINTS\": 0}"));
+        CaptureDiagnostics malformed_entry_diagnostics{};
+        const ls2k::port::RuntimeParameters malformed_entry =
+            LoadFixture(malformed_entry_path, malformed_entry_diagnostics);
+        Expect(malformed_entry.loaded_from_defaults,
+               "out-of-range circle entry support should fall back to defaults");
+        Expect(malformed_entry.parse_failure,
+               "out-of-range circle entry support should set parse_failure");
+        Expect(malformed_entry.bev_element.circle_entry_min_frontier_points == 4,
+               "circle entry fallback should keep default frontier count");
+        Expect(malformed_entry_diagnostics.SawCode("params.parse"),
+               "out-of-range circle entry support should emit params.parse");
 
         const std::string malformed_cross_path = base + "_malformed_cross.json";
         WriteText(malformed_cross_path,

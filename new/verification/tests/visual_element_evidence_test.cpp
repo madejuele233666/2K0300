@@ -134,6 +134,57 @@ void AddDetachedLeftIsland(ls2k::legacy::BEVElementRasterFrame& raster,
     }
 }
 
+void ReplaceBlackCells(ls2k::legacy::BEVElementRasterFrame& raster,
+                       ls2k::port::BEVElementRasterCellClass class_kind,
+                       ls2k::port::BEVElementRasterProjectionState projection_state) {
+    for (int y = 0; y < raster.height; ++y) {
+        for (int x = 0; x < raster.width; ++x) {
+            const std::size_t index = raster.Index(x, y);
+            if (raster.classes[index] != ls2k::port::BEVElementRasterCellClass::kBlack) {
+                continue;
+            }
+            raster.classes[index] = class_kind;
+            raster.projection_states[index] = projection_state;
+        }
+    }
+}
+
+void KeepOnlyBoundaryBlack(ls2k::legacy::BEVElementRasterFrame& raster) {
+    for (int y = 0; y < raster.height; ++y) {
+        for (int x = 0; x < raster.width; ++x) {
+            const std::size_t index = raster.Index(x, y);
+            if (raster.classes[index] != ls2k::port::BEVElementRasterCellClass::kBlack) {
+                continue;
+            }
+            if (x == 0 || y == 0 || x == raster.width - 1 || y == raster.height - 1) {
+                continue;
+            }
+            raster.classes[index] = ls2k::port::BEVElementRasterCellClass::kUnknown;
+            raster.projection_states[index] =
+                ls2k::port::BEVElementRasterProjectionState::kSampleable;
+        }
+    }
+}
+
+void MarkRearSupportAsBlackWithProjection(
+    ls2k::legacy::BEVElementRasterFrame& raster,
+    ls2k::port::BEVElementRasterProjectionState projection_state) {
+    for (int y = 0; y + 1 < raster.height; ++y) {
+        for (int x = 1; x + 1 < raster.width; ++x) {
+            const std::size_t white_index = raster.Index(x, y);
+            if (raster.classes[white_index] != ls2k::port::BEVElementRasterCellClass::kWhite) {
+                continue;
+            }
+            const std::size_t rear_index = raster.Index(x, y + 1);
+            if (raster.classes[rear_index] == ls2k::port::BEVElementRasterCellClass::kWhite) {
+                continue;
+            }
+            raster.classes[rear_index] = ls2k::port::BEVElementRasterCellClass::kBlack;
+            raster.projection_states[rear_index] = projection_state;
+        }
+    }
+}
+
 ls2k::legacy::BEVElementRasterFrame LeftCircleRaster() {
     return MakeRasterFromBounds(-0.12F, 0.20F, -0.42F, 0.20F);
 }
@@ -329,6 +380,16 @@ void TestCircleLeftPresentFromRaster() {
     Expect(evidence.left_raw.support.supporting_white_count > 0U,
            "left circle must expose white support");
     Expect(!evidence.right_raw.present, "left circle must not produce right circle");
+    Expect(evidence.left_entry.present,
+           "present left circle must expose entry facts, reason=" + evidence.left_entry.reason);
+    Expect(evidence.left_entry.direction_delta_lateral_m <=
+               -params.bev_element.circle_entry_direction_min_lateral_m,
+           "left entry frontier must extend toward upper-left");
+    Expect(evidence.left_entry.road_half_width_m > 0.0F,
+           "left entry must infer road half width");
+    Expect(evidence.left_entry.frontier_points.size() >=
+               static_cast<std::size_t>(params.bev_element.circle_entry_min_frontier_points),
+           "left entry must expose frontier support");
 }
 
 void TestCircleRightPresentFromRaster() {
@@ -340,6 +401,11 @@ void TestCircleRightPresentFromRaster() {
     Expect(evidence.right_raw.present, "right opening plus left straight must produce right circle");
     Expect(evidence.right_raw.reason == "present", "right circle present reason must be present");
     Expect(!evidence.left_raw.present, "right circle must not produce left circle");
+    Expect(evidence.right_entry.present,
+           "present right circle must expose entry facts, reason=" + evidence.right_entry.reason);
+    Expect(evidence.right_entry.direction_delta_lateral_m >=
+               params.bev_element.circle_entry_direction_min_lateral_m,
+           "right entry frontier must extend toward upper-right");
 }
 
 void TestCircleAbsentCases() {
@@ -511,7 +577,117 @@ void TestCircleRejectsWeakSupport() {
            "low confidence reason must be stable");
 }
 
-void TestPipelineAppendsCircleRecordsWithoutCandidate() {
+void TestCircleEntryRejectsWeakDirectionAndSupport() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_element.circle_entry_direction_min_lateral_m = 0.50F;
+    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
+    const ls2k::legacy::CircleElementEvidenceResult weak_direction =
+        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    Expect(weak_direction.left_raw.present,
+           "entry direction threshold must not change Phase 1 raw circle evidence");
+    Expect(!weak_direction.left_entry.present,
+           "frontier direction below threshold must fail entry facts");
+    Expect(weak_direction.left_entry.reason == "frontier_direction_insufficient",
+           "weak direction failure reason must be stable");
+
+    params = {};
+    params.bev_element.circle_entry_min_frontier_points = 100;
+    const ls2k::legacy::CircleElementEvidenceResult weak_support =
+        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    Expect(weak_support.left_raw.present,
+           "entry frontier support threshold must not change raw circle evidence");
+    Expect(!weak_support.left_entry.present,
+           "insufficient frontier points must fail entry facts");
+    Expect(weak_support.left_entry.reason == "frontier_points_insufficient",
+           "insufficient frontier support reason must be stable");
+}
+
+void TestCircleEntryRejectsNonBlackOrBoundaryRearSupport() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_element.circle_min_sampleable_per_row = 1;
+
+    ls2k::legacy::BEVElementRasterFrame unknown = LeftCircleRaster();
+    ReplaceBlackCells(unknown,
+                      ls2k::port::BEVElementRasterCellClass::kUnknown,
+                      ls2k::port::BEVElementRasterProjectionState::kSampleable);
+    const ls2k::legacy::CircleElementEvidenceResult unknown_result =
+        ls2k::legacy::DetectCircleElementEvidence(&unknown, params);
+    Expect(unknown_result.left_raw.present,
+           "unknown rear support must not change raw circle evidence");
+    Expect(!unknown_result.left_entry.present,
+           "unknown rear support must not become circle entry frontier");
+    Expect(unknown_result.left_entry.reason == "frontier_points_insufficient",
+           "unknown rear support rejection reason must be stable");
+
+    ls2k::legacy::BEVElementRasterFrame unavailable = LeftCircleRaster();
+    ReplaceBlackCells(unavailable,
+                      ls2k::port::BEVElementRasterCellClass::kUnknown,
+                      ls2k::port::BEVElementRasterProjectionState::kSampleable);
+    MarkRearSupportAsBlackWithProjection(
+        unavailable,
+        ls2k::port::BEVElementRasterProjectionState::kUnavailable);
+    const ls2k::legacy::CircleElementEvidenceResult unavailable_result =
+        ls2k::legacy::DetectCircleElementEvidence(&unavailable, params);
+    Expect(unavailable_result.left_raw.present,
+           "unavailable rear support must not change raw circle evidence, reason=" +
+               unavailable_result.left_raw.reason);
+    Expect(!unavailable_result.left_entry.present,
+           "unavailable rear support must not become circle entry frontier");
+    Expect(unavailable_result.left_entry.reason == "frontier_points_insufficient",
+           "unavailable rear support rejection reason must be stable");
+
+    ls2k::legacy::BEVElementRasterFrame outside_frame = LeftCircleRaster();
+    ReplaceBlackCells(outside_frame,
+                      ls2k::port::BEVElementRasterCellClass::kUnknown,
+                      ls2k::port::BEVElementRasterProjectionState::kSampleable);
+    MarkRearSupportAsBlackWithProjection(
+        outside_frame,
+        ls2k::port::BEVElementRasterProjectionState::kOutsideFrame);
+    const ls2k::legacy::CircleElementEvidenceResult outside_frame_result =
+        ls2k::legacy::DetectCircleElementEvidence(&outside_frame, params);
+    Expect(outside_frame_result.left_raw.present,
+           "non-sampleable rear black must not change raw circle evidence");
+    Expect(!outside_frame_result.left_entry.present,
+           "non-sampleable rear black must not become circle entry frontier");
+    Expect(outside_frame_result.left_entry.reason == "frontier_points_insufficient",
+           "non-sampleable rear black rejection reason must be stable");
+
+    ls2k::legacy::BEVElementRasterFrame boundary_only = LeftCircleRaster();
+    KeepOnlyBoundaryBlack(boundary_only);
+    const ls2k::legacy::CircleElementEvidenceResult boundary_result =
+        ls2k::legacy::DetectCircleElementEvidence(&boundary_only, params);
+    Expect(boundary_result.left_raw.present,
+           "raster-boundary rear black must not change raw circle evidence");
+    Expect(!boundary_result.left_entry.present,
+           "raster-boundary rear black must not become circle entry frontier");
+    Expect(boundary_result.left_entry.reason == "frontier_points_insufficient",
+           "raster-boundary rear black rejection reason must be stable");
+}
+
+void TestCircleEntryCandidateRejectsJoinJump() {
+    const ls2k::port::RuntimeParameters params{};
+    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
+    const ls2k::legacy::CircleElementEvidenceResult evidence =
+        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    ls2k::legacy::CircleEntryPathFacts entry = evidence.left_entry;
+    Expect(entry.present, "join-jump test needs present entry facts");
+    entry.centerline_points.front().lateral_m += 1.0F;
+
+    ls2k::port::VisualElementCandidateSummary summary{};
+    const ls2k::port::VisualReferenceCandidate candidate =
+        ls2k::legacy::BuildCircleEntryVisualReferenceCandidate(
+            evidence.left_raw,
+            entry,
+            ls2k::port::VisualReferenceCandidateKind::kCircleLeft,
+            params,
+            summary);
+    Expect(!candidate.present, "join jump above limit must reject candidate");
+    Expect(!summary.built, "join jump rejection must happen before build");
+    Expect(summary.reason == "join_jump_exceeded",
+           "join jump rejection reason must be stable");
+}
+
+void TestPipelineAppendsCircleRecordsWithDefaultExcludedCandidate() {
     const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
     ls2k::legacy::VisualElementPipelineInput input{};
     const std::vector<ls2k::legacy::BEVSimpleRowScan> rows{};
@@ -527,9 +703,44 @@ void TestPipelineAppendsCircleRecordsWithoutCandidate() {
     Expect(result.evidence.records[3].id == "circle_right", "record 3 must be effective right");
     Expect(result.evidence.records[0].present, "raw left circle must be preserved");
     Expect(result.evidence.records[2].present, "cross-absent effective left must mirror raw");
-    Expect(result.evidence.records[2].candidate.reason == "evidence_only",
-           "circle candidate summary must be evidence-only");
-    Expect(result.candidates.empty(), "circle evidence must not push candidates in phase 1");
+    Expect(result.evidence.records[0].candidate.reason == "evidence_only",
+           "raw circle candidate summary must remain evidence-only");
+    Expect(result.evidence.records[2].candidate.built,
+           "effective circle must report built candidate when entry facts are valid");
+    Expect(!result.evidence.records[2].candidate.takeover_enabled,
+           "circle entry takeover must default to disabled");
+    Expect(!result.evidence.records[2].candidate.included_in_arbitration,
+           "default-disabled circle candidate must not enter arbitration");
+    Expect(result.evidence.records[2].candidate.reason == "takeover_disabled",
+           "default-disabled circle candidate reason must be explicit");
+    Expect(result.circle_entry_diagnostics.left.present,
+           "pipeline must expose left entry diagnostics for probe");
+    Expect(result.candidates.empty(), "default-disabled circle must not push candidates");
+}
+
+void TestPipelineCanPushEnabledCircleCandidate() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_element.circle_entry_takeover_enabled = true;
+    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
+    ls2k::legacy::VisualElementPipelineInput input{};
+    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows{};
+    input.sparse_rows = &rows;
+    input.element_raster = &raster;
+    input.line_candidate = MakeLineCandidate(3);
+    const ls2k::legacy::VisualElementPipelineResult result =
+        ls2k::legacy::RunVisualElementPipeline(input, params);
+    Expect(result.candidates.size() == 1U,
+           "enabled valid circle entry must push one candidate");
+    Expect(result.candidates[0].kind == ls2k::port::VisualReferenceCandidateKind::kCircleLeft,
+           "enabled left circle candidate kind must be kCircleLeft");
+    Expect(result.candidates[0].source == "circle_left",
+           "enabled left circle candidate source must be circle_left");
+    Expect(result.candidates[0].reference_path.sampled_path[0].present,
+           "enabled circle candidate must be continuous from index 0");
+    const ls2k::port::VisualElementEvidenceRecord* left =
+        FindRecord(result.evidence, "circle_left");
+    Expect(left != nullptr && left->candidate.included_in_arbitration,
+           "effective left record must report arbitration inclusion");
 }
 
 void TestPipelineCrossSuppressesEffectiveCircleOnly() {
@@ -549,6 +760,9 @@ void TestPipelineCrossSuppressesEffectiveCircleOnly() {
     Expect(left_raw != nullptr && left_raw->present, "raw circle fact must survive cross evidence");
     Expect(left != nullptr && !left->present, "effective circle must be suppressed by cross");
     Expect(left->reason == "suppressed_by_cross_exit", "suppressed circle reason must be stable");
+    Expect(!left->candidate.built, "cross-suppressed circle must not build a candidate");
+    Expect(left->candidate.reason == "suppressed_by_cross_exit",
+           "cross-suppressed candidate summary must explain suppression");
     Expect(result.candidates.empty(), "disabled cross and circle must not push candidates");
 }
 
@@ -573,7 +787,11 @@ int main() {
         TestCircleReportsBendForFragmentedDoubleOpening();
         TestCircleRejectsOppositeShrinkAsBend();
         TestCircleRejectsWeakSupport();
-        TestPipelineAppendsCircleRecordsWithoutCandidate();
+        TestCircleEntryRejectsWeakDirectionAndSupport();
+        TestCircleEntryRejectsNonBlackOrBoundaryRearSupport();
+        TestCircleEntryCandidateRejectsJoinJump();
+        TestPipelineAppendsCircleRecordsWithDefaultExcludedCandidate();
+        TestPipelineCanPushEnabledCircleCandidate();
         TestPipelineCrossSuppressesEffectiveCircleOnly();
     } catch (const TestFailure& failure) {
         std::cerr << "visual_element_evidence_test failed: " << failure.message << "\n";

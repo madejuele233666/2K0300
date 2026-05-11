@@ -37,6 +37,8 @@ The runtime SHALL add append-only `BEV_ELEMENT` parameters for circle entry cand
 
 Missing circle entry parameter fields SHALL use `RuntimeParameters{}` defaults. Malformed or out-of-range circle entry parameters SHALL follow the existing parameter parse-failure behavior rather than silently changing actuator behavior.
 
+Offline probe parameter loading SHALL either share the runtime loader or explicitly parse and validate the same circle entry fields in `scene_overlay_probe.cpp`. Authority-baseline takeover-enabled checks MUST NOT depend on parameters that the probe-local loader ignores.
+
 #### Scenario: Missing entry parameter fields use runtime defaults
 - **WHEN** `BEV_ELEMENT` omits one or more circle entry parameter fields
 - **THEN** the runtime SHALL use the corresponding `RuntimeParameters{}` entry defaults
@@ -52,10 +54,17 @@ Missing circle entry parameter fields SHALL use `RuntimeParameters{}` defaults. 
 - **THEN** runtime parameter loading SHALL mark the parameter input malformed according to the existing optional-parameter failure path
 - **AND** the runtime SHALL fall back to documented runtime defaults instead of applying a partially invalid entry threshold set
 
+#### Scenario: Probe parameter overrides include circle entry fields
+- **WHEN** `scene_overlay_probe` loads a parameter override containing `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED` or another `CIRCLE_ENTRY_*` field
+- **THEN** the probe SHALL apply the same default, type, and range semantics as the runtime path, or use the runtime loader directly
+- **AND** takeover-enabled authority-baseline assertions SHALL observe the requested circle entry takeover setting
+
 ## ADDED Requirements
 
 ### Requirement: Circle Entry Typed Facts Do Not Change Generic Record Wire Shape
 The runtime MAY extend internal circle typed facts with near-connected component, frontier, half-width, centerline, direction, and reason fields. These typed facts SHALL NOT add required keys to the public `VisualElementEvidenceRecord` JSON shape. Assistant telemetry, steering media, and text/debug surfaces that serialize generic records SHALL preserve the existing required keys: `id`, `present`, `confidence`, `reason`, `bounds`, `support`, and `candidate`.
+
+Probe-visible circle entry diagnostics SHALL be carried through a debug-only pipeline result surface separate from `VisualElementEvidenceFrame`. The concrete carrier SHALL be owned by `VisualElementPipelineResult` or an equivalent pipeline-owned result object and SHALL include enough data for the probe to print entry reason, direction delta, inferred road half-width, frontier support count, and centerline support count without changing the generic record wire shape.
 
 #### Scenario: Generic circle records remain backward-compatible
 - **WHEN** circle entry typed facts are present internally
@@ -63,9 +72,10 @@ The runtime MAY extend internal circle typed facts with near-connected component
 - **AND** old consumers that ignore unknown element ids or read only generic record summaries SHALL remain parseable without understanding typed entry facts
 
 #### Scenario: Probe may expose entry facts as debug-only output
-- **WHEN** `scene_overlay_probe` prints circle entry frontier, half-width, or candidate path diagnostics
+- **WHEN** `scene_overlay_probe` prints circle entry frontier, half-width, or candidate path diagnostics from the pipeline-owned debug diagnostics carrier
 - **THEN** those fields SHALL be observational debug output
 - **AND** detector, builder, selected-reference, hold, safety, yaw, and actuator code SHALL NOT read probe-rendered output as input authority
+- **AND** assistant telemetry and steering media generic evidence records SHALL remain parseable without those debug-only fields
 
 ### Requirement: Offline Probe Observes Circle Entry Candidate Behavior
 The authority-baseline offline probe path SHALL expose circle entry candidate summary and selected-reference behavior for both default takeover-disabled and explicitly takeover-enabled runs. Probe output MAY serialize or print circle entry diagnostics, but it SHALL NOT become a runtime control authority.

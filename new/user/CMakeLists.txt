@@ -162,6 +162,9 @@ target_link_libraries(
 )
 
 option(LS2K_BUILD_VERIFICATION_HELPERS "Build verification helper binaries" OFF)
+option(LS2K_TFLM_OP_BENCH "Build isolated TFLM operator benchmark binary" OFF)
+set(LS2K_TFLM_LIB_PATH "${LS2K_LIB_ROOT}/zf_components/tflm/lib/libtflm.a" CACHE FILEPATH "TFLM static library for benchmark builds")
+set(LS2K_TFLM_OP_BENCH_MODELS_HEADER "benchmark_models_empty.h" CACHE STRING "Header containing benchmark model assets")
 
 if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
@@ -325,5 +328,34 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         scene_overlay_probe
         pthread
         m
+    )
+endif()
+
+if(LS2K_TFLM_OP_BENCH)
+    add_executable(
+        tflm_op_benchmark
+        ../verification/tflm_op_benchmark/board_tflm_op_benchmark.cpp
+    )
+    target_include_directories(
+        tflm_op_benchmark
+        PRIVATE
+        ../verification/tflm_op_benchmark
+        ../verification/tflm_op_benchmark/generated
+    )
+    target_compile_definitions(
+        tflm_op_benchmark
+        PRIVATE
+        TFLM_OP_BENCH_MODELS_HEADER="${LS2K_TFLM_OP_BENCH_MODELS_HEADER}"
+        TFLM_OP_BENCH_ARENA_BYTES=1048576
+    )
+    target_link_libraries(
+        tflm_op_benchmark
+        ${LS2K_TFLM_LIB_PATH}
+        pthread
+        m
+    )
+    set_target_properties(tflm_op_benchmark PROPERTIES
+        INSTALL_RPATH "/opt/ls_2k0300_env/opencv_4_10_build/lib"
+        BUILD_WITH_INSTALL_RPATH ON
     )
 endif()

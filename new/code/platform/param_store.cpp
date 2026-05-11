@@ -435,7 +435,11 @@ bool ValidateBEVElement(const port::BEVElementParameters& params) {
            IsFiniteInRange(params.circle_opening_expansion_ratio_min, 1.0e-4, 10.0) &&
            IsFiniteInRange(params.circle_opposite_straight_drift_max_m, 0.0, 2.0) &&
            IsFiniteInRange(params.circle_opposite_shrink_ratio_min, 1.0e-4, 10.0) &&
-           IsFiniteInRange(params.circle_present_confidence_min, 0.0, 1.0);
+           IsFiniteInRange(params.circle_present_confidence_min, 0.0, 1.0) &&
+           params.circle_entry_min_frontier_points >= 1 &&
+           IsFiniteInRange(params.circle_entry_direction_min_lateral_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_entry_max_interpolation_gap_m, 1.0e-4, 2.0) &&
+           IsFiniteInRange(params.circle_entry_max_join_jump_m, 0.0, 2.0);
 }
 
 // 读取必填字符串值
@@ -753,6 +757,31 @@ public:
                                  "BEV_ELEMENT",
                                  "CIRCLE_PRESENT_CONFIDENCE_MIN",
                                  parsed.bev_element.circle_present_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "BEV_ELEMENT",
+                               "CIRCLE_ENTRY_TAKEOVER_ENABLED",
+                               parsed.bev_element.circle_entry_takeover_enabled,
+                               optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_ENTRY_MIN_FRONTIER_POINTS",
+                              parsed.bev_element.circle_entry_min_frontier_points,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M",
+                                 parsed.bev_element.circle_entry_direction_min_lateral_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M",
+                                 parsed.bev_element.circle_entry_max_interpolation_gap_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_ENTRY_MAX_JOIN_JUMP_M",
+                                 parsed.bev_element.circle_entry_max_join_jump_m,
                                  optional_malformed);
         if (!ValidateBEVElement(parsed.bev_element)) {
             optional_malformed = true;

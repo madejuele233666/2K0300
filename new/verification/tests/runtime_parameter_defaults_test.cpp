@@ -302,6 +302,33 @@ int main(int argc, char** argv) {
                       0.0,
                       1.0,
                       "BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN");
+        ExpectBool(params.bev_element.circle_entry_takeover_enabled,
+                   NumberField(element, "CIRCLE_ENTRY_TAKEOVER_ENABLED"),
+                   "BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED");
+        ExpectInt(params.bev_element.circle_entry_min_frontier_points,
+                  NumberField(element, "CIRCLE_ENTRY_MIN_FRONTIER_POINTS"),
+                  "BEV_ELEMENT.CIRCLE_ENTRY_MIN_FRONTIER_POINTS");
+        ExpectNear(params.bev_element.circle_entry_direction_min_lateral_m,
+                   NumberField(element, "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M"),
+                   "BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M");
+        ExpectInRange(params.bev_element.circle_entry_direction_min_lateral_m,
+                      0.0,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M");
+        ExpectNear(params.bev_element.circle_entry_max_interpolation_gap_m,
+                   NumberField(element, "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M"),
+                   "BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M");
+        ExpectInRange(params.bev_element.circle_entry_max_interpolation_gap_m,
+                      1.0e-4,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M");
+        ExpectNear(params.bev_element.circle_entry_max_join_jump_m,
+                   NumberField(element, "CIRCLE_ENTRY_MAX_JOIN_JUMP_M"),
+                   "BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M");
+        ExpectInRange(params.bev_element.circle_entry_max_join_jump_m,
+                      0.0,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M");
 
         const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
         ExpectBool(params.bev_element_raster.enabled,

@@ -5,6 +5,7 @@
 
 #include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
+#include "legacy/steering_circle_element_evidence.hpp"
 #include "port/runtime_parameter_types.hpp"
 #include "port/visual_element_evidence_types.hpp"
 #include "port/visual_reference_orchestration_types.hpp"
@@ -20,6 +21,7 @@ struct VisualElementPipelineInput {
 struct VisualElementPipelineResult {
     port::VisualElementEvidenceFrame evidence{};
     std::vector<port::VisualReferenceCandidate> candidates{};
+    CircleEntryPipelineDiagnostics circle_entry_diagnostics{};
 };
 
 VisualElementPipelineResult RunVisualElementPipeline(const VisualElementPipelineInput& input,

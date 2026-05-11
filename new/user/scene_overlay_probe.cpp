@@ -37,6 +37,7 @@ using ls2k::port::VisualElementEvidenceRecord;
 struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
     VisualElementEvidenceFrame element_evidence{};
+    ls2k::legacy::CircleEntryPipelineDiagnostics circle_entry_diagnostics{};
     ls2k::port::VisualReferenceSelection visual_selection{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
@@ -406,7 +407,17 @@ bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& para
            params.circle_opposite_shrink_ratio_min <= 10.0F &&
            std::isfinite(params.circle_present_confidence_min) &&
            params.circle_present_confidence_min >= 0.0F &&
-           params.circle_present_confidence_min <= 1.0F;
+           params.circle_present_confidence_min <= 1.0F &&
+           params.circle_entry_min_frontier_points >= 1 &&
+           std::isfinite(params.circle_entry_direction_min_lateral_m) &&
+           params.circle_entry_direction_min_lateral_m >= 0.0F &&
+           params.circle_entry_direction_min_lateral_m <= 2.0F &&
+           std::isfinite(params.circle_entry_max_interpolation_gap_m) &&
+           params.circle_entry_max_interpolation_gap_m >= 1.0e-4F &&
+           params.circle_entry_max_interpolation_gap_m <= 2.0F &&
+           std::isfinite(params.circle_entry_max_join_jump_m) &&
+           params.circle_entry_max_join_jump_m >= 0.0F &&
+           params.circle_entry_max_join_jump_m <= 2.0F;
 }
 
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
@@ -498,6 +509,26 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadStrictFloatField(block,
                              "CIRCLE_PRESENT_CONFIDENCE_MIN",
                              params.bev_element.circle_present_confidence_min,
+                             element_malformed);
+        ReadStrictBoolField(block,
+                            "CIRCLE_ENTRY_TAKEOVER_ENABLED",
+                            params.bev_element.circle_entry_takeover_enabled,
+                            element_malformed);
+        ReadStrictIntField(block,
+                           "CIRCLE_ENTRY_MIN_FRONTIER_POINTS",
+                           params.bev_element.circle_entry_min_frontier_points,
+                           element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M",
+                             params.bev_element.circle_entry_direction_min_lateral_m,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M",
+                             params.bev_element.circle_entry_max_interpolation_gap_m,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_ENTRY_MAX_JOIN_JUMP_M",
+                             params.bev_element.circle_entry_max_join_jump_m,
                              element_malformed);
         if (!ValidProbeBEVElementParameters(params.bev_element)) {
             element_malformed = true;
@@ -797,6 +828,25 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
                   << record.candidate.reason
                   << "\n";
     }
+    const auto print_entry = [](const char* id, const ls2k::legacy::CircleEntryPathFacts& entry) {
+        std::cout << "circle_entry." << id << ".present=" << BoolToken(entry.present)
+                  << " circle_entry." << id << ".reason=" << entry.reason
+                  << " circle_entry." << id << ".direction_delta_lateral_m="
+                  << entry.direction_delta_lateral_m
+                  << " circle_entry." << id << ".direction_delta_forward_m="
+                  << entry.direction_delta_forward_m
+                  << " circle_entry." << id << ".road_half_width_m="
+                  << entry.road_half_width_m
+                  << " circle_entry." << id << ".frontier_count="
+                  << entry.frontier_points.size()
+                  << " circle_entry." << id << ".centerline_count="
+                  << entry.centerline_points.size()
+                  << " circle_entry." << id << ".near_centerline_count="
+                  << entry.near_centerline_points.size()
+                  << "\n";
+    };
+    print_entry("left", pipeline.circle_entry_diagnostics.left);
+    print_entry("right", pipeline.circle_entry_diagnostics.right);
     for (std::size_t index = 0;
          index < pipeline.visual_selection.reference_path.sampled_path.size();
          ++index) {
@@ -860,6 +910,7 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);
     result.element_evidence = element_result.evidence;
+    result.circle_entry_diagnostics = element_result.circle_entry_diagnostics;
     std::vector<ls2k::port::VisualReferenceCandidate> candidates;
     candidates.reserve(1U + element_result.candidates.size());
     candidates.push_back(line_candidate);

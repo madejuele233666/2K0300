@@ -22,16 +22,42 @@ port::VisualElementEvidenceRecord MakeEffectiveCircleRecord(
     return raw;
 }
 
+void MaybeBuildCircleCandidate(port::VisualElementEvidenceRecord& record,
+                               const CircleEntryPathFacts& entry,
+                               port::VisualReferenceCandidateKind kind,
+                               const port::RuntimeParameters& params,
+                               std::vector<port::VisualReferenceCandidate>& candidates) {
+    port::VisualElementCandidateSummary summary{};
+    const port::VisualReferenceCandidate candidate =
+        BuildCircleEntryVisualReferenceCandidate(record, entry, kind, params, summary);
+    record.candidate = summary;
+    if (summary.included_in_arbitration) {
+        candidates.push_back(candidate);
+    }
+}
+
 void AppendCircleEvidence(port::VisualElementEvidenceFrame& evidence,
-                          const CircleElementEvidenceResult& circle) {
+                          std::vector<port::VisualReferenceCandidate>& candidates,
+                          const CircleElementEvidenceResult& circle,
+                          const port::RuntimeParameters& params) {
     evidence.records.push_back(circle.left_raw);
     evidence.records.push_back(circle.right_raw);
-    evidence.records.push_back(MakeEffectiveCircleRecord(circle.left_raw,
-                                                         "circle_left",
-                                                         evidence.cross_exit.present));
-    evidence.records.push_back(MakeEffectiveCircleRecord(circle.right_raw,
-                                                         "circle_right",
-                                                         evidence.cross_exit.present));
+    port::VisualElementEvidenceRecord left =
+        MakeEffectiveCircleRecord(circle.left_raw, "circle_left", evidence.cross_exit.present);
+    port::VisualElementEvidenceRecord right =
+        MakeEffectiveCircleRecord(circle.right_raw, "circle_right", evidence.cross_exit.present);
+    MaybeBuildCircleCandidate(left,
+                              circle.left_entry,
+                              port::VisualReferenceCandidateKind::kCircleLeft,
+                              params,
+                              candidates);
+    MaybeBuildCircleCandidate(right,
+                              circle.right_entry,
+                              port::VisualReferenceCandidateKind::kCircleRight,
+                              params,
+                              candidates);
+    evidence.records.push_back(left);
+    evidence.records.push_back(right);
 }
 
 }  // namespace
@@ -57,7 +83,9 @@ VisualElementPipelineResult RunVisualElementPipeline(const VisualElementPipeline
 
     const CircleElementEvidenceResult circle =
         DetectCircleElementEvidence(input.element_raster, params);
-    AppendCircleEvidence(result.evidence, circle);
+    result.circle_entry_diagnostics.left = circle.left_entry;
+    result.circle_entry_diagnostics.right = circle.right_entry;
+    AppendCircleEvidence(result.evidence, result.candidates, circle, params);
     return result;
 }
 
