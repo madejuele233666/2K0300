@@ -9,10 +9,9 @@
 ```bash
 ./debug.sh build
 ./debug.sh assistant status
-./debug.sh assistant local 8888 8890
-./debug.sh assistant on 10.100.170.115 8888 8890
+./debug.sh assistant on 192.168.137.1 39011 39012
 ./debug.sh assistant off
-./debug.sh tuning --sequence 20,40,60,100 --disabled-mode-checks --invalid-target-speed 170 --media-listen-port 8890
+./debug.sh tuning --sequence 20,40,60,100 --disabled-mode-checks --invalid-target-speed 170 --listen-port 39011 --media-listen-port 39012
 ./debug.sh steering --duration-s 20
 CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ./debug.sh remote start normal
@@ -32,9 +31,9 @@ CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
 ## 命令分组
 
 - `build`：编译 `new/`，并上传二进制、`default_params.json`、`hardware_profile.json` 到板子。
-- `assistant`：修改 `../config/default_params.json` 里的 control/media wiring，包含 `assistant_tcp.*`、`steering_media_enabled`、`steering_media_port`、`steering_media_publish_interval_ms`。
+- `assistant`：修改 `../config/default_params.json` 里的 control/media wiring，包含 `assistant_tcp.*`、`steering_media_enabled`、`steering_media_port`、`steering_media_publish_interval_ms`、`steering_media_downsample`。
 - `tuning`：运行主机侧 accepted workflow，监听 assistant control TCP，并可选录制 steering media 的 metadata/raw frame 与对齐摘要。
-- `steering`：运行主机侧被动转向调试 workflow，在正常运行态下同时采集 assistant control 连接、steering media 和板端 `control.steering_snapshot`。
+- `steering`：运行主机侧转向调试 workflow。默认 `./debug.sh steering` 等价于 `./debug.sh steering host-capture`，只负责 assistant control 和 steering media 两条板端回连流；旧的板端 SSH tail workflow 已归档到 `new/user/archive/`，需要时用 `./debug.sh steering legacy`。
 - `remote`：远程启动、停止、查看板端 `new` 进程。
 - `smoke`：执行板端或本地冒烟验证，并生成验证日志。
 - `start_with_upload.sh`：一键停旧进程、上传最新参数和程序，然后以 no-motion 默认启动；显式 `drive` 模式才会请求自动发车。
@@ -42,6 +41,8 @@ CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
 - `stop_car.sh`：停车入口。默认 `now` 为立即停运行时并关执行器；低速测试的正常收车使用 `controlled`，超时会回退到 `now`。
 
 ## 启动安全语义
+
+`debug.sh` 会在 `BOARD_IP` 未显式设置时自动从 Windows 热点邻居里寻找可 SSH 的板端；热点网段 `192.168.137.x` 默认使用 Windows OpenSSH/SCP，绕开 WSL 原生路由走错网卡的问题。需要强制指定时仍可用 `BOARD_IP=<ip>`，需要强制后端时可用 `LS2K_REMOTE_BACKEND=auto|native|windows`。
 
 正常 profile 的启动默认不发车。`./debug.sh remote start normal`、`./debug.sh remote restart normal`、`./start_with_upload.sh` 和 `./start_with_params_upload.sh` 都应先用于 no-motion 检查：运行时可以初始化 camera / IMU / encoder / motor / timer，但不会自动请求 motion start。
 
@@ -71,33 +72,43 @@ CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
 ## 典型流程
 
 ```bash
-./debug.sh assistant local 8888 8890
+./debug.sh assistant on 192.168.137.1 39011 39012
 ./debug.sh build
 ./debug.sh remote start normal
-./debug.sh tuning --sequence 20,40,60,77 --disabled-mode-checks --invalid-target-speed 170 --media-listen-port 8890
+./debug.sh tuning --sequence 20,40,60,77 --disabled-mode-checks --invalid-target-speed 170 --listen-port 39011 --media-listen-port 39012
 ./debug.sh remote logs
 ```
 
 如果只想采集 steering media 板测证据：
 
 ```bash
-./debug.sh assistant local 8888 8890
+./debug.sh assistant on 192.168.137.1 39011 39012
 ./debug.sh build
 ./debug.sh remote restart normal
-./debug.sh tuning --csv ../verification/phase-d-speed-tuning.csv --media-listen-port 8890
+./debug.sh tuning --csv ../verification/phase-d-speed-tuning.csv --listen-port 39011 --media-listen-port 39012
 ```
 
 如果要做真实转向调试而不是 runtime tuning：
 
 ```bash
-./debug.sh assistant local 8888 8890
+./debug.sh assistant on 192.168.137.1 39011 39012
 ./debug.sh build
 CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ```
 
-这条 `steering` 路径不会发送 `enable_tuning_mode` 或目标速度覆盖命令，因此不会把运行时切进 `turn_suppressed=true` 的动态调参模式。passive capture 输出 evidence bundle 默认落在 `../verification/steering-debug-<timestamp>/`，其中包含：
+这条 `steering` 路径不会发送 `enable_tuning_mode` 或目标速度覆盖命令，因此不会把运行时切进 `turn_suppressed=true` 的动态调参模式。`steering drive` 默认使用 `host-capture` 后端：WSL 能直接绑定目标 host 时在 WSL 内监听，否则用 Windows Python 在 Windows 热点地址上直接监听。Windows 后端会先写入 Windows 本地临时目录，再把 evidence 复制回 WSL 输出目录，避免实时写 `\\wsl.localhost\...` 拖慢媒体接收。若需要归档的板端 SSH tail evidence，可显式设置 `LS2K_STEERING_CAPTURE_BACKEND=legacy` 或运行 `./debug.sh steering legacy ...`。
 
 `steering drive` 是受控发车采集入口：它先启动 assistant/steering-media listener 并确认端口已绑定，再启动 normal runtime 的 `LS2K_AUTO_START=1` 和 `LS2K_AUTO_STOP_AFTER_MS=<drive-s>`；输出默认落在 `../verification/controlled-drive-<drive-s>s-<timestamp>/`。不要用两个独立终端手工拼接 listener 与 `remote restart normal`，否则板端可能在 listener 未就绪时先连接，日志表现为 `assistant.backoff Connection refused` / `steering_media.backoff Connection refused`。
+
+新的 `host-capture` evidence bundle 包含：
+
+- `assistant_control.csv`
+- `assistant_control.jsonl`
+- `assistant_summary.json`
+- `steering-media/`
+- `summary.json`
+
+旧 `LS2K_STEERING_CAPTURE_BACKEND=legacy` evidence bundle 额外包含：
 
 - `assistant_control.csv`
 - `assistant_summary.json`
@@ -125,13 +136,14 @@ accepted control/media wiring 的冻结键集合是：
 - `steering_media_enabled`
 - `steering_media_port`
 - `steering_media_publish_interval_ms`
+- `steering_media_downsample`
 
-其中 `steering_media_publish_interval_ms` 由板端启动参数读取，host workflow 只读取和记录，不在线改写。
+其中 `steering_media_publish_interval_ms` 和 `steering_media_downsample` 由板端启动参数读取，host workflow 只读取和记录，不在线改写。`steering_media_downsample=1` 发送原始 320x240 raw；热点吞吐不足时可设为 `4`，发送 80x60 gray8 并在 header 记录 source 尺寸。
 
 如果只想跑 headless 调试而不保留 plotting fallback 证据，可以显式关闭绘图：
 
 ```bash
-./debug.sh tuning --no-plot --csv ../verification/phase-d-speed-tuning-headless.csv --media-listen-port 8890
+./debug.sh tuning --no-plot --csv ../verification/phase-d-speed-tuning-headless.csv --listen-port 39011 --media-listen-port 39012
 ```
 
 这条 `--no-plot` 路径不应作为 checkpoint-4 的 plotting fallback 证据；那部分证据应保留独立 host transcript。
@@ -178,8 +190,9 @@ SMOKE_MAX_FRAMES=80 \
 - 板端联调建议串行进行，不要同时起多个远程运行实例。
 - `smoke` 会占用固定远端临时路径和日志文件，板测时也应串行执行。
 - `assistant off` 会同时关闭 steering media；如需 control-only，可显式传 `STEERING_MEDIA_ENABLED=0 ./debug.sh assistant local ...`。
-- 默认板 IP 是 `10.100.170.226`，可用环境变量覆盖：
+- 默认会自动发现 Windows 热点板端 IP；发现失败时回退到 `10.100.170.226`。可用环境变量覆盖：
 
 ```bash
-BOARD_IP=10.100.170.226 ./debug.sh remote start normal
+BOARD_IP=192.168.137.198 ./debug.sh remote start normal
+LS2K_REMOTE_BACKEND=windows BOARD_IP=192.168.137.198 ./debug.sh remote status
 ```

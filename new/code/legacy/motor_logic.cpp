@@ -5,6 +5,8 @@
 
 namespace ls2k::legacy {
 
+/// LegacyMotorLogic::Compose 实现
+/// 将左右PWM值钳制到[-pwm_limit, pwm_limit]范围内，生成执行器指令
 port::ActuatorCommand LegacyMotorLogic::Compose(int left_pwm,
                                                 int right_pwm,
                                                 bool emergency_stop,

@@ -10,7 +10,57 @@ REPO_ROOT="$(cd "${WORK_DIR}/../.." && pwd)"
 TRUE_VENDOR_ROOT="${REPO_ROOT}/true_LS2K0300_Library/Seekfree_LS2K0300_Opensource_Library"
 VENV_PYTHON="${WORK_DIR}/.venv/bin/python"
 
-BOARD_IP="${BOARD_IP:-10.100.170.226}"
+DEFAULT_BOARD_IP="${LS2K_DEFAULT_BOARD_IP:-10.100.170.226}"
+
+discover_windows_hotspot_board_ip() {
+    if ! command -v powershell.exe >/dev/null 2>&1; then
+        return 1
+    fi
+
+    powershell.exe -NoProfile -Command '
+$ErrorActionPreference = "SilentlyContinue"
+$adapter = Get-NetAdapter |
+    Where-Object { $_.InterfaceDescription -like "*Wi-Fi Direct Virtual Adapter*" -and $_.Status -eq "Up" } |
+    Select-Object -First 1
+if ($null -eq $adapter) { exit 1 }
+
+$neighbors = Get-NetNeighbor -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 |
+    Where-Object {
+        $_.IPAddress -like "192.168.137.*" -and
+        $_.IPAddress -ne "192.168.137.1" -and
+        $_.IPAddress -ne "192.168.137.255" -and
+        $_.State -ne "Unreachable"
+    } |
+    Sort-Object IPAddress
+
+foreach ($neighbor in $neighbors) {
+    $ok = Test-NetConnection -ComputerName $neighbor.IPAddress -Port 22 -InformationLevel Quiet -WarningAction SilentlyContinue
+    if ($ok) {
+        Write-Output $neighbor.IPAddress
+        exit 0
+    }
+}
+exit 1
+' 2>/dev/null | tr -d '\r' | awk '/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { print; exit }'
+}
+
+resolve_board_ip() {
+    if [[ -n "${BOARD_IP:-}" ]]; then
+        printf '%s\n' "${BOARD_IP}"
+        return 0
+    fi
+
+    local discovered
+    discovered="$(discover_windows_hotspot_board_ip || true)"
+    if [[ -n "${discovered}" ]]; then
+        printf '%s\n' "${discovered}"
+        return 0
+    fi
+
+    printf '%s\n' "${DEFAULT_BOARD_IP}"
+}
+
+BOARD_IP="$(resolve_board_ip)"
 BOARD_USER="${BOARD_USER:-root}"
 BOARD_PATH="${BOARD_PATH:-/home/root}"
 BOARD_BIN="${BOARD_BIN:-${BOARD_PATH}/new}"
@@ -46,6 +96,7 @@ SMOKE_FORCE_LOW_VOLTAGE="${SMOKE_FORCE_LOW_VOLTAGE:-${LS2K_FORCE_LOW_VOLTAGE:-}}
 SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT:-5}"
 SSH_SERVER_ALIVE_INTERVAL="${SSH_SERVER_ALIVE_INTERVAL:-5}"
 SSH_SERVER_ALIVE_COUNT_MAX="${SSH_SERVER_ALIVE_COUNT_MAX:-2}"
+REMOTE_BACKEND="${LS2K_REMOTE_BACKEND:-auto}"
 
 SSH_COMMON_OPTS=(
     -o "ConnectTimeout=${SSH_CONNECT_TIMEOUT}"
@@ -96,8 +147,10 @@ Usage:
   ./debug.sh remote status
   ./debug.sh remote logs
   ./debug.sh tuning [tune_speed.py args...]
-  ./debug.sh steering [tune_steering.py args...]
-  ./debug.sh steering drive --drive-s <seconds> [tune_steering.py args...]
+  ./debug.sh steering [host_capture.py args...]
+  ./debug.sh steering host-capture [host_capture.py args...]
+  ./debug.sh steering legacy [tune_steering.py args...]
+  ./debug.sh steering drive --drive-s <seconds> [capture args...]
   ./debug.sh smoke run
   ./debug.sh smoke local
   ./debug.sh smoke help
@@ -108,25 +161,128 @@ Command groups:
   bench      run open-loop PWM/encoder bench workflows
   remote     start/stop/check the runtime process on the board
   tuning     run the Python host-side speed tuning workflow
-  steering   run passive steering capture, or coordinated capture + controlled drive
+  steering   run host-side steering capture, or coordinated capture + controlled drive
   smoke      execute the runtime smoke harness and collect a verification log
 
 Common env overrides:
-  BOARD_IP=10.100.170.226
+  BOARD_IP=auto-discovered from Windows hotspot, fallback 10.100.170.226
   BOARD_USER=root
   BOARD_PATH=/home/root
+  LS2K_REMOTE_BACKEND=auto|native|windows
   LS2K_PARAMS_PATH=/abs/path/to/default_params.json
   LS2K_PROFILE_PATH=/abs/path/to/hardware_profile.json
   LS2K_AUTO_START=1 requires CONFIRM_POWERED_START=1 for normal remote starts
 EOF
 }
 
+windows_ssh_path() {
+    local path="${LS2K_WINDOWS_SSH:-/mnt/c/Windows/System32/OpenSSH/ssh.exe}"
+    if [[ ! -x "${path}" ]]; then
+        return 1
+    fi
+    printf '%s\n' "${path}"
+}
+
+windows_scp_path() {
+    local path="${LS2K_WINDOWS_SCP:-/mnt/c/Windows/System32/OpenSSH/scp.exe}"
+    if [[ ! -x "${path}" ]]; then
+        return 1
+    fi
+    printf '%s\n' "${path}"
+}
+
+windows_scp_arg() {
+    local arg="$1"
+    if [[ "${arg}" == /* && "${arg}" != *:* ]]; then
+        if ! command -v wslpath >/dev/null 2>&1; then
+            log_error "Windows SCP backend requires wslpath for local path conversion"
+            return 1
+        fi
+        wslpath -w "${arg}"
+        return 0
+    fi
+    printf '%s\n' "${arg}"
+}
+
+remote_backend() {
+    local operation="${1:-ssh}"
+    case "${REMOTE_BACKEND}" in
+        native|ssh)
+            printf '%s\n' "native"
+            ;;
+        windows|win)
+            if [[ "${operation}" == "scp" ]]; then
+                windows_scp_path >/dev/null || {
+                    log_error "Windows SCP backend requested but scp.exe was not found"
+                    return 1
+                }
+            else
+                windows_ssh_path >/dev/null || {
+                    log_error "Windows SSH backend requested but ssh.exe was not found"
+                    return 1
+                }
+            fi
+            printf '%s\n' "windows"
+            ;;
+        auto)
+            if [[ "${BOARD_IP}" == 192.168.137.* ]] &&
+                windows_ssh_path >/dev/null &&
+                { [[ "${operation}" != "scp" ]] || windows_scp_path >/dev/null; }; then
+                printf '%s\n' "windows"
+            else
+                printf '%s\n' "native"
+            fi
+            ;;
+        *)
+            log_error "unknown LS2K_REMOTE_BACKEND=${REMOTE_BACKEND}; expected auto, native, or windows"
+            return 1
+            ;;
+    esac
+}
+
 run_ssh() {
-    ssh "${SSH_COMMON_OPTS[@]}" "${BOARD_USER}@${BOARD_IP}" "$@"
+    local backend
+    backend="$(remote_backend ssh)"
+    case "${backend}" in
+        native)
+            ssh "${SSH_COMMON_OPTS[@]}" "${BOARD_USER}@${BOARD_IP}" "$@"
+            ;;
+        windows)
+            local ssh_path
+            ssh_path="$(windows_ssh_path)"
+            "${ssh_path}" "${SSH_COMMON_OPTS[@]}" "${BOARD_USER}@${BOARD_IP}" "$@"
+            ;;
+        *)
+            log_error "unknown remote backend: ${backend}"
+            return 1
+            ;;
+    esac
 }
 
 run_scp() {
-    scp -O "${SSH_COMMON_OPTS[@]}" "$@"
+    local backend
+    backend="$(remote_backend scp)"
+    case "${backend}" in
+        native)
+            scp -O "${SSH_COMMON_OPTS[@]}" "$@"
+            ;;
+        windows)
+            local scp_path
+            local -a converted_args=()
+            local arg
+            scp_path="$(windows_scp_path)"
+            for arg in "$@"; do
+                local converted_arg
+                converted_arg="$(windows_scp_arg "${arg}")" || return 1
+                converted_args+=("${converted_arg}")
+            done
+            "${scp_path}" -O "${SSH_COMMON_OPTS[@]}" "${converted_args[@]}"
+            ;;
+        *)
+            log_error "unknown remote backend: ${backend}"
+            return 1
+            ;;
+    esac
 }
 
 require_local_file() {
@@ -538,12 +694,20 @@ Usage:
   ./debug.sh remote restart [normal|smoke]
   ./debug.sh remote status
   ./debug.sh remote logs
+  ./debug.sh remote upload-params
 
 Notes:
   normal starts are no-motion by default.
   LS2K_AUTO_START=1 on normal mode requires CONFIRM_POWERED_START=1.
   controlled stop sends SIGINT first and falls back to immediate stop after LS2K_CONTROLLED_STOP_TIMEOUT_S.
 EOF
+}
+
+remote_upload_params() {
+    require_local_file "${PARAMS_PATH}" "params file"
+    log_info "uploading params to ${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
+    run_scp "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
+    log_info "params upload complete"
 }
 
 remote_start() {
@@ -787,6 +951,9 @@ remote_command() {
         logs)
             remote_logs
             ;;
+        upload-params)
+            remote_upload_params
+            ;;
         -h|--help|help)
             remote_usage
             ;;
@@ -821,17 +988,33 @@ tuning_command() {
 }
 
 steering_command() {
-    local script_path="${WORK_DIR}/tune_steering.py"
-    local python_bin
-    local -a args=("$@")
-    require_local_file "${script_path}" "steering workflow"
-    python_bin="$(resolve_python)"
-
     if [[ "${1:-}" == "drive" ]]; then
         shift || true
         steering_drive_command "$@"
         return 0
     fi
+
+    if [[ "${1:-}" == "host-capture" || "${1:-}" == "host" ]]; then
+        shift || true
+        steering_host_capture_command "$@"
+        return 0
+    fi
+
+    if [[ "${1:-}" == "legacy" ]]; then
+        shift || true
+        steering_legacy_command "$@"
+        return 0
+    fi
+
+    steering_host_capture_command "$@"
+}
+
+steering_legacy_command() {
+    local script_path="${WORK_DIR}/archive/tune_steering.py"
+    local python_bin
+    local -a args=("$@")
+    require_local_file "${script_path}" "archived steering workflow"
+    python_bin="$(resolve_python)"
 
     local has_listen_host=0
     local has_listen_port=0
@@ -913,19 +1096,282 @@ steering_command() {
     "${python_bin}" "${script_path}" "${args[@]}"
 }
 
+can_bind_capture_endpoint() {
+    local host="$1"
+    local port="$2"
+    python3 - "${host}" "${port}" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+finally:
+    sock.close()
+PY
+}
+
+windows_temp_dir_wsl() {
+    local temp_win
+    temp_win="$(cmd.exe /c "echo %TEMP%" 2>/dev/null | tr -d '\r' | tail -n 1)"
+    if [[ -z "${temp_win}" ]]; then
+        return 1
+    fi
+    wslpath -u "${temp_win}"
+}
+
+windows_python_wsl_path() {
+    if [[ -n "${LS2K_WINDOWS_PYTHON:-}" ]]; then
+        if [[ "${LS2K_WINDOWS_PYTHON}" == /* ]]; then
+            printf '%s\n' "${LS2K_WINDOWS_PYTHON}"
+            return 0
+        fi
+        wslpath -u "${LS2K_WINDOWS_PYTHON}"
+        return 0
+    fi
+    if [[ -x "/mnt/d/install_software/py3/python.exe" ]]; then
+        printf '%s\n' "/mnt/d/install_software/py3/python.exe"
+        return 0
+    fi
+    if command -v python.exe >/dev/null 2>&1; then
+        command -v python.exe
+        return 0
+    fi
+    if [[ -x "/mnt/c/Windows/py.exe" ]]; then
+        printf '%s\n' "/mnt/c/Windows/py.exe"
+        return 0
+    fi
+    return 1
+}
+
+run_host_capture_on_windows() {
+    local script_path="$1"
+    shift
+
+    if ! command -v cmd.exe >/dev/null 2>&1 || ! command -v wslpath >/dev/null 2>&1; then
+        log_error "Windows host capture requires WSL interop cmd.exe and wslpath"
+        return 1
+    fi
+
+    local temp_wsl
+    temp_wsl="$(windows_temp_dir_wsl)" || {
+        log_error "unable to resolve Windows TEMP directory"
+        return 1
+    }
+    local stage_dir="${temp_wsl}/ls2k"
+    mkdir -p "${stage_dir}"
+    cp "${script_path}" "${stage_dir}/host_capture.py"
+
+    local python_wsl
+    python_wsl="$(windows_python_wsl_path)" || {
+        log_error "unable to resolve Windows Python; set LS2K_WINDOWS_PYTHON"
+        return 1
+    }
+    local script_win
+    script_win="$(wslpath -w "${stage_dir}/host_capture.py")"
+
+    local -a converted_args=()
+    local copy_back_output=0
+    local requested_output_dir=""
+    local staged_output_dir_wsl=""
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --output-dir)
+                if [[ "$#" -lt 2 ]]; then
+                    log_error "--output-dir requires a value"
+                    return 1
+                fi
+                local out_real
+                local out_win
+                out_real="$(realpath -m "$2")"
+                out_win="$(wslpath -w "${out_real}")"
+                if [[ "${out_win}" == \\\\wsl* || "${out_win}" == \\\\WSL* ]]; then
+                    requested_output_dir="${out_real}"
+                    staged_output_dir_wsl="${stage_dir}/captures/$(basename "${out_real}")"
+                    rm -rf "${staged_output_dir_wsl}"
+                    mkdir -p "$(dirname "${staged_output_dir_wsl}")"
+                    converted_args+=("--output-dir" "$(wslpath -w "${staged_output_dir_wsl}")")
+                    copy_back_output=1
+                else
+                    converted_args+=("--output-dir" "${out_win}")
+                fi
+                shift 2
+                ;;
+            --output-dir=*)
+                local out_path="${1#*=}"
+                local out_real
+                local out_win
+                out_real="$(realpath -m "${out_path}")"
+                out_win="$(wslpath -w "${out_real}")"
+                if [[ "${out_win}" == \\\\wsl* || "${out_win}" == \\\\WSL* ]]; then
+                    requested_output_dir="${out_real}"
+                    staged_output_dir_wsl="${stage_dir}/captures/$(basename "${out_real}")"
+                    rm -rf "${staged_output_dir_wsl}"
+                    mkdir -p "$(dirname "${staged_output_dir_wsl}")"
+                    converted_args+=("--output-dir=$(wslpath -w "${staged_output_dir_wsl}")")
+                    copy_back_output=1
+                else
+                    converted_args+=("--output-dir=${out_win}")
+                fi
+                shift
+                ;;
+            *)
+                converted_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    log_info "starting Windows host capture with ${python_wsl}"
+    local capture_rc=0
+    "${python_wsl}" "${script_win}" "${converted_args[@]}" || capture_rc=$?
+    if [[ "${copy_back_output}" -eq 1 && -n "${requested_output_dir}" && -n "${staged_output_dir_wsl}" ]]; then
+        log_info "copying Windows-local capture output back to ${requested_output_dir}"
+        mkdir -p "${requested_output_dir}"
+        cp -a "${staged_output_dir_wsl}/." "${requested_output_dir}/" || capture_rc=$?
+    fi
+    return "${capture_rc}"
+}
+
+steering_host_capture_command() {
+    local script_path="${WORK_DIR}/host_capture.py"
+    local python_bin
+    local -a args=("$@")
+    require_local_file "${script_path}" "host capture workflow"
+
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || "${1:-}" == "help" ]]; then
+        python_bin="$(resolve_python)"
+        "${python_bin}" "${script_path}" --help
+        return 0
+    fi
+
+    local has_listen_host=0
+    local has_listen_port=0
+    local has_media_host=0
+    local has_media_port=0
+    local has_output_dir=0
+    local listen_host=""
+    local listen_port=""
+    local token
+    for token in "${args[@]}"; do
+        if [[ "${token}" == "--listen-host" ]]; then
+            has_listen_host=1
+        elif [[ "${token}" == --listen-host=* ]]; then
+            has_listen_host=1
+            listen_host="${token#*=}"
+        elif [[ "${token}" == "--listen-port" ]]; then
+            has_listen_port=1
+        elif [[ "${token}" == --listen-port=* ]]; then
+            has_listen_port=1
+            listen_port="${token#*=}"
+        elif [[ "${token}" == "--media-listen-host" || "${token}" == --media-listen-host=* ]]; then
+            has_media_host=1
+        elif [[ "${token}" == "--media-listen-port" || "${token}" == --media-listen-port=* ]]; then
+            has_media_port=1
+        elif [[ "${token}" == "--output-dir" || "${token}" == --output-dir=* ]]; then
+            has_output_dir=1
+        fi
+    done
+
+    if [[ "${has_listen_host}" -eq 0 ]]; then
+        listen_host="$(assistant_read_field host)"
+        if [[ -z "${listen_host}" ]]; then
+            listen_host="$(detect_local_ip || true)"
+        fi
+        if [[ -z "${listen_host}" ]]; then
+            log_error "unable to resolve assistant host; pass --listen-host explicitly"
+            return 1
+        fi
+        args+=(--listen-host "${listen_host}")
+    elif [[ -z "${listen_host}" ]]; then
+        local next_is_host=0
+        local arg
+        for arg in "${args[@]}"; do
+            if [[ "${next_is_host}" -eq 1 ]]; then
+                listen_host="${arg}"
+                break
+            fi
+            if [[ "${arg}" == "--listen-host" ]]; then
+                next_is_host=1
+            fi
+        done
+    fi
+
+    if [[ "${has_listen_port}" -eq 0 ]]; then
+        listen_port="$(assistant_read_field port)"
+        args+=(--listen-port "${listen_port}")
+    elif [[ -z "${listen_port}" ]]; then
+        local next_is_port=0
+        local arg
+        for arg in "${args[@]}"; do
+            if [[ "${next_is_port}" -eq 1 ]]; then
+                listen_port="${arg}"
+                break
+            fi
+            if [[ "${arg}" == "--listen-port" ]]; then
+                next_is_port=1
+            fi
+        done
+    fi
+
+    if [[ "${has_media_host}" -eq 0 ]]; then
+        args+=(--media-listen-host "${listen_host}")
+    fi
+    if [[ "${has_media_port}" -eq 0 && "$(assistant_read_field media_enabled)" == "1" ]]; then
+        args+=(--media-listen-port "$(assistant_read_field media_port)")
+    fi
+    if [[ "${has_output_dir}" -eq 0 ]]; then
+        local timestamp
+        timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+        args+=(--output-dir "${REPO_ROOT}/new/verification/host-capture-${timestamp}")
+    fi
+
+    local backend="${LS2K_HOST_CAPTURE_BACKEND:-auto}"
+    if [[ "${backend}" == "auto" ]]; then
+        if can_bind_capture_endpoint "${listen_host}" "${listen_port}" >/dev/null 2>&1; then
+            backend="local"
+        elif command -v cmd.exe >/dev/null 2>&1 && windows_python_wsl_path >/dev/null 2>&1; then
+            backend="windows"
+        else
+            backend="local"
+        fi
+    fi
+
+    case "${backend}" in
+        local)
+            python_bin="$(resolve_python)"
+            "${python_bin}" "${script_path}" "${args[@]}"
+            ;;
+        windows)
+            run_host_capture_on_windows "${script_path}" "${args[@]}"
+            ;;
+        *)
+            log_error "unknown LS2K_HOST_CAPTURE_BACKEND=${backend}; expected auto, local, or windows"
+            return 1
+            ;;
+    esac
+}
+
 steering_drive_usage() {
     cat <<'EOF'
 Usage:
-  ./debug.sh steering drive --drive-s <seconds> [--output-dir <dir>] [--capture-duration-s <seconds>] [tune_steering.py args...]
+  ./debug.sh steering drive --drive-s <seconds> [--output-dir <dir>] [--capture-duration-s <seconds>] [capture args...]
 
 Behavior:
-  - starts the passive steering/media listeners first
+  - starts the host-side steering/media listeners first
   - waits until both configured listeners have bound their host ports
   - starts the normal runtime with LS2K_AUTO_START=1 and LS2K_AUTO_STOP_AFTER_MS=<drive-s>
   - waits for the capture workflow to finish, then reports the evidence directory
 
 Safety:
   normal controlled drive requires CONFIRM_POWERED_START=1.
+
+Common env overrides:
+  LS2K_STEERING_CAPTURE_BACKEND=host|legacy
+  LS2K_HOST_CAPTURE_BACKEND=auto|local|windows
 EOF
 }
 
@@ -946,11 +1392,15 @@ wait_for_capture_listener_ready() {
             return 1
         fi
 
-        if [[ -f "${log_path}" ]] &&
-            grep -q '^\[control\] waiting for assistant connection' "${log_path}"; then
-            if [[ "${require_media}" != "1" ]] ||
-                grep -q '^\[media\] waiting for steering media connection' "${log_path}"; then
+        if [[ -f "${log_path}" ]]; then
+            if grep -q '^\[host_capture\] READY ' "${log_path}"; then
                 return 0
+            fi
+            if grep -q '^\[control\] waiting for assistant connection' "${log_path}"; then
+                if [[ "${require_media}" != "1" ]] ||
+                    grep -q '^\[media\] waiting for steering media connection' "${log_path}"; then
+                    return 0
+                fi
             fi
         fi
 
@@ -1082,9 +1532,22 @@ PY
         require_media=1
     fi
 
+    local capture_backend="${LS2K_STEERING_CAPTURE_BACKEND:-host}"
     log_info "starting steering capture before controlled drive"
+    log_info "capture backend: ${capture_backend}"
     log_info "capture output: ${output_dir}"
-    steering_command --duration-s "${capture_duration_s}" "${capture_args[@]}" >"${capture_log}" 2>&1 &
+    case "${capture_backend}" in
+        host)
+            steering_command host-capture --duration-s "${capture_duration_s}" "${capture_args[@]}" >"${capture_log}" 2>&1 &
+            ;;
+        legacy)
+            steering_command legacy --duration-s "${capture_duration_s}" "${capture_args[@]}" >"${capture_log}" 2>&1 &
+            ;;
+        *)
+            log_error "unknown LS2K_STEERING_CAPTURE_BACKEND=${capture_backend}; expected host or legacy"
+            return 1
+            ;;
+    esac
     local capture_pid=$!
 
     if ! wait_for_capture_listener_ready "${capture_log}" "${require_media}" "${capture_pid}" "${listener_ready_timeout_s}"; then

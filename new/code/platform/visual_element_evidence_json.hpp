@@ -11,6 +11,11 @@
 namespace ls2k::platform {
 namespace visual_element_json_detail {
 
+/**
+ * 向 JSON 输出流追加转义后的字符串（处理控制字符、引号和反斜杠）。
+ * @param stream 输出流
+ * @param value 待追加的原始字符串
+ */
 inline void AppendJsonString(std::ostream& stream, const std::string& value) {
     stream << '"';
     for (const char ch : value) {
@@ -44,14 +49,29 @@ inline void AppendJsonString(std::ostream& stream, const std::string& value) {
     stream << '"';
 }
 
+/**
+ * 向 JSON 输出流追加数值（12 位有效数字精度）。
+ * @param stream 输出流
+ * @param value 待追加的数值
+ */
 inline void AppendJsonNumber(std::ostream& stream, double value) {
     stream << std::setprecision(12) << value;
 }
 
+/**
+ * 向 JSON 输出流追加布尔值（"true" / "false"）。
+ * @param stream 输出流
+ * @param value 待追加的布尔值
+ */
 inline void AppendJsonBool(std::ostream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
+/**
+ * 向 JSON 输出流追加视觉元素候选摘要（含构建状态、接管启用标志和仲裁包含状态）。
+ * @param stream 输出流
+ * @param candidate 视觉元素候选摘要数据
+ */
 inline void AppendCandidateJson(std::ostream& stream,
                                 const port::VisualElementCandidateSummary& candidate) {
     stream << "{\"built\":";
@@ -65,6 +85,11 @@ inline void AppendCandidateJson(std::ostream& stream,
     stream << "}";
 }
 
+/**
+ * 向 JSON 输出流追加路口退出元素证据（含存在标志、置信度、空间范围和候选信息）。
+ * @param stream 输出流
+ * @param cross_exit 路口退出元素证据数据
+ */
 inline void AppendCrossExitJson(std::ostream& stream,
                                 const port::CrossExitElementEvidence& cross_exit) {
     stream << "{\"present\":";
@@ -89,6 +114,11 @@ inline void AppendCrossExitJson(std::ostream& stream,
     stream << "}";
 }
 
+/**
+ * 向 JSON 输出流追加视觉元素证据记录（含 ID、存在标志、置信度、空间边界、支撑统计和候选）。
+ * @param stream 输出流
+ * @param record 视觉元素证据记录数据
+ */
 inline void AppendRecordJson(std::ostream& stream,
                              const port::VisualElementEvidenceRecord& record) {
     stream << "{\"id\":";
@@ -118,6 +148,11 @@ inline void AppendRecordJson(std::ostream& stream,
 
 }  // namespace visual_element_json_detail
 
+/**
+ * 向 JSON 输出流追加视觉元素证据帧 —— 包含路口退出证据和所有证据记录。
+ * @param stream 输出流
+ * @param evidence 视觉元素证据帧数据
+ */
 inline void AppendVisualElementEvidenceJson(std::ostream& stream,
                                             const port::VisualElementEvidenceFrame& evidence) {
     stream << "{\"cross_exit\":";

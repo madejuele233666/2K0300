@@ -11,6 +11,9 @@ void ResetOverride(RuntimeTuningState& state) {
 
 }  // namespace
 
+// 在调用方已持有 RuntimeState::shared_mutex 的前提下复制运行时调参状态。
+// 快照复制完成后就是不可变值对象，控制循环可以在释放共享状态锁之后继续使用。
+// 这能缩短锁持有时间，同时保持 tuning_mode、turn_suppressed 和 speed override 的一致性。
 RuntimeTuningSnapshot SnapshotRuntimeTuningState(const RuntimeTuningState& state) {
     RuntimeTuningSnapshot snapshot{};
     snapshot.tuning_mode_enabled = state.tuning_mode_enabled;

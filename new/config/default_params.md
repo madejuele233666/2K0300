@@ -19,11 +19,12 @@ frame -> sparse BEV reference facts -> reference usability -> reference lateral 
 
 ```bash
 cd new/user
-rtk env BOARD_IP=10.100.170.226 ./debug.sh assistant local 8888 8890
-rtk env BOARD_IP=10.100.170.226 ./debug.sh build
-rtk env BOARD_IP=10.100.170.226 ./debug.sh remote restart normal
-rtk env BOARD_IP=10.100.170.226 ./debug.sh steering --duration-s 20
+rtk ./debug.sh assistant on 192.168.137.1 39011 39012
+rtk ./start_with_upload.sh no-motion
+rtk env LS2K_HOST_CAPTURE_BACKEND=windows ./debug.sh steering host-capture --listen-host 0.0.0.0 --listen-port 39011 --media-listen-port 39012 --duration-s 20
 ```
+
+Windows 热点链路优先使用当前高端口配置。`debug.sh` 会在 `BOARD_IP` 未显式设置时自动发现热点板端，并在 `192.168.137.x` 下自动使用 Windows OpenSSH/SCP；`host-capture` 的 Windows 后端会先写本地临时目录，结束后再复制回 WSL evidence 目录。
 
 证据先看这些分组：
 
@@ -86,8 +87,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `RUNNING_SPEED_TARGET` | `250.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
-| `YAW_RATE_PID.P` | `10.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 lateral-error 前馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 `LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`。 |
+| `RUNNING_SPEED_TARGET` | `200.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
+| `YAW_RATE_PID.P` | `20.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 lateral-error 前馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 `LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`。 |
 | `YAW_RATE_PID.I` | `0.0` | gyro feedback | gyro 反馈积分。当前默认不用。只有长期同向 gyro 偏差且 P/D 不能解决时小幅增加；积分过大会拖尾。 |
 | `YAW_RATE_PID.D` | `0.0` | gyro feedback | 抑制 gyro 反馈误差变化。抖动和过冲明显时增加；过大时转向变钝。 |
 | `LEFT_WHEEL_PID.P` | `84.0` | 左轮速度 PID | 左轮速度误差主增益。左轮跟随慢增大；PWM 抖或超调减小。看 `left_speed_target`、`left_measured_speed`、`left_pwm_command`。 |
@@ -108,9 +109,27 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `exp_light` | `65` | camera startup critical | 曝光/亮度基线。白线整体偏暗可上调，背景变白或阈值混乱则下调。改动后必须看原始 raw、分类结果和 `reference` 白点；不要用控制结果倒推曝光。 |
 | `camera_frame_width` | `320` | camera frame contract | 相机输入宽度合同。只在相机源真的改变分辨率时改；改错会让 frame 几何 fail-closed。 |
 | `camera_frame_height` | `240` | camera frame contract | 相机输入高度合同。只在相机源真的改变分辨率时改。 |
+| `CAMERA_SOURCE.BACKEND` | `v4l2_yuyv` | camera capture worker | 主相机源。默认直接走 V4L2 YUYV，避免 supplier MJPG/OpenCV 转换进入 foreground perception path。 |
+| `CAMERA_SOURCE.DEVICE` | `/dev/video0` | camera frame source | V4L2 设备路径。换摄像头设备名时只改这里。 |
+| `CAMERA_SOURCE.WIDTH` / `HEIGHT` | `320` / `240` | camera frame source | source 输出几何，必须不超过编译期 frame storage。 |
+| `CAMERA_SOURCE.FPS` | `60` | camera frame source | 请求帧率；driver 可能协商失败，实际以 camera source health/perf 为准。 |
+| `CAMERA_SOURCE.BUFFER_COUNT` | `3` | camera frame source | V4L2 mmap buffer 数。过小容易丢帧，过大可能增加队列滞后。 |
+| `CAMERA_SOURCE.POLL_TIMEOUT_MS` | `50` | camera capture worker | capture thread 内等待上限；不阻塞 main/control loop。 |
+| `CAMERA_SOURCE.DRAIN_READY_BUFFERS` | `1` | camera frame source | 一次 wait 中 drain 已就绪 buffer，减少 backend queue 旧帧。latest 仍只属于 Frame Store。 |
+| `CAMERA_SOURCE.FALLBACK_BACKEND` | `vendor_uvc` | camera frame source | V4L2 startup 失败时的 supplier fallback；fallback 仍被包在 frame source 边界内。 |
 | `control_period_ms` | `5` | control timer | 控制 tick 周期。减小会提高 CPU/IO 压力；增大会降低控制响应。看 perf、`control.tick` 和实际电机稳定性。 |
 | `perception_stale_ms` | `120` | safety gate | 最新 perception 超过该时间即 stale。摄像头偶发慢帧可适当增大；过大则会让旧白点继续影响控制。看 `safety_gate.reason=perception_stale`。 |
 | `control_snapshot_emit_interval_ms` | `100` | debug reporter | 板端 `control.snapshot` 与 `control.steering_snapshot` 输出周期。只影响日志密度，不改变控制。 |
+
+`REFERENCE_TIME_ALIGNMENT` 是控制侧 reference 时间坐标对齐参数，不属于视觉识别：
+
+| 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
+| --- | ---: | --- | --- |
+| `REFERENCE_TIME_ALIGNMENT.ENABLED` | `0` | control-side reference facts | 开启后控制侧在计算 usability/lateral error/readiness 前把 reference 从 capture time 对齐到 control time。当前默认关闭，便于先验证 debug facts。 |
+| `REFERENCE_TIME_ALIGNMENT.MAX_AGE_MS` | `120` | reference time alignment | reference 最大可对齐年龄。超过说明视觉事实太旧，fail closed。 |
+| `REFERENCE_TIME_ALIGNMENT.MAX_INTEGRATION_GAP_MS` | `30` | motion history | motion history 允许的最大采样空洞。 |
+| `REFERENCE_TIME_ALIGNMENT.MAX_DELTA_YAW_RAD` | `0.8` | reference time alignment | 单次对齐允许的最大 yaw 积分量。 |
+| `REFERENCE_TIME_ALIGNMENT.MIN_ALIGNED_SAMPLES` | `3` | reference time alignment | 对齐后最少前方样本数。 |
 
 ## 6. 执行器与运动状态机
 
@@ -133,14 +152,16 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `low_voltage_raw_threshold` | `400` | power adapter / safety gate | ADC raw 低电压阈值。实际使用值记录在 `LowVoltageSample.threshold`；`LS2K_LOW_VOLTAGE_RAW_THRESHOLD` 环境变量优先。误报低电压时先查 ADC raw，再谨慎下调；不设上限，超大正数会更保守。 |
+| `low_voltage_raw_threshold` | `2300` | power adapter / safety gate | ADC raw 低电压阈值。实际使用值记录在 `LowVoltageSample.threshold`；`LS2K_LOW_VOLTAGE_RAW_THRESHOLD` 环境变量优先。误报低电压时先查 ADC raw，再谨慎下调；不设上限，超大正数会更保守。 |
 | `low_voltage_sample_interval_ms` | `1000` | low-voltage sampler | 运行期低电压采样周期。默认 1Hz；降低会增加 IO，升高会降低低电压发现速度。 |
 | `assistant_enabled` | `1` | assistant TCP | 是否启用 command/ACK/telemetry 链路。连接调试时保持开启；纯离线运行可关闭。 |
-| `assistant_tcp.host` | `10.100.170.115` | assistant TCP | 板端主动连接的 host 地址。必须等于 `ip route get <BOARD_IP>` 的 `src`；错误时板端会 `assistant.backoff Connection refused/timeout`。 |
-| `assistant_tcp.port` | `8888` | assistant TCP | host assistant listener 端口。必须和 `debug.sh assistant local` / `tune_speed.py` / `tune_steering.py` 一致。 |
+| `assistant_tcp.host` | `192.168.137.1` | assistant TCP | 板端主动连接的 host 地址。Windows 热点链路通常是 `192.168.137.1`；错误时板端会 `assistant.backoff Connection refused/timeout`。 |
+| `assistant_tcp.port` | `39011` | assistant TCP | host assistant listener 端口。必须和 `debug.sh assistant on/local` / `debug.sh steering host-capture` / `tune_speed.py` 一致。Windows 热点链路优先使用高端口，避免低端口被系统策略拒绝绑定。 |
 | `steering_media_enabled` | `1` | steering media TCP | 是否启用图像和 steering snapshot side channel。调视觉/白点时保持开启；带宽或 CPU 排查时可临时关闭。 |
-| `steering_media_port` | `8890` | steering media TCP | host media listener 端口。必须和 `--media-listen-port` 一致。 |
+| `steering_media_port` | `39012` | steering media TCP | host media listener 端口。必须和 `--media-listen-port` 一致。 |
 | `steering_media_publish_interval_ms` | `120` | steering media service | 图像发布间隔。`120ms` 理论上约 `8.3fps`；想要更多监听帧先降到 `80` 或 `60`。看 host `effective_fps` 和板端 `steering_media.summary.skip_interval/image_sent`。 |
+| `steering_media_downsample` | `4` | steering media service | 图像 side channel 的发送降采样倍率。`1` 保留 320x240 raw；热点链路吞吐不足时用 `4` 发送 80x60 gray8，同时在 header 保留 source 尺寸和 downsample。 |
+| `steering_media_publish_disarmed` | `1` | steering media service | 是否允许 DISARMED/no-motion 状态发布图像帧。静态采集、BEV 调参和赛道外取证时保持开启；关闭时 host 只能收到 config，板端 `steering_media.summary.skip_disarmed` 会增长。 |
 
 ## 8. BEV Projector 标定
 
@@ -217,30 +238,32 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | reference lateral error | 24 点线性权重的远端权重，近端固定为 `1.0`。合法范围 `[0.0, 1.0]`，越界参数按解析失败处理，不在公式里隐藏修正。减小会更重视近端；增大会让远端趋势更影响输出。 |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `500` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `100`。 |
+| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `300` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `60`。 |
 | `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 从 index 0 开始连续 present 白点的最小数量。降低会更容易进入控制但容错差；提高更保守但可能频繁 unusable。小于数学下限时按 2 处理。 |
 
 ## 12. BEV Element
+
+V1 circle/cross 架构见 `new/docs/visual-element-sparse-circle-v1.zh-CN.md`。迁移完成后，circle/cross Phase1 以 sparse BEV row facts 为输入；full `BEV_ELEMENT_RASTER` 不再控制 circle/cross runtime recognition，只保留给 debug、legacy、roadblock、ML 或未来 full-raster 消费者。旧的 raster-first 说明已在本节改为 V1 语义。
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | 默认关闭。关闭时 `element_evidence.cross_exit` 仍会报告视觉事实和 candidate 构造状态，但 cross candidate 不进入 visual-reference arbitration；开启后也必须先通过 existing candidate validation、reference usability、lateral error、reference-control readiness 和 safety gate。 |
 | `BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN` | `0.95` | visual element evidence | cross 宽白行的最低白点占比。用于把“横向够宽但白点并不接近整行”的 circle/bend 误判压掉；可在 evidence 重放中评估是否提高到 `0.98`。 |
 | `BEV_ELEMENT.CIRCLE_EVIDENCE_ENABLED` | `1` | visual element evidence | circle Phase 1 识别开关。关闭时仍输出 circle generic records，但 present 为 false，reason 指向 disabled/not evaluated；不影响 line、cross、hold、safety、yaw 或 actuator。 |
-| `BEV_ELEMENT.CIRCLE_MIN_SUPPORT_ROWS` | `4` | visual element evidence | circle detector 需要参与 near/far 对比的最少 raster row 数。不足时 fail closed。 |
-| `BEV_ELEMENT.CIRCLE_MIN_SAMPLEABLE_PER_ROW` | `16` | visual element evidence | 每行最少可采样 cell 数。用于防止 FOV 外、投影失败或不可采样行冒充开口。 |
+| `BEV_ELEMENT.CIRCLE_MIN_SUPPORT_ROWS` | `4` | visual element evidence | V1 下表示 circle detector 需要参与 near/far 对比的最少 sparse BEV support row 数。不足时 fail closed。旧 raster row 语义已废弃。 |
+| `BEV_ELEMENT.CIRCLE_MIN_SAMPLEABLE_PER_ROW` | `16` | visual element evidence | V1 下表示每个 sparse BEV row 最少可采样 lateral sample 数。用于防止 FOV 外、投影失败或不可采样行冒充开口。旧 raster cell 语义已废弃。 |
 | `BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M` | `0.05` | visual element evidence | circle 开口的最小绝对外扩量。和 ratio 阈值共同定义“明显外扩”，避免 `0.13m -> 0.15m` 这类小抖动被当成开口。 |
 | `BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN` | `0.10` | visual element evidence | circle/cross 开口的局部相邻行外扩比例阈值。允许外扩后小幅回落；例如 reach 序列 `0.10, 0.30, 0.29` 仍可视为开口。 |
 | `BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M` | `0.06` | visual element evidence | 对侧边界拟合残差上限。circle 要求对侧能被一条简单直线解释；拟合残差过大，或拟合线显示对侧明显内缩时按弯道/非 circle fail closed。 |
 | `BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN` | `0.10` | visual element evidence | 对侧明显内缩比例阈值。一侧外扩且对侧内缩时按 bend/非 circle fail closed。 |
 | `BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN` | `0.65` | visual element evidence | circle present 置信度阈值。低于阈值时保留 support/bounds/debug，但 present=false。 |
-| `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | circle Phase 2 entry reference candidate 的显式接管开关。默认关闭；关闭时可报告 candidate built，但不进入 visual-reference arbitration。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED` | `0` | visual element candidate inclusion | circle Phase 2 entry reference candidate 的显式接管开关。V1 默认关闭；关闭时 runtime 不运行 Phase2 ROI scan，不 build circle candidate，也不进入 visual-reference arbitration。 |
 | `BEV_ELEMENT.CIRCLE_ENTRY_MIN_FRONTIER_POINTS` | `4` | visual element candidate evidence | circle entry 后方黑白 frontier chain 的最少点数。不足时 fail closed，不构造 circle candidate。 |
-| `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M` | `0.08` | visual element candidate evidence | frontier 首尾净侧向变化阈值。左环岛要求整体向左上，右环岛要求整体向右上；不要求逐点单调。 |
+| `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M` | `0.05` | visual element candidate evidence | frontier 首尾净侧向变化阈值。左环岛要求整体向左上，右环岛要求整体向右上；不要求逐点单调。 |
 | `BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M` | `0.12` | visual element candidate path | 同一 circle frontier chain 内允许插值的最大 forward gap。不会跨 unknown/unavailable/FOV 或不相关 chain 补点。 |
 | `BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M` | `0.12` | visual element candidate path | 近端连通白区 centerline 切到 frontier-derived centerline 时允许的最大横向跳变。超限时不构造 circle candidate。 |
-| `BEV_ELEMENT_RASTER.ENABLED` | `1` | runtime BEV element raster | runtime 元素 raster 开关。默认开启，用于 circle/roadblock/ML 和后续连线判黑事实输入；关闭时 raster 不采样、不产出 sampleable cells，sparse line/cross 仍走原输入。 |
-| `BEV_ELEMENT_RASTER.WIDTH` | `320` | runtime BEV element raster | raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
+| `BEV_ELEMENT_RASTER.ENABLED` | `1` | optional full BEV element raster | full 元素 raster 开关。V1 下不再控制 circle/cross runtime recognition；保留给 debug、legacy、roadblock、ML 或未来 full-raster 消费者。关闭时 full raster 不采样、不产出 sampleable cells，sparse line/cross/circle Phase1 仍走 row facts。 |
+| `BEV_ELEMENT_RASTER.WIDTH` | `320` | optional full BEV element raster | full raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。V1 circle/cross 不应依赖该宽度；小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
 
 `cross_exit` 第一版只用于 evidence/debug。不要为了让车“看起来过十字”而用它直接改 actuator、yaw、safety 或 hold。现场先在 no-motion capture 中确认 `element_evidence.cross_exit.{present,confidence,reason,candidate.*}` 与 raw/BEV 画面对齐。generic element 扩展记录统一在 `element_evidence.records[]`，旧消费者只读 `cross_exit` 即可。
 

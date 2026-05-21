@@ -16,6 +16,10 @@
 namespace ls2k::platform {
 namespace {
 
+/// @brief 尝试将文本解析为 JSON 对象
+/// @param text 输入 JSON 文本
+/// @param storage 输出参数：解析后的 FileStorage 对象
+/// @return 解析成功且根节点为非空 Map 时返回 true
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
         if (!storage.open(text,
@@ -30,6 +34,10 @@ bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     return !root.empty() && root.isMap();
 }
 
+/// @brief 从 JSON 节点读取字符串值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的字符串
+/// @return 读取成功返回 true
 bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     if (node.empty() || !node.isString()) {
         return false;
@@ -38,6 +46,10 @@ bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取有限数值（非 NaN / Inf）
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 double 值
+/// @return 读取成功且为有限数值时返回 true
 bool ReadFiniteNumber(const cv::FileNode& node, double& value) {
     if (node.empty() || (!node.isInt() && !node.isReal())) {
         return false;
@@ -46,6 +58,10 @@ bool ReadFiniteNumber(const cv::FileNode& node, double& value) {
     return std::isfinite(value);
 }
 
+/// @brief 从 JSON 节点读取非负整数值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 uint64 值
+/// @return 读取成功且为非负整数时返回 true
 bool ReadNonNegativeInteger(const cv::FileNode& node, std::uint64_t& value) {
     double numeric = 0.0;
     if (!ReadFiniteNumber(node, numeric) || numeric < 0.0) {
@@ -62,6 +78,10 @@ bool ReadNonNegativeInteger(const cv::FileNode& node, std::uint64_t& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取正整数（值为 int 且 > 0）
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 int 值
+/// @return 读取成功且为正整数时返回 true
 bool ReadPositiveInt(const cv::FileNode& node, int& value) {
     std::uint64_t parsed = 0;
     if (!ReadNonNegativeInteger(node, parsed) || parsed == 0 ||
@@ -72,6 +92,10 @@ bool ReadPositiveInt(const cv::FileNode& node, int& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取布尔值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 bool 值
+/// @return 读取成功返回 true
 bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     if (node.empty() || !node.isInt()) {
         return false;
@@ -84,6 +108,9 @@ bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     return false;
 }
 
+/// @brief 构造"输入被拒"消息
+/// @param reason 拒绝原因
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeInputRejected(std::string reason) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kInputRejected;
@@ -91,6 +118,10 @@ AssistantInboundMessage MakeInputRejected(std::string reason) {
     return message;
 }
 
+/// @brief 构造"命令确认被拒"消息
+/// @param seq 被拒命令的序列号
+/// @param reason 拒绝原因
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeAckRejected(std::uint64_t seq, std::string reason) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kAckRejected;
@@ -99,6 +130,9 @@ AssistantInboundMessage MakeAckRejected(std::uint64_t seq, std::string reason) {
     return message;
 }
 
+/// @brief 构造命令消息
+/// @param command 命令结构体
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeCommand(AssistantCommand command) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kCommand;
@@ -106,6 +140,9 @@ AssistantInboundMessage MakeCommand(AssistantCommand command) {
     return message;
 }
 
+/// @brief 将字符串值以 JSON 格式追加到输出流（含转义处理）
+/// @param stream 输出流
+/// @param value 要编码的字符串
 void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
     for (const char ch : value) {
@@ -139,16 +176,26 @@ void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
 }
 
+/// @brief 将双精度数值以 JSON 格式追加到输出流
+/// @param stream 输出流
+/// @param value 要编码的数值
 void AppendJsonNumber(std::ostringstream& stream, double value) {
     stream << std::setprecision(12) << value;
 }
 
+/// @brief 将布尔值以 JSON 格式追加到输出流
+/// @param stream 输出流
+/// @param value 要编码的布尔值
 void AppendJsonBool(std::ostringstream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
 }  // namespace
 
+/// @brief 解码一行 JSON 格式的助手入站消息
+/// @param line 原始 JSON 行字符串
+/// @param max_target_speed 最大允许目标速度，用于校验速度指令
+/// @return 解码后的入站消息结构体
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed) {
     if (line.empty()) {
         return MakeInputRejected("empty command line");
@@ -246,6 +293,11 @@ AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double 
     return MakeInputRejected("unsupported command");
 }
 
+/// @brief 编码助手应答（ACK/NAK）JSON 消息
+/// @param seq 对应命令的序列号
+/// @param accepted 是否接受
+/// @param reason 拒绝原因（仅 accepted=false 时使用）
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantAck(std::uint64_t seq, bool accepted, const std::string& reason) {
     std::ostringstream stream;
     stream << "{\"type\":\"ack\",\"seq\":" << seq << ",\"outcome\":\""
@@ -258,6 +310,11 @@ std::string EncodeAssistantAck(std::uint64_t seq, bool accepted, const std::stri
     return stream.str();
 }
 
+/// @brief 编码助手状态变更 JSON 消息
+/// @param event 事件名称
+/// @param reason 事件原因
+/// @param status 当前状态快照
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantState(const std::string& event,
                                  const std::string& reason,
                                  const AssistantStatusView& status) {
@@ -284,6 +341,9 @@ std::string EncodeAssistantState(const std::string& event,
     return stream.str();
 }
 
+/// @brief 编码完整助手遥测 JSON 消息
+/// @param telemetry 遥测数据视图
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     std::ostringstream stream;
     stream << "{\"type\":\"telemetry\",\"motion_phase\":";
@@ -379,6 +439,9 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     return stream.str();
 }
 
+/// @brief 将助手命令类型枚举值转换为可读字符串
+/// @param type 命令类型枚举
+/// @return 命令名称字符串
 const char* ToString(AssistantCommandType type) {
     switch (type) {
         case AssistantCommandType::kStart:

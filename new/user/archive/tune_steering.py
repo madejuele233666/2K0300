@@ -19,6 +19,10 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
 
+USER_DIR = Path(__file__).resolve().parent.parent
+if str(USER_DIR) not in sys.path:
+    sys.path.insert(0, str(USER_DIR))
+
 from steering_media_capture import SteeringMediaListener
 
 

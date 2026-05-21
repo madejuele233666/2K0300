@@ -10,6 +10,9 @@ uint64_t SafeElapsedMs(uint64_t now_ms, uint64_t start_ms) {
     return now_ms >= start_ms ? now_ms - start_ms : 0;
 }
 
+// 将非正时间窗口视为“已经完成”的窗口。
+// 这样 motion_spinup_ms 或 stop_ms 配置为 0 时，状态机行为仍是确定的立即完成，
+// 同时避免 elapsed / window 产生除零路径。
 double ClampRatio(uint64_t elapsed_ms, int window_ms) {
     if (window_ms <= 0) {
         return 1.0;
@@ -25,6 +28,9 @@ double StopDecayTarget(double entry_speed_target, uint64_t elapsed_ms, int stop_
     return std::max(0.0, entry_speed_target * std::max(0.0, stop_ratio));
 }
 
+// 运动监督器的统一出口：所有分支最终都通过这里生成 MotionDecision。
+// 阶段切换时间戳、故障锁存时间和 last_effective_speed_target 在这里集中维护，
+// 避免每个状态分支各自更新生命周期 bookkeeping 导致遗漏或语义不一致。
 MotionDecision Finalize(const MotionSupervisorInputs& inputs,
                         MotionSupervisorState next_state,
                         MotionPhase previous_phase,

@@ -3,6 +3,7 @@
 // 转向媒体协议实现 —— 参数快照和图像帧的编码/解码。
 // 使用 JSON 头部 + 二进制负载的复合格式，支持媒体链路传输。
 
+#include <algorithm>
 #include <cstring>
 #include <iomanip>
 #include <limits>
@@ -13,7 +14,11 @@
 namespace ls2k::platform {
 namespace {
 
-// JSON 字符串转义追加（处理控制字符和引号）
+/**
+ * 向 JSON 输出流追加转义后的字符串（处理控制字符、引号和反斜杠）。
+ * @param stream 输出流
+ * @param value 待追加的原始字符串
+ */
 void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
     for (const char ch : value) {
@@ -47,17 +52,29 @@ void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
 }
 
-// JSON 数值追加（12 位精度）
+/**
+ * 向 JSON 输出流追加数值（12 位有效数字精度）。
+ * @param stream 输出流
+ * @param value 待追加的数值
+ */
 void AppendJsonNumber(std::ostringstream& stream, double value) {
     stream << std::setprecision(12) << value;
 }
 
-// JSON 布尔值追加
+/**
+ * 向 JSON 输出流追加布尔值（"true" / "false"）。
+ * @param stream 输出流
+ * @param value 待追加的布尔值
+ */
 void AppendJsonBool(std::ostringstream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
-// 构建转向快照 JSON —— 将 SteeringMediaSnapshotView 序列化为 JSON 对象
+/**
+ * 构建转向快照 JSON —— 将 SteeringMediaSnapshotView 序列化为 JSON 对象字符串。
+ * @param snapshot 转向快照视图数据
+ * @return JSON 格式的快照字符串
+ */
 std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot) {
     std::ostringstream stream;
     stream << "{";
@@ -128,7 +145,15 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     return stream.str();
 }
 
-// 编码媒体信封 —— 4 字节头部长度 + 4 字节负载长度 + JSON 头部 + 二进制负载
+/**
+ * 编码媒体信封 —— 构建 8 字节前缀（4 字节头部长度 + 4 字节负载长度）+ JSON 头部 + 二进制负载。
+ * @param header_json JSON 格式的头部数据
+ * @param payload_data 二进制负载数据指针（可为 nullptr）
+ * @param payload_size 二进制负载数据大小（字节）
+ * @param encoded 输出参数，编码后的完整媒体信封
+ * @param error 输出参数，编码失败时的错误描述
+ * @return true 表示编码成功
+ */
 bool EncodeEnvelope(const std::string& header_json,
                     const std::uint8_t* payload_data,
                     std::size_t payload_size,
@@ -164,7 +189,12 @@ bool EncodeEnvelope(const std::string& header_json,
 
 }  // namespace
 
-// 计算灰度图像负载字节数
+/**
+ * 计算灰度图像负载的字节数（每个像素 1 字节）。
+ * @param width 图像宽度（像素）
+ * @param height 图像高度（像素）
+ * @return 负载字节数，若宽或高 <= 0 则返回 0
+ */
 std::size_t SteeringMediaImagePayloadBytes(int width, int height) {
     if (width <= 0 || height <= 0) {
         return 0;
@@ -172,7 +202,14 @@ std::size_t SteeringMediaImagePayloadBytes(int width, int height) {
     return static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
 }
 
-// 校验图像负载尺寸是否与声明分辨率一致
+/**
+ * 校验图像负载尺寸是否与声明分辨率一致。
+ * @param width 声明的图像宽度
+ * @param height 声明的图像高度
+ * @param payload_size 实际负载大小（字节）
+ * @param error 输出参数，校验失败时的错误描述
+ * @return true 表示校验通过
+ */
 bool ValidateSteeringMediaImagePayload(int width,
                                        int height,
                                        std::size_t payload_size,
@@ -190,7 +227,14 @@ bool ValidateSteeringMediaImagePayload(int width,
     return true;
 }
 
-// 编码参数配置快照为媒体信封格式
+/**
+ * 编码参数配置快照为媒体信封格式。
+ * 生成 JSON 格式的头部，包含速度目标、PID 参数、BEV 配置等全部运行时参数。
+ * @param snapshot 参数配置快照
+ * @param encoded 输出参数，编码后的完整媒体信封数据
+ * @param error 输出参数，编码失败时的错误描述
+ * @return true 表示编码成功
+ */
 bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapshot,
                                        std::vector<std::uint8_t>& encoded,
                                        std::string& error) {
@@ -310,7 +354,14 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);
 }
 
-// 编码图像帧为媒体信封格式（JSON 头部 + 灰度像素数据）
+/**
+ * 编码图像帧为媒体信封格式（JSON 头部 + 灰度像素负载）。
+ * 头部包含帧 ID、时间戳、分辨率、降采样系数、运动阶段和关联的转向快照。
+ * @param frame 图像帧数据
+ * @param encoded 输出参数，编码后的完整媒体信封
+ * @param error 输出参数，编码失败时的错误描述
+ * @return true 表示编码成功
+ */
 bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
                                    std::vector<std::uint8_t>& encoded,
                                    std::string& error) {
@@ -333,13 +384,27 @@ bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
     header << ",\"pixel_format\":\"gray8\"";
     header << ",\"width\":" << frame.width;
     header << ",\"height\":" << frame.height;
+    header << ",\"source_width\":"
+           << (frame.source_width > 0 ? frame.source_width : frame.width);
+    header << ",\"source_height\":"
+           << (frame.source_height > 0 ? frame.source_height : frame.height);
+    header << ",\"downsample\":" << std::max(1, frame.downsample);
     header << ",\"steering_snapshot\":";
     header << BuildSteeringSnapshotJson(frame.steering_snapshot);
     header << "}";
     return EncodeEnvelope(header.str(), frame.pixel_data, frame.pixel_size, encoded, error);
 }
 
-// 解码媒体信封 —— 解析 8 字节前缀 + JSON 头部 + 二进制负载
+/**
+ * 解码媒体信封 —— 解析 8 字节长度前缀（4 字节头部长度 + 4 字节负载长度），
+ * 然后提取 JSON 头部和二进制负载。
+ * @param data 原始媒体信封数据
+ * @param size 数据总大小（字节）
+ * @param header_json 输出参数，解析得到的 JSON 头部
+ * @param payload 输出参数，解析得到的二进制负载
+ * @param error 输出参数，解码失败时的错误描述
+ * @return true 表示解码成功
+ */
 bool DecodeSteeringMediaEnvelope(const std::uint8_t* data,
                                  std::size_t size,
                                  std::string& header_json,

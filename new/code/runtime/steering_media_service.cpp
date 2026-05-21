@@ -1,7 +1,7 @@
 #include "runtime/steering_media_service.hpp"
 
-// 转向媒体服务实现 —— 将调试快照与相机帧打包为媒体帧并发布。
-// 通过 SteeringMediaLink 发送到外部媒体接收端（如远程监控）。
+/// 转向媒体服务实现 —— 将调试快照与相机帧打包为媒体帧并发布。
+/// 通过 SteeringMediaLink 发送到外部媒体接收端（如远程监控）。
 
 #include <algorithm>
 #include <sstream>
@@ -12,7 +12,12 @@
 namespace ls2k::runtime {
 namespace {
 
-// 从运行时状态的相机缓存中查找匹配的快照帧
+/// 从运行时状态的相机缓存中查找匹配快照帧 ID 和捕获时间戳的相机帧
+/// @param state    运行时状态（含相机捕获历史）
+/// @param snapshot 控制调试快照（含帧 ID 和捕获时间戳）
+/// @param frame    输出：查找到的相机帧数据
+/// @param handle   输出：查找到的帧句柄
+/// @return         是否找到并成功复制
 bool ResolveSteeringCapture(const RuntimeState& state,
                             const ControlDebugSnapshot& snapshot,
                             port::LegacyCameraFrame& frame,
@@ -31,15 +36,20 @@ bool ResolveSteeringCapture(const RuntimeState& state,
 
 }  // namespace
 
+/// 构造转向媒体服务并绑定媒体链路
+/// @param link  媒体链路实例（支持移动语义）
 SteeringMediaService::SteeringMediaService(platform::SteeringMediaLink link)
     : link_(std::move(link)) {}
 
-// 启动媒体服务：配置参数、初始化媒体链路（若启用）
+/// 启动媒体服务：配置参数、初始化媒体链路（若启用）
+/// @param params       运行时参数
+/// @param diagnostics  诊断输出接口
 void SteeringMediaService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.steering_media_enabled;
     config_sent_ = false;
     publish_disarmed_ = params.steering_media_publish_disarmed;
+    downsample_ = std::clamp(params.steering_media_downsample, 1, 8);
     publish_interval_ms_ = std::max(0, params.steering_media_publish_interval_ms);
     last_image_publish_ms_ = 0;
     last_image_frame_id_ = 0;
@@ -56,10 +66,14 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
     (void)link_.Initialize(params, diagnostics);
 }
 
+/// 重置窗口统计（清空所有计数器）
 void SteeringMediaService::ResetWindowStats() {
     window_stats_ = WindowStats{};
 }
 
+/// 按每秒间隔发射窗口统计摘要：汇总各状态计数并输出诊断
+/// @param now_ms      当前时间戳（ms）
+/// @param diagnostics 诊断输出接口
 void SteeringMediaService::MaybeEmitWindowSummary(std::uint64_t now_ms,
                                                   port::DiagnosticSink& diagnostics) {
     if (last_summary_ms_ == 0) {
@@ -97,7 +111,7 @@ void SteeringMediaService::MaybeEmitWindowSummary(std::uint64_t now_ms,
     ResetWindowStats();
 }
 
-// 构建参数配置快照 —— 导出当前运行时参数到媒体协议格式
+/// 构建参数配置快照 —— 导出当前运行时参数到媒体协议格式
 platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(std::uint64_t now_ms) const {
     platform::SteeringMediaConfigSnapshot snapshot{};
     snapshot.publish_time_ms = now_ms;
@@ -120,6 +134,9 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
 }
 
 // 构建转向快照视图 —— 将 DebugSnapshot 转换为媒体协议视图
+/// 将 SteeringDebugSnapshot 转换为媒体协议视图（SteeringMediaSnapshotView）
+/// @param snapshot  转向调试快照
+/// @return          媒体协议格式的快照视图
 platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     const SteeringDebugSnapshot& snapshot) const {
     platform::SteeringMediaSnapshotView view{};
@@ -157,7 +174,45 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     return view;
 }
 
-// 媒体 Tick —— 检查连接 → 发布配置快照 → 查找新帧 → 发布图像帧
+/// 填充图像帧数据：将原始相机帧降采样后填入媒体帧结构
+/// @param capture_frame  原始相机帧
+/// @param frame          输出：媒体图像帧（含降采样后的像素数据）
+void SteeringMediaService::FillImageFrame(const port::LegacyCameraFrame& capture_frame,
+                                          platform::SteeringMediaImageFrame& frame) {
+    frame.source_width = capture_frame.width;
+    frame.source_height = capture_frame.height;
+    frame.downsample = downsample_;
+
+    if (downsample_ <= 1) {
+        frame.width = capture_frame.width;
+        frame.height = capture_frame.height;
+        frame.pixel_data = capture_frame.gray.data();
+        frame.pixel_size = capture_frame.PixelCount();
+        return;
+    }
+
+    const int output_width = (capture_frame.width + downsample_ - 1) / downsample_;
+    const int output_height = (capture_frame.height + downsample_ - 1) / downsample_;
+    downsample_buffer_.assign(static_cast<std::size_t>(output_width * output_height), 0);
+    for (int out_row = 0; out_row < output_height; ++out_row) {
+        const int src_row = std::min(capture_frame.height - 1, out_row * downsample_);
+        for (int out_col = 0; out_col < output_width; ++out_col) {
+            const int src_col = std::min(capture_frame.width - 1, out_col * downsample_);
+            downsample_buffer_[static_cast<std::size_t>(out_row * output_width + out_col)] =
+                capture_frame.gray[static_cast<std::size_t>(src_row * capture_frame.width + src_col)];
+        }
+    }
+
+    frame.width = output_width;
+    frame.height = output_height;
+    frame.pixel_data = downsample_buffer_.data();
+    frame.pixel_size = downsample_buffer_.size();
+}
+
+/// 媒体服务 Tick：检查连接 → 检查并发布挂起图像 → 发布配置快照 → 查找新帧 → 发布图像帧。
+/// 统计每秒窗口摘要并输出诊断。
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
 void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
     LS2K_PERF_SCOPE(port::PerfStage::kSteeringMediaTick);
     if (!configured_ || !enabled_) {
@@ -236,12 +291,9 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     frame.frame_id = capture_handle.frame_id;
     frame.capture_time_ms = capture_handle.capture_time_ms;
     frame.publish_time_ms = now_ms;
-    frame.width = capture_frame.width;
-    frame.height = capture_frame.height;
     frame.motion_phase = ToString(snapshot.motion_phase);
     frame.steering_snapshot = BuildSnapshotView(snapshot.steering);
-    frame.pixel_data = capture_frame.gray.data();
-    frame.pixel_size = capture_frame.PixelCount();
+    FillImageFrame(capture_frame, frame);
 
     const platform::SteeringMediaPublishResult result = link_.PublishImageFrame(frame, diagnostics);
     if (result == platform::SteeringMediaPublishResult::kSent ||

@@ -5,11 +5,18 @@
 
 namespace ls2k::runtime {
 
+/// 配置低电压采样器：设置采样间隔，重置上次采样时间
+/// @param params  运行时参数（含 low_voltage_sample_interval_ms）
 void LowVoltageSampler::Configure(const port::RuntimeParameters& params) {
     sample_interval_ms_ = std::max(1, params.low_voltage_sample_interval_ms);
     last_sample_attempt_ms_ = 0;
 }
 
+/// 低电压采样 Tick：按间隔采样电源电压，更新紧急标志，并在状态转换时输出诊断
+/// @param power       电源监控适配器
+/// @param state       运行时状态（含低电压紧急标志和采样记录）
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void LowVoltageSampler::Tick(port::IPowerMonitorAdapter& power,
                              RuntimeState& state,
                              port::DiagnosticSink& diagnostics,

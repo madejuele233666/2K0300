@@ -7,12 +7,16 @@
 #include <utility>
 
 #include "legacy/steering_bev_simple_perception.hpp"
+#include "port/perf_counter.hpp"
 
 namespace ls2k::legacy {
 namespace {
 
+/// 双线性插值权重的缩放因子（将浮点权重缩放为整数以避免浮点运算）
 constexpr int kBilinearWeightScale = 256;
 
+/// 比较两组标定参数是否完全一致（逐字段比较）
+/// @return true 如果两组标定参数完全相同
 bool SameCalibration(const port::BEVProjectorCalibration& lhs,
                      const port::BEVProjectorCalibration& rhs) {
     if (lhs.valid != rhs.valid ||
@@ -33,6 +37,8 @@ bool SameCalibration(const port::BEVProjectorCalibration& lhs,
     return true;
 }
 
+/// 检查查找表是否与当前帧/参数/投影器匹配（若匹配则可复用，无需重建）
+/// @return true 如果查找表可以复用
 bool LutMatches(const BEVElementRasterLut& lut,
                 const port::LegacyCameraFrameView& frame,
                 const port::RuntimeParameters& params,
@@ -55,6 +61,10 @@ bool LutMatches(const BEVElementRasterLut& lut,
            lut.entries.size() == static_cast<std::size_t>(width * height);
 }
 
+/// 根据栅格坐标(x, y)计算对应的BEV度量坐标（米）
+/// @param x 栅格列坐标（0到width-1）
+/// @param y 栅格行坐标（0到height-1）
+/// @return BEV度量点（横向/前向，米）
 port::BEVPoint MetricPointForCell(int x,
                                   int y,
                                   int width,
@@ -71,12 +81,20 @@ port::BEVPoint MetricPointForCell(int x,
     return point;
 }
 
+/// 根据栅格宽度和前向/横向范围计算栅格高度（保持正方形的米/像素比例）
+/// @return 计算出的栅格高度（至少为2）
 int RasterHeightForWidth(int width, float lateral_limit_m, float forward_max_m) {
     const float metric_width = std::max(1.0e-4F, lateral_limit_m * 2.0F);
     const float scale_px_per_m = static_cast<float>(width) / metric_width;
     return std::max(2, static_cast<int>(std::lround(forward_max_m * scale_px_per_m)));
 }
 
+/// 在原始图像中构建双线性采样信息，填充查找表条目的源索引和权重
+/// @param frame 原始相机帧
+/// @param row_px 目标行坐标（像素）
+/// @param col_px 目标列坐标（像素）
+/// @param entry [输出] 查找表条目（填充源索引和权重）
+/// @return 采样是否成功（坐标在图像范围内）
 bool BuildSample(const port::LegacyCameraFrameView& frame,
                  float row_px,
                  float col_px,
@@ -128,6 +146,7 @@ bool BuildSample(const port::LegacyCameraFrameView& frame,
     return true;
 }
 
+/// 将简单像素分类转换为栅格单元分类
 port::BEVElementRasterCellClass ToRasterClass(BEVSimplePixelClass class_kind) {
     switch (class_kind) {
         case BEVSimplePixelClass::kWhite:
@@ -142,6 +161,10 @@ port::BEVElementRasterCellClass ToRasterClass(BEVSimplePixelClass class_kind) {
     return port::BEVElementRasterCellClass::kInvalid;
 }
 
+/// 预计算所有256个灰度值的分类结果表，用于快速查找
+/// @param threshold 二值化阈值
+/// @param classification 分类参数
+/// @return 256个灰度值对应的栅格单元分类数组
 std::array<port::BEVElementRasterCellClass, 256> BuildClassTable(
     int threshold,
     const port::BEVClassificationParameters& classification) {
@@ -154,6 +177,7 @@ std::array<port::BEVElementRasterCellClass, 256> BuildClassTable(
     return table;
 }
 
+/// 根据查找表信息准备栅格帧的存储空间
 void PrepareRasterStorage(BEVElementRasterFrame& raster,
                           const BEVElementRasterLut& lut) {
     raster.valid = lut.valid;
@@ -171,6 +195,9 @@ void PrepareRasterStorage(BEVElementRasterFrame& raster,
     }
 }
 
+/// 根据查找表构建完整的栅格帧
+/// 对每个可采样的栅格单元执行双线性插值采样，然后通过分类表得到其分类
+/// @return 构建完成的栅格帧
 BEVElementRasterFrame BuildRasterFromLut(const port::LegacyCameraFrameView& frame,
                                          int threshold,
                                          const port::RuntimeParameters& params,
@@ -179,44 +206,61 @@ BEVElementRasterFrame BuildRasterFromLut(const port::LegacyCameraFrameView& fram
     if (!lut.valid) {
         return {};
     }
-    PrepareRasterStorage(raster, lut);
-    const std::array<port::BEVElementRasterCellClass, 256> class_table =
-        BuildClassTable(threshold, params.bev_classification);
-    for (std::size_t index = 0; index < lut.entries.size(); ++index) {
-        const BEVElementRasterLutEntry& entry = lut.entries[index];
-        raster.projection_states[index] = entry.state;
-        if (entry.state != port::BEVElementRasterProjectionState::kSampleable) {
-            raster.classes[index] = port::BEVElementRasterCellClass::kInvalid;
-            continue;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRasterStorage);
+        PrepareRasterStorage(raster, lut);
+    }
+    std::array<port::BEVElementRasterCellClass, 256> class_table{};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRasterClassTable);
+        class_table = BuildClassTable(threshold, params.bev_classification);
+    }
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRasterCells);
+        for (std::size_t index = 0; index < lut.entries.size(); ++index) {
+            const BEVElementRasterLutEntry& entry = lut.entries[index];
+            raster.projection_states[index] = entry.state;
+            if (entry.state != port::BEVElementRasterProjectionState::kSampleable) {
+                raster.classes[index] = port::BEVElementRasterCellClass::kInvalid;
+                continue;
+            }
+            std::uint32_t weighted_sum = 0U;
+            for (std::size_t sample = 0; sample < entry.source_indices.size(); ++sample) {
+                weighted_sum += static_cast<std::uint32_t>(frame.gray[entry.source_indices[sample]]) *
+                                static_cast<std::uint32_t>(entry.weights[sample]);
+            }
+            const std::uint8_t gray =
+                static_cast<std::uint8_t>((weighted_sum + (kBilinearWeightScale / 2)) /
+                                          kBilinearWeightScale);
+            raster.classes[index] = class_table[gray];
         }
-        std::uint32_t weighted_sum = 0U;
-        for (std::size_t sample = 0; sample < entry.source_indices.size(); ++sample) {
-            weighted_sum += static_cast<std::uint32_t>(frame.gray[entry.source_indices[sample]]) *
-                            static_cast<std::uint32_t>(entry.weights[sample]);
-        }
-        const std::uint8_t gray =
-            static_cast<std::uint8_t>((weighted_sum + (kBilinearWeightScale / 2)) /
-                                      kBilinearWeightScale);
-        raster.classes[index] = class_table[gray];
     }
     return raster;
 }
 
 }  // namespace
 
+/// BEVElementRasterFrame::InBounds 实现
+/// 检查栅格坐标(x, y)是否在有效范围内
 bool BEVElementRasterFrame::InBounds(int x, int y) const {
     return valid && x >= 0 && y >= 0 && x < width && y < height;
 }
 
+/// BEVElementRasterFrame::Index 实现
+/// 将二维栅格坐标转换为一维数组索引
 std::size_t BEVElementRasterFrame::Index(int x, int y) const {
     return static_cast<std::size_t>(y) * static_cast<std::size_t>(width) +
            static_cast<std::size_t>(x);
 }
 
+/// BEVElementRasterFrame::CellToMetric 实现
+/// 将栅格坐标转换为BEV度量坐标（米）
 port::BEVPoint BEVElementRasterFrame::CellToMetric(int x, int y) const {
     return MetricPointForCell(x, y, width, height, lateral_limit_m, forward_max_m);
 }
 
+/// BEVElementRasterFrame::MetricToCell 实现
+/// 将BEV度量坐标转换为栅格坐标
 bool BEVElementRasterFrame::MetricToCell(const port::BEVPoint& point, int& x, int& y) const {
     if (!valid || width <= 1 || height <= 1 || lateral_limit_m <= 0.0F || forward_max_m <= 0.0F) {
         return false;
@@ -232,6 +276,8 @@ bool BEVElementRasterFrame::MetricToCell(const port::BEVPoint& point, int& x, in
     return InBounds(x, y);
 }
 
+/// BEVElementRasterFrame::ClassAt 实现
+/// 获取指定栅格位置的分类，越界返回kInvalid
 port::BEVElementRasterCellClass BEVElementRasterFrame::ClassAt(int x, int y) const {
     if (!InBounds(x, y)) {
         return port::BEVElementRasterCellClass::kInvalid;
@@ -239,6 +285,8 @@ port::BEVElementRasterCellClass BEVElementRasterFrame::ClassAt(int x, int y) con
     return classes[Index(x, y)];
 }
 
+/// BEVElementRasterFrame::SegmentTouchesBlackCells 实现
+/// 使用Bresenham直线算法遍历线段上的栅格单元，检查是否碰到黑色单元
 bool BEVElementRasterFrame::SegmentTouchesBlackCells(int x0, int y0, int x1, int y1) const {
     if (!InBounds(x0, y0) || !InBounds(x1, y1)) {
         return false;
@@ -270,6 +318,8 @@ bool BEVElementRasterFrame::SegmentTouchesBlackCells(int x0, int y0, int x1, int
     return false;
 }
 
+/// BEVElementRasterFrame::SegmentTouchesBlack 实现
+/// 检查BEV坐标系下的两点连线是否经过黑色栅格单元（先转换到栅格坐标）
 bool BEVElementRasterFrame::SegmentTouchesBlack(const port::BEVPoint& begin,
                                                 const port::BEVPoint& end) const {
     int x0 = 0;
@@ -282,6 +332,7 @@ bool BEVElementRasterFrame::SegmentTouchesBlack(const port::BEVPoint& begin,
     return SegmentTouchesBlackCells(x0, y0, x1, y1);
 }
 
+/// 将BEVElementRasterCellClass枚举值转换为可读字符串
 const char* ToString(port::BEVElementRasterCellClass class_kind) {
     switch (class_kind) {
         case port::BEVElementRasterCellClass::kInvalid:
@@ -296,6 +347,7 @@ const char* ToString(port::BEVElementRasterCellClass class_kind) {
     return "invalid";
 }
 
+/// 将BEVElementRasterProjectionState枚举值转换为可读字符串
 const char* ToString(port::BEVElementRasterProjectionState state) {
     switch (state) {
         case port::BEVElementRasterProjectionState::kUnavailable:
@@ -310,6 +362,9 @@ const char* ToString(port::BEVElementRasterProjectionState state) {
     return "unavailable";
 }
 
+/// EnsureBEVElementRasterLut 实现
+/// 确保查找表有效且匹配当前帧参数，否则重建之。
+/// 对每个栅格单元，计算其BEV坐标并投影到图像坐标，然后构建双线性采样信息。
 bool EnsureBEVElementRasterLut(BEVElementRasterLut& lut,
                                const port::LegacyCameraFrameView& frame,
                                const port::RuntimeParameters& params,
@@ -361,6 +416,8 @@ bool EnsureBEVElementRasterLut(BEVElementRasterLut& lut,
     return true;
 }
 
+/// BuildBEVElementRaster 实现
+/// 确保查找表有效（必要时重建），然后利用查找表从帧中采样构建栅格
 BEVElementRasterFrame BuildBEVElementRaster(const port::LegacyCameraFrameView& frame,
                                             int threshold,
                                             const port::RuntimeParameters& params,
@@ -368,26 +425,36 @@ BEVElementRasterFrame BuildBEVElementRaster(const port::LegacyCameraFrameView& f
                                             BEVElementRasterLut* lut) {
     BEVElementRasterLut local_lut{};
     BEVElementRasterLut& active_lut = lut == nullptr ? local_lut : *lut;
-    if (!EnsureBEVElementRasterLut(active_lut, frame, params, projector)) {
-        return {};
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRasterLut);
+        if (!EnsureBEVElementRasterLut(active_lut, frame, params, projector)) {
+            return {};
+        }
     }
     return BuildRasterFromLut(frame, threshold, params, active_lut, {});
 }
 
+/// BEVElementRasterBuilder::Build 实现
+/// 维护内部查找表缓存，增量构建栅格帧
 const BEVElementRasterFrame& BEVElementRasterBuilder::Build(
     const port::LegacyCameraFrameView& frame,
     int threshold,
     const port::RuntimeParameters& params,
     const BEVProjector& projector) {
-    if (!EnsureBEVElementRasterLut(lut_, frame, params, projector)) {
-        raster_ = {};
-        raster_.enabled = params.bev_element_raster.enabled;
-        return raster_;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionElementRasterLut);
+        if (!EnsureBEVElementRasterLut(lut_, frame, params, projector)) {
+            raster_ = {};
+            raster_.enabled = params.bev_element_raster.enabled;
+            return raster_;
+        }
     }
     raster_ = BuildRasterFromLut(frame, threshold, params, lut_, std::move(raster_));
     return raster_;
 }
 
+/// BEVElementRasterBuilder::Reset 实现
+/// 清除内部缓存
 void BEVElementRasterBuilder::Reset() {
     lut_ = {};
     raster_ = {};

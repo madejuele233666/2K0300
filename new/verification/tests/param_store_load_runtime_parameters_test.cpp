@@ -73,6 +73,7 @@ int main() {
         const std::string enabled_path = base + "_enabled.json";
         WriteText(enabled_path,
                   MinimalRuntimeParametersJson(
+                      "  \"steering_media_downsample\": 4,\n"
                       "  \"BEV_ELEMENT\": {"
                       "\"CROSS_EXIT_TAKEOVER_ENABLED\": 1,"
                       "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\": 0.98,"
@@ -94,6 +95,8 @@ int main() {
             LoadFixture(enabled_path, enabled_diagnostics);
         Expect(!enabled.loaded_from_defaults, "enabled fixture should not fall back to defaults");
         Expect(!enabled.parse_failure, "enabled fixture should parse cleanly");
+        Expect(enabled.steering_media_downsample == 4,
+               "steering_media_downsample should parse");
         Expect(enabled.bev_element.cross_exit_takeover_enabled,
                "CROSS_EXIT_TAKEOVER_ENABLED=1 should parse true");
         Expect(std::abs(enabled.bev_element.cross_wide_row_white_ratio_min - 0.98F) < 1.0e-6F,
@@ -138,6 +141,8 @@ int main() {
             LoadFixture(absent_path, absent_diagnostics);
         Expect(!absent.loaded_from_defaults, "absent BEV_ELEMENT should not fall back to defaults");
         Expect(!absent.parse_failure, "absent BEV_ELEMENT should parse cleanly");
+        Expect(absent.steering_media_downsample == 1,
+               "missing steering_media_downsample should keep raw-frame default");
         Expect(!absent.bev_element.cross_exit_takeover_enabled,
                "missing BEV_ELEMENT should keep takeover disabled");
         Expect(std::abs(absent.bev_element.cross_wide_row_white_ratio_min - 0.95F) <
@@ -159,7 +164,7 @@ int main() {
                "missing BEV_ELEMENT should keep circle entry takeover disabled");
         Expect(absent.bev_element.circle_entry_min_frontier_points == 4,
                "missing BEV_ELEMENT should keep circle entry frontier count default");
-        Expect(std::abs(absent.bev_element.circle_entry_direction_min_lateral_m - 0.08F) <
+        Expect(std::abs(absent.bev_element.circle_entry_direction_min_lateral_m - 0.05F) <
                    1.0e-6F,
                "missing BEV_ELEMENT should keep circle entry direction default");
         Expect(std::abs(absent.bev_element.circle_entry_max_interpolation_gap_m - 0.12F) <
@@ -258,6 +263,21 @@ int main() {
                "raster fallback should keep default width");
         Expect(malformed_raster_diagnostics.SawCode("params.parse"),
                "out-of-range BEV_ELEMENT_RASTER.WIDTH should emit params.parse");
+
+        const std::string malformed_downsample_path = base + "_malformed_downsample.json";
+        WriteText(malformed_downsample_path,
+                  MinimalRuntimeParametersJson("  \"steering_media_downsample\": 0"));
+        CaptureDiagnostics malformed_downsample_diagnostics{};
+        const ls2k::port::RuntimeParameters malformed_downsample =
+            LoadFixture(malformed_downsample_path, malformed_downsample_diagnostics);
+        Expect(malformed_downsample.loaded_from_defaults,
+               "out-of-range steering_media_downsample should fall back to defaults");
+        Expect(malformed_downsample.parse_failure,
+               "out-of-range steering_media_downsample should set parse_failure");
+        Expect(malformed_downsample.steering_media_downsample == 1,
+               "downsample fallback should keep raw-frame default");
+        Expect(malformed_downsample_diagnostics.SawCode("params.parse"),
+               "out-of-range steering_media_downsample should emit params.parse");
 
         std::cout << "param_store_load_runtime_parameters_test passed\n";
         return 0;

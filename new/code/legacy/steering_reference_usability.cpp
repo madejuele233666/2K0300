@@ -7,10 +7,12 @@
 namespace ls2k::legacy {
 namespace {
 
+/// 检查参考路径采样点是否存在且坐标有限
 bool IsReferencePointPresent(const port::BEVPathSample& sample) {
     return sample.present && std::isfinite(sample.point.forward_m) && std::isfinite(sample.point.lateral_m);
 }
 
+/// 从运行时参数中获取配置的最小前导参考采样点数（钳制在有效范围内）
 std::size_t ConfiguredMinLeadingSamples(const port::RuntimeParameters& params) {
     constexpr int kMinSamplesForInterpolation = 2;
     const int bounded =
@@ -22,6 +24,9 @@ std::size_t ConfiguredMinLeadingSamples(const port::RuntimeParameters& params) {
 
 }  // namespace
 
+/// EvaluateReferenceUsability 实现
+/// 统计参考路径中的连续有效前导采样点数量及其前向范围
+/// 满足最小采样点数的路径才被视为可用
 port::ReferenceUsability EvaluateReferenceUsability(const port::BEVReferencePath& reference_path,
                                                     const port::RuntimeParameters& params) {
     port::ReferenceUsability usability{};

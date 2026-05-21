@@ -2,6 +2,11 @@
 
 namespace ls2k::runtime {
 
+/// 执行运行时关闭：设置停止/退出标志 → 停止定时器 → 禁用电机 →
+/// 清空运行时状态 → 关闭各硬件适配器 → 发布完成诊断
+/// @param platform     平台适配器集合（含 timer/motor/camera/imu/encoder）
+/// @param state        运行时状态（将被清理）
+/// @param diagnostics  诊断输出接口
 void RunShutdown(port::PlatformBundle& platform, RuntimeState& state, port::DiagnosticSink& diagnostics) {
     state.stop_requested.store(true);
     state.exit_requested.store(true);

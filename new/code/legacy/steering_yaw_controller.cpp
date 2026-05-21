@@ -5,6 +5,8 @@
 
 namespace ls2k::legacy {
 
+/// SteeringYawController::Configure 实现
+/// 从运行时参数读取PID系数、速度目标和增益值
 void SteeringYawController::Configure(const port::RuntimeParameters& params) {
     gyro_p_ = static_cast<float>(params.yaw_rate_pid_p);
     gyro_i_ = static_cast<float>(params.yaw_rate_pid_i);
@@ -14,8 +16,13 @@ void SteeringYawController::Configure(const port::RuntimeParameters& params) {
         static_cast<float>(params.bev_control_model.lateral_error_to_wheel_delta_gain);
 }
 
+/// SteeringYawController::Reset 实现
+/// 重置控制器状态（当前为空操作）
 void SteeringYawController::Reset() {}
 
+/// SteeringYawController::ComputeTurnOutputTarget 实现
+/// 根据横向误差和速度目标计算转向输出目标
+/// 公式：转向输出 = 增益 * 速度缩放 * 加权横向误差
 TurnOutputTargetComputation SteeringYawController::ComputeTurnOutputTarget(float weighted_lateral_error_m,
                                                                            double effective_speed_target,
                                                                            port::BEVControllerMemory& memory) {
@@ -35,6 +42,10 @@ TurnOutputTargetComputation SteeringYawController::ComputeTurnOutputTarget(float
     return computation;
 }
 
+/// SteeringYawController::ComputeGyroTurn 实现
+/// 使用陀螺仪角速度反馈对转向输出进行PID补偿
+/// 输出 = 转向目标 + P项 + I项 + D项
+/// 积分项累加器被限制在[-1200, 1200]范围内
 GyroTurnComputation SteeringYawController::ComputeGyroTurn(float turn_output_target,
                                                            float gyro_z,
                                                            port::BEVControllerMemory& memory) {

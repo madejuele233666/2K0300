@@ -12,29 +12,29 @@
 namespace ls2k::platform::true_ls2k0300 {
 namespace {
 
+// 编码器单次读取结果
 struct EncoderReadResult {
-    bool ok = false;
-    int32_t count = 0;
+    bool ok = false;        // 读取是否成功
+    int32_t count = 0;      // 编码器计数值
 };
 
+// 编码器设备上下文 —— 包含设备路径和已打开的文件描述符
 struct EncoderDevice {
-    const char* path = nullptr;
-    int fd = -1;
+    const char* path = nullptr;   // 设备字符文件路径
+    int fd = -1;                   // 已打开的文件描述符（-1 表示未打开）
 };
 
 EncoderDevice g_left_encoder{kLeftEncoderPath, -1};
 EncoderDevice g_right_encoder{kRightEncoderPath, -1};
 bool g_use_persistent_fd = false;
 
+// 判断编码器读取是否成功 —— 供应商驱动仅将 read() == -1 视为失败，
+// 字符设备可能返回 0 字节但仍更新缓冲区，因此 bytes >= 0 即视为成功
 bool AcceptedEncoderRead(ssize_t bytes) {
-    // The vendor encoder helper only treats `read() == -1` as failure and
-    // reads a 16-bit count. The board-side char device may report a zero-byte
-    // read while still updating the caller-provided buffer, so match that
-    // device contract at the owning boundary instead of requiring an exact
-    // byte count.
     return bytes >= 0;
 }
 
+// 从已打开的文件描述符读取编码器 16 位计数值
 EncoderReadResult ReadEncoderCountFromFd(int fd) {
     EncoderReadResult result{};
     if (fd < 0) {
@@ -72,6 +72,7 @@ EncoderReadResult ReadEncoderCountOpenClose(const char* path) {
     return result;
 }
 
+// 关闭持久打开的编码器设备文件描述符
 void ClosePersistentEncoderFds() {
     if (g_left_encoder.fd >= 0) {
         (void)close(g_left_encoder.fd);
@@ -84,6 +85,7 @@ void ClosePersistentEncoderFds() {
     g_use_persistent_fd = false;
 }
 
+// 探测单个编码器设备是否支持持久 fd 模式（打开、读取、lseek 回到起点、再次读取均成功）
 bool ProbePersistentEncoderDevice(EncoderDevice& device) {
     device.fd = open(device.path, O_RDONLY);
     if (device.fd < 0) {
@@ -98,6 +100,7 @@ bool ProbePersistentEncoderDevice(EncoderDevice& device) {
     return ReadEncoderCountFromFd(device.fd).ok;
 }
 
+// 探测左右编码器是否都支持持久 fd 模式，均成功则启用持久 fd
 bool ProbePersistentEncoderFds() {
     ClosePersistentEncoderFds();
     if (!ProbePersistentEncoderDevice(g_left_encoder) ||
@@ -109,6 +112,7 @@ bool ProbePersistentEncoderFds() {
     return true;
 }
 
+// 读取指定编码器设备计数值 —— 优先使用持久 fd，退化时回退到 open/read/close 模式
 EncoderReadResult ReadEncoderCount(EncoderDevice& device) {
     if (g_use_persistent_fd && device.fd >= 0) {
         EncoderReadResult result = ReadEncoderCountFromFd(device.fd);

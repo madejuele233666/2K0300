@@ -9,15 +9,19 @@
 
 namespace ls2k::runtime {
 
+/// 控制调试报告器 —— 周期性将调试快照格式化为诊断消息输出。
 class ControlDebugReporter {
 public:
+    /// 配置报告器：从运行时参数读取发射间隔
     void Configure(const port::RuntimeParameters& params);
+    /// 重置发射时间戳（强制下一次 Tick 立即发射）
     void Reset();
+    /// 按间隔策略发射调试快照到诊断系统
     void MaybeEmit(const ControlDebugSnapshot& snapshot, port::DiagnosticSink& diagnostics);
 
 private:
-    uint64_t last_emit_ms_ = 0;
-    int interval_ms_ = 100;
+    uint64_t last_emit_ms_ = 0;  ///< 上次发射的时间戳（ms）
+    int interval_ms_ = 100;      ///< 发射间隔（ms）
 };
 
 }  // namespace ls2k::runtime

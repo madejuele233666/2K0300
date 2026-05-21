@@ -1,5 +1,10 @@
 # MobileNetV3-Small & TFLite 部署与训练环境
 
+> 当前 tiny32 / TFLite Micro 训练路线请优先参考
+> `V5_VISUAL_SUBCLASS_TRAINING_GUIDE.md` 和
+> `V6_PARENT_PRIMARY_C4_RESCUE_ROADMAP.md`。本文主体保留的是较早的
+> MobileNetV3-Small 三分类说明。
+
 此文件夹包含基于 TensorFlow 和 Keras 训练 MobileNetV3-Small 三分类模型，并将其转换为 TFLite 格式以在边缘计算侧推理的代码和环境配置。生成的 TFLite 量化模型可以直接部署到例如 Loongson 2K0300 等低功耗设备中。
 
 ## 目录结构

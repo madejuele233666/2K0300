@@ -94,15 +94,13 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.built=false" \
   "element_evidence.records[2].candidate.takeover_enabled=false" \
   "element_evidence.records[2].candidate.included_in_arbitration=false" \
   "element_evidence.records[2].candidate.reason=takeover_disabled" \
   "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=true" \
-  "circle_entry.left.reason=present" \
-  "circle_entry.left.frontier_count=" \
-  "circle_entry.left.centerline_count="
+  "circle_entry.left.present=false" \
+  "circle_entry.left.reason=not_evaluated"
 
 disabled_params_path="${ARTIFACT_DIR}/circle-evidence-disabled.json"
 python3 - "${PARAMS_PATH}" "${disabled_params_path}" <<'PY'
@@ -160,10 +158,10 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.built=false" \
   "element_evidence.records[2].candidate.reason=takeover_disabled" \
   "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=true"
+  "circle_entry.left.present=false"
 
 non_object_element_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element.json"
 python3 - "${PARAMS_PATH}" "${non_object_element_params_path}" <<'PY'
@@ -190,10 +188,10 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.built=false" \
   "element_evidence.records[2].candidate.reason=takeover_disabled" \
   "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=true"
+  "circle_entry.left.present=false"
 
 non_object_raster_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element-raster.json"
 python3 - "${PARAMS_PATH}" "${non_object_raster_params_path}" <<'PY'
@@ -220,10 +218,10 @@ run_probe_case \
   "element_evidence.records[1].present=false" \
   "element_evidence.records[2].present=true" \
   "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=true" \
+  "element_evidence.records[2].candidate.built=false" \
   "element_evidence.records[2].candidate.reason=takeover_disabled" \
   "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=true"
+  "circle_entry.left.present=false"
 
 takeover_params_path="${ARTIFACT_DIR}/circle-entry-takeover-enabled.json"
 python3 - "${PARAMS_PATH}" "${takeover_params_path}" <<'PY'
@@ -267,12 +265,12 @@ for case_name in circle-1 circle-3; do
     "element_evidence.records[1].present=false" \
     "element_evidence.records[2].present=true" \
     "element_evidence.records[2].reason=present" \
-    "element_evidence.records[2].candidate.built=true" \
+    "element_evidence.records[2].candidate.built=false" \
     "element_evidence.records[2].candidate.takeover_enabled=false" \
     "element_evidence.records[2].candidate.included_in_arbitration=false" \
     "element_evidence.records[2].candidate.reason=takeover_disabled" \
     "element_evidence.records[3].present=false" \
-    "circle_entry.left.present=true"
+    "circle_entry.left.present=false"
 done
 
 for case_name in cross-1 cross-2 cross-3; do

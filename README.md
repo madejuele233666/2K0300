@@ -5,11 +5,15 @@
 
 当前基线 `04d6da13b Simplify BEV reference control contract` 是“干净基础寻线”基线。后续扩展可以增加能力，但不能破坏现有分层语义，不能把旧 topology / policy / scene / trusted / memory 体系带回 active runtime。
 
+> V1 更新标记：cross/circle 后续实现以 `new/docs/visual-element-sparse-circle-v1.zh-CN.md` 为准。本文中把 circle Phase1 直接绑定 full `BEVElementRasterFrame` / full BEV element raster 的旧表述，均已被 V1 sparse-first 架构取代；保留相关标记仅用于说明历史上下文和迁移边界。
+
 ## 1. 思想
 
 ### 大道至简
 
-active 视觉输入可以分成 sparse BEV facts 与 BEV element raster 两个输入面；下游控制链路固定为：
+active 视觉热路径以 sparse BEV row facts 为公共视觉事实面；full BEV element raster 可保留给 debug、legacy、ML/roadblock 或未来明确需要全图二维事实的消费者。cross/circle V1 不再把 full element raster 作为 Phase1 识别入口。
+
+下游控制链路固定为：
 
 ```text
 camera frame
@@ -17,16 +21,16 @@ camera frame
 -> sparse BEV row scans
      ├─ line reference builder
      │    -> line BEVReferencePath candidate
-     └─ sparse-derived visual evidence
-          -> cross visual evidence
-             -> element candidate builders
+     ├─ cross visual evidence
+     └─ circle Phase1 visual evidence
+          -> element aggregation / suppression
 
-camera frame
--> BEV element raster
-     ├─ circle visual evidence
-     ├─ roadblock visual evidence
-     └─ ML visual evidence
-          -> element candidate builders
+effective circle + takeover enabled
+-> ROI metric sampler
+     └─ circle Phase2 entry candidate builder
+
+optional full BEV element raster
+-> debug / legacy / future full-raster consumers
 
 line candidate + element candidates
 -> visual reference orchestration
@@ -85,9 +89,9 @@ debug、overlay、media、assistant telemetry 只能序列化事实，不能参�
 
 - 不改 BEV 标定。
 - 不改纵向尺度修正。
-- runtime 视觉输入面包括 sparse BEV row scans 和 BEV element raster。
-- sparse BEV row scans 是 line reference builder 和 sparse-derived evidence 的输入。
-- BEV element raster 是 circle、roadblock、ML 等元素 evidence detector 的输入，必须携带投影/采样可用性信息。
+- runtime 视觉热路径以 sparse BEV row scans 为 line、cross、circle Phase1 的公共输入。
+- full BEV element raster 不再是 circle/cross V1 runtime recognition 的必要输入；它可作为 debug、legacy、roadblock、ML 或未来全图二维事实消费者的显式输入。
+- 需要二维邻接事实时，优先使用局部 ROI metric sampler，而不是每帧构建 full raster。
 - BEV element raster 与 debug/overlay 输出必须分离命名和接口，debug 输出不能反向参与 runtime 决策。
 - visual reference orchestration 是唯一把 line candidate 与 element candidates 汇总成 current visual `BEVReferencePath` 的层。
 - reference continuity / usability / lateral error / readiness / safety / yaw 链路只消费 orchestration 后的 selected reference facts，不直接消费 raster 或元素内部细节。
@@ -173,10 +177,10 @@ none
 
 ### 元素 Evidence 层
 
-元素 evidence 层位于视觉采样和 visual reference orchestration 之间，负责把原始视觉输入转成可解释、可测试、可序列化的 BEV metric element facts。
+元素 evidence 层位于视觉采样和 visual reference orchestration 之间，负责把原始视觉输入转成可解释、可测试、可序列化的 BEV metric element facts。V1 下 cross/circle Phase1 以 sparse rows 为事实面；circle Phase2 只在 effective circle + takeover enabled 后按需使用 ROI metric sampler。
 
 ```text
-sparse BEV row scans / BEV element raster
+sparse BEV row scans / ROI metric sampler / optional BEV element raster
 -> element visual evidence detector
 -> element visual evidence
 -> element candidate builder
@@ -194,7 +198,20 @@ sparse BEV row scans / BEV element raster
 - 第一版新增元素必须默认只进入 evidence/debug；candidate 可以构造但 takeover 默认关闭，直到对应 detector、candidate builder、离线帧和受控发车证据都稳定。
 - ML 只能落成 BEV metric visual evidence；不得绕过 candidate builder 直接输出模式、路径接管结论、速度、转角或 actuator 意图。
 
-### 当前 circle + ML 并行开发边界
+### 当前 circle/cross V1 边界
+
+circle/cross V1 具体架构见 `new/docs/visual-element-sparse-circle-v1.zh-CN.md`。当前有效边界：
+
+- cross/circle Phase1 都只消费 sparse BEV row facts。
+- cross detector 不知道 circle，circle detector 不知道 cross。
+- cross suppression 只在 `steering_visual_element_pipeline.*` 聚合层发生。
+- circle Phase2 只在 effective circle present 且 `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED=1` 时运行。
+- circle Phase2 使用 ROI metric sampler 判断后方黑白 frontier，不每帧构建 full element raster。
+- ordinary path、hold、usability、lateral error、readiness、safety、yaw、actuator 不因 circle/cross V1 改变语义。
+
+#### 旧表述标记：circle + ML raster-first 并行开发边界
+
+以下段落中的 circle raster-first 输入约束已被 V1 sparse-first 架构取代；仅保留用于说明历史迁移背景。后续 circle/cross 实现不得继续以这些句子作为依据。
 
 当前并行开发只做 circle 和 ML 的 visual element evidence，不做 ordinary path 优化。ordinary path 相关行为冻结：
 
@@ -206,7 +223,7 @@ sparse BEV row scans / BEV element raster
 
 circle 与 ML 的共同输入只能来自当前帧视觉事实：
 
-- 首选输入是 `BEVElementRasterFrame`。
+- 旧表述，已被 V1 取代：首选输入是 `BEVElementRasterFrame`。
 - 不各自重新做 camera -> BEV 投影。
 - 不各自重新构建 dense/debug BEV。
 - 不把 overlay/media/debug 输出反向当 detector 输入。
@@ -215,7 +232,7 @@ circle 与 ML 的共同输入只能来自当前帧视觉事实：
 circle 分支职责：
 
 - 新增 `steering_circle_element_evidence.*`。
-- 从 `BEVElementRasterFrame` 产生 `circle_left` / `circle_right` evidence。
+- 旧表述，已被 V1 取代：从 `BEVElementRasterFrame` 产生 `circle_left` / `circle_right` evidence。
 - evidence 必须包含 present、confidence、BEV metric support/bounds、projection/sampleability、reason。
 - 第一阶段只输出 evidence/debug，不 push circle `VisualReferenceCandidate`。
 - 不继承 archive 里的 opening score、scene FSM、inner island memory 或 trusted path 逻辑。
@@ -256,9 +273,11 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 
 `steering_bev_simple_perception.*`
 
-- 只做 sparse BEV row scan、white intervals、line current visual reference candidate。
+- 负责 sparse BEV row scan、white intervals、line current visual reference candidate。
+- 产出的 sparse rows 是 line、cross、circle Phase1 的公共视觉事实面。
 - 不 include / 不依赖 reference usability。
-- 不负责 BEV element raster 编排，不负责 circle / roadblock / ML evidence。
+- 不 include / 不直接调用 circle、cross、roadblock、ML detector。
+- 不负责 BEV element raster 编排。
 - 不选择 hold。
 - 不判断 control。
 
@@ -266,7 +285,8 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 
 - 负责从 camera frame / BEV projector 构建 BEV element raster。
 - 必须保留每个 raster sample 的投影/采样可用性，FOV 外、投影失败、图像边缘不能冒充元素事实。
-- 只服务 visual element evidence detector，不直接生成 selected reference、不做 hold、不判断 control。
+- V1 下不再服务 circle/cross runtime Phase1 热路径；可保留给 debug、legacy、roadblock、ML 或未来 full-raster 消费者。
+- 不直接生成 selected reference、不做 hold、不判断 control。
 
 `steering_cross_exit_element_evidence.*`
 
@@ -275,8 +295,9 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 
 `steering_circle_element_evidence.*`
 
-- 负责 circle grounded element evidence detector。
-- circle 第一阶段只从 `BEVElementRasterFrame` 产生 `circle_left_raw` / `circle_right_raw` 视觉事实，不生成 `VisualReferenceCandidate`。
+- 负责 circle grounded element evidence detector 和 circle entry candidate builder。
+- circle Phase1 从 sparse rows 产生 `circle_left_raw` / `circle_right_raw` 视觉事实，不生成 `VisualReferenceCandidate`。
+- circle Phase2 只在 effective circle present 且 takeover enabled 后使用 ROI metric sampler 生成 entry facts 和 candidate。
 - 左侧开口且右侧直线是 `circle_left`；右侧开口且左侧直线是 `circle_right`；两侧开口按 cross 处理，两侧都不开口按普通直线/弯道处理。
 
 `steering_visual_element_pipeline.*`
@@ -321,7 +342,8 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 `steering_frame_perception_pipeline.*`
 
 - runtime single-frame perception owner。
-- 负责调用 sparse perception、BEV element raster / evidence、visual reference orchestration 和 reference continuity。
+- 负责调用 sparse perception、visual element evidence、visual reference orchestration 和 reference continuity。
+- 不为 circle/cross V1 无条件构建 full BEV element raster；只有明确消费者需要时才构建 full raster 或提供 ROI sampler 上下文。
 - 负责 current / hold / none selection，其中 hold 仍只属于 reference continuity 层。
 - 唯一组装 `PerceptionResult`。
 - 不拥有 IMU safety memory。

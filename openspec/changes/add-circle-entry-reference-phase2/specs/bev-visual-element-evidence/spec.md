@@ -31,7 +31,7 @@ The runtime SHALL add append-only `BEV_ELEMENT` parameters for circle entry cand
 
 - `CIRCLE_ENTRY_TAKEOVER_ENABLED`, default `false`
 - `CIRCLE_ENTRY_MIN_FRONTIER_POINTS`, default `4`
-- `CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.08`
+- `CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.05`
 - `CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M`, default `0.12`
 - `CIRCLE_ENTRY_MAX_JOIN_JUMP_M`, default `0.12`
 

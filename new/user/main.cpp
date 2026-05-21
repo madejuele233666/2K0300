@@ -11,6 +11,8 @@
 #include "port/diagnostics.hpp"
 #include "port/perf_counter.hpp"
 #include "runtime/assistant_service.hpp"
+#include "runtime/camera_capture_worker.hpp"
+#include "runtime/camera_frame_store.hpp"
 #include "runtime/control_loop.hpp"
 #include "runtime/low_voltage_sampler.hpp"
 #include "runtime/perception_frontend.hpp"
@@ -340,7 +342,17 @@ int main() {
         return 1;
     }
 
-    ls2k::runtime::PerceptionFrontend perception(*platform.camera, runtime_state, diagnostics);
+    ls2k::runtime::CameraFrameStore camera_frame_store(runtime_state);
+    ls2k::runtime::CameraCaptureWorker camera_capture_worker(camera_frame_store, diagnostics);
+    if (!camera_capture_worker.Start(params)) {
+        diagnostics.FailSafe("main.camera_capture_worker",
+                             "camera capture worker start failed");
+        control_loop.Stop();
+        ls2k::runtime::RunShutdown(platform, runtime_state, diagnostics);
+        return 1;
+    }
+
+    ls2k::runtime::PerceptionFrontend perception(camera_frame_store, runtime_state, diagnostics);
     (void)perception.Configure(params);
     ls2k::runtime::LowVoltageSampler low_voltage_sampler;
     low_voltage_sampler.Configure(params);
@@ -427,6 +439,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
+    camera_capture_worker.Stop();
     control_loop.Stop();
     ls2k::runtime::RunShutdown(platform, runtime_state, diagnostics);
     diagnostics.Info("main.exit", "runtime exit complete");

@@ -8,8 +8,14 @@
 namespace ls2k::runtime {
 namespace {
 
+/// ACK 确认后的安全等待时间（ms），确保控制层 ACK 排空后再提交运动意图
 constexpr uint64_t kLifecycleCommandAckGuardMs = 75;
 
+/// 构建辅助状态视图 —— 从调参快照和控制快照组装发送给辅助进程的状态信息
+/// @param tuning_snapshot    当前运行时调参状态快照
+/// @param control_snapshot   当前控制调试快照
+/// @param now_ms             当前时间戳（ms）
+/// @return                   组装好的 AssistantStatusView
 platform::AssistantStatusView BuildStatusView(const RuntimeTuningSnapshot& tuning_snapshot,
                                               const ControlDebugSnapshot& control_snapshot,
                                               uint64_t now_ms) {
@@ -23,6 +29,9 @@ platform::AssistantStatusView BuildStatusView(const RuntimeTuningSnapshot& tunin
     return status;
 }
 
+/// 将运行时调参事件类型转换为字符串名称
+/// @param type  调参事件类型
+/// @return      对应的事件名称字符串
 const char* ToEventName(RuntimeTuningEventType type) {
     switch (type) {
         case RuntimeTuningEventType::kOverrideCleared:
@@ -35,6 +44,9 @@ const char* ToEventName(RuntimeTuningEventType type) {
     return "";
 }
 
+/// 将辅助命令类型转换为字符串名称（用于诊断输出）
+/// @param type  辅助命令类型
+/// @return      对应的命令名称字符串
 const char* ToCommandName(platform::AssistantCommandType type) {
     switch (type) {
         case platform::AssistantCommandType::kEnableTuningMode:
@@ -53,6 +65,9 @@ const char* ToCommandName(platform::AssistantCommandType type) {
     return "unknown";
 }
 
+/// 构造辅助命令的描述字符串（序列号 + 类型 + 参数，用于诊断日志）
+/// @param command  辅助命令
+/// @return         格式化的命令描述
 std::string DescribeCommand(const platform::AssistantCommand& command) {
     std::string detail = std::string("seq=") + std::to_string(command.seq) +
                          " cmd=" + ToCommandName(command.type);
@@ -75,6 +90,9 @@ std::string DescribeCommand(const platform::AssistantCommand& command) {
 
 }  // namespace
 
+/// 启动辅助服务：初始化参数、链路连接，并设置遥测间隔。若辅助功能禁用则直接返回。
+/// @param params       运行时参数（含 assistant_enabled 标志）
+/// @param diagnostics  诊断输出接口
 void AssistantService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.assistant_enabled;
@@ -95,10 +113,15 @@ void AssistantService::Start(const port::RuntimeParameters& params, port::Diagno
     (void)link_.Initialize(params, diagnostics);
 }
 
+/// 重置延迟运动意图（清空结构体）
 void AssistantService::ResetDeferredMotionIntent() {
     deferred_motion_intent_ = {};
 }
 
+/// 延迟运动意图：记录意图类型和序列号，设置就绪时间为当前时间 + ACK 防护间隔
+/// @param type    运动意图类型（启动/停止）
+/// @param seq     命令序列号
+/// @param now_ms  当前时间戳（ms）
 void AssistantService::DeferMotionIntent(DeferredMotionIntentType type,
                                          std::uint64_t seq,
                                          uint64_t now_ms) {
@@ -107,6 +130,10 @@ void AssistantService::DeferMotionIntent(DeferredMotionIntentType type,
     deferred_motion_intent_.ready_at_ms = now_ms + kLifecycleCommandAckGuardMs;
 }
 
+/// 若延迟运动意图就绪（已过防护时间、无待发送反馈、链路就绪），则提交到 state.motion_intent
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::ApplyDeferredMotionIntentIfReady(RuntimeState& state,
                                                         port::DiagnosticSink& diagnostics,
                                                         uint64_t now_ms) {
@@ -148,6 +175,9 @@ void AssistantService::ApplyDeferredMotionIntentIfReady(RuntimeState& state,
     diagnostics.Emit({port::DiagnosticLevel::kInfo, code, detail, now_ms});
 }
 
+/// 辅助服务 Tick：轮询链路消息、处理入站命令、执行延迟意图、处理超时事件、发布遥测
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
 void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
     LS2K_PERF_SCOPE(port::PerfStage::kAssistantTick);
     if (!configured_ || !enabled_) {
@@ -228,10 +258,14 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
 
 }
 
+/// 将反馈行加入待发送队列
+/// @param line 反馈消息字符串（已编码的 JSON 行）
 void AssistantService::EnqueueFeedback(std::string line) {
     pending_feedback_.push_back(std::move(line));
 }
 
+/// 刷新待发送反馈队列：当链路就绪时逐条发送，直到发送失败或队列清空
+/// @param diagnostics 诊断输出接口
 void AssistantService::FlushFeedback(port::DiagnosticSink& diagnostics) {
     while (!pending_feedback_.empty() && link_.Ready()) {
         if (!link_.PublishJsonLine(pending_feedback_.front(),
@@ -243,6 +277,12 @@ void AssistantService::FlushFeedback(port::DiagnosticSink& diagnostics) {
     }
 }
 
+/// 发布状态事件：采集调参快照和控制快照，编码为状态事件消息并发送
+/// @param state       运行时状态
+/// @param event       事件名称
+/// @param reason      事件原因描述
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::PublishStateEvent(RuntimeState& state,
                                          const std::string& event,
                                          const std::string& reason,
@@ -261,6 +301,11 @@ void AssistantService::PublishStateEvent(RuntimeState& state,
     FlushFeedback(diagnostics);
 }
 
+/// 处理入站消息集合：根据消息类型分发到拒绝处理、ACK拒绝处理或命令处理
+/// @param inbound_messages  入站消息列表
+/// @param state             运行时状态
+/// @param diagnostics       诊断输出接口
+/// @param now_ms            当前时间戳（ms）
 void AssistantService::HandleInboundMessages(
     const std::vector<platform::AssistantInboundMessage>& inbound_messages,
     RuntimeState& state,
@@ -290,6 +335,11 @@ void AssistantService::HandleInboundMessages(
     }
 }
 
+/// 处理单条辅助命令：执行调参模式切换、转向抑制、目标速度覆盖、运动启动/停止
+/// @param command     辅助命令
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                      RuntimeState& state,
                                      port::DiagnosticSink& diagnostics,

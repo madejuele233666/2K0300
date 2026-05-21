@@ -7,8 +7,12 @@
 namespace ls2k::platform {
 namespace {
 
+/// 最大入站行字节数，超过此长度将丢弃缓存并返回输入拒绝
 constexpr std::size_t kMaxInboundLineBytes = 4096;
 
+/// @brief 将助手桥接状态转换为诊断标记字符串
+/// @param state 桥接状态枚举值
+/// @return 对应的诊断标记名称
 const char* ToStateMarker(true_ls2k0300::AssistantBridgeState state) {
     switch (state) {
         case true_ls2k0300::AssistantBridgeState::kUnconfigured:
@@ -25,6 +29,9 @@ const char* ToStateMarker(true_ls2k0300::AssistantBridgeState state) {
     return "assistant.unknown";
 }
 
+/// @brief 将助手桥接状态映射为诊断级别
+/// @param state 桥接状态枚举值
+/// @return 对应的诊断级别（kInfo 或 kWarning）
 port::DiagnosticLevel ToStateLevel(true_ls2k0300::AssistantBridgeState state) {
     switch (state) {
         case true_ls2k0300::AssistantBridgeState::kReady:

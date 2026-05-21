@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <utility>
 
+#include "port/perf_counter.hpp"
+
 namespace ls2k::legacy {
 namespace {
 
@@ -108,6 +110,10 @@ bool LutMatches(const BEVSampleProjectionLut& lut,
 
 }  // namespace
 
+// 统一的双线性灰度采样入口，供稀疏参考行扫描和 debug 稠密 BEV 复用。
+// 采样坐标必须落在原始图像范围内；投影越界时返回 false，而不是把坐标夹到图像边缘。
+// 这样可以避免把视野外或投影失败区域误当成边缘像素参与黑白分类。
+// out_gray 只在返回 true 时有效。
 bool SampleFrameBilinear(const port::LegacyCameraFrameView& frame,
                          float row_px,
                          float col_px,
@@ -143,6 +149,9 @@ bool SampleFrameBilinear(const port::LegacyCameraFrameView& frame,
 
 namespace {
 
+// 根据 Otsu 阈值计算黑白分类的置信度带宽。
+// 当阈值接近 0 或 255 时，画面本身接近饱和，靠近阈值的像素更容易受噪声影响。
+// 因此这里保留较宽的不确定区间，让低 margin 像素落入 unknown，而不是过早成为 black/white 事实。
 float DecisionBandForThreshold(float threshold) {
     const float nearest_saturation =
         std::min(std::max(1.0F, threshold), std::max(1.0F, 255.0F - threshold));
@@ -185,6 +194,9 @@ port::BEVPoint PixelToBevPoint(int x,
 
 }  // namespace
 
+// 构建 debug 用的稠密 BEV 图像，只用于展示和离线观察。
+// runtime 参考线提取仍然使用后面的稀疏行扫描，不从这个 debug 图反向读取事实。
+// 这保持了“显示辅助”和“控制事实”的边界，避免 debug 数据影响实际寻线。
 BEVSimpleImage BuildDebugDenseBevImage(const port::LegacyCameraFrameView& frame,
                                        int threshold,
                                        const port::RuntimeParameters& params,
@@ -230,6 +242,9 @@ BEVSimpleImage BuildDebugDenseBevImage(const port::LegacyCameraFrameView& frame,
 
 namespace {
 
+// 扫描单条稀疏 BEV 行，产出该行的黑/白/未知/不可用计数以及白色连续区间。
+// 这些 row facts 同时服务基础 line reference 和 element evidence，是当前视觉事实的公共输入。
+// 这里不做 cross/circle 的语义判断，只描述这一行本身看到了什么。
 BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
                                int threshold,
                                const port::RuntimeParameters& params,
@@ -326,6 +341,9 @@ std::vector<BEVSimpleRowScan> ScanSparseRows(const port::LegacyCameraFrameView& 
     return rows;
 }
 
+// 在同一行可能存在多个白色区间时，优先选择最能延续上一行中心的位置。
+// 如果与上一行中心的横向跳变过大，就拒绝该区间，让严格前导参考段在此结束。
+// 这样 line reference 不会跨过明显断裂去追远处白块，从而减少延迟转向和误寻线。
 const BEVSimpleWhiteInterval* ChooseInterval(const BEVSimpleRowScan& row,
                                              bool have_previous,
                                              float previous_lateral,
@@ -353,6 +371,9 @@ const BEVSimpleWhiteInterval* ChooseInterval(const BEVSimpleRowScan& row,
 
 }  // namespace
 
+// 提取基础 line reference 的严格前导段：参考必须从最近端 BEV 行开始连续成立。
+// 一旦某一行无法选出可信白色区间，就立即停止，不向后补点，也不跳到远处重新开始。
+// 这个约束用于避免“只看到远处线”时仍输出参考线，导致车辆等到近端偏差出现后才迟滞转向。
 port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
     const port::RuntimeParameters& params) {
@@ -387,14 +408,19 @@ port::BEVReferencePath BuildReferencePath(const std::vector<BEVSimpleRowScan>& r
 }
 
 port::ReferenceHoldState MakeReferenceHoldState(const port::BEVReferencePath& current_visual_reference,
+                                                uint64_t reference_capture_time_ms,
                                                 const port::RuntimeParameters& params) {
     port::ReferenceHoldState state{};
     state.hold_cycles = 0;
     state.last_reference = current_visual_reference.sampled_path;
     state.geometry_identity = MakeReferenceGeometryIdentity(params);
+    state.reference_capture_time_ms = reference_capture_time_ms;
     return state;
 }
 
+// 构建 hold-last 候选，仅用于视觉短暂丢失时的连续性桥接。
+// hold 必须沿用同一组 BEV 几何和采样配置；几何变化或保持周期超限时直接失效。
+// 这里会逐点衰减 confidence，并且不会在历史参考之后补造新点。
 port::ReferenceContinuityResult BuildReferenceHoldCandidate(const port::ReferenceHoldState& prior_hold,
                                                             const port::RuntimeParameters& params) {
     port::ReferenceContinuityResult result{};
@@ -431,11 +457,15 @@ port::ReferenceContinuityResult BuildReferenceHoldCandidate(const port::Referenc
     result.mode = port::ReferenceMode::kHoldLast;
     result.source = "hold";
     result.hold_selected = true;
+    result.reference_capture_time_ms = prior_hold.reference_capture_time_ms;
     result.next_hold_state = prior_hold;
     result.next_hold_state.hold_cycles = prior_hold.hold_cycles + 1;
     return result;
 }
 
+// 确保稀疏采样投影 LUT 与当前帧几何、BEV 参数和投影器标定一致。
+// LUT 只缓存 BEV 采样点到图像坐标的几何关系；每帧的 gray 和分类结果仍在扫描时实时采样。
+// 这样既避免重复投影计算，又不会把上一帧的图像事实混入当前帧。
 bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
                                   const port::LegacyCameraFrameView& frame,
                                   const port::RuntimeParameters& params,
@@ -550,12 +580,21 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
     result.threshold = threshold;
     BEVSampleProjectionLut local_lut{};
     BEVSampleProjectionLut& active_lut = lut == nullptr ? local_lut : *lut;
-    if (!EnsureBEVSampleProjectionLut(active_lut, frame, params, projector)) {
-        return result;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleLut);
+        if (!EnsureBEVSampleProjectionLut(active_lut, frame, params, projector)) {
+            return result;
+        }
     }
 
-    result.rows = ScanSparseRows(frame, threshold, params, active_lut);
-    result.reference_path = BuildReferencePath(result.rows, params);
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleScanRows);
+        result.rows = ScanSparseRows(frame, threshold, params, active_lut);
+    }
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleBuildReference);
+        result.reference_path = BuildReferencePath(result.rows, params);
+    }
     result.reference_mode = ToString(result.reference_path.mode);
     result.reference_source =
         result.reference_path.mode == port::ReferenceMode::kIntervalCenter ? "simple_interval_center" : "none";

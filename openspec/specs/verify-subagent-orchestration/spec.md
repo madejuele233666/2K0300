@@ -138,29 +138,25 @@ artifacts as authoritative.
 
 ### Requirement: Verifier Runtime Profile Source Is Fixed
 `ai-enforced-workflow` SHALL use verifier runtime configuration from
-`.codex/agents/verify-reviewer.toml` for workflow checkpoints.
+`openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml` for
+workflow checkpoints. A local `.codex/agents/verify-reviewer.toml` copy MAY be
+used by Codex as the runtime install path, but it is not the canonical source.
 
 #### Scenario: Default runtime profile comes from verifier agent definition
 - **WHEN** a verification step runs under `ai-enforced-workflow`
 - **THEN** verifier runtime configuration comes from
-  `.codex/agents/verify-reviewer.toml`
+  `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml`
 - **AND** the workflow still enforces the same verification-cycle semantics
 
-### Requirement: Verifier-First Review With Optional Gemini Second Opinion
-The verifier subagent SHALL be the primary local reviewer for verification
-checkpoints. Gemini MAY run as a second opinion, but Stage A MUST NOT make
-Gemini a mandatory workflow gate by default.
+### Requirement: Verifier Review Is The Only Stage A Review Gate
+The verifier subagent SHALL be the only review gate for Stage A checkpoints.
+Auxiliary review systems MUST NOT be part of the default workflow contract.
 
-#### Scenario: Repository policy opts into Gemini dual review
-- **WHEN** a repository or checkpoint explicitly enables dual verification
-- **THEN** the shared verification sequence invokes the verifier subagent first
-- **AND** Gemini may run afterward as a secondary check
-
-#### Scenario: Default Stage A checkpoints rely on verifier review
+#### Scenario: Stage A checkpoints rely on verifier review
 - **WHEN** a change or checkpoint follows the default Stage A workflow
 - **THEN** the verifier subagent remains the primary review gate
-- **AND** Gemini runs only if the schema or checkpoint explicitly enables dual
-  verification
+- **AND** no auxiliary review output can replace authoritative verifier
+  findings, verifier evidence, or caller-maintained `agent-table.json`
 
 ### Requirement: Structured Findings Contract
 The verifier agent SHALL emit machine-consumable findings that identify the

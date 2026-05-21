@@ -373,7 +373,7 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include circle confidence threshold");
     Require(Contains(header_json, "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":false"),
             "config snapshot must include default-off circle entry takeover");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":0.0799999982119"),
+    Require(Contains(header_json, "\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":0.0500000007451"),
             "config snapshot must include circle entry direction threshold");
     Require(Contains(header_json, "\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\":0.119999997318"),
             "config snapshot must include circle entry join threshold");
@@ -848,6 +848,7 @@ void TestServiceCanPublishDisarmedImagesForCalibration() {
     params.steering_media_enabled = true;
     params.steering_media_port = 8890;
     params.steering_media_publish_interval_ms = 0;
+    params.steering_media_downsample = 4;
     params.steering_media_publish_disarmed = true;
     service.Start(params, diagnostics);
 
@@ -880,6 +881,18 @@ void TestServiceCanPublishDisarmedImagesForCalibration() {
             "calibration publish must be an image_frame");
     Require(Contains(header_json, "\"motion_phase\":\"DISARMED\""),
             "calibration image frame must preserve DISARMED motion phase");
+    Require(Contains(header_json, "\"width\":80"),
+            "downsampled calibration image should report transmitted width");
+    Require(Contains(header_json, "\"height\":60"),
+            "downsampled calibration image should report transmitted height");
+    Require(Contains(header_json, "\"source_width\":320"),
+            "downsampled calibration image should preserve source width");
+    Require(Contains(header_json, "\"source_height\":240"),
+            "downsampled calibration image should preserve source height");
+    Require(Contains(header_json, "\"downsample\":4"),
+            "downsampled calibration image should report downsample factor");
+    Require(payload.size() == 80U * 60U,
+            "downsampled calibration image payload should match transmitted dimensions");
 }
 
 }  // namespace

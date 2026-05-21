@@ -7,6 +7,11 @@
 
 namespace ls2k::legacy {
 
+/// 评估参考路径的可用性
+/// 检查参考路径中连续有效的前导采样点数量是否满足最小要求
+/// @param reference_path BEV参考路径
+/// @param params 运行时参数（含最小前导参考采样点数）
+/// @return 可用性评估结果（可用性、前导采样数、前向范围等）
 port::ReferenceUsability EvaluateReferenceUsability(const port::BEVReferencePath& reference_path,
                                                     const port::RuntimeParameters& params);
 

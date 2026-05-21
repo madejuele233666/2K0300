@@ -8,44 +8,60 @@
 namespace ls2k::legacy {
 namespace {
 
+/// 十字出口检测的最小连续宽行数
 constexpr std::size_t kCrossMinContiguousWideRows = 3U;
+/// 每行最小可采样数
 constexpr std::size_t kCrossMinSampleablePerRow = 8U;
+/// 宽行最小宽度（米）
 constexpr float kCrossMinWideWidthM = 0.52F;
+/// 宽行占可采样区域的最小宽度比例
 constexpr float kCrossMinSampleableWidthRatio = 0.65F;
+/// 双侧最小伸达距离（米）
 constexpr float kCrossMinBilateralReachM = 0.35F;
+/// 双侧平衡度最小值
 constexpr float kCrossMinBilateralBalance = 0.50F;
+/// 不确定像素最大比例
 constexpr float kCrossUnknownRatioMax = 0.25F;
+/// 十字出口存在的最小置信度
 constexpr float kCrossPresentConfidenceMin = 0.70F;
+/// 比率计算的分母最小值
 constexpr float kRatioDenominatorFloor = 1.0e-4F;
+/// 开口判断的持续行数
 constexpr std::size_t kOpeningSustainRows = 2U;
 
+/// 将值钳制到[0, 1]范围
 float Clamp01(float value) {
     return std::clamp(value, 0.0F, 1.0F);
 }
 
+/// 十字出口游程累加器，累计连续宽行行的统计数据和得分
 struct CrossRunAccumulator {
-    std::size_t row_count = 0;
-    float score_sum = 0.0F;
-    float forward_min_m = 0.0F;
-    float forward_max_m = 0.0F;
-    float lateral_min_m = 0.0F;
-    float lateral_max_m = 0.0F;
-    std::size_t sampleable_count = 0;
-    std::size_t supporting_white_count = 0;
-    std::size_t unknown_count = 0;
+    std::size_t row_count = 0;         ///< 累加的行数
+    float score_sum = 0.0F;            ///< 综合评分之和
+    float forward_min_m = 0.0F;        ///< 前向距离最小值（米）
+    float forward_max_m = 0.0F;        ///< 前向距离最大值（米）
+    float lateral_min_m = 0.0F;        ///< 横向最小值（米）
+    float lateral_max_m = 0.0F;        ///< 横向最大值（米）
+    std::size_t sampleable_count = 0;         ///< 总计可采样数
+    std::size_t supporting_white_count = 0;   ///< 总计白色支撑数
+    std::size_t unknown_count = 0;            ///< 总计不确定数
 };
 
+/// 边界开口事实
 struct BoundaryOpeningFacts {
-    bool left_open = false;
-    bool right_open = false;
+    bool left_open = false;   ///< 左侧是否开口
+    bool right_open = false;  ///< 右侧是否开口
 };
 
+/// 十字出口边界观测值
 struct CrossBoundaryObservation {
-    float forward_m = 0.0F;
-    float left_reach_m = 0.0F;
-    float right_reach_m = 0.0F;
+    float forward_m = 0.0F;   ///< 前向距离（米）
+    float left_reach_m = 0.0F;   ///< 左侧伸达距离（米）
+    float right_reach_m = 0.0F;  ///< 右侧伸达距离（米）
 };
 
+/// 找出一行中最宽的白色区间
+/// @return 指向最宽区间的指针，若无区间则返回nullptr
 const BEVSimpleWhiteInterval* WidestInterval(const BEVSimpleRowScan& row) {
     const BEVSimpleWhiteInterval* best = nullptr;
     for (const BEVSimpleWhiteInterval& interval : row.intervals) {
@@ -56,6 +72,7 @@ const BEVSimpleWhiteInterval* WidestInterval(const BEVSimpleRowScan& row) {
     return best;
 }
 
+/// 将一行的数据累加到十字出口运行累加器中
 void AddWideRow(CrossRunAccumulator& run,
                 const BEVSimpleRowScan& row,
                 const BEVSimpleWhiteInterval& interval,
@@ -78,6 +95,7 @@ void AddWideRow(CrossRunAccumulator& run,
     run.unknown_count += row.unknown_count;
 }
 
+/// 比较两个累加器，判断哪个更优（行数优先，评分其次）
 bool BetterRun(const CrossRunAccumulator& candidate, const CrossRunAccumulator& best) {
     if (candidate.row_count != best.row_count) {
         return candidate.row_count > best.row_count;
@@ -85,14 +103,18 @@ bool BetterRun(const CrossRunAccumulator& candidate, const CrossRunAccumulator& 
     return candidate.score_sum > best.score_sum;
 }
 
+/// 计算近端到远端的增长率
 float GrowthRatio(float near_reach, float far_reach) {
     return (far_reach - near_reach) / std::max(kRatioDenominatorFloor, near_reach);
 }
 
+/// 从边界观测中获取指定侧的伸达距离
 float Reach(const CrossBoundaryObservation& observation, bool use_left) {
     return use_left ? observation.left_reach_m : observation.right_reach_m;
 }
 
+/// 计算持续多行的边界扩张增长率
+/// 遍历所有分割点，计算后续持续行相对于前一点的增长率，取最大值
 float SustainedGrowthRatio(const std::vector<CrossBoundaryObservation>& observations,
                            bool use_left) {
     if (observations.size() <= kOpeningSustainRows) {
@@ -114,6 +136,8 @@ float SustainedGrowthRatio(const std::vector<CrossBoundaryObservation>& observat
     return best;
 }
 
+/// 评估十字路口的双侧开口情况
+/// 通过分析最宽白色区间的左右伸达距离变化趋势判断开口
 BoundaryOpeningFacts AssessCrossOpenings(const std::vector<BEVSimpleRowScan>& rows,
                                          const port::RuntimeParameters& params) {
     std::vector<CrossBoundaryObservation> observations;
@@ -149,6 +173,7 @@ BoundaryOpeningFacts AssessCrossOpenings(const std::vector<BEVSimpleRowScan>& ro
     return facts;
 }
 
+/// 检查参考路径是否有有效的前导视觉参考（无间隙、无无限值、首个采样点存在）
 bool HasLeadingVisualReference(const port::BEVReferencePath& reference) {
     if (reference.mode != port::ReferenceMode::kIntervalCenter ||
         !reference.sampled_path[0].present) {
@@ -171,6 +196,12 @@ bool HasLeadingVisualReference(const port::BEVReferencePath& reference) {
 
 }  // namespace
 
+/// DetectCrossExitEvidence 实现
+/// 检测十字出口元素证据：
+/// 1. 遍历所有行，识别满足条件的宽行（宽度/白色占比/双侧平衡度）
+/// 2. 将连续宽行分组为运行累加器
+/// 3. 检查双侧开口情况
+/// 4. 计算置信度，判断是否构成有效十字出口证据
 port::CrossExitElementEvidence DetectCrossExitEvidence(
     const std::vector<BEVSimpleRowScan>& rows,
     const port::RuntimeParameters& params) {
@@ -289,6 +320,9 @@ port::CrossExitElementEvidence DetectCrossExitEvidence(
     return evidence;
 }
 
+/// BuildCrossExitVisualReferenceCandidate 实现
+/// 从十字出口证据和车道线候选构建视觉参考候选
+/// 直接继承车道线候选的参考路径（十字出口不改变路径方向）
 port::VisualReferenceCandidate BuildCrossExitVisualReferenceCandidate(
     const port::CrossExitElementEvidence& evidence,
     const port::VisualReferenceCandidate& line_candidate,

@@ -2,6 +2,16 @@
 
 本文面向一个没有上下文的 AI。目标是在已经完成人工标注后，继续训练板端可部署的 tiny32 TFLite Micro 模型。核心原则是：旧搜索结果只能作为强先验，不能机械复用；新一轮训练也不能从无约束随机搜索开始。
 
+> 2026-05-12 同步状态：本文保留为 V5 基线、历史搜索空间和 tiny32/int8 评估指南。经过 V5 平面 8 视觉子类路线分析后，后续完整重训主线应转向 `V6_PARENT_PRIMARY_C4_RESCUE_ROADMAP.md`：最终部署以 3 父类 `parent_head` 为主，`firearms_short` / `firearms_long` / `explosive_grenade` / `explosive_c4` 等子类只作为辅助结构或证据；`explosive_c4` 不再作为与其他 7 个视觉子类平等竞争的最终类别。
+
+V5 仍有三个用途：
+
+- 作为 loader、8 子类标签、rot/mirror 增强、hard/stress/int8 评估的基础实现参考。
+- 作为 V4 结构先验到 V6 的过渡基线。
+- 作为 flat-subclass 对照组，用于证明 V6 parent-primary 路线是否真正改善父类 hard/stress 和 C4 盲点。
+
+后续不要再把“8-way subclass argmax 后折叠到 3 父类”作为主部署路线。若继续使用本指南中的搜索空间，应优先改造成 V6 的 `parent_head + weapon_sub_head + c4_attr_head` 或 V4 teacher distillation 训练。
+
 ## 1. 本地事实
 
 已阅读并核对的本地文件和目录：
@@ -61,7 +71,7 @@
 
 ## 3. 新标签体系
 
-建议训练时使用 8 个视觉子类，部署时映射回 3 个父类。
+V5 基线建议训练时使用 8 个视觉子类，部署时映射回 3 个父类。V6 同步后，这里的 8 子类应理解为辅助标签体系，而不是最终主分类体系。
 
 建议内部 class map：
 
@@ -96,8 +106,10 @@ VISUAL_TO_PARENT = [
 - 磁盘目录名当前是 `explosive_C4`，内部 label 可以标准化为 `explosive_c4`，但 `class_map.json` 必须记录目录名到内部 label 的映射。
 - loader 应优先使用子目录名推断 weapon 的细分类，不要依赖旧文件名。例如 `weapon/explosive_C4/explosive_070.jpg` 应识别为 `explosive_c4`，不能识别为旧 `explosive`。
 - supplies 和 vehicle 当前仍可从文件名前缀得到视觉子类，但更稳妥的长期方案是所有 parent 都显式子目录化。
-- 训练输出可以是 8 维视觉子类，再由板端或导出前逻辑映射到 3 父类。
-- 如果部署要求更简单，可以训练双头模型：训练期保留 8 类 visual head 辅助学习，部署导出只保留 3 类 parent head。
+- V5 对照组可以输出 8 维视觉子类，再由板端或导出前逻辑映射到 3 父类。
+- V6 主线应直接训练 `parent_head` 作为部署主输出，8 类 visual head 或 weapon 内部子类 head 只作为辅助学习。
+- `explosive_c4` 只有 6 张，不应再作为 8-way softmax 中与其他 7 类平等竞争的最终类别；优先把它建模为 `weapon` 父类下的稀有形态证据或 `c4_like` 属性。
+- `firearms_short` 和 `firearms_long` 是合理子类，应保留为 `weapon_sub_head` 内部结构；二者互相错但父类仍为 `weapon` 时，部署层面可接受。
 
 ## 4. 旧搜索结果如何使用
 
@@ -153,10 +165,12 @@ VISUAL_TO_PARENT = [
 | 评估项 | 用途 |
 | --- | --- |
 | clean parent accuracy / macro recall / worst recall | 真实部署主指标 |
-| clean visual subclass accuracy / macro recall / worst recall | 检查新视觉子类是否学到，但不是唯一指标 |
+| clean visual subclass accuracy / macro recall / worst recall | 检查新视觉子类是否学到；V6 中只作为辅助指标 |
 | hard clean set | 检查历史共同混淆图是否修复 |
 | stress parent metrics | 检查高速、低分辨率、噪声、模糊场景 |
 | rotation/mirror stress | 确认训练加入旋转镜像后泛化正常 |
+| C4 leave-one-out parent recall | 检查 6 张 C4 原图级泛化，不能用普通单 split 代替 |
+| C4 false positive rate | 检查 `c4_like` 证据头是否误报非 C4 或非 weapon |
 | quantization audit | 防止 Keras 好、int8 掉线 |
 | model bytes / estimated board us / actual board us | 防止 accuracy 方向牺牲过大 |
 | seed mean / seed min | 防止单 seed 偶然性 |
@@ -198,6 +212,13 @@ dataset/weapon/firearms_175.jpg
 
 如果人工标注移动了文件路径，应通过文件名或 manifest 追踪，不要因为路径改变丢失 hard set。
 
+V6 同步后的额外评估要求：
+
+- 对 C4 做原图级 leave-one-out：每次留出 1 张原始 C4 及其所有派生增强，训练只使用剩余 C4 原图。
+- C4 结果主要看 `parent` 是否为 `weapon`，不要只看 `explosive_c4` 子类是否命中。
+- 如果新增 `c4_attr_head`，必须同时报告非 C4 weapon 和非 weapon 的 false positive。
+- `c4_attr_head` 的高分默认只是 evidence，不应混入纯 `parent_head` 模型指标；如果使用 rescue 规则，需单独报告规则前后结果。
+
 ## 7. 数据切分策略
 
 普通随机切分不够。推荐：
@@ -209,7 +230,8 @@ dataset/weapon/firearms_175.jpg
    - 每个评估 seed 尽量保证 val/test 至少有 1 张 C4。
    - 记录每个 seed 的 C4 样本位置。
    - 单独报告 C4 结果，不用单 seed C4 recall 淘汰模型。
-5. 最终部署模型可以在选定参数后使用全数据重训，但必须保留之前 repeated split 和 hard set 结果作为证据。
+5. V6 主线必须额外做 C4 leave-one-out。普通 repeated split 不能替代 LOO，因为 6 张原图太少。
+6. 最终部署模型可以在选定参数后使用全数据重训，但必须保留之前 repeated split、C4 LOO 和 hard set 结果作为证据。
 
 ## 8. 训练共同约束
 
@@ -220,6 +242,8 @@ dataset/weapon/firearms_175.jpg
 - 主结构优先：`spacetodepth_conv`。
 - 激活优先：ReLU，ReLU6 作为量化和 clipping ablation。
 - head 优先：GAP 后直接分类，无 dense；dense 只在 accuracy 方向验证。
+- V6 主线 head 优先级：`parent_head` 为最终部署主输出，`weapon_sub_head` 和 `c4_attr_head` 只作为辅助学习或 evidence。
+- V5 flat 8-way subclass head 只能作为对照组或辅助 head，不再作为后续主部署路线。
 - 默认不开 extra conv；只在 accuracy 方向少量验证。
 - 默认 batch：`16` 或 `24`。大 batch 可以提速但可能降低小数据泛化。
 - 默认 early stopping + ReduceLROnPlateau。
@@ -356,10 +380,13 @@ accuracy 方向可做的激进策略：
 
 - 双头训练：visual 8 类 head + parent 3 类 head，部署 parent head。
 - visual logits 聚合到 parent，和 parent head 直接输出做对照。
+- V6 主线：`parent_head + weapon_sub_head + c4_attr_head`。其中 `weapon_sub_head` 只在 weapon 样本上学习 firearm short/long、grenade、c4-like 结构。
+- V4 teacher distillation：普通样本拟合 V4 parent soft label，C4 样本降低或关闭错误 teacher KL，用真实 `weapon` 父类标签纠偏。
+- 解耦训练：先训练 backbone + parent head，再冻结或低学习率训练 `weapon_sub_head` / `c4_attr_head`，最后低学习率联合微调。
 - 训练 64x64 teacher，再蒸馏给 32x32 student。64x64 不作为第一部署模型，只用于判断信息上限。
 - 训练彩色 teacher，再蒸馏给灰度 student。彩色直接部署成本高，默认不优先。
 - label smoothing，建议 `0.02`、`0.05`、`0.08` 小范围测试。
-- class-balanced loss 或 focal loss，重点观察 `explosive_c4`、`firearms_short`、`firearms_long`，但不能牺牲 parent 识别。
+- class-balanced loss、focal loss、logit adjustment 或 balanced softmax 只优先作用于 `weapon_sub_head` 或 `c4_attr_head`，重点观察 `explosive_c4`、`firearms_short`、`firearms_long`，但不能牺牲 parent 识别。
 - SAM、SWA、EMA 作为高成本 ablation。
 - 更长 epoch + 更低 lr fine-tune，用于少数入围模型。
 - QAT from scratch 和 QAT fine-tune，用于修复 int8 损失。
@@ -473,6 +500,8 @@ accuracy 方向淘汰条件：
 
 ## 15. 搜索计划
 
+本节保留 V5 搜索计划，用作基线和对照。V6 同步后，新的完整训练不应继续扩大 V5 平面 8-class 搜索，而应参考 `V6_PARENT_PRIMARY_C4_RESCUE_ROADMAP.md` 的 Stage 0 到 Stage 5。若仍运行本节流程，应至少加入 parent-primary head 和 C4 evidence 评估。
+
 ### Phase 0：smoke
 
 目标是证明新标签和导出链路正确，不追求好分数。
@@ -486,6 +515,8 @@ accuracy 方向淘汰条件：
 - Keras/float TFLite/int8 TFLite 输出维度正确。
 - hard clean set 能跑。
 - stress set 能跑。
+- V6 smoke 还必须证明 `parent_head` 输出 3 维、`weapon_sub_head` 或 `c4_attr_head` 指标能写入结果文件。
+- C4 LOO evaluator 和 false positive evaluator 至少能在小配置上跑通。
 
 ### Phase 1：targeted coarse
 
@@ -499,11 +530,22 @@ accuracy 方向淘汰条件：
 | balance | 120 到 220 | 2 | 找主部署候选 |
 | accuracy | 80 到 160 | 2 | 找 teacher 和上限模型 |
 
+V6 同步后的 coarse lane 应新增或替换为：
+
+| lane | 目的 |
+| --- | --- |
+| parent_weapon_aux | 验证父类主头 + weapon 内部子类辅助 |
+| parent_c4_attr | 验证 C4-like 属性头是否改善父类表示 |
+| v4_teacher_c4_rescue | 保留 V4 父类稳定性，同时修正 C4 盲点 |
+| decoupled_parent_aux | 验证先学父类表示、再训练辅助头是否更稳 |
+| weapon_longtail_local | 验证 focal/class-balanced/logit-adjusted 只作用于辅助头的收益 |
+
 筛选规则：
 
 - 每条 lane 保留 top 12。
 - 全局再按综合分保留 top 24。
 - 强制保留 fast anchor、balance anchor、accuracy 最宽模型各至少 2 个，即使初筛分数一般。
+- V6 lane 需要强制保留至少 2 个 C4 rescue 候选和 2 个 stress robust 候选，即使 clean 排名不是最高。
 
 ### Phase 2：multi-seed retest
 
@@ -516,6 +558,8 @@ accuracy 方向淘汰条件：
 - hard clean mean。
 - hard clean min。
 - stress min。
+- C4 LOO parent recall。
+- C4 false positive rate。
 - int8 agreement。
 - 耗时和体积。
 
@@ -572,6 +616,8 @@ accuracy 方向淘汰条件：
 
 先把所有指标归一化到 `[0,1]`。建议每条 lane 使用不同权重。
 
+注意：以下是 V5 flat/subclass-era 的 lane score。V6 parent-primary 路线应使用 `V6_PARENT_PRIMARY_C4_RESCUE_ROADMAP.md` 中加入 C4 LOO、C4 false positive 和 parent-first 输出约束的评分。继续使用本节公式时，必须至少把 C4 LOO 和 false positive 作为 tie-breaker 或 hard filter。
+
 fast：
 
 ```text
@@ -624,10 +670,28 @@ score =
 - `hard_min`
 - `stress_min_mean`
 - `stress_min_min`
+- `c4_parent_recall_loo`
+- `c4_false_positive_rate`
 - `board_us`
 - `tflite_bytes`
 
 排序时不能只看 `score_mean`，至少要用 `score_min` 过滤不稳定模型。
+
+V6 同步后的建议主分数：
+
+```text
+score =
+  0.34 * clean_parent_acc_min
++ 0.22 * stress_parent_worst_min
++ 0.18 * hard_parent_acc_min
++ 0.10 * hard_parent_worst_min
++ 0.08 * c4_parent_recall_loo
++ 0.04 * (1 - c4_false_positive_rate)
++ 0.04 * float_int8_agreement
+- latency_size_penalty
+```
+
+这个分数的含义是：C4 被纳入主排序，但不能压过父类 clean/hard/stress 稳定性。
 
 ## 18. 验收标准
 
@@ -656,9 +720,11 @@ accuracy 可接受：
 
 最终部署候选建议：
 
-- 主模型：balance 第一名。
-- 备用高速模型：fast 第一名。
-- teacher 或诊断模型：accuracy 第一名。
+- 主模型：V6 balanced / parent-primary 第一名。
+- 备用高速模型：V6 fast 或 V5 fast 对照第一名。
+- C4 rescue 模型：C4 LOO 改善明显且 false positive 可控的第一名。
+- stress robust 模型：stress worst recall 最稳的第一名。
+- teacher 或诊断模型：accuracy 第一名，必要时不直接部署。
 
 ## 19. 需要重点观察的错误
 
@@ -673,6 +739,8 @@ accuracy 可接受：
 新 8 类训练后要检查：
 
 - C4 是否仍被大量判成 supplies 或 vehicle。
+- C4 在 `parent_head` 下是否能稳定判为 weapon；如果只是 `explosive_c4` 子类错但 parent 正确，部署层面可接受。
+- `c4_attr_head` 是否对 grenade、firearms 或非 weapon hard 图产生高 false positive。
 - grenade 是否仍被判成 first_aid_kit 或 ambulance。
 - firearms_short 和 firearms_long 是否都能映射回 weapon，即使子类互相错也不应影响父类。
 - first_aid_kit_050、explosive_070、explosive_030 等核心 hard 图是否改善。
@@ -757,6 +825,9 @@ model_training/experiments/v5_visual_subclass_<timestamp>/
 - 不要用单 seed 选择最终模型。
 - 不要因为 `explosive_c4` recall 波动就淘汰所有模型。
 - 不要为了追求 subclass accuracy 牺牲 parent accuracy。
+- 不要把 `VISUAL_TO_PARENT[argmax(8-way subclass)]` 继续当成 V6 主部署路线。
+- 不要让 `explosive_c4` 作为平面 8-way softmax 中与其他 7 类平等竞争的最终类别来主导选择。
+- 不要把 `c4_attr_head` 的高分直接当最终控制结论；它默认是 evidence，rescue 规则必须单独评估。
 - 不要默认把模型做大。旧结果中 extra conv 和宽模型没有稳定证明值得增加板端成本。
 - 不要让 hard clean set 混入训练后还用它当独立验证。
 - 不要在没有板端算子验证的情况下使用复杂算子。
@@ -764,18 +835,26 @@ model_training/experiments/v5_visual_subclass_<timestamp>/
 
 ## 24. 推荐下一步
 
-下一步不要立刻开大搜索。先按这个顺序执行：
+V5 基础链路已经足够作为对照后，下一步不应继续扩大平面 8-class 大搜索。新的主线按 `V6_PARENT_PRIMARY_C4_RESCUE_ROADMAP.md` 执行：
 
-1. 派生 V5 训练脚本，修正 8 视觉子类 loader。
-2. 生成 `dataset_manifest.csv` 并人工快速检查 8 类计数。
-3. 跑两个 smoke：`[6,12,24]` fast 和 `[8,16,32]` balance。
-4. 确认 Keras/float TFLite/int8 TFLite 输出维度和 parent 映射正确。
-5. 跑 Phase 1 三 lane targeted coarse。
-6. 对 top-k 做 Phase 2 多 seed retest。
-7. 对 top-k 做 Phase 3 细扫。
-8. 对 top 3 到 5 做 final full retrain、quant audit 和板端 benchmark。
+1. 在 V5 trainer 基础上新增或派生 `train_tiny32_v6_parent_primary_scan.py`。
+2. 实现 `parent_head + weapon_sub_head + c4_attr_head`，部署主输出只看 `parent_head`。
+3. 加 C4 leave-one-out evaluator 和 C4 false positive evaluator。
+4. 先跑 `A2_parent_weapon_aux` 和 `B_parent_c4_attr` smoke，确认 int8 export 与结果 JSON 正常。
+5. 加 V4 teacher distillation，形成 `C_v4_teacher_c4_rescue` 分支。
+6. 加 decoupled training：parent pretrain -> aux balance -> low-LR joint fine-tune。
+7. 做 V6 coarse：parent_weapon_aux、parent_c4_attr、v4_teacher_c4_rescue、decoupled、weapon_longtail_local。
+8. 对 top family 做 multi-seed retest、C4 LOO、hard/stress/int8 排序。
+9. 对 top family 做 QAT fine-tune。
+10. 最终导出多个侧重点候选：balanced、fast、c4_rescue、stress_robust、small。
 
-如果只能先选一条主线，优先从 balance 的 `sd097` 邻域开始，因为它是上一轮综合最强、结构最简单、板端成本可控的锚点。fast 和 accuracy 同时保留，但不要让它们阻塞 balance 主模型产出。
+如果只能先选一条主线，优先做：
+
+```text
+parent_head + weapon_sub_head + c4_attr_head
+```
+
+backbone 和结构参数仍从 V4/V5 证明过的 `spacetodepth_conv [8,16,32]`、`[6,12,24]` 等邻域开始，因为它们是板端成本可控的锚点。V5 flat 8-class 继续保留为对照，不再作为完整重训主线。
 
 ## 25. 板端可用算子与实测性能补充
 

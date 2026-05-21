@@ -5,6 +5,7 @@ The current BEV reference/control contract is no longer described by the old rac
 Use these active documents instead:
 
 - Root `README.md`: rules for extending the current simple BEV reference pipeline.
+- `new/docs/visual-element-sparse-circle-v1.zh-CN.md`: V1 sparse-first cross/circle visual element architecture.
 - `new/config/default_params.md`: current runtime parameter contract.
 - `new/code/port/README.md`: port type and include boundaries.
 - `new/user/README.md`: build, deploy, steering evidence, and board workflow.

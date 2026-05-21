@@ -14,6 +14,7 @@ OMP_THREADS="${OMP_THREADS:-1}"
 TF_INTRA_THREADS="${TF_INTRA_THREADS:-1}"
 TF_INTER_THREADS="${TF_INTER_THREADS:-1}"
 CALIBRATION_LIMIT="${CALIBRATION_LIMIT:-192}"
+HARD_BASENAMES_FILE="${HARD_BASENAMES_FILE:-}"
 STRESS_LIST="${STRESS_LIST:-rot90,rot180,rot270,mirror_lr,mirror_lr_rot90,mirror_lr_rot180,mirror_lr_rot270,noise_0p06,hblur5_noise_0p06,diagblur5_noise_0p08,noise_0p10,vblur5,diagblur5}"
 
 STAGE2_SHARDS="${STAGE2_SHARDS:-8}"
@@ -52,6 +53,46 @@ print(len(data.get("candidates", data if isinstance(data, list) else [])))
 PY
 }
 
+ensure_hard_basenames_file() {
+  if [[ -f "${HARD_BASENAMES_FILE}" ]]; then
+    return
+  fi
+  venv/bin/python - "${HARD_BASENAMES_FILE}" <<'PY'
+import csv
+import sys
+from pathlib import Path
+
+out = Path(sys.argv[1])
+sources = [
+    ("deployment_reference_full", 0.30),
+    ("final_full", 0.30),
+    ("strong_stage2_final_best", 0.50),
+    ("all_scan_best", 0.50),
+]
+base = Path("experiments/v4_stress_directed_20260508_215328/confusing_images")
+names: list[str] = []
+seen: set[str] = set()
+for cohort, threshold in sources:
+    path = base / f"{cohort}_clean_confusing_images.csv"
+    if not path.exists():
+        continue
+    for row in csv.DictReader(path.open(encoding="utf-8")):
+        try:
+            wrong_rate = float(row["parent_wrong_rate"])
+        except (KeyError, ValueError):
+            continue
+        if wrong_rate < threshold:
+            continue
+        name = Path(row["path"]).name
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text("\n".join(names) + "\n", encoding="utf-8")
+print(f"hard_basenames={len(names)} path={out}")
+PY
+}
+
 count_results() {
   local pattern="$1"
   local files=()
@@ -84,11 +125,15 @@ run_train_cmd() {
   local shard_count="$7"
   local shard_index="$8"
   local extra_args="$9"
+  local hard_args=""
+  if [[ -n "${HARD_BASENAMES_FILE}" ]]; then
+    hard_args="--hard-basenames-file ${HARD_BASENAMES_FILE}"
+  fi
   printf 'cd /home/madejuele/projects/2K0300/model_training && OMP_NUM_THREADS=%s TF_NUM_INTRAOP_THREADS=%s TF_NUM_INTEROP_THREADS=%s ./run_gpu.sh venv/bin/python train_tiny32_v5_visual_subclass_scan.py --mode %s --lane %s --dataset-dir dataset --output-dir %s --shard-count %s --shard-index %s --seeds %s --epochs %s --patience %s --stress %s --calibration-limit %s --resume %s 2>&1 | tee -a %s/run.log' \
     "${OMP_THREADS}" "${TF_INTRA_THREADS}" "${TF_INTER_THREADS}" \
     "${mode}" "${lane}" "${out_dir}" "${shard_count}" "${shard_index}" \
     "${seeds}" "${epochs}" "${patience}" "${STRESS_LIST}" "${CALIBRATION_LIMIT}" \
-    "${extra_args}" "${out_dir}"
+    "${hard_args} ${extra_args}" "${out_dir}"
 }
 
 launch_stage1_group() {
@@ -256,7 +301,10 @@ print(float(best.get("score_min", best.get("score_mean", 0.0)) or 0.0))
 PY
 }
 
-log "run_id=${RUN_ID} root=${ROOT} max_sessions=${MAX_SESSIONS}"
+if [[ -n "${HARD_BASENAMES_FILE}" ]]; then
+  ensure_hard_basenames_file
+fi
+log "run_id=${RUN_ID} root=${ROOT} max_sessions=${MAX_SESSIONS} hard_basenames=${HARD_BASENAMES_FILE:-default}"
 ensure_stage1_complete
 
 summarize_inputs "${ROOT}/stage1_merged_summary.json" "${ROOT}"
@@ -326,6 +374,10 @@ venv/bin/python generate_v5_visual_candidates.py select \
 
 FINAL_COUNT="$(count_json_candidates "${ROOT}/final_selected.json")"
 FINAL_OUT="${ROOT}/final_full_retest"
+FINAL_HARD_ARGS=()
+if [[ -n "${HARD_BASENAMES_FILE}" ]]; then
+  FINAL_HARD_ARGS=(--hard-basenames-file "${HARD_BASENAMES_FILE}")
+fi
 mkdir -p "${FINAL_OUT}"
 OMP_NUM_THREADS=3 TF_NUM_INTRAOP_THREADS=3 TF_NUM_INTEROP_THREADS=2 ./run_gpu.sh venv/bin/python train_tiny32_v5_visual_subclass_scan.py \
   --mode final \
@@ -343,6 +395,7 @@ OMP_NUM_THREADS=3 TF_NUM_INTRAOP_THREADS=3 TF_NUM_INTEROP_THREADS=2 ./run_gpu.sh
   --full-epochs 340 \
   --stress "${STRESS_LIST}" \
   --calibration-limit 224 \
+  "${FINAL_HARD_ARGS[@]}" \
   --resume \
   2>&1 | tee -a "${FINAL_OUT}/run.log"
 

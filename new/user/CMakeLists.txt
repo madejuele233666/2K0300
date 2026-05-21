@@ -68,6 +68,7 @@ set(NEW_SRCS
     ../code/platform/assistant_protocol.cpp
     ../code/platform/steering_media_link.cpp
     ../code/platform/steering_media_protocol.cpp
+    ../code/platform/camera_frame_source.cpp
     ../code/port/perf_counter.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
     ../code/platform/true_ls2k0300/imu_bridge.cpp
@@ -94,11 +95,14 @@ set(NEW_SRCS
     ../code/legacy/steering_reference_lateral_error.cpp
     ../code/legacy/steering_reference_control_readiness.cpp
     ../code/runtime/startup.cpp
+    ../code/runtime/camera_frame_store.cpp
+    ../code/runtime/camera_capture_worker.cpp
     ../code/runtime/steering_frame_perception_pipeline.cpp
     ../code/runtime/perception_frontend.cpp
     ../code/runtime/low_voltage_sampler.cpp
     ../code/runtime/motion_supervisor.cpp
     ../code/runtime/control_decision.cpp
+    ../code/runtime/steering_reference_time_alignment.cpp
     ../code/runtime/control_loop.cpp
     ../code/runtime/control_debug_reporter.cpp
     ../code/runtime/assistant_service.cpp

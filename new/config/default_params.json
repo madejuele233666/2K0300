@@ -1,7 +1,7 @@
 {
   "RUNNING_SPEED_TARGET": 200.0,
   "YAW_RATE_PID": {
-    "P": 10.0,
+    "P": 20.0,
     "I": 0.0,
     "D": 0.0
   },
@@ -20,7 +20,7 @@
     "INTEGRAL_LIMIT": 5000.0,
     "MEASUREMENT_FILTER_ALPHA": 0.4
   },
-  "low_voltage_raw_threshold": 400,
+  "low_voltage_raw_threshold": 2300,
   "control_period_ms": 5,
   "perception_stale_ms": 120,
   "pwm_limit": 5000,
@@ -38,8 +38,10 @@
   "control_snapshot_emit_interval_ms": 100,
   "assistant_enabled": 1,
   "steering_media_enabled": 1,
-  "steering_media_port": 8890,
+  "steering_media_port": 39012,
   "steering_media_publish_interval_ms": 120,
+  "steering_media_downsample": 4,
+  "steering_media_publish_disarmed": 1,
   "low_voltage_sample_interval_ms": 1000,
   "camera_frame_width": 320,
   "camera_frame_height": 240,
@@ -101,7 +103,7 @@
   },
   "BEV_CONTROL_MODEL": {
     "LATERAL_ERROR_FAR_WEIGHT": 0.0,
-    "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN": 600,
+    "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN": 300,
     "MIN_LEADING_REFERENCE_SAMPLES": 3
   },
   "BEV_ELEMENT": {
@@ -117,7 +119,7 @@
     "CIRCLE_PRESENT_CONFIDENCE_MIN": 0.65,
     "CIRCLE_ENTRY_TAKEOVER_ENABLED": 0,
     "CIRCLE_ENTRY_MIN_FRONTIER_POINTS": 4,
-    "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M": 0.08,
+    "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M": 0.05,
     "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M": 0.12,
     "CIRCLE_ENTRY_MAX_JOIN_JUMP_M": 0.12
   },
@@ -125,8 +127,26 @@
     "ENABLED": 1,
     "WIDTH": 320
   },
+  "REFERENCE_TIME_ALIGNMENT": {
+    "ENABLED": 0,
+    "MAX_AGE_MS": 120,
+    "MAX_INTEGRATION_GAP_MS": 30,
+    "MAX_DELTA_YAW_RAD": 0.8,
+    "MIN_ALIGNED_SAMPLES": 3
+  },
+  "CAMERA_SOURCE": {
+    "BACKEND": "v4l2_yuyv",
+    "DEVICE": "/dev/video0",
+    "WIDTH": 320,
+    "HEIGHT": 240,
+    "FPS": 60,
+    "BUFFER_COUNT": 3,
+    "POLL_TIMEOUT_MS": 50,
+    "DRAIN_READY_BUFFERS": 1,
+    "FALLBACK_BACKEND": "vendor_uvc"
+  },
   "assistant_tcp": {
-    "host": "10.100.170.115",
-    "port": 8888
+    "host": "192.168.137.1",
+    "port": 39011
   }
 }

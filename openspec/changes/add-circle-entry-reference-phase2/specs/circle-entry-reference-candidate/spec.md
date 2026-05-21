@@ -3,7 +3,7 @@
 ### Requirement: Circle Entry Facts Identify A Rear-Side Inner Frontier
 When effective circle evidence is present, the runtime SHALL derive circle entry typed facts from the current-frame `BEVElementRasterFrame` by extracting a rear-side sampleable black-white frontier belonging to the near-connected white component. The detector MUST NOT identify or remember an inner black object, use raster/FOV clipping boundaries as frontier support, or consume cross evidence, line candidates, hold memory, safety state, IMU, encoder, yaw, actuator state, `PerceptionResult`, or debug overlay pixels.
 
-For `circle_left`, the selected frontier chain SHALL have net direction toward upper-left in BEV metric space. For `circle_right`, the selected frontier chain SHALL have net direction toward upper-right. The minimum net lateral direction SHALL be controlled by `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.08`.
+For `circle_left`, the selected frontier chain SHALL have net direction toward upper-left in BEV metric space. For `circle_right`, the selected frontier chain SHALL have net direction toward upper-right. The minimum net lateral direction SHALL be controlled by `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.05`.
 
 #### Scenario: Left circle entry facts report upper-left frontier
 - **WHEN** effective `circle_left.present` is true

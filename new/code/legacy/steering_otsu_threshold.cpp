@@ -6,6 +6,11 @@
 
 namespace ls2k::legacy {
 
+/// ComputeOtsuThreshold 实现
+/// 使用Otsu算法（最大类间方差法）自动计算图像二值化阈值
+/// 1. 以2为步长采样计算灰度直方图（减少计算量）
+/// 2. 遍历所有可能的阈值，计算类间方差
+/// 3. 返回使类间方差最大的阈值
 int ComputeOtsuThreshold(const port::LegacyCameraFrameView& frame) {
     std::array<int, 256> hist{};
     if (!frame.Valid()) {

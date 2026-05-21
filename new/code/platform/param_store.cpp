@@ -16,7 +16,12 @@
 namespace ls2k::platform {
 namespace {
 
-// 读取文件全部内容到字符串
+/**
+ * 读取文件全部内容到字符串。
+ * @param path 文件路径
+ * @param out 输出参数，接收文件内容字符串
+ * @return true 表示读取成功，false 表示文件无法打开
+ */
 bool ReadText(const std::string& path, std::string& out) {
     std::ifstream input(path);
     if (!input.is_open()) {
@@ -28,8 +33,9 @@ bool ReadText(const std::string& path, std::string& out) {
     return true;
 }
 
-// 剥离 JSON 中的注释（C风格 // 和 /* */），输出纯 JSON。
-// 追踪字符串字面量上下文避免误删字符串内的 '//'。
+// 在交给 OpenCV FileStorage 前先剥离 JSON 注释。
+// 解析过程会跟踪字符串字面量和转义字符，避免把 URL、路径等字符串中的双斜杠误判为行注释。
+// 这里只做配置文本的预处理，不改变 JSON 字段含义或默认值回退策略。
 std::string StripJsonComments(const std::string& text) {
     std::string output;
     output.reserve(text.size());
@@ -99,7 +105,13 @@ std::string StripJsonComments(const std::string& text) {
     return output;
 }
 
-// 基于 OpenCV FileStorage 解析 JSON 字符串为结构化节点树
+/**
+ * 基于 OpenCV FileStorage 解析 JSON 字符串为结构化节点树。
+ * 先剥离注释再解析，确保解析结果是一个非空的 JSON 对象。
+ * @param text 原始 JSON 字符串（可含注释）
+ * @param storage 输出参数，解析后的 FileStorage 对象
+ * @return true 表示解析成功且根节点为非空 Map
+ */
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
         const std::string sanitized = StripJsonComments(text);
@@ -115,7 +127,12 @@ bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     return !root.empty() && root.isMap();
 }
 
-// 从 JSON 节点读取数值（整数或浮点数）
+/**
+ * 从 JSON 节点读取数值（整数或浮点数）。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadNumberNode(const cv::FileNode& node, double& value) {
     if (node.empty() || (!node.isInt() && !node.isReal())) {
         return false;
@@ -124,12 +141,23 @@ bool ReadNumberNode(const cv::FileNode& node, double& value) {
     return true;
 }
 
-// 读取必填数值参数，缺失则返回 false
+/**
+ * 读取必填数值参数，节点缺失或类型不匹配则返回 false。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNumber(const cv::FileNode& root, const char* key, double& value) {
     return ReadNumberNode(root[key], value);
 }
 
-// 读取整数值，验证数值是否为整数（允许浮点数但必须有整数精度）
+/**
+ * 读取整数值 —— 允许浮点数但要求其四舍五入后与原值的误差不超过 1e-6。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功且数值精度满足整数要求
+ */
 bool ReadIntegerValue(const cv::FileNode& node, int& value) {
     double numeric = 0.0;
     if (!ReadNumberNode(node, numeric)) {
@@ -143,11 +171,23 @@ bool ReadIntegerValue(const cv::FileNode& node, int& value) {
     return true;
 }
 
+/**
+ * 读取必填整数值（封装 ReadIntegerValue 的键查找版本）。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredInt(const cv::FileNode& root, const char* key, int& value) {
     return ReadIntegerValue(root[key], value);
 }
 
-// 读取布尔值，支持整数/字符串格式（true/TRUE/1/yes/on 等）
+/**
+ * 读取布尔值，支持整数（非零为 true）和字符串表示（true/TRUE/1/yes/on/false/FALSE/0/no/off）。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的布尔值
+ * @return true 表示读取成功
+ */
 bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     if (node.empty()) {
         return false;
@@ -170,7 +210,12 @@ bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     return false;
 }
 
-// 读取字符串值
+/**
+ * 读取字符串值。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功（节点非空且为字符串类型）
+ */
 bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     if (node.empty() || !node.isString()) {
         return false;
@@ -179,7 +224,13 @@ bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     return true;
 }
 
-// 读取可选数值参数（缺失不报错，格式错误标记 malformed）
+/**
+ * 读取可选数值参数 —— 键缺失时不报错（保留默认值），格式错误时设置 malformed 标志。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的数值（若缺失则不变）
+ * @param malformed 输出参数，格式错误时置为 true
+ */
 void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -190,7 +241,13 @@ void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value
     }
 }
 
-// 读取可选整数参数
+/**
+ * 读取可选整数参数。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的整数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -201,7 +258,13 @@ void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool
     }
 }
 
-// 读取可选布尔参数
+/**
+ * 读取可选布尔参数。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的布尔值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -212,7 +275,14 @@ void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bo
     }
 }
 
-// 读取嵌套可选数值参数（const char* child, double 版本）
+/**
+ * 读取嵌套可选数值参数（const char* child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -235,7 +305,14 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选数值参数（std::string child, double 版本）
+/**
+ * 读取嵌套可选数值参数（std::string child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -258,7 +335,15 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
-// float 特化的嵌套数值读取（const char* child, float 版本，通过 double 中转）
+/**
+ * 读取嵌套可选数值参数（float 特化，const char* child 版本）。
+ * 通过 double 中转读取后再转换为 float。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的浮点值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -269,7 +354,14 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
-// float 特化嵌套数值读取（std::string child, float 版本）
+/**
+ * 读取嵌套可选数值参数（float 特化，std::string child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的浮点值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -280,7 +372,15 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
-// 读取嵌套可选浮点数组（固定长度 N）
+/**
+ * 读取嵌套可选浮点数组（固定长度 N）。
+ * @tparam N 数组长度
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param values 输出参数，读取到的浮点数组
+ * @param malformed 格式错误时置为 true
+ */
 template <std::size_t N>
 void ReadOptionalNestedFloatArray(const cv::FileNode& root,
                                   const char* parent,
@@ -313,7 +413,14 @@ void ReadOptionalNestedFloatArray(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选布尔值
+/**
+ * 读取嵌套可选布尔值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的布尔值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedBool(const cv::FileNode& root,
                             const char* parent,
                             const char* child,
@@ -336,7 +443,14 @@ void ReadOptionalNestedBool(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选整数
+/**
+ * 读取嵌套可选整数。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的整数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -359,7 +473,14 @@ void ReadOptionalNestedInt(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选字符串
+/**
+ * 读取嵌套可选字符串。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的字符串值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -382,7 +503,14 @@ void ReadOptionalNestedString(const cv::FileNode& root,
     }
 }
 
-// 读取必填嵌套数值参数（缺失返回 false）
+/**
+ * 读取必填嵌套数值参数（缺失或类型不匹配返回 false）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -394,7 +522,14 @@ bool ReadRequiredNestedNumber(const cv::FileNode& root,
     return ReadNumberNode(parent_node[child], value);
 }
 
-// 读取必填嵌套字符串值
+/**
+ * 读取必填嵌套字符串值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -406,7 +541,14 @@ bool ReadRequiredNestedString(const cv::FileNode& root,
     return ReadStringValue(parent_node[child], value);
 }
 
-// 读取必填嵌套整数值
+/**
+ * 读取必填嵌套整数值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -418,15 +560,32 @@ bool ReadRequiredNestedInt(const cv::FileNode& root,
     return ReadIntegerValue(parent_node[child], value);
 }
 
+/**
+ * 检查数值是否为有限值且处于闭区间 [min_value, max_value] 内。
+ * @param value 待检查的数值
+ * @param min_value 区间下限
+ * @param max_value 区间上限
+ * @return true 表示数值有限且在区间范围内
+ */
 bool IsFiniteInRange(double value, double min_value, double max_value) {
     return std::isfinite(value) && value >= min_value && value <= max_value;
 }
 
+/**
+ * 校验 BEV 控制模型参数是否在合理范围内。
+ * @param params BEV 控制模型参数结构体
+ * @return true 表示所有参数均通过合法性校验
+ */
 bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
     return IsFiniteInRange(params.lateral_error_far_weight, 0.0, 1.0) &&
            IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
 }
 
+/**
+ * 校验 BEV 元素参数（含圆形证据和路口退出相关参数）是否在合理范围内。
+ * @param params BEV 元素参数结构体
+ * @return true 表示所有参数均通过合法性校验
+ */
 bool ValidateBEVElement(const port::BEVElementParameters& params) {
     return IsFiniteInRange(params.cross_wide_row_white_ratio_min, 0.0, 1.0) &&
            params.circle_min_support_rows >= 1 &&
@@ -442,7 +601,32 @@ bool ValidateBEVElement(const port::BEVElementParameters& params) {
            IsFiniteInRange(params.circle_entry_max_join_jump_m, 0.0, 2.0);
 }
 
-// 读取必填字符串值
+bool ValidateReferenceTimeAlignment(const port::ReferenceTimeAlignmentParameters& params) {
+    return params.max_age_ms >= 1 &&
+           params.max_integration_gap_ms >= 1 &&
+           IsFiniteInRange(params.max_delta_yaw_rad, 0.0, 6.28319) &&
+           params.min_aligned_samples >= 1;
+}
+
+bool ValidateCameraSource(const port::CameraSourceParameters& params) {
+    return !params.backend.empty() &&
+           !params.device.empty() &&
+           params.width > 0 &&
+           params.height > 0 &&
+           params.width <= port::kCompiledCameraFrameWidth &&
+           params.height <= port::kCompiledCameraFrameHeight &&
+           params.fps >= 1 &&
+           params.buffer_count >= 2 &&
+           params.poll_timeout_ms >= 1;
+}
+
+/**
+ * 读取必填字符串值。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功
+ */
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
     const cv::FileNode node = root[key];
     if (node.empty() || !node.isString()) {
@@ -452,7 +636,13 @@ bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& 
     return true;
 }
 
-// 解析子系统模式文本枚举
+/**
+ * 解析子系统模式文本枚举。
+ * 支持 "adaptation-hook"、"disabled"、"direct-match" 三种文本到枚举值的映射。
+ * @param mode_text 模式文本字符串
+ * @param mode 输出参数，解析后的子系统模式枚举值
+ * @return true 表示解析成功
+ */
 bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     if (mode_text == "adaptation-hook") {
         mode = port::SubsystemMode::kAdaptationHook;
@@ -469,7 +659,13 @@ bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     return false;
 }
 
-// 解析硬件配置文件的子系统块（mode + hook）
+/**
+ * 解析硬件配置文件中单个子系统的配置块（包含 mode 和 hook 字段）。
+ * @param root JSON 根节点
+ * @param key 子系统键名（如 "camera"、"motor" 等）
+ * @param out_profile 输出参数，解析后的子系统配置
+ * @return true 表示解析成功
+ */
 bool ParseProfileBlock(const cv::FileNode& root,
                        const char* key,
                        port::SubsystemProfile& out_profile) {
@@ -492,16 +688,34 @@ bool ParseProfileBlock(const cv::FileNode& root,
     return true;
 }
 
-// 生成子系统解析错误详情字符串
+/**
+ * 生成子系统解析错误详情字符串。
+ * @param key 子系统键名
+ * @return 格式化的错误描述字符串
+ */
 std::string ProfileBlockError(const char* key) {
     return std::string("hardware profile parse failure for subsystem '") + key +
            "' (missing block or malformed mode/hook)";
 }
 
+/**
+ * 参数存储实现类 —— 实现 port::IParamStore 接口。
+ * 从 JSON 配置文件中加载运行时参数和硬件配置。
+ * 支持 JSON 注释剥离、文件读取、OpenCV FileStorage 解析。
+ * 缺失文件或解析失败时回退到 RuntimeParameters 的内建默认值。
+ */
 class ParamStore final : public port::IParamStore {
 public:
-    // 从 JSON 文件加载全部运行时参数。先读文件→剥注释→解析 JSON→
-    // 依次提取必填字段和可选字段→校验完整性→回退默认值保护。
+    /**
+     * 从 JSON 文件加载全部运行时参数。
+     * 流程：读取文件 -> 剥离注释 -> 解析 JSON -> 提取必填字段和可选字段 -> 校验完整性。
+     * 文件缺失或解析失败时会回退到默认值并通过诊断输出告警。
+     * @param path JSON 配置文件路径
+     * @param out 输出参数，加载后的运行时参数
+     * @param diagnostics 诊断输出接收器
+     * @return true 表示加载过程完成（即使回退默认值也返回 true，仅校验不通过但
+     *         仍返回 true 以保证系统可启动，具体成败由 out 中的字段指示）
+     */
     bool LoadRuntimeParameters(const std::string& path,
                                port::RuntimeParameters& out,
                                port::DiagnosticSink& diagnostics) override {
@@ -591,6 +805,13 @@ public:
                         "steering_media_publish_interval_ms",
                         parsed.steering_media_publish_interval_ms,
                         optional_malformed);
+        ReadOptionalInt(root,
+                        "steering_media_downsample",
+                        parsed.steering_media_downsample,
+                        optional_malformed);
+        if (parsed.steering_media_downsample < 1 || parsed.steering_media_downsample > 8) {
+            optional_malformed = true;
+        }
         ReadOptionalBool(root,
                          "steering_media_publish_disarmed",
                          parsed.steering_media_publish_disarmed,
@@ -799,6 +1020,82 @@ public:
         if (parsed.bev_element_raster.width < 2) {
             optional_malformed = true;
         }
+        ReadOptionalNestedBool(root,
+                               "REFERENCE_TIME_ALIGNMENT",
+                               "ENABLED",
+                               parsed.reference_time_alignment.enabled,
+                               optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MAX_AGE_MS",
+                              parsed.reference_time_alignment.max_age_ms,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MAX_INTEGRATION_GAP_MS",
+                              parsed.reference_time_alignment.max_integration_gap_ms,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "REFERENCE_TIME_ALIGNMENT",
+                                 "MAX_DELTA_YAW_RAD",
+                                 parsed.reference_time_alignment.max_delta_yaw_rad,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MIN_ALIGNED_SAMPLES",
+                              parsed.reference_time_alignment.min_aligned_samples,
+                              optional_malformed);
+        if (!ValidateReferenceTimeAlignment(parsed.reference_time_alignment)) {
+            optional_malformed = true;
+        }
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "BACKEND",
+                                 parsed.camera_source.backend,
+                                 optional_malformed);
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "DEVICE",
+                                 parsed.camera_source.device,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "WIDTH",
+                              parsed.camera_source.width,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "HEIGHT",
+                              parsed.camera_source.height,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "FPS",
+                              parsed.camera_source.fps,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "BUFFER_COUNT",
+                              parsed.camera_source.buffer_count,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "POLL_TIMEOUT_MS",
+                              parsed.camera_source.poll_timeout_ms,
+                              optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "CAMERA_SOURCE",
+                               "DRAIN_READY_BUFFERS",
+                               parsed.camera_source.drain_ready_buffers,
+                               optional_malformed);
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "FALLBACK_BACKEND",
+                                 parsed.camera_source.fallback_backend,
+                                 optional_malformed);
+        if (!ValidateCameraSource(parsed.camera_source)) {
+            optional_malformed = true;
+        }
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",
@@ -832,7 +1129,15 @@ public:
         return true;
     }
 
-    // 从 JSON 文件加载硬件配置（camera/imu/encoder/motor/timer/persistence/display 子系统）
+    /**
+     * 从 JSON 文件加载硬件配置。
+     * 按顺序解析 camera/imu/encoder/motor/timer/persistence/display 共 7 个子系统配置块。
+     * 任何子系统解析失败都将导致整体加载失败（fail-closed 策略）。
+     * @param path JSON 硬件配置文件路径
+     * @param out 输出参数，加载后的完整硬件配置
+     * @param diagnostics 诊断输出接收器
+     * @return true 表示所有子系统均解析成功，false 表示任一子系统解析失败
+     */
     bool LoadHardwareProfile(const std::string& path,
                              port::HardwareProfile& out,
                              port::DiagnosticSink& diagnostics) override {
@@ -914,7 +1219,14 @@ public:
         return true;
     }
 
-    // 应用启动关键参数有效性校验
+    /**
+     * 应用启动关键参数的有效性校验。
+     * 检查 exp_light（曝光值）是否在 [0, 2500] 区间内，
+     * 如果不合法则标记 startup_critical_applied 为 false 阻止执行器布署。
+     * 当 exp_light 为非默认值（65）时发出额外警告，提示可能缺少适配钩子。
+     * @param params 运行时参数（将被修改，设置 startup_critical_applied 标志）
+     * @param diagnostics 诊断输出接收器
+     */
     void ApplyStartupCritical(port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) override {
         const bool exposure_ok = params.exp_light >= 0 && params.exp_light <= 2500;
         params.startup_critical_applied = exposure_ok;
@@ -936,6 +1248,10 @@ public:
 
 }  // namespace
 
+/**
+ * 创建参数存储实例（工厂函数）。
+ * @return 指向 IParamStore 接口的唯一指针
+ */
 std::unique_ptr<port::IParamStore> MakeParamStore() {
     return std::make_unique<ParamStore>();
 }

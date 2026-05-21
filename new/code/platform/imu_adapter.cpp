@@ -10,14 +10,26 @@
 namespace ls2k::platform {
 namespace {
 
+/// 重力加速度常数（m/s^2）
 constexpr float kGravityMps2 = 9.80665F;
+/// 加速度计每 LSB 对应的物理值（m/s^2）
 constexpr float kAccelMetersPerSecPerCount = 0.0001220F * kGravityMps2;
+/// 陀螺仪每 LSB 对应的物理值（rad/s）
 constexpr float kGyroRadPerSecPerCount = 0.0010641F;
+/// 加速度低通滤波器新数据权重
 constexpr float kAccelFilterNewWeight = 0.9F;
+/// 加速度低通滤波器旧数据权重
 constexpr float kAccelFilterOldWeight = 0.1F;
+/// 陀螺仪零偏校准需要的采样数量
 constexpr int kImuBiasCalibrationSamples = 32;
+/// 用于确认数据流连续性的有效样本数量阈值
 constexpr uint32_t kImuContinuityEvidenceSamples = 32;
 
+/// @brief 从环境变量读取正整数（用于故障注入间隔配置）
+/// @param key 环境变量名
+/// @param diagnostics 诊断输出接口
+/// @param now_ms 当前时间戳
+/// @return 解析得到的正整数，无效或未设置时返回 0
 int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
     const char* value = std::getenv(key);
     if (value == nullptr || value[0] == '\0') {
@@ -39,6 +51,9 @@ int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, 
     return 0;
 }
 
+/// @brief 根据 IMU 类型码返回可读的名称字符串
+/// @param imu_type IMU 类型标识字节
+/// @return IMU 型号名称（如 "imu660ra"）
 const char* ImuTypeName(uint8_t imu_type) {
     switch (imu_type) {
         case 0x10:
@@ -52,8 +67,17 @@ const char* ImuTypeName(uint8_t imu_type) {
     }
 }
 
+/// @brief IMU 适配器类
+///
+/// 实现 port::IImuAdapter 接口，封装 true_ls2k0300 桥接层的
+/// IMU 初始化、样本读取和关闭操作。支持 direct-match 和 adaptation-hook 两种模式。
+/// 内部包含加速度低通滤波和陀螺仪零偏校准逻辑。
 class ImuAdapter final : public port::IImuAdapter {
 public:
+    /// @brief 初始化 IMU 适配器
+    /// @param profile 硬件描述文件（检查 IMU 子系统是否启用及其模式）
+    /// @param diagnostics 诊断输出接口
+    /// @return 初始化成功返回 true
     bool Initialize(const port::HardwareProfile& profile, port::DiagnosticSink& diagnostics) override {
         if (!port::IsEnabled(profile.imu)) {
             diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -97,6 +121,9 @@ public:
         return ready_;
     }
 
+    /// @brief 读取一帧 IMU 样本数据
+    /// @param diagnostics 诊断输出接口
+    /// @return 归一化后的 IMU 样本（含加速度和角速度）
     port::ImuSample Read(port::DiagnosticSink& diagnostics) override {
         port::ImuSample out{};
         out.capture_time_ms = port::NowMs();
@@ -204,6 +231,8 @@ public:
         return out;
     }
 
+    /// @brief 关闭 IMU 适配器
+    /// @param diagnostics 诊断输出接口
     void Shutdown(port::DiagnosticSink& diagnostics) override {
         ready_ = false;
         ResetCalibrationState();
@@ -213,9 +242,12 @@ public:
                           port::NowMs()});
     }
 
+    /// @brief 检查 IMU 是否已就绪
+    /// @return true 表示 IMU 可用
     bool Ready() const override { return ready_; }
 
 private:
+    /// @brief 重置所有校准和连续性状态
     void ResetCalibrationState() {
         gyro_bias_raw_ = {};
         filtered_acc_ = {};
@@ -225,6 +257,11 @@ private:
         continuity_reported_ = false;
     }
 
+    /// @brief 执行初始陀螺仪零偏校准
+    ///
+    /// 在适配器初始化时采集若干静态样本来估算陀螺仪的零偏，
+    /// 后续读取时将减去该零偏值以获得更准确的角速度。
+    /// @param diagnostics 诊断输出接口
     void PrimeBiasCalibration(port::DiagnosticSink& diagnostics) {
         std::array<double, 3> gyro_sum{};
         int collected = 0;
@@ -261,21 +298,34 @@ private:
                           port::NowMs()});
     }
 
+    /// IMU 子系统是否启用
     bool enabled_ = false;
+    /// IMU 是否已就绪
     bool ready_ = false;
+    /// 是否使用适配钩子模式
     bool adaptation_hook_ = false;
+    /// 适配钩子名称
     std::string hook_name_ = "direct-match";
+    /// 陀螺仪 X/Y/Z 轴零偏原始计数值
     std::array<float, 3> gyro_bias_raw_{};
+    /// 加速度低通滤波后的 X/Y/Z 值（m/s^2）
     std::array<float, 3> filtered_acc_{};
+    /// 是否已获得初始加速度滤波值
     bool have_filtered_acc_ = false;
+    /// 连续有效读取计数
     uint32_t valid_streak_ = 0;
+    /// 连续无效读取计数
     uint32_t invalid_streak_ = 0;
+    /// 是否已上报连续性就绪诊断
     bool continuity_reported_ = false;
+    /// 读取计数（用于故障注入周期性）
     uint64_t read_count_ = 0;
 };
 
 }  // namespace
 
+/// @brief 创建 IMU 适配器实例
+/// @return 新创建的 ImuAdapter 智能指针
 std::unique_ptr<port::IImuAdapter> MakeImuAdapter() {
     return std::make_unique<ImuAdapter>();
 }

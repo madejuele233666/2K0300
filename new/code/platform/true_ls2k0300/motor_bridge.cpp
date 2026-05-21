@@ -15,20 +15,23 @@ namespace ls2k::platform::true_ls2k0300 {
 
 namespace {
 
+// 电机通道配置 —— 关联 PWM 和 GPIO 控制路径
 struct MotorChannel {
-    const char* pwm_path;
-    const char* gpio_path;
+    const char* pwm_path;    // PWM 占空比控制路径
+    const char* gpio_path;   // 方向 GPIO 控制路径
 };
 
+// 电机施加状态 —— 记录上次方向/占空比用于 DI 序列协调
 struct MotorApplyState {
-    bool initialized = false;
-    int last_direction_sign = 1;
-    bool last_pwm_zero = true;
+    bool initialized = false;        // 是否已初始化（第一次施加）
+    int last_direction_sign = 1;     // 上次方向符号（1 正转，-1 反转）
+    bool last_pwm_zero = true;       // 上次 PWM 是否为零
 };
 
+// 可写设备上下文
 struct WritableDevice {
-    const char* path = nullptr;
-    int fd = -1;
+    const char* path = nullptr;   // 设备文件路径
+    int fd = -1;                   // 已打开的文件描述符（-1 表示未打开）
 };
 
 // 逻辑映射：右路 PWM/GPIO 控制左电机，左路 PWM/GPIO 控制右电机（硬件接脚交叉）
@@ -47,7 +50,7 @@ int NormalizeLogicalDutyToVendorDirection(int logical_duty) {
     return -logical_duty;
 }
 
-// 测试路径是否可写打开
+// 测试路径是否可写打开 —— 尝试以只写方式打开后立即关闭
 bool OpenWritable(const char* path) {
     const int fd = open(path, O_WRONLY);
     if (fd < 0) {
@@ -56,6 +59,7 @@ bool OpenWritable(const char* path) {
     return close(fd) == 0;
 }
 
+// 根据路径查找对应的 WritableDevice 上下文（持久 fd 模式使用）
 WritableDevice* FindDevice(const char* path) {
     if (path == kLeftMotorPwmPath) {
         return &g_left_pwm;
@@ -72,6 +76,8 @@ WritableDevice* FindDevice(const char* path) {
     return nullptr;
 }
 
+// 向已打开的文件描述符写入二进制数据（泛型模板）
+// 供应商字符设备可能返回 0 字节写入表示成功，与正常写入等长均视为接受
 template <typename T>
 bool WriteFd(int fd, const T& value) {
     if (fd < 0) {
@@ -82,6 +88,7 @@ bool WriteFd(int fd, const T& value) {
     return accepted;
 }
 
+// 关闭所有持久打开的电机设备文件描述符
 void ClosePersistentMotorFds() {
     for (WritableDevice* device : {&g_left_pwm, &g_right_pwm, &g_left_gpio, &g_right_gpio}) {
         if (device->fd >= 0) {
@@ -92,6 +99,7 @@ void ClosePersistentMotorFds() {
     g_use_persistent_fd = false;
 }
 
+// 尝试打开所有电机设备并保持 fd 打开（持久 fd 模式）
 bool OpenPersistentMotorFds() {
     ClosePersistentMotorFds();
     for (WritableDevice* device : {&g_left_pwm, &g_right_pwm, &g_left_gpio, &g_right_gpio}) {
@@ -104,6 +112,7 @@ bool OpenPersistentMotorFds() {
     return true;
 }
 
+// 探测所有电机设备是否支持持久 fd 模式 —— 打开后执行 PWM 置零和 GPIO 电平切换测试
 bool ProbePersistentMotorFds() {
     if (!OpenPersistentMotorFds()) {
         return false;
@@ -184,7 +193,7 @@ BridgeStatus ApplyOne(const MotorChannel& channel, MotorApplyState& state, int s
     return status;
 }
 
-// 探测电机设备路径的可访问性
+// 探测单个电机设备路径的可写访问性
 BridgeStatus ProbeMotorPath(const char* path) {
     BridgeStatus status{};
     if (!OpenWritable(path)) {

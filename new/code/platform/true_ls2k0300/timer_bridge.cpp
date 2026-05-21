@@ -26,15 +26,20 @@ timespec ToTimespec(uint32_t period_ms) {
     return spec;
 }
 
-// RAII 文件描述符封装 —— 自动关闭，仅移动语义
+// RAII 文件描述符封装 —— 析构时自动关闭，仅支持移动语义（禁止拷贝）
 class ScopedFd {
 public:
+    // 默认构造，fd_ 初始为 -1
     ScopedFd() = default;
+    // 从已有文件描述符构造，取得所有权
     explicit ScopedFd(int fd) : fd_(fd) {}
+    // 析构时自动关闭有效 fd
     ~ScopedFd() { Reset(); }
 
+    // 移动构造 —— 转移所有权，源对象 fd_ 置 -1
     ScopedFd(ScopedFd&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
 
+    // 移动赋值 —— 先释放当前 fd，再转移所有权
     ScopedFd& operator=(ScopedFd&& other) noexcept {
         if (this != &other) {
             Reset();
@@ -43,12 +48,17 @@ public:
         return *this;
     }
 
+    // 禁止拷贝构造
     ScopedFd(const ScopedFd&) = delete;
+    // 禁止拷贝赋值
     ScopedFd& operator=(const ScopedFd&) = delete;
 
+    // 获取底层文件描述符
     int Get() const { return fd_; }
+    // 判断文件描述符是否有效（>= 0）
     bool Valid() const { return fd_ >= 0; }
 
+    // 重置文件描述符 —— 关闭当前 fd 并替换为新 fd
     void Reset(int fd = -1) {
         if (fd_ >= 0) {
             close(fd_);
@@ -57,15 +67,21 @@ public:
     }
 
 private:
-    int fd_ = -1;
+    int fd_ = -1;       // 底层文件描述符，-1 表示无效
 };
 
-// 周期定时器抽象接口
+// 周期定时器抽象接口 —— 定义 Start/Stop/Running 纯虚方法
 class PeriodicTimerBackend {
 public:
     virtual ~PeriodicTimerBackend() = default;
+    // 启动周期定时器
+    // @param period_ms 周期（毫秒）
+    // @param callback 到期回调
+    // @param on_failure 故障回调
     virtual bool Start(uint32_t period_ms, std::function<void()> callback, std::function<void()> on_failure) = 0;
+    // 停止定时器
     virtual void Stop() = 0;
+    // 检查定时器是否正在运行
     virtual bool Running() const = 0;
 };
 
@@ -237,32 +253,38 @@ private:
         }
     }
 
-    std::atomic<bool> running_{false};
-    ScopedFd timer_fd_{};
-    ScopedFd stop_fd_{};
-    std::thread worker_{};
+    std::atomic<bool> running_{false};   // 原子运行标志，线程安全的状态指示
+    ScopedFd timer_fd_{};                // 定时器文件描述符（timerfd）
+    ScopedFd stop_fd_{};                 // 停止信号文件描述符（eventfd）
+    std::thread worker_{};               // 工作线程，执行 poll 等待和回调调用
 };
 
 }  // namespace
 
+// TimerBridge PIMPL 实现 —— 持有定时器后端实例（默认 TimerfdBackend）
 struct TimerBridge::Impl {
     std::unique_ptr<PeriodicTimerBackend> backend = std::make_unique<TimerfdBackend>();
 };
 
+// 构造函数 —— 创建 PIMPL 实现并默认使用 TimerfdBackend
 TimerBridge::TimerBridge() : impl_(std::make_unique<Impl>()) {}
 
+// 析构函数 —— 自动停止定时器
 TimerBridge::~TimerBridge() {
     Stop();
 }
 
+// 启动周期定时器 —— 委托给后端实现
 bool TimerBridge::Start(uint32_t period_ms, std::function<void()> callback, std::function<void()> on_failure) {
     return impl_->backend->Start(period_ms, std::move(callback), std::move(on_failure));
 }
 
+// 停止定时器 —— 委托给后端实现
 void TimerBridge::Stop() {
     impl_->backend->Stop();
 }
 
+// 检查定时器是否正在运行 —— 委托给后端实现
 bool TimerBridge::Running() const {
     return impl_->backend->Running();
 }

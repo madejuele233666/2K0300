@@ -186,11 +186,21 @@ void MarkRearSupportAsBlackWithProjection(
 }
 
 ls2k::legacy::BEVElementRasterFrame LeftCircleRaster() {
-    return MakeRasterFromBounds(-0.12F, 0.20F, -0.42F, 0.20F);
+    std::vector<float> left(24U, 0.42F);
+    left[0] = 0.12F;
+    left[1] = 0.18F;
+    left[2] = 0.34F;
+    std::vector<float> right(24U, 0.20F);
+    return MakeRasterFromReachRows(left, right);
 }
 
 ls2k::legacy::BEVElementRasterFrame RightCircleRaster() {
-    return MakeRasterFromBounds(-0.20F, 0.12F, -0.20F, 0.42F);
+    std::vector<float> left(24U, 0.20F);
+    std::vector<float> right(24U, 0.42F);
+    right[0] = 0.12F;
+    right[1] = 0.18F;
+    right[2] = 0.34F;
+    return MakeRasterFromReachRows(left, right);
 }
 
 const ls2k::port::VisualElementEvidenceRecord* FindRecord(
@@ -410,8 +420,16 @@ void TestCircleRightPresentFromRaster() {
 
 void TestCircleAbsentCases() {
     const ls2k::port::RuntimeParameters params{};
+    std::vector<float> both_left(24U, 0.42F);
+    std::vector<float> both_right(24U, 0.42F);
+    both_left[0] = 0.12F;
+    both_left[1] = 0.18F;
+    both_left[2] = 0.34F;
+    both_right[0] = 0.12F;
+    both_right[1] = 0.18F;
+    both_right[2] = 0.34F;
     const ls2k::legacy::BEVElementRasterFrame both_open =
-        MakeRasterFromBounds(-0.12F, 0.12F, -0.42F, 0.42F);
+        MakeRasterFromReachRows(both_left, both_right);
     const ls2k::legacy::CircleElementEvidenceResult both =
         ls2k::legacy::DetectCircleElementEvidence(&both_open, params);
     Expect(!both.left_raw.present && !both.right_raw.present,
@@ -513,9 +531,9 @@ void TestCircleRejectsSaturatedWideWhiteRows() {
     const ls2k::legacy::CircleElementEvidenceResult evidence =
         ls2k::legacy::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
-           "saturated wide white rows must stay out of raw circle evidence");
-    Expect(evidence.left_raw.reason == "saturated_wide_white_rows",
-           "saturated wide white rows need an explicit circle fail-closed reason");
+           "two-sided wide opening must stay out of raw circle evidence");
+    Expect(evidence.left_raw.reason == "both_sides_open",
+           "circle detector must report visual two-sided opening, not cross-specific wide-row suppression");
 }
 
 void TestCircleReportsBendForFragmentedDoubleOpening() {
@@ -527,11 +545,11 @@ void TestCircleReportsBendForFragmentedDoubleOpening() {
         ls2k::legacy::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
            "fragmented bend-like double opening must not produce circle evidence");
-    Expect(evidence.left_raw.reason == "bend",
-           "non-straight double opening should be reported as bend, reason=" +
+    Expect(evidence.left_raw.reason == "both_sides_open",
+           "two-sided opening should be reported as both_sides_open, reason=" +
                evidence.left_raw.reason);
-    Expect(evidence.right_raw.reason == "bend",
-           "both raw circle sides should agree on bend reason");
+    Expect(evidence.right_raw.reason == "both_sides_open",
+           "both raw circle sides should agree on both_sides_open reason");
 }
 
 void TestCircleRejectsOppositeShrinkAsBend() {
@@ -544,7 +562,8 @@ void TestCircleRejectsOppositeShrinkAsBend() {
     Expect(!evidence.left_raw.present,
            "one-side expansion with opposite shrink must be bend, not circle");
     Expect(evidence.left_raw.reason == "bend",
-           "opposite shrink must report the bend fail-closed reason");
+           "opposite shrink must report the bend fail-closed reason, reason=" +
+               evidence.left_raw.reason);
     Expect(!evidence.right_raw.present,
            "opposite shrink must not produce right circle");
 }
@@ -561,7 +580,8 @@ void TestCircleRejectsWeakSupport() {
 
     params = {};
     const ls2k::legacy::BEVElementRasterFrame drift =
-        MakeRasterFromBounds(-0.12F, 0.24F, -0.42F, -0.08F);
+        MakeRasterFromReachRows({0.10F, 0.30F, 0.29F, 0.29F},
+                                {0.30F, 0.20F, 0.18F, 0.18F});
     const ls2k::legacy::CircleElementEvidenceResult drift_result =
         ls2k::legacy::DetectCircleElementEvidence(&drift, params);
     Expect(!drift_result.left_raw.present, "opposite side shrink must fail closed");
@@ -705,8 +725,8 @@ void TestPipelineAppendsCircleRecordsWithDefaultExcludedCandidate() {
     Expect(result.evidence.records[2].present, "cross-absent effective left must mirror raw");
     Expect(result.evidence.records[0].candidate.reason == "evidence_only",
            "raw circle candidate summary must remain evidence-only");
-    Expect(result.evidence.records[2].candidate.built,
-           "effective circle must report built candidate when entry facts are valid");
+    Expect(!result.evidence.records[2].candidate.built,
+           "takeover-disabled circle must not build Phase2 candidate in runtime pipeline");
     Expect(!result.evidence.records[2].candidate.takeover_enabled,
            "circle entry takeover must default to disabled");
     Expect(!result.evidence.records[2].candidate.included_in_arbitration,

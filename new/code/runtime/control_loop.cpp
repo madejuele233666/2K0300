@@ -8,7 +8,11 @@
 #include <cmath>
 #include <string>
 
+#include "legacy/steering_reference_control_readiness.hpp"
+#include "legacy/steering_reference_lateral_error.hpp"
+#include "legacy/steering_reference_usability.hpp"
 #include "port/perf_counter.hpp"
+#include "runtime/steering_reference_time_alignment.hpp"
 
 namespace ls2k::runtime {
 namespace {
@@ -156,23 +160,71 @@ legacy::WheelSpeedTargets BuildSnapshotWheelTargets(const MotionDecision& decisi
     return mixer.Compute(decision.effective_speed_target, snapshot_turn_output);
 }
 
+/// 控制调试快照构建输入结构 —— 聚合所有用于构建快照的数据源
 struct ControlDebugSnapshotInputs {
-    const port::PerceptionResult& perception;
-    const port::EncoderDelta& encoder;
-    const port::ActuatorCommand& command;
-    const ControlGateDecision& gate;
-    const MotionDecision& final_motion;
-    const RuntimeTuningSnapshot& tuning_snapshot;
-    const legacy::WheelSpeedTargets& snapshot_wheel_targets;
-    const legacy::TurnOutputTargetComputation& turn_output_target_result;
-    const legacy::GyroTurnComputation& gyro_turn;
-    uint64_t now_ms = 0;
-    uint64_t cycle_count = 0;
-    int raw_turn_output = 0;
-    int applied_turn_output = 0;
-    bool steering_terms_valid = false;
+    const port::PerceptionResult& perception;                    ///< 感知结果
+    const port::EncoderDelta& encoder;                           ///< 编码器差值
+    const port::ActuatorCommand& command;                        ///< 执行器命令
+    const ControlGateDecision& gate;                             ///< 门控决策
+    const MotionDecision& final_motion;                          ///< 最终运动决策
+    const RuntimeTuningSnapshot& tuning_snapshot;                ///< 运行时调参快照
+    const legacy::WheelSpeedTargets& snapshot_wheel_targets;     ///< 快照轮速目标
+    const legacy::TurnOutputTargetComputation& turn_output_target_result;  ///< 转向输出目标计算结果
+    const legacy::GyroTurnComputation& gyro_turn;                ///< 陀螺仪转向计算结果
+    uint64_t now_ms = 0;                           ///< 当前时间戳（ms）
+    uint64_t cycle_count = 0;                      ///< 控制周期计数
+    int raw_turn_output = 0;                       ///< 原始转向输出
+    int applied_turn_output = 0;                   ///< 应用后的转向输出
+    bool steering_terms_valid = false;              ///< 转向项是否有效
 };
 
+port::PerceptionResult BuildControlTimePerception(const port::PerceptionResult& perception,
+                                                  const MotionHistory& motion_history,
+                                                  uint64_t now_ms,
+                                                  const port::RuntimeParameters& params) {
+    if (!perception.published || !perception.fresh || !params.reference_time_alignment.enabled) {
+        port::PerceptionResult out = perception;
+        out.reference_time_alignment.enabled = params.reference_time_alignment.enabled;
+        out.reference_time_alignment.valid = !params.reference_time_alignment.enabled;
+        out.reference_time_alignment.reason =
+            params.reference_time_alignment.enabled ? "perception_unavailable" : "disabled";
+        return out;
+    }
+
+    port::PerceptionResult out = perception;
+    const ReferenceTimeAlignmentResult alignment =
+        AlignReferencePathToControlTime(perception.reference_path,
+                                        perception.reference_capture_time_ms,
+                                        now_ms,
+                                        motion_history,
+                                        params);
+    out.reference_time_alignment = alignment.facts;
+    out.reference_path = alignment.reference_path;
+    if (!alignment.facts.valid) {
+        out.reference_usability = {};
+        out.reference_usability.reason = "reference_time_alignment_" + alignment.facts.reason;
+        out.reference_lateral_error = {};
+        out.reference_lateral_error.reason = out.reference_usability.reason;
+        out.reference_control = {};
+        out.reference_control.reason = out.reference_usability.reason;
+        return out;
+    }
+
+    out.reference_usability = legacy::EvaluateReferenceUsability(alignment.reference_path, params);
+    out.reference_lateral_error =
+        legacy::ComputeReferenceLateralError(alignment.reference_path,
+                                             out.reference_usability,
+                                             params);
+    out.reference_control =
+        legacy::EvaluateReferenceControlReadiness(out.reference_usability,
+                                                  out.reference_lateral_error,
+                                                  perception.reference_source == "hold");
+    return out;
+}
+
+/// 构建控制调试快照：从各数据源组装完整的 ControlDebugSnapshot
+/// @param inputs  构建快照所需的全部输入
+/// @return        填充好的 ControlDebugSnapshot
 ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs& inputs) {
     const port::PerceptionResult& perception = inputs.perception;
     ControlDebugSnapshot debug_snapshot{};
@@ -230,6 +282,26 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         perception.reference_lateral_error.weighted_sample_count;
     debug_snapshot.steering.lateral_error.weight_sum = perception.reference_lateral_error.weight_sum;
     debug_snapshot.steering.lateral_error.reason = perception.reference_lateral_error.reason;
+    debug_snapshot.steering.reference_time_alignment.enabled =
+        perception.reference_time_alignment.enabled;
+    debug_snapshot.steering.reference_time_alignment.valid =
+        perception.reference_time_alignment.valid;
+    debug_snapshot.steering.reference_time_alignment.reason =
+        perception.reference_time_alignment.reason;
+    debug_snapshot.steering.reference_time_alignment.age_ms =
+        perception.reference_time_alignment.age_ms;
+    debug_snapshot.steering.reference_time_alignment.reference_capture_time_ms =
+        perception.reference_time_alignment.reference_capture_time_ms;
+    debug_snapshot.steering.reference_time_alignment.control_time_ms =
+        perception.reference_time_alignment.control_time_ms;
+    debug_snapshot.steering.reference_time_alignment.delta_s_m =
+        perception.reference_time_alignment.delta_s_m;
+    debug_snapshot.steering.reference_time_alignment.delta_yaw_rad =
+        perception.reference_time_alignment.delta_yaw_rad;
+    debug_snapshot.steering.reference_time_alignment.input_sample_count =
+        perception.reference_time_alignment.input_sample_count;
+    debug_snapshot.steering.reference_time_alignment.aligned_sample_count =
+        perception.reference_time_alignment.aligned_sample_count;
     debug_snapshot.steering.reference_control.ready = perception.reference_control.ready;
     debug_snapshot.steering.reference_control.reason = perception.reference_control.reason;
     debug_snapshot.steering.safety_gate.veto_active = inputs.gate.veto_active;
@@ -497,13 +569,20 @@ void EmitObservationDiagnostics(port::DiagnosticSink& diagnostics,
 
 }  // namespace
 
+/// 构造控制循环：保存平台、配置、状态和诊断的引用
+/// @param platform     平台适配器集合
+/// @param profile      硬件配置文件
+/// @param state        运行时状态
+/// @param diagnostics  诊断输出接口
 ControlLoop::ControlLoop(port::PlatformBundle& platform,
                          const port::HardwareProfile& profile,
                          RuntimeState& state,
                          port::DiagnosticSink& diagnostics)
     : platform_(platform), profile_(profile), state_(state), diagnostics_(diagnostics) {}
 
-// 启动控制循环：校验状态 → 配置 PID/混合器 → 注册定时器 → 初始化运动状态
+/// 启动控制循环：校验状态 → 配置 PID/混合器 → 注册定时器 → 初始化运动状态
+/// @param params  运行时参数
+/// @return        是否成功启动
 bool ControlLoop::Start(const port::RuntimeParameters& params) {
     if (running_) {
         return true;
@@ -703,17 +782,29 @@ void ControlLoop::Tick() {
         encoder = platform_.encoder->ReadDelta(diagnostics_);
     }
 
+    const uint64_t now_ms = port::NowMs();
     port::PerceptionResult perception{};
     port::ActuatorCommand previous_command{};
     MotionSupervisorState previous_motion_state{};
     MotionIntent motion_intent{};
     RuntimeTuningSnapshot tuning_snapshot{};
     ControlCycleObservation previous_observation{};
+    MotionHistory motion_history{};
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
         state_.imu = imu;
         state_.encoder = encoder;
+        {
+            LS2K_PERF_SCOPE(port::PerfStage::kMotionHistoryRecord);
+            state_.motion_history.Push({now_ms,
+                                        imu.valid,
+                                        imu.gyro_z,
+                                        encoder.valid,
+                                        encoder.left,
+                                        encoder.right});
+        }
         perception = state_.perception;
+        motion_history = state_.motion_history;
         previous_command = state_.last_command;
         previous_motion_state = state_.motion_state;
         motion_intent = state_.motion_intent;
@@ -721,7 +812,7 @@ void ControlLoop::Tick() {
         previous_observation = state_.control_observation;
     }
 
-    const uint64_t now_ms = port::NowMs();
+    perception = BuildControlTimePerception(perception, motion_history, now_ms, params_);
     // --- 第 2 阶段：门控评估 ---
     ControlGateDecision gate{};
     {

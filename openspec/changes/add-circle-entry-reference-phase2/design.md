@@ -78,7 +78,7 @@ Coverage report:
 
 - Problem: the correct entry frontier should extend toward the opening-side upper direction, but real sampled points can wobble and should not be rejected for non-monotonic per-row changes.
 - Alternatives: require every point to move farther left/right, fit a PCA/line model, or use start/end net displacement with a minimum lateral delta.
-- Choice: accept a chain when its end is farther forward and its net lateral motion is toward the opening side by at least `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.08m`.
+- Choice: accept a chain when its end is farther forward and its net lateral motion is toward the opening side by at least `BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, default `0.05m`.
 - Why this option: it directly matches the user's chosen first version, tolerates sequences such as `0.10, 0.30, 0.29`, and keeps the rule explainable.
 - Stack Equivalent: ordered frontier chain points in BEV metric space -> `direction_delta_lateral_m` and `direction_delta_forward_m` -> side-specific direction gate.
 - Named Deliverables: direction helper, append-only direction parameter, tests for left/right pass and below-threshold fail.
@@ -168,7 +168,7 @@ This change does not require a repository-index refresh for artifact creation. I
 
 ## Open Questions
 
-- No blocking design questions remain. The default direction threshold is `0.08m` per user decision and may be tuned later from authority-baseline or board evidence without changing the contract.
+- No blocking design questions remain. The default direction threshold is `0.05m` after board evidence tuning and may be tuned later from authority-baseline or board evidence without changing the contract.
 
 ## Risks / Trade-offs
 

@@ -8,6 +8,9 @@
 namespace ls2k::runtime {
 namespace {
 
+/// 从环境变量读取布尔值
+/// @param key  环境变量名
+/// @return     可选布尔值，变量不存在时返回 std::nullopt
 std::optional<bool> ReadBoolEnv(const char* key) {
     const char* raw = std::getenv(key);
     if (raw == nullptr) {
@@ -26,6 +29,13 @@ std::optional<bool> ReadBoolEnv(const char* key) {
     return std::nullopt;
 }
 
+/// 检查子系统是否就绪：若未就绪且非降级启动模式则返回失败
+/// @param subsystem       子系统名称（用于诊断）
+/// @param profile         子系统配置
+/// @param ready           子系统就绪状态
+/// @param degraded_startup 是否降级启动
+/// @param diagnostics     诊断输出接口
+/// @return                 子系统是否可接受
 bool RequireReady(const char* subsystem,
                   const port::SubsystemProfile& profile,
                   bool ready,
@@ -49,6 +59,12 @@ bool RequireReady(const char* subsystem,
     return false;
 }
 
+/// 检查子系统的 profile 是否为 DirectMatch 模式（或在降级启动模式下接受非 DirectMatch）
+/// @param subsystem       子系统名称
+/// @param profile         子系统配置
+/// @param degraded_startup 是否降级启动
+/// @param diagnostics     诊断输出接口
+/// @return                 是否满足 DirectMatch 要求
 bool RequireDirectMatch(const char* subsystem,
                         const port::SubsystemProfile& profile,
                         bool degraded_startup,
@@ -72,6 +88,11 @@ bool RequireDirectMatch(const char* subsystem,
     return false;
 }
 
+/// 校验硬件配置契约：检查 persistence、timer 必须启用，camera/imu/encoder/motor 必须为 DirectMatch
+/// @param profile          硬件配置文件
+/// @param degraded_startup 是否降级启动
+/// @param diagnostics      诊断输出接口
+/// @return                 契约是否通过验证
 bool ValidateProfileContracts(const port::HardwareProfile& profile,
                               bool degraded_startup,
                               port::DiagnosticSink& diagnostics) {
@@ -117,6 +138,12 @@ bool ValidateProfileContracts(const port::HardwareProfile& profile,
            RequireDirectMatch("motor", profile.motor, degraded_startup, diagnostics);
 }
 
+/// 启动时检查低电压：初始化电源监控、采样电压、设置紧急标志
+/// @param platform         平台适配器集合
+/// @param state            运行时状态
+/// @param degraded_startup 是否降级启动
+/// @param diagnostics      诊断输出接口
+/// @return                 低电压检查是否通过
 bool ApplyStartupLowVoltage(port::PlatformBundle& platform,
                             RuntimeState& state,
                             bool degraded_startup,

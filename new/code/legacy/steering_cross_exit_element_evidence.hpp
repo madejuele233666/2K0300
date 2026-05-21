@@ -10,10 +10,20 @@
 
 namespace ls2k::legacy {
 
+/// 检测十字出口元素证据（从稀疏行扫描中检测十字路口出口特征）
+/// @param rows 稀疏行扫描结果
+/// @param params 运行时参数
+/// @return 十字出口元素证据检测结果
 port::CrossExitElementEvidence DetectCrossExitEvidence(
     const std::vector<BEVSimpleRowScan>& rows,
     const port::RuntimeParameters& params);
 
+/// 构建十字出口视觉参考候选
+/// @param evidence 十字出口元素证据
+/// @param line_candidate 车道线参考候选（用于继承参考路径）
+/// @param params 运行时参数
+/// @param summary [输出] 候选摘要信息
+/// @return 构建的视觉参考候选
 port::VisualReferenceCandidate BuildCrossExitVisualReferenceCandidate(
     const port::CrossExitElementEvidence& evidence,
     const port::VisualReferenceCandidate& line_candidate,

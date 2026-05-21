@@ -10,6 +10,7 @@ rollout and exits non-zero on contract drift.
 from __future__ import annotations
 
 import json
+import os
 import py_compile
 import re
 import shutil
@@ -39,7 +40,7 @@ if OPENSPEC_ROOT.name == "openspec":
     REPO_ROOT = OPENSPEC_ROOT.parent
     DOCS_ROOT = REPO_ROOT / "docs"
     AGENTS_ROOT = REPO_ROOT / ".codex" / "agents"
-    CODEX_HOME = Path.home() / ".codex"
+    CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).expanduser()
 elif OPENSPEC_ROOT.name == "_global-openspec":
     REPO_ROOT = None
     DOCS_ROOT = OPENSPEC_ROOT / "docs"
@@ -124,6 +125,17 @@ SCOPE_PATTERNS = {
         "mark_non_active",
         "terminate on valid active pass",
         "current-state-only",
+        "engineering-principles.md",
+    ],
+    OPENSPEC_ROOT / "schemas/ai-enforced-workflow/engineering-principles.md": [
+        "Alignment before artifacts.",
+        "Domain language first.",
+        "Feedback loop first.",
+        "Vertical tracer slices.",
+        "Prototype answers a question.",
+        "Hard dependencies stay small.",
+        "`verify-sequence/default`",
+        "current-state `agent-table.json`",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/schema.yaml": [
         "verification-cycle-core-v1.json",
@@ -132,6 +144,9 @@ SCOPE_PATTERNS = {
         "verify-reviewer-inline-v3",
         "cycle_rules",
         "agent-table.json",
+        "engineering-principles.md",
+        "vertical tracer slices",
+        "focused feedback loop",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/design.md": [
         "verification-cycle-core-v1.json",
@@ -143,18 +158,18 @@ SCOPE_PATTERNS = {
         "prefer `send_input` while that same `active` agent is still open",
         "use `continuation_probe` to distinguish resume from recovery spawn",
         "only `block -> pass` marks `non_active`",
+        "Engineering Discipline",
+        "Primary feedback loop",
+        "Prototype question",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/templates/tasks.md": [
         "verification-cycle-core-v1.json",
         "verification-cycle-openspec-adapter-v1.json",
         "verification-cycle-agent-table-v1.json",
         "agent-table.json",
-        "prefer `send_input` while the same active agent is still open",
-        "`send_input` returning `agent not found` still routes to `resume`, not",
-        "current-state-only `agent-table.json`",
-        "`no_usable_active_agent` means only that `agent-table.json` literally",
-        "only `block -> pass` marks an agent `non_active`",
-        "valid active pass",
+        "Reference `verify-sequence/default` for active/non_active semantics",
+        "Vertical Slice:",
+        "behavior-level feedback loop",
     ],
     AGENTS_ROOT / "verify-reviewer.toml": [
         'sandbox_mode = "read-only"',
@@ -182,17 +197,20 @@ SCOPE_PATTERNS = {
         "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
         "verify-reviewer-inline-v3",
         "agent-table.json",
+        "engineering-principles",
     ],
     CODEX_HOME / "skills/openspec-verify-change/SKILL.md": [
         "verification-cycle-core-v1.json",
         "verification-cycle/orchestrator/CALLER-INTEGRATION.md",
         "verify-reviewer-inline-v3",
         "agent-table.json",
+        "engineering-principles",
     ],
     CODEX_HOME / "skills/openspec-repair-change/SKILL.md": [
         "CALLER-INTEGRATION.md",
         "current `agent-table.json`",
         "cycle_rules",
+        "fastest credible feedback loop",
     ],
     CODEX_HOME / "skills/openspec-apply-change/SKILL.md": [
         "CALLER-INTEGRATION.md",
@@ -202,16 +220,22 @@ SCOPE_PATTERNS = {
         "verify-reviewer-inline-v3",
         "cycle_rules",
         "agent-table.json",
+        "vertical tracer slices",
+        "pass/fail loop",
     ],
     CODEX_HOME / "skills/openspec-continue-change/SKILL.md": [
         "CALLER-INTEGRATION.md",
         "cycle_rules",
         "agent-table.json",
+        "engineering-principles.md",
+        "vertical tracer slices",
     ],
     CODEX_HOME / "skills/openspec-propose/SKILL.md": [
         "CALLER-INTEGRATION.md",
         "cycle_rules",
         "agent-table.json",
+        "engineering-principles.md",
+        "vertical tracer slices",
     ],
     OPENSPEC_ROOT / "schemas/ai-enforced-workflow/agent-spawn-decision-v1.schema.json": [
         "\"deprecated\": true",

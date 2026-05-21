@@ -6,6 +6,9 @@
 
 namespace ls2k::runtime {
 
+/// 构建辅助遥测视图：将 ControlDebugSnapshot 中的字段映射到 AssistantTelemetryView
+/// @param snapshot  控制调试快照（包含运动、感知、转向等全部调试信息）
+/// @return          填充好的 AssistantTelemetryView 结构体
 inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     const ControlDebugSnapshot& snapshot) {
     platform::AssistantTelemetryView telemetry{};

@@ -1,7 +1,7 @@
 #include "runtime/control_debug_reporter.hpp"
 
-// 控制调试报告器实现 —— 周期性输出调试快照到诊断系统。
-// 支持配置化发射间隔，避免过高频率的诊断输出。
+/// 控制调试报告器实现 —— 周期性输出调试快照到诊断系统。
+/// 支持配置化发射间隔，避免过高频率的诊断输出。
 
 #include <algorithm>
 #include <sstream>
@@ -9,24 +9,29 @@
 namespace ls2k::runtime {
 namespace {
 
-// 布尔值转字符串 "true"/"false"
+/// 布尔值转字符串 "true"/"false"
+/// @param value  布尔值
+/// @return       字符串 "true" 或 "false"
 const char* BoolToken(bool value) {
     return value ? "true" : "false";
 }
 
 }  // namespace
 
-// 配置调试报告器发射间隔
+/// 配置调试报告器发射间隔（最小为 1ms）
+/// @param params  运行时参数（含 control_snapshot_emit_interval_ms）
 void ControlDebugReporter::Configure(const port::RuntimeParameters& params) {
     interval_ms_ = std::max(1, params.control_snapshot_emit_interval_ms);
 }
 
-// 重置报告器发射时间（强制下次立即发射）
+/// 重置报告器发射时间（强制下次立即发射）
 void ControlDebugReporter::Reset() {
     last_emit_ms_ = 0;
 }
 
-// 周期性发射调试快照 —— 将控制快照格式化为诊断消息输出
+/// 周期性发射调试快照 —— 检查间隔并格式化输出控制/转向/内部诊断消息
+/// @param snapshot    当前控制调试快照
+/// @param diagnostics 诊断输出接口
 void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port::DiagnosticSink& diagnostics) {
     if (!snapshot.valid) {
         return;
@@ -162,6 +167,26 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << snapshot.steering.lateral_error.weighted_sample_count
                      << " lateral_error.weight_sum=" << snapshot.steering.lateral_error.weight_sum
                      << " lateral_error.reason=" << snapshot.steering.lateral_error.reason
+                     << " reference_time_alignment.enabled="
+                     << BoolToken(snapshot.steering.reference_time_alignment.enabled)
+                     << " reference_time_alignment.valid="
+                     << BoolToken(snapshot.steering.reference_time_alignment.valid)
+                     << " reference_time_alignment.reason="
+                     << snapshot.steering.reference_time_alignment.reason
+                     << " reference_time_alignment.age_ms="
+                     << snapshot.steering.reference_time_alignment.age_ms
+                     << " reference_time_alignment.reference_capture_time_ms="
+                     << snapshot.steering.reference_time_alignment.reference_capture_time_ms
+                     << " reference_time_alignment.control_time_ms="
+                     << snapshot.steering.reference_time_alignment.control_time_ms
+                     << " reference_time_alignment.delta_s_m="
+                     << snapshot.steering.reference_time_alignment.delta_s_m
+                     << " reference_time_alignment.delta_yaw_rad="
+                     << snapshot.steering.reference_time_alignment.delta_yaw_rad
+                     << " reference_time_alignment.input_sample_count="
+                     << snapshot.steering.reference_time_alignment.input_sample_count
+                     << " reference_time_alignment.aligned_sample_count="
+                     << snapshot.steering.reference_time_alignment.aligned_sample_count
                      << " reference_control.ready="
                      << BoolToken(snapshot.steering.reference_control.ready)
                      << " reference_control.reason=" << snapshot.steering.reference_control.reason

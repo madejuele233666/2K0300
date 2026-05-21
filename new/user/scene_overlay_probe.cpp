@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
@@ -844,6 +843,16 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
                   << " circle_entry." << id << ".near_centerline_count="
                   << entry.near_centerline_points.size()
                   << "\n";
+        for (std::size_t point_index = 0; point_index < entry.frontier_points.size(); ++point_index) {
+            const auto& frontier = entry.frontier_points[point_index];
+            const auto& centerline = entry.centerline_points[point_index];
+            std::cout << "circle_entry." << id << ".frontier_point index=" << point_index
+                      << " forward_m=" << frontier.forward_m
+                      << " lateral_m=" << frontier.lateral_m
+                      << " center_forward_m=" << centerline.forward_m
+                      << " center_lateral_m=" << centerline.lateral_m
+                      << "\n";
+        }
     };
     print_entry("left", pipeline.circle_entry_diagnostics.left);
     print_entry("right", pipeline.circle_entry_diagnostics.right);
@@ -889,8 +898,7 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                      const RuntimeParameters& params,
                                      const ls2k::port::SteeringPerceptionMemory& prior_memory,
                                      ls2k::legacy::BEVProjector& projector,
-                                     ls2k::legacy::BEVSampleProjectionLut& lut,
-                                     ls2k::legacy::BEVElementRasterBuilder& element_raster_builder) {
+                                     ls2k::legacy::BEVSampleProjectionLut& lut) {
     ProbePipelineResult result{};
     result.threshold = ls2k::legacy::ComputeOtsuThreshold(frame_view);
     result.simple = ls2k::legacy::RunBEVSimplePerception(frame_view,
@@ -903,9 +911,9 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                                        result.simple.reference_source);
     ls2k::legacy::VisualElementPipelineInput element_input{};
     element_input.sparse_rows = &result.simple.rows;
-    const ls2k::legacy::BEVElementRasterFrame& element_raster =
-        element_raster_builder.Build(frame_view, result.threshold, params, projector);
-    element_input.element_raster = &element_raster;
+    element_input.frame = &frame_view;
+    element_input.projector = &projector;
+    element_input.threshold = result.threshold;
     element_input.line_candidate = line_candidate;
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);
@@ -924,8 +932,11 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
         result.continuity.reference_path = result.visual_selection.reference_path;
         result.continuity.mode = result.visual_selection.reference_path.mode;
         result.continuity.source = result.visual_selection.source;
+        result.continuity.reference_capture_time_ms = frame_view.capture_time_ms;
         result.continuity.next_hold_state =
-            ls2k::legacy::MakeReferenceHoldState(result.visual_selection.reference_path, params);
+            ls2k::legacy::MakeReferenceHoldState(result.visual_selection.reference_path,
+                                                 frame_view.capture_time_ms,
+                                                 params);
         result.selected_usability = current_usability;
     } else {
         const ls2k::port::ReferenceContinuityResult hold_candidate =
@@ -1003,7 +1014,6 @@ int main(int argc, char** argv) {
             throw std::runtime_error("failed to configure BEV projector");
         }
         ls2k::legacy::BEVSampleProjectionLut lut{};
-        ls2k::legacy::BEVElementRasterBuilder element_raster_builder{};
         ls2k::port::SteeringPerceptionMemory prior_memory{};
         std::uint64_t frame_id = 1;
         for (const std::string& warmup_path : warmup_paths) {
@@ -1014,8 +1024,7 @@ int main(int argc, char** argv) {
                                  params,
                                  prior_memory,
                                  projector,
-                                 lut,
-                                 element_raster_builder);
+                                 lut);
             if (warmup.memory_update_valid) {
                 prior_memory = warmup.next_memory;
             }
@@ -1029,8 +1038,7 @@ int main(int argc, char** argv) {
                                         params,
                                         prior_memory,
                                         projector,
-                                        lut,
-                                        element_raster_builder);
+                                        lut);
             if (pipeline.memory_update_valid) {
                 prior_memory = pipeline.next_memory;
             }

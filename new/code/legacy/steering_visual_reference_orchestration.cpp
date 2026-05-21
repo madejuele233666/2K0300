@@ -5,25 +5,31 @@
 namespace ls2k::legacy {
 namespace {
 
+/// 特殊候选最低置信度要求
 constexpr float kSpecialCandidateConfidenceMin = 0.65F;
 
+/// 候选验证结果
 struct CandidateValidation {
-    bool accepted = false;
-    std::string rejected_reason = "none";
+    bool accepted = false;                ///< 候选是否通过验证
+    std::string rejected_reason = "none"; ///< 拒绝原因
 };
 
+/// 判断候选类型是否为特殊类型（非车道线）
 bool IsSpecialKind(port::VisualReferenceCandidateKind kind) {
     return kind != port::VisualReferenceCandidateKind::kLine;
 }
 
+/// 判断候选是否为高置信度的特殊候选
 bool IsConfidentSpecialCandidate(const port::VisualReferenceCandidate& candidate) {
     return IsSpecialKind(candidate.kind) && candidate.confidence >= kSpecialCandidateConfidenceMin;
 }
 
+/// 判断两个置信度值是否近似相等（容差1e-6）
 bool SameConfidence(float lhs, float rhs) {
     return std::fabs(lhs - rhs) <= 1e-6F;
 }
 
+/// 获取候选类型的优先级（数值越高优先级越高）
 int Priority(port::VisualReferenceCandidateKind kind) {
     switch (kind) {
         case port::VisualReferenceCandidateKind::kRoadblockBypass:
@@ -41,6 +47,8 @@ int Priority(port::VisualReferenceCandidateKind kind) {
     return 0;
 }
 
+/// 验证候选是否有效
+/// 检查：候选存在、置信度有效、参考路径模式正确、首个采样点存在、无间隙、坐标有限
 CandidateValidation ValidateCandidate(const port::VisualReferenceCandidate& candidate) {
     if (!candidate.present) {
         return {};
@@ -78,6 +86,7 @@ CandidateValidation ValidateCandidate(const port::VisualReferenceCandidate& cand
     return {true, "none"};
 }
 
+/// 选中一个候选并将其设置到选择结果中
 void SelectCandidate(port::VisualReferenceSelection& selection,
                      const port::VisualReferenceCandidate& candidate,
                      const char* reason) {
@@ -89,6 +98,8 @@ void SelectCandidate(port::VisualReferenceSelection& selection,
 
 }  // namespace
 
+/// ToString 实现
+/// 将VisualReferenceCandidateKind枚举值转换为可读字符串
 const char* ToString(port::VisualReferenceCandidateKind kind) {
     switch (kind) {
         case port::VisualReferenceCandidateKind::kLine:
@@ -107,6 +118,8 @@ const char* ToString(port::VisualReferenceCandidateKind kind) {
     return "line";
 }
 
+/// MakeLineVisualReferenceCandidate 实现
+/// 从BEV参考路径创建基础的车道线视觉参考候选
 port::VisualReferenceCandidate MakeLineVisualReferenceCandidate(
     const port::BEVReferencePath& reference_path,
     const std::string& source) {
@@ -120,6 +133,12 @@ port::VisualReferenceCandidate MakeLineVisualReferenceCandidate(
     return candidate;
 }
 
+/// SelectVisualReference 实现
+/// 从候选列表中选择最佳视觉参考：
+/// 1. 验证每个候选的有效性
+/// 2. 优先选择高置信度的特殊候选（按优先级）
+/// 3. 若无特殊候选则选择最佳车道线候选
+/// 4. 若特殊候选出现置信度平局则返回ambiguous
 port::VisualReferenceSelection SelectVisualReference(
     const std::vector<port::VisualReferenceCandidate>& candidates) {
     port::VisualReferenceSelection selection{};

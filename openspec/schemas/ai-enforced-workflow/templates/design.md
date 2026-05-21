@@ -14,6 +14,20 @@
 
 <!-- Key design decisions and rationale -->
 
+## Engineering Discipline
+
+- Principles reference:
+  `openspec/schemas/ai-enforced-workflow/engineering-principles.md`
+- Domain language / ADRs consulted:
+- Primary feedback loop:
+- Prototype question, if any:
+- Hard dependencies:
+  `verify-sequence/default`, authoritative findings/evidence, valid-pass
+  requirements, subject binding, and current-state `agent-table.json`
+- Soft dependencies:
+  glossary, ADRs, architecture heuristics, and prototype notes; use them when
+  present, but do not create auxiliary review gates for them
+
 ## Independent Verification Plan (STANDARD/STRICT)
 
 Document verification using shared sequence `verify-sequence/default` from:
@@ -32,7 +46,6 @@ Stage A flow:
 - source-first checkpoints use changed code, tests, and directly impacted code
   as the primary surface
 - approved docs remain reference material when source-first review runs
-- repository-level `.index/` material is optional background only
 - verification continues a usable `active` agent first
 - callers prefer `send_input` while that same `active` agent is still open
 - callers use `continuation_probe` to distinguish resume from recovery spawn
@@ -42,7 +55,8 @@ Stage A flow:
 
 Runtime profile policy:
 
-- Use verifier runtime profile from `.codex/agents/verify-reviewer.toml`.
+- Use verifier runtime profile from
+  `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml`.
 
 Loop rule:
 
@@ -56,33 +70,6 @@ Loop rule:
 - partial verification requires explicit `review_scope.scope`
 - only the main orchestrator may authorize resume/spawn/repair/terminate, and
   it must not substitute its own judgment for verifier output
-
-## External Repository Index Reference (Optional)
-
-Document `.index/` only when repository-level indexing is useful as
-background for humans or external AI.
-
-Required fields:
-
-- Canonical root: `.index/`
-- Run contract path: `.index/contracts/repository-index-run-v1.json`
-- Manifest contract path: `.index/contracts/repository-index-manifest-v1.json`
-- Entry contract path: `.index/contracts/repository-index-entry-v1.json`
-- Validator entrypoint: `.index/bin/validate_repository_index.py`
-- Run modes:
-  - `full_refresh` (default)
-  - `scoped_refresh`
-- Canonical outputs per run:
-  - one run JSON
-  - one manifest JSON
-  - per-entry JSON files
-  - one human-readable summary Markdown
-- Non-authority rule:
-  - `.index/` is reference material only
-  - it MUST NOT emit verifier verdicts
-  - it MUST NOT claim workflow closure authority
-  - it MUST NOT define repair routing
-  - it MUST NOT be required for verification completion
 
 Shared field groups from `verification-cycle-core-v1.json` and
 `verification-cycle-openspec-adapter-v1.json`:
@@ -110,7 +97,8 @@ Review completion contract:
 
 - Shared sequence reference: `verify-sequence/default`
 - Review goal: `implementation_correctness`
-- Verifier agent path: `.codex/agents/verify-reviewer.toml`
+- Verifier agent path:
+  `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml`
 - Invocation template id: `verify-reviewer-inline-v3`
 - Default loop behavior:
   - resume `active` first
@@ -124,7 +112,6 @@ Review completion contract:
 - Authoritative verifier-subagent findings JSON path:
 - Verifier execution evidence JSON path:
 - Agent table path:
-- Optional `.index/` summary path:
 - Continuation target on pass:
 
 Checkpoint-specific primary surfaces:

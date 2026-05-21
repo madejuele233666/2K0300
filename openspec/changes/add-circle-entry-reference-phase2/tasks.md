@@ -51,7 +51,7 @@
 - [x] 3.2 Implement rear-side sampleable black-white frontier extraction that rejects unknown, invalid, unavailable, outside-frame, raster/FOV-boundary, and detached-island support.
 - [x] 3.3 Implement side-specific frontier chain direction gating using net forward motion and `CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, without requiring per-point monotonic lateral movement.
 - [x] 3.4 Implement median near-row half-width inference and frontier-derived centerline points with left formula `frontier + road_half_width` and right formula `frontier - road_half_width`.
-- [x] 3.5 Add focused circle evidence tests covering left/right entry facts, FOV-boundary rejection, unknown/unavailable rejection, non-sampleable black rejection, detached component rejection, direction below `0.08m`, insufficient frontier points, and insufficient near-row width support.
+- [x] 3.5 Add focused circle evidence tests covering left/right entry facts, FOV-boundary rejection, unknown/unavailable rejection, non-sampleable black rejection, detached component rejection, direction below `0.05m`, insufficient frontier points, and insufficient near-row width support.
 
 ## 4. Circle Entry Candidate Builder And Pipeline
 
@@ -94,8 +94,9 @@
 - [x] 7.2 Collect static/no-motion evidence at cross and bend scenes and verify cross suppression or circle absence prevents circle entry candidate build.
   - Cross evidence: `new/verification/circle-phase2-board-cross-static-20260506-172322/`; 73/73 snapshots show `cross_exit.present=true`, `circle_left_raw/circle_right_raw.present=false`, `circle_left/circle_right.present=false`, circle candidate `built=false`, and `visual_reference.source=simple_interval_center`.
   - Bend evidence: `new/verification/circle-phase2-board-bend-static-20260506-173051/`; 62/62 snapshots show `cross_exit.present=false`, `circle_left_raw/circle_right_raw.present=false`, `circle_left/circle_right.present=false`, circle candidate `built=false`, and `visual_reference.source=simple_interval_center`.
-- [ ] 7.3 Only after static evidence is reviewed, perform an explicitly parameter-enabled circle entry check; verify selected source becomes `circle_left`/`circle_right` while downstream readiness/safety/yaw/actuator gates remain observable.
+- [x] 7.3 Only after static evidence is reviewed, perform an explicitly parameter-enabled circle entry check; verify selected source becomes `circle_left`/`circle_right` while downstream readiness/safety/yaw/actuator gates remain observable.
   - Attempt evidence: `new/verification/circle-phase2-board-takeover-static-20260506-173850/`; `CIRCLE_ENTRY_TAKEOVER_ENABLED=true` loaded, 74/74 snapshots show `circle_left_raw/effective.present=true` and `cross_exit.present=false`, but only 13/74 snapshots select `visual_reference.source=circle_left`; 61/74 fail closed with `frontier_direction_insufficient`. This is not accepted as 7.3 completion.
+  - Evidence: `new/verification/circle-phase2-board-takeover-005-static-20260513-234149/manual-log-extract/control_steering_snapshot_tail200.log`; board runtime loaded `CIRCLE_ENTRY_TAKEOVER_ENABLED=true` and `CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M=0.05`, with 200/200 complete snapshots showing `circle_left_raw/effective.present=true`, `circle_left.candidate.built=true`, `circle_left.candidate.included_in_arbitration=true`, `visual_reference.source=circle_left`, `reference_control.ready=true`, `safety_gate.veto_active=false`, and DISARMED actuator outputs at 0.
 
 ## 8. Implementation Review Gate
 

@@ -8,8 +8,17 @@
 namespace ls2k::platform {
 namespace {
 
+/**
+ * 桥接转向媒体传输实现 —— 通过 true_ls2k0300 桥接层与外部媒体系统通信。
+ */
 class BridgeSteeringMediaTransport final : public ISteeringMediaTransport {
 public:
+    /**
+     * 初始化桥接传输层。
+     * @param config 传输配置（主机和端口）
+     * @param detail 输出参数，初始化详情
+     * @return true 表示初始化成功
+     */
     bool Initialize(const SteeringMediaTransportConfig& config, std::string& detail) override {
         true_ls2k0300::SteeringMediaBridgeConfig bridge_config{};
         bridge_config.host = config.host;
@@ -17,6 +26,10 @@ public:
         return true_ls2k0300::InitializeSteeringMediaBridge(bridge_config, detail);
     }
 
+    /**
+     * 轮询桥接传输层状态。
+     * @return 传输层轮询结果，包含连接状态和变化标志
+     */
     SteeringMediaTransportPollResult Poll() override {
         const true_ls2k0300::SteeringMediaBridgePollResult result =
             true_ls2k0300::PollSteeringMediaBridge();
@@ -43,10 +56,21 @@ public:
         return view;
     }
 
+    /**
+     * 查询桥接传输层是否已就绪。
+     * @return true 表示传输层已连接可用
+     */
     bool Ready() const override {
         return true_ls2k0300::SteeringMediaBridgeReady();
     }
 
+    /**
+     * 通过桥接层发送二进制数据。
+     * @param data 数据缓冲区指针
+     * @param length 数据长度（字节）
+     * @param detail 输出参数，发送结果详情
+     * @return 发送结果枚举
+     */
     SteeringMediaTransportSendResult SendBytes(const std::uint8_t* data,
                                                std::size_t length,
                                                std::string& detail) override {
@@ -66,6 +90,11 @@ public:
     }
 };
 
+/**
+ * 将转向媒体传输状态转换为诊断事件代码字符串。
+ * @param state 传输状态
+ * @return 对应的诊断事件代码
+ */
 const char* ToStateMarker(SteeringMediaTransportState state) {
     switch (state) {
         case SteeringMediaTransportState::kUnconfigured:
@@ -82,6 +111,11 @@ const char* ToStateMarker(SteeringMediaTransportState state) {
     return "steering_media.unknown";
 }
 
+/**
+ * 将转向媒体传输状态映射为诊断级别。
+ * @param state 传输状态
+ * @return 对应的诊断级别（kInfo 或 kWarning）
+ */
 port::DiagnosticLevel ToStateLevel(SteeringMediaTransportState state) {
     switch (state) {
         case SteeringMediaTransportState::kReady:
@@ -97,12 +131,27 @@ port::DiagnosticLevel ToStateLevel(SteeringMediaTransportState state) {
 
 }  // namespace
 
+/**
+ * 构造 SteeringMediaLink —— 使用默认的 BridgeSteeringMediaTransport 作为传输层。
+ */
 SteeringMediaLink::SteeringMediaLink()
     : SteeringMediaLink(std::make_unique<BridgeSteeringMediaTransport>()) {}
 
+/**
+ * 构造 SteeringMediaLink —— 使用指定的传输层实现。
+ * @param transport 传输层实例的唯一指针
+ */
 SteeringMediaLink::SteeringMediaLink(std::unique_ptr<ISteeringMediaTransport> transport)
     : transport_(std::move(transport)) {}
 
+/**
+ * 初始化转向媒体链路。
+ * 根据运行时参数中的 steering_media_enabled 决定是否启用。
+ * 使用 assistant_tcp.host 和 steering_media_port 配置 TCP 端点。
+ * @param params 运行时参数
+ * @param diagnostics 诊断输出接收器
+ * @return true 表示初始化成功，false 表示媒体被禁用或初始化失败
+ */
 bool SteeringMediaLink::Initialize(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     ready_ = false;
@@ -127,6 +176,13 @@ bool SteeringMediaLink::Initialize(const port::RuntimeParameters& params, port::
     return ok;
 }
 
+/**
+ * 轮询转向媒体链路状态。
+ * 更新就绪标志，检测连接状态变化和连接丢失事件。
+ * 连接丢失时自动清除待发送的排队图像。
+ * @param diagnostics 诊断输出接收器
+ * @return 链路轮询结果
+ */
 SteeringMediaLinkPollResult SteeringMediaLink::Poll(port::DiagnosticSink& diagnostics) {
     SteeringMediaLinkPollResult poll_result{};
     if (!configured_ || transport_ == nullptr) {
@@ -151,6 +207,15 @@ SteeringMediaLinkPollResult SteeringMediaLink::Poll(port::DiagnosticSink& diagno
     return poll_result;
 }
 
+/**
+ * 发送已编码的数据负载（内部方法）。
+ * 在性能探测范围内执行发送操作。
+ * 发送结果为断开或错误时更新就绪状态并发出诊断事件。
+ * @param encoded 已编码的完整媒体信封数据
+ * @param diagnostic_code 诊断事件代码（用于发送失败时的诊断）
+ * @param diagnostics 诊断输出接收器
+ * @return 传输发送结果
+ */
 SteeringMediaTransportSendResult SteeringMediaLink::PublishEncoded(
     const std::vector<std::uint8_t>& encoded,
     const char* diagnostic_code,
@@ -179,6 +244,13 @@ SteeringMediaTransportSendResult SteeringMediaLink::PublishEncoded(
     return send_result;
 }
 
+/**
+ * 发布参数配置快照。
+ * 先编码快照为媒体信封格式，再通过传输层发送。
+ * @param snapshot 参数配置快照数据
+ * @param diagnostics 诊断输出接收器
+ * @return true 表示快照已成功发送或已被接收在途
+ */
 bool SteeringMediaLink::PublishConfigSnapshot(const SteeringMediaConfigSnapshot& snapshot,
                                               port::DiagnosticSink& diagnostics) {
     std::vector<std::uint8_t> encoded;
@@ -199,6 +271,15 @@ bool SteeringMediaLink::PublishConfigSnapshot(const SteeringMediaConfigSnapshot&
            send_result == SteeringMediaTransportSendResult::kAcceptedInFlight;
 }
 
+/**
+ * 发布图像帧。
+ * 先编码图像帧为媒体信封格式，然后尝试发送。
+ * 如果传输层忙碌（kBusyRejected），则暂存图像数据等待稍后刷新。
+ * 如果已有待发送的图像排队，则直接替换为最新帧。
+ * @param frame 图像帧数据
+ * @param diagnostics 诊断输出接收器
+ * @return 发布结果（已发送/已排队/不可用）
+ */
 SteeringMediaPublishResult SteeringMediaLink::PublishImageFrame(const SteeringMediaImageFrame& frame,
                                                                 port::DiagnosticSink& diagnostics) {
     std::vector<std::uint8_t> encoded;
@@ -235,6 +316,13 @@ SteeringMediaPublishResult SteeringMediaLink::PublishImageFrame(const SteeringMe
     return SteeringMediaPublishResult::kUnavailable;
 }
 
+/**
+ * 刷新待发送的排队图像。
+ * 尝试发送之前因链路忙碌而暂存的图像数据。
+ * 发送成功或连接已断开时清除排队数据。
+ * @param diagnostics 诊断输出接收器
+ * @return true 表示排队图像已成功发送或接收在途
+ */
 bool SteeringMediaLink::FlushPendingImage(port::DiagnosticSink& diagnostics) {
     if (pending_image_.empty()) {
         return false;
@@ -255,6 +343,10 @@ bool SteeringMediaLink::FlushPendingImage(port::DiagnosticSink& diagnostics) {
     return false;
 }
 
+/**
+ * 查询转向媒体链路是否已就绪。
+ * @return true 表示链路已连接并可用于发送数据
+ */
 bool SteeringMediaLink::Ready() const {
     return ready_;
 }
