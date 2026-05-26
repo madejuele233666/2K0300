@@ -4,6 +4,7 @@
 
 #include "platform/true_ls2k0300/steering_media_bridge.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
@@ -16,6 +17,7 @@
 #include <netinet/tcp.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 namespace ls2k::platform::true_ls2k0300 {
@@ -23,7 +25,12 @@ namespace {
 
 constexpr std::uint64_t kReconnectBackoffMs = 1000;
 [[maybe_unused]] constexpr std::uint64_t kReliableSendTimeoutMs = 75;
-constexpr int kSteeringMediaSocketBufferBytes = 256 * 1024;
+constexpr int kSteeringMediaSocketBufferBytes = 64 * 1024;
+constexpr std::size_t kMaxNonBlockingFlushBytesPerPoll = 32 * 1024;
+constexpr int kMaxKernelOutQueueBytes = 32 * 1024;
+constexpr int kStreamingDscpAf41 = 0x88;
+constexpr int kStreamingSocketPriority = 4;
+constexpr int kTcpNotSentLowAtBytes = 16 * 1024;
 
 struct SteeringMediaBridgeContext {
     SteeringMediaBridgeConfig config{};
@@ -34,6 +41,9 @@ struct SteeringMediaBridgeContext {
     std::string detail = "steering media bridge not configured";
     std::vector<std::uint8_t> pending_send{};
     std::size_t pending_send_offset = 0;
+    std::size_t total_sent_bytes = 0;
+    std::size_t last_sent_bytes = 0;
+    std::uint64_t last_send_at_ms = 0;
 };
 
 SteeringMediaBridgeContext g_bridge{};
@@ -67,6 +77,112 @@ void TransitionTo(SteeringMediaBridgeState state, std::string detail) {
     }
     g_bridge.state = state;
     g_bridge.detail = std::move(detail);
+}
+
+// 转换 TCP 状态编号为可读名称
+const char* ToTcpStateName(std::uint8_t state) {
+    switch (state) {
+        case 1:
+            return "ESTABLISHED";
+        case 2:
+            return "SYN_SENT";
+        case 3:
+            return "SYN_RECV";
+        case 4:
+            return "FIN_WAIT1";
+        case 5:
+            return "FIN_WAIT2";
+        case 6:
+            return "TIME_WAIT";
+        case 7:
+            return "CLOSE";
+        case 8:
+            return "CLOSE_WAIT";
+        case 9:
+            return "LAST_ACK";
+        case 10:
+            return "LISTEN";
+        case 11:
+            return "CLOSING";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+// 读取内核发送队列积压字节数，TIOCOUTQ 不可用时返回 0
+int KernelSendQueueBytes() {
+#ifdef TIOCOUTQ
+    if (g_bridge.socket_fd < 0) {
+        return 0;
+    }
+    int outq = 0;
+    if (ioctl(g_bridge.socket_fd, TIOCOUTQ, &outq) == 0) {
+        return std::max(0, outq);
+    }
+#endif
+    return 0;
+}
+
+// 描述套接字本地和远端地址端口
+std::string DescribeSocketEndpoints() {
+    if (g_bridge.socket_fd < 0) {
+        return " fd=closed";
+    }
+
+    sockaddr_in local_addr{};
+    socklen_t local_len = sizeof(local_addr);
+    sockaddr_in peer_addr{};
+    socklen_t peer_len = sizeof(peer_addr);
+    char local_ip[INET_ADDRSTRLEN] = {};
+    char peer_ip[INET_ADDRSTRLEN] = {};
+    std::string detail;
+    if (getsockname(g_bridge.socket_fd, reinterpret_cast<sockaddr*>(&local_addr), &local_len) == 0 &&
+        inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip)) != nullptr) {
+        detail += " local=" + std::string(local_ip) + ":" + std::to_string(ntohs(local_addr.sin_port));
+    }
+    if (getpeername(g_bridge.socket_fd, reinterpret_cast<sockaddr*>(&peer_addr), &peer_len) == 0 &&
+        inet_ntop(AF_INET, &peer_addr.sin_addr, peer_ip, sizeof(peer_ip)) != nullptr) {
+        detail += " peer=" + std::string(peer_ip) + ":" + std::to_string(ntohs(peer_addr.sin_port));
+    }
+    return detail;
+}
+
+// 描述 TCP 状态和内核发送队列积压，便于现场判断热点链路是否拥塞
+std::string DescribeTcpInfo() {
+    if (g_bridge.socket_fd < 0) {
+        return {};
+    }
+
+    std::string detail;
+#ifdef TCP_INFO
+    tcp_info info{};
+    socklen_t info_len = sizeof(info);
+    if (getsockopt(g_bridge.socket_fd, IPPROTO_TCP, TCP_INFO, &info, &info_len) == 0) {
+        detail += " tcp_state=" + std::string(ToTcpStateName(info.tcpi_state));
+        detail += " unacked=" + std::to_string(info.tcpi_unacked);
+        detail += " retrans=" + std::to_string(info.tcpi_retransmits);
+        detail += " probes=" + std::to_string(info.tcpi_probes);
+        detail += " backoff=" + std::to_string(info.tcpi_backoff);
+        detail += " rto_us=" + std::to_string(info.tcpi_rto);
+        detail += " snd_mss=" + std::to_string(info.tcpi_snd_mss);
+    }
+#endif
+
+    detail += " outq_bytes=" + std::to_string(KernelSendQueueBytes());
+    return detail;
+}
+
+// 组合最近发送统计和 TCP 状态
+std::string DescribeSocketState() {
+    const std::uint64_t now_ms = MonotonicNowMs();
+    const std::uint64_t send_age_ms =
+        g_bridge.last_send_at_ms == 0 || now_ms < g_bridge.last_send_at_ms
+            ? 0
+            : now_ms - g_bridge.last_send_at_ms;
+    return " last_send_bytes=" + std::to_string(g_bridge.last_sent_bytes) +
+           " last_send_age_ms=" + std::to_string(send_age_ms) +
+           " total_sent_bytes=" + std::to_string(g_bridge.total_sent_bytes) +
+           DescribeSocketEndpoints() + DescribeTcpInfo();
 }
 
 // 进入回退状态 —— 关闭套接字并设置下次重试时间
@@ -107,6 +223,21 @@ void TryExpandSocketBuffers(int socket_fd) {
     (void)setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &buffer_bytes, sizeof(buffer_bytes));
 }
 
+void TrySetIntSocketOption(int socket_fd, int level, int option_name, int value) {
+    (void)setsockopt(socket_fd, level, option_name, &value, sizeof(value));
+}
+
+// Best-effort hints for realtime media over weak WiFi. Failures are intentionally non-fatal.
+void TryTuneStreamingSocket(int socket_fd) {
+    TrySetIntSocketOption(socket_fd, IPPROTO_IP, IP_TOS, kStreamingDscpAf41);
+#ifdef SO_PRIORITY
+    TrySetIntSocketOption(socket_fd, SOL_SOCKET, SO_PRIORITY, kStreamingSocketPriority);
+#endif
+#ifdef TCP_NOTSENT_LOWAT
+    TrySetIntSocketOption(socket_fd, IPPROTO_TCP, TCP_NOTSENT_LOWAT, kTcpNotSentLowAtBytes);
+#endif
+}
+
 // 发起 TCP 连接 —— DNS 解析 → 创建非阻塞套接字 → connect（非阻塞）
 bool BeginConnectAttempt() {
     addrinfo hints{};
@@ -143,6 +274,7 @@ bool BeginConnectAttempt() {
         return false;
     }
     TryExpandSocketBuffers(socket_fd);
+    TryTuneStreamingSocket(socket_fd);
 
     g_bridge.socket_fd = socket_fd;
     const int connect_rc = connect(socket_fd, resolved->ai_addr, resolved->ai_addrlen);
@@ -150,7 +282,8 @@ bool BeginConnectAttempt() {
 
     if (connect_rc == 0) {
         TransitionTo(SteeringMediaBridgeState::kReady,
-                     "steering media TCP connected to " + g_bridge.config.host + ":" + port_text);
+                     "steering media TCP connected to " + g_bridge.config.host + ":" + port_text +
+                         DescribeSocketState());
         return true;
     }
     if (errno == EINPROGRESS || errno == EWOULDBLOCK) {
@@ -196,7 +329,7 @@ void FinishPendingConnect() {
 
     TransitionTo(SteeringMediaBridgeState::kReady,
                  "steering media TCP connected to " + g_bridge.config.host + ":" +
-                     std::to_string(g_bridge.config.port));
+                     std::to_string(g_bridge.config.port) + DescribeSocketState());
 }
 
 // 健康检查 —— poll 探测就绪套接字是否出现错误或对端关闭
@@ -234,9 +367,10 @@ void CheckReadySocketHealth() {
         socklen_t socket_error_len = sizeof(socket_error);
         if (getsockopt(g_bridge.socket_fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_len) == 0 &&
             socket_error != 0) {
-            EnterBackoff("steering media TCP socket failed: " + std::string(std::strerror(socket_error)));
+            EnterBackoff("steering media TCP socket failed: " +
+                         std::string(std::strerror(socket_error)) + DescribeSocketState());
         } else {
-            EnterBackoff("steering media TCP socket closed by peer");
+            EnterBackoff("steering media TCP socket closed by peer" + DescribeSocketState());
         }
     }
 }
@@ -287,19 +421,34 @@ SteeringMediaBridgeSendResult FlushPendingSend(bool wait_for_writable, std::stri
     }
 
     const std::uint64_t started_at_ms = MonotonicNowMs();
+    std::size_t sent_this_call = 0;
     while (g_bridge.pending_send_offset < g_bridge.pending_send.size()) {
+        if (!wait_for_writable && sent_this_call >= kMaxNonBlockingFlushBytesPerPoll) {
+            detail = "steering media TCP flush budget exhausted; keeping current frame in-flight" +
+                     DescribeTcpInfo();
+            return SteeringMediaBridgeSendResult::kBusyRejected;
+        }
 #ifdef MSG_NOSIGNAL
         const int send_flags = MSG_NOSIGNAL;
 #else
         const int send_flags = 0;
 #endif
         const std::size_t remaining = g_bridge.pending_send.size() - g_bridge.pending_send_offset;
+        const std::size_t send_length =
+            wait_for_writable
+                ? remaining
+                : std::min(remaining, kMaxNonBlockingFlushBytesPerPoll - sent_this_call);
         const ssize_t sent = send(g_bridge.socket_fd,
                                   g_bridge.pending_send.data() + g_bridge.pending_send_offset,
-                                  remaining,
+                                  send_length,
                                   send_flags);
         if (sent > 0) {
-            g_bridge.pending_send_offset += static_cast<std::size_t>(sent);
+            const std::size_t sent_size = static_cast<std::size_t>(sent);
+            g_bridge.pending_send_offset += sent_size;
+            sent_this_call += sent_size;
+            g_bridge.last_sent_bytes = sent_size;
+            g_bridge.total_sent_bytes += sent_size;
+            g_bridge.last_send_at_ms = MonotonicNowMs();
             continue;
         }
         if (sent == 0) {
@@ -314,10 +463,12 @@ SteeringMediaBridgeSendResult FlushPendingSend(bool wait_for_writable, std::stri
             if (wait_for_writable && WaitForSocketWritable(started_at_ms, kReliableSendTimeoutMs)) {
                 continue;
             }
-            detail = "steering media TCP socket is busy; keeping current frame in-flight";
+            detail = "steering media TCP socket is busy; keeping current frame in-flight" +
+                     DescribeTcpInfo();
             return SteeringMediaBridgeSendResult::kBusyRejected;
         }
-        EnterBackoff("steering media TCP send failed: " + std::string(std::strerror(errno)));
+        EnterBackoff("steering media TCP send failed: " + std::string(std::strerror(errno)) +
+                     DescribeSocketState());
         detail = g_bridge.detail;
         return SteeringMediaBridgeSendResult::kError;
     }
@@ -413,6 +564,13 @@ SteeringMediaBridgeSendResult SendSteeringMediaBytes(const std::uint8_t* data,
             }
             return flush_result;
         }
+    }
+
+    const int outq_bytes = KernelSendQueueBytes();
+    if (outq_bytes > kMaxKernelOutQueueBytes) {
+        detail = "steering media TCP kernel send queue is busy; replacing queued image outq_bytes=" +
+                 std::to_string(outq_bytes);
+        return SteeringMediaBridgeSendResult::kBusyRejected;
     }
 
     g_bridge.pending_send.assign(data, data + length);

@@ -16,6 +16,16 @@ const char* BoolToken(bool value) {
     return value ? "true" : "false";
 }
 
+std::size_t CountPresentPathSamples(const port::BEVReferencePath& path) {
+    std::size_t count = 0;
+    for (const port::BEVPathSample& sample : path.sampled_path) {
+        if (sample.present) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 }  // namespace
 
 /// 配置调试报告器发射间隔（最小为 1ms）
@@ -106,7 +116,31 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
 	                     << " element_evidence.cross_exit.candidate.included_in_arbitration="
 	                     << BoolToken(snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration)
 	                     << " element_evidence.cross_exit.candidate.reason="
-	                     << snapshot.steering.element_evidence.cross_exit.candidate.reason;
+	                     << snapshot.steering.element_evidence.cross_exit.candidate.reason
+                     << " circle_v2.enabled=" << BoolToken(snapshot.steering.circle_v2.enabled)
+                     << " circle_v2.frame_phase=" << snapshot.steering.circle_v2.frame_phase
+                     << " circle_v2.next_phase=" << snapshot.steering.circle_v2.next_phase
+                     << " circle_v2.dir=" << snapshot.steering.circle_v2.dir
+                     << " circle_v2.reference_role=" << snapshot.steering.circle_v2.reference_role
+                     << " circle_v2.reason=" << snapshot.steering.circle_v2.reason
+                     << " circle_v2.motion_arc_available="
+                     << BoolToken(snapshot.steering.circle_v2.motion_arc_available)
+                     << " circle_v2.inner_trace_elapsed_ms="
+                     << snapshot.steering.circle_v2.inner_trace_elapsed_ms
+                     << " circle_v2.directed_turn_angle_rad="
+                     << snapshot.steering.circle_v2.directed_turn_angle_rad
+                     << " circle_v2.entry_points.left.available="
+                     << BoolToken(snapshot.steering.circle_v2.entry_points.left.available)
+                     << " circle_v2.entry_points.left.forward_m="
+                     << snapshot.steering.circle_v2.entry_points.left.point.forward_m
+                     << " circle_v2.entry_points.left.lateral_m="
+                     << snapshot.steering.circle_v2.entry_points.left.point.lateral_m
+                     << " circle_v2.entry_points.right.available="
+                     << BoolToken(snapshot.steering.circle_v2.entry_points.right.available)
+                     << " circle_v2.entry_points.right.forward_m="
+                     << snapshot.steering.circle_v2.entry_points.right.point.forward_m
+                     << " circle_v2.entry_points.right.lateral_m="
+                     << snapshot.steering.circle_v2.entry_points.right.point.lateral_m;
     for (std::size_t index = 0; index < snapshot.steering.element_evidence.records.size(); ++index) {
         const port::VisualElementEvidenceRecord& record =
             snapshot.steering.element_evidence.records[index];
@@ -150,6 +184,10 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << snapshot.steering.visual_reference.candidate_count
                      << " visual_reference.rejected_candidate_reason="
                      << snapshot.steering.visual_reference.rejected_candidate_reason
+                     << " visual_reference.path_candidates.count="
+                     << snapshot.steering.visual_reference.candidate_paths.count
+                     << " visual_reference.path_candidates.omitted_count="
+                     << snapshot.steering.visual_reference.candidate_paths.omitted_count
                      << " reference.mode=" << snapshot.steering.reference.mode
                      << " reference.source=" << snapshot.steering.reference.source
                      << " eligibility.usable=" << BoolToken(snapshot.steering.eligibility.usable)
@@ -200,6 +238,21 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " threshold=" << snapshot.steering.threshold
                      << " actuator.raw_turn_output=" << snapshot.steering.actuator.raw_turn_output
                      << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output;
+    const std::size_t candidate_path_count =
+        std::min(snapshot.steering.visual_reference.candidate_paths.count,
+                 snapshot.steering.visual_reference.candidate_paths.entries.size());
+    for (std::size_t index = 0; index < candidate_path_count; ++index) {
+        const port::VisualReferenceCandidate& candidate =
+            snapshot.steering.visual_reference.candidate_paths.entries[index];
+        steering_message << " visual_reference.path_candidates[" << index << "].present="
+                         << BoolToken(candidate.present)
+                         << " visual_reference.path_candidates[" << index << "].source="
+                         << candidate.source
+                         << " visual_reference.path_candidates[" << index << "].reason="
+                         << candidate.reason
+                         << " visual_reference.path_candidates[" << index << "].sample_count="
+                         << CountPresentPathSamples(candidate.reference_path);
+    }
     diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
                       "control.steering_snapshot",
                       steering_message.str(),

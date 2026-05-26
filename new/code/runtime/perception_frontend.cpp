@@ -70,13 +70,13 @@ bool PerceptionFrontend::Configure(const port::RuntimeParameters& params) {
     return frame_pipeline_.Configure(params, diagnostics_);
 }
 
-/// 消费感知内存复位请求：检查复位代数，若有新请求则清空感知管线记忆
+/// 消费普通参考连续性复位请求：检查复位代数，若有新请求则清空 reference hold
 void PerceptionFrontend::ConsumeMemoryResetRequest() {
     const uint64_t generation = state_.perception_memory_reset_generation.load();
     if (generation == consumed_perception_memory_reset_generation_) {
         return;
     }
-    frame_pipeline_.ResetMemory();
+    frame_pipeline_.ResetReferenceMemory();
     consumed_perception_memory_reset_generation_ = generation;
 }
 
@@ -138,7 +138,13 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         return;
     }
 
-    port::PerceptionResult perception = frame_pipeline_.ProcessFrame(capture, params);
+    MotionHistory motion_history{};
+    {
+        std::lock_guard<std::mutex> lock(state_.shared_mutex);
+        motion_history = state_.motion_history;
+    }
+    port::PerceptionResult perception =
+        frame_pipeline_.ProcessFrame(capture, params, motion_history);
 
     {
         LS2K_PERF_SCOPE(port::PerfStage::kPerceptionPublish);

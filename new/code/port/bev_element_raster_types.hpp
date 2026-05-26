@@ -48,7 +48,7 @@ enum class BEVElementRasterProjectionState : std::uint8_t {
  * 控制栅格化的启用状态和输出分辨率。
  */
 struct BEVElementRasterParameters {
-    bool enabled = true;  ///< 是否启用栅格化处理
+    bool enabled = false; ///< 是否启用栅格化处理
     int width = 320;      ///< 栅格宽度（像素），高度由几何参数推导
 };
 

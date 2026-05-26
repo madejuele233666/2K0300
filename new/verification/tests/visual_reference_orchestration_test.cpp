@@ -132,7 +132,7 @@ void TestPriorityExplainsMultipleSpecialCandidates() {
     const ls2k::port::VisualReferenceCandidate cross =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kCrossExit, 3, 0.90F, "cross_exit");
     const ls2k::port::VisualReferenceCandidate circle =
-        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.80F, "circle_left");
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.80F, "circle_v2_inner");
     const ls2k::port::VisualReferenceCandidate roadblock =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kRoadblockBypass,
                   3,
@@ -148,13 +148,29 @@ void TestPriorityExplainsMultipleSpecialCandidates() {
     Expect(selection.candidate_count == 4, "all structurally valid candidates must be counted");
 }
 
+void TestCrossExitPriorityExceedsCircle() {
+    const ls2k::port::VisualReferenceCandidate line =
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kLine, 3, 1.0F, "line");
+    const ls2k::port::VisualReferenceCandidate cross =
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kCrossExit, 3, 0.70F, "cross_exit");
+    const ls2k::port::VisualReferenceCandidate circle =
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.95F, "circle_v2_inner");
+    const ls2k::port::VisualReferenceSelection selection =
+        ls2k::legacy::SelectVisualReference({line, circle, cross});
+    Expect(selection.present, "cross and circle candidates must be arbitrated");
+    Expect(selection.source == "cross_exit",
+           "cross exit must outrank circle even when circle confidence is higher");
+    Expect(selection.reason == "special_visual_candidate_selected",
+           "cross-over-circle selection must expose deterministic reason");
+}
+
 void TestEqualSpecialTieSelectsNone() {
     const ls2k::port::VisualReferenceCandidate line =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kLine, 3, 1.0F, "line");
     const ls2k::port::VisualReferenceCandidate circle_left =
-        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.80F, "circle_left");
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.80F, "circle_v2_inner");
     const ls2k::port::VisualReferenceCandidate circle_right =
-        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleRight, 3, 0.80F, "circle_right");
+        Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleRight, 3, 0.80F, "circle_v2_exit");
     const ls2k::port::VisualReferenceSelection selection =
         ls2k::legacy::SelectVisualReference({line, circle_left, circle_right});
     Expect(!selection.present, "equal-priority equal-confidence special tie must fail closed");
@@ -174,6 +190,7 @@ int main() {
         TestHoldModeRejectsCandidate();
         TestLineWinsWhenSpecialIsAbsentOrLowConfidence();
         TestPriorityExplainsMultipleSpecialCandidates();
+        TestCrossExitPriorityExceedsCircle();
         TestEqualSpecialTieSelectsNone();
     } catch (const TestFailure& failure) {
         std::cerr << "visual_reference_orchestration_test failed: "

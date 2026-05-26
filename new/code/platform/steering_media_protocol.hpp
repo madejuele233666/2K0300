@@ -14,6 +14,8 @@
 
 #include "port/bev_geometry_types.hpp"
 #include "port/bev_element_raster_types.hpp"
+#include "port/camera_frame_types.hpp"
+#include "port/perception_result.hpp"
 #include "port/visual_element_evidence_types.hpp"
 
 namespace ls2k::platform {
@@ -84,6 +86,8 @@ struct SteeringMediaVisualReferenceView {
     std::uint64_t candidate_count = 0;
     /** 被拒绝的候选参考原因 */
     std::string rejected_candidate_reason = "none";
+    /** 本帧构建的候选路径事实集合 */
+    port::VisualReferenceCandidatePathSet candidate_paths{};
 };
 
 /**
@@ -192,6 +196,8 @@ struct SteeringMediaSnapshotView {
     SteeringMediaPerceptionHealthView perception_health{};
     /** 视觉元素证据（路口退出/圆形检测） */
     SteeringMediaElementEvidenceView element_evidence{};
+    /** CircleV2 场景状态 */
+    port::CircleV2TelemetrySnapshot circle_v2{};
     /** 视觉参考候选状态 */
     SteeringMediaVisualReferenceView visual_reference{};
     /** 参考模式与来源 */
@@ -234,6 +240,10 @@ struct SteeringMediaImageFrame {
     std::uint64_t capture_time_ms = 0;
     /** 图像发布时间戳（毫秒） */
     std::uint64_t publish_time_ms = 0;
+    /** 相机采集/提交元数据 */
+    port::CameraRawFrameMetadata camera_metadata{};
+    /** 相机帧存储健康统计 */
+    port::CameraFrameStoreHealth camera_store_health{};
     /** 降采样后的图像宽度（像素） */
     int width = 0;
     /** 降采样后的图像高度（像素） */
@@ -242,15 +252,27 @@ struct SteeringMediaImageFrame {
     int source_width = 0;
     /** 原始源图像高度（像素），0 时与 height 相同 */
     int source_height = 0;
+    /** 原始源图像行跨度（字节），0 时与 source_width 相同 */
+    int source_stride = 0;
     /** 降采样系数（1 表示无降采样） */
     int downsample = 1;
+    /** 负载像素格式，支持 gray8/gray4/gray2/gray1 */
+    const char* pixel_format = "gray8";
+    /** 图像源模式，snapshot_aligned 或 latest_camera_frame */
+    const char* frame_source = "snapshot_aligned";
+    /** steering snapshot 是否与图像帧精确对齐 */
+    bool steering_snapshot_aligned = true;
+    /** 关联 steering snapshot 的帧 ID */
+    std::uint64_t steering_snapshot_frame_id = 0;
+    /** 关联 steering snapshot 的采集时间 */
+    std::uint64_t steering_snapshot_capture_time_ms = 0;
     /** 当前运动阶段（如 "DISARMED" / "DRIVING"） */
     const char* motion_phase = "DISARMED";
     /** 关联的转向快照数据 */
     SteeringMediaSnapshotView steering_snapshot{};
     /** 灰度像素数据缓冲区指针 */
     const std::uint8_t* pixel_data = nullptr;
-    /** 像素数据大小（字节），应为 width * height */
+    /** 像素数据大小（字节），由 pixel_format 决定 */
     std::size_t pixel_size = 0;
 };
 
@@ -301,6 +323,12 @@ bool DecodeSteeringMediaEnvelope(const std::uint8_t* data,
  */
 bool ValidateSteeringMediaImagePayload(int width,
                                        int height,
+                                       std::size_t payload_size,
+                                       std::string& error);
+
+bool ValidateSteeringMediaImagePayload(int width,
+                                       int height,
+                                       const char* pixel_format,
                                        std::size_t payload_size,
                                        std::string& error);
 

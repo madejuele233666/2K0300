@@ -1,11 +1,22 @@
 #include "runtime/camera_frame_store.hpp"
 
 #include <algorithm>
+#include <chrono>
 
 namespace ls2k::runtime {
+namespace {
+
+uint64_t NowUs() {
+    using namespace std::chrono;
+    return static_cast<uint64_t>(
+        duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
+}
+
+}  // namespace
 
 CameraFrameHandle CameraFrameStore::Submit(const port::LegacyCameraFrameView& view,
-                                           const port::CameraRawFrameMetadata&) {
+                                           const port::CameraRawFrameMetadata& metadata) {
+    const uint64_t submit_begin_us = NowUs();
     CameraFrameHandle handle{};
     if (!view.Valid() ||
         view.width > port::kCompiledCameraFrameWidth ||
@@ -43,6 +54,9 @@ CameraFrameHandle CameraFrameStore::Submit(const port::LegacyCameraFrameView& vi
     slot.width = view.width;
     slot.height = view.height;
     slot.stride = view.width;
+    slot.metadata = metadata;
+    slot.metadata.frame_id = view.frame_id;
+    slot.metadata.capture_time_ms = view.capture_time_ms;
     for (int row = 0; row < view.height; ++row) {
         const std::uint8_t* src =
             view.gray + static_cast<std::size_t>(row) * static_cast<std::size_t>(view.stride);
@@ -50,6 +64,7 @@ CameraFrameHandle CameraFrameStore::Submit(const port::LegacyCameraFrameView& vi
             slot.gray.data() + static_cast<std::size_t>(row) * static_cast<std::size_t>(slot.stride);
         std::copy(src, src + view.width, dst);
     }
+    slot.metadata.store_submit_us = NowUs() - submit_begin_us;
 
     handle.valid = true;
     handle.slot_id = selected;
@@ -59,6 +74,7 @@ CameraFrameHandle CameraFrameStore::Submit(const port::LegacyCameraFrameView& vi
     handle.width = slot.width;
     handle.height = slot.height;
     handle.stride = slot.stride;
+    handle.metadata = slot.metadata;
     state_.latest_camera_frame = handle;
     state_.recent_camera_captures.Push(handle);
     ++state_.camera_frame_store_health.submitted_frame_count;

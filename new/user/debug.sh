@@ -473,6 +473,9 @@ summary = {
     "steering_media_enabled": 1 if data.get("steering_media_enabled") else 0,
     "steering_media_port": int(data.get("steering_media_port", 8890)),
     "steering_media_publish_interval_ms": data.get("steering_media_publish_interval_ms"),
+    "steering_media_downsample": data.get("steering_media_downsample"),
+    "steering_media_gray_bits": data.get("steering_media_gray_bits"),
+    "steering_media_publish_latest_frame": data.get("steering_media_publish_latest_frame"),
 }
 for key, value in summary.items():
     print(f"{key}={value}")
@@ -570,6 +573,9 @@ summary = {
     "steering_media_enabled": data.get("steering_media_enabled", 0),
     "steering_media_port": data.get("steering_media_port", 8890),
     "steering_media_publish_interval_ms": data.get("steering_media_publish_interval_ms"),
+    "steering_media_downsample": data.get("steering_media_downsample"),
+    "steering_media_gray_bits": data.get("steering_media_gray_bits"),
+    "steering_media_publish_latest_frame": data.get("steering_media_publish_latest_frame"),
 }
 for key, value in summary.items():
     print(f"{key}={value}")
@@ -1164,6 +1170,7 @@ run_host_capture_on_windows() {
     local stage_dir="${temp_wsl}/ls2k"
     mkdir -p "${stage_dir}"
     cp "${script_path}" "${stage_dir}/host_capture.py"
+    cp "${WORK_DIR}/steering_media_live_server.py" "${stage_dir}/steering_media_live_server.py"
 
     local python_wsl
     python_wsl="$(windows_python_wsl_path)" || {
@@ -1331,7 +1338,11 @@ steering_host_capture_command() {
 
     local backend="${LS2K_HOST_CAPTURE_BACKEND:-auto}"
     if [[ "${backend}" == "auto" ]]; then
-        if can_bind_capture_endpoint "${listen_host}" "${listen_port}" >/dev/null 2>&1; then
+        if [[ "${listen_host}" == 192.168.137.* ]] &&
+            command -v cmd.exe >/dev/null 2>&1 &&
+            windows_python_wsl_path >/dev/null 2>&1; then
+            backend="windows"
+        elif can_bind_capture_endpoint "${listen_host}" "${listen_port}" >/dev/null 2>&1; then
             backend="local"
         elif command -v cmd.exe >/dev/null 2>&1 && windows_python_wsl_path >/dev/null 2>&1; then
             backend="windows"

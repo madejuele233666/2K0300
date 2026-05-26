@@ -13,6 +13,7 @@
 #include <string>
 
 #include "port/bev_reference_types.hpp"
+#include "port/circle_v2_types.hpp"
 #include "port/reference_control_readiness_types.hpp"
 #include "port/reference_lateral_error_types.hpp"
 #include "port/reference_usability_types.hpp"
@@ -30,6 +31,19 @@ namespace ls2k::port {
 struct PerceptionHealth {
     bool projector_ok = false;       ///< 投影器是否正常工作
     std::string reason = "projector_invalid";  ///< 非健康状态的原因描述
+};
+
+struct CircleV2TelemetrySnapshot {
+    bool enabled = false;                     ///< CircleV2Scene 是否启用
+    std::string frame_phase = "idle";         ///< 本帧可见 phase
+    std::string next_phase = "idle";          ///< 下一帧 memory phase
+    std::string dir = "none";                 ///< 锁存方向
+    std::string reference_role = "none";      ///< 本帧 reference role
+    std::string reason = "none";              ///< 稳定原因枚举文本
+    bool motion_arc_available = false;        ///< 本帧 InnerTrace yaw 积分是否可查询
+    uint64_t inner_trace_elapsed_ms = 0;       ///< InnerTrace 已持续时间
+    float directed_turn_angle_rad = 0.0F;      ///< 按锁存方向归一化后的 yaw 积分
+    CircleV2EntryPointObservation entry_points{};  ///< 本帧入口 P 点观测
 };
 
 /**
@@ -57,6 +71,8 @@ struct PerceptionResult {
 
     PerceptionHealth perception_health{};                         ///< 感知系统健康状态
     VisualElementEvidenceFrame element_evidence{};                 ///< 视觉元素证据帧
+    CircleV2TelemetrySnapshot circle_v2{};                         ///< CircleV2 场景状态
+    VisualReferenceCandidatePathSet visual_reference_candidate_paths{};  ///< 本帧构建的视觉参考候选路径
     VisualReferenceSelection visual_reference_selection{};         ///< 视觉参考路径选择结果
     ReferenceUsability reference_usability{};                      ///< 参考路径可用性
     ReferenceLateralErrorEstimate reference_lateral_error{};       ///< 参考横向误差估计

@@ -1,5 +1,8 @@
 #include "runtime/steering_frame_perception_pipeline.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <cmath>
 #include <vector>
 
 #include "legacy/steering_otsu_threshold.hpp"
@@ -10,9 +13,13 @@
 #include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/perf_counter.hpp"
 #include "runtime/runtime_state.hpp"
+#include "runtime/steering_circle_v2_reference_adapter.hpp"
+#include "runtime/steering_circle_v2_scene.hpp"
 
 namespace ls2k::runtime {
 namespace {
+
+constexpr float kPi = 3.14159265358979323846F;
 
 /// 构建感知结果结构：从各感知子阶段的结果组装最终的 PerceptionResult
 /// @param capture              相机捕获数据
@@ -31,6 +38,8 @@ port::PerceptionResult BuildPerceptionResult(
     int threshold,
     const port::PerceptionHealth& health,
     const port::VisualElementEvidenceFrame& element_evidence,
+    const port::CircleV2TelemetrySnapshot& circle_v2,
+    const port::VisualReferenceCandidatePathSet& candidate_paths,
     const port::VisualReferenceSelection& visual_selection,
     const port::ReferenceContinuityResult& continuity,
     const port::ReferenceUsability& selected_usability,
@@ -52,11 +61,146 @@ port::PerceptionResult BuildPerceptionResult(
     perception.reference_path = continuity.reference_path;
     perception.perception_health = health;
     perception.element_evidence = element_evidence;
+    perception.circle_v2 = circle_v2;
+    perception.visual_reference_candidate_paths = candidate_paths;
     perception.visual_reference_selection = visual_selection;
     perception.reference_usability = selected_usability;
     perception.reference_lateral_error = lateral_error;
     perception.reference_control = reference_control;
     return perception;
+}
+
+bool HasLeadingCenterPath(const port::BEVReferencePath& path) {
+    if (path.mode == port::ReferenceMode::kNone || !path.sampled_path[0].present) {
+        return false;
+    }
+    for (const port::BEVPathSample& sample : path.sampled_path) {
+        if (!sample.present) {
+            break;
+        }
+        if (!std::isfinite(sample.point.forward_m) ||
+            !std::isfinite(sample.point.lateral_m)) {
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+std::optional<OrdinaryRoadModel> BuildOrdinaryRoadModel(
+    const legacy::BEVSimplePerceptionResult& facts,
+    float nominal_road_half_width_m) {
+    OrdinaryRoadModel model{};
+    model.center_path = facts.reference_path;
+    if (!HasLeadingCenterPath(model.center_path)) {
+        return std::nullopt;
+    }
+    model.half_width.value_m = nominal_road_half_width_m;
+    return model;
+}
+
+bool IntegrateYawForCircle(const MotionHistory& history,
+                           uint64_t start_ms,
+                           uint64_t end_ms,
+                           int max_gap_ms,
+                           float& delta_yaw_rad) {
+    delta_yaw_rad = 0.0F;
+    if (end_ms <= start_ms) {
+        return end_ms >= start_ms;
+    }
+    if (history.count < 2U) {
+        return false;
+    }
+    uint64_t covered_until_ms = start_ms;
+    const uint64_t max_gap = static_cast<uint64_t>(std::max(1, max_gap_ms));
+    for (std::size_t index = 1; index < history.count; ++index) {
+        const MotionHistorySample& prev = history.OldestOffset(index - 1U);
+        const MotionHistorySample& curr = history.OldestOffset(index);
+        if (curr.time_ms <= covered_until_ms) {
+            continue;
+        }
+        if (prev.time_ms > covered_until_ms || prev.time_ms >= end_ms) {
+            if (covered_until_ms == start_ms && prev.time_ms < end_ms) {
+                covered_until_ms = prev.time_ms;
+            } else {
+                break;
+            }
+        }
+        if (!prev.imu_valid || !curr.imu_valid || curr.time_ms <= prev.time_ms) {
+            return false;
+        }
+        const uint64_t gap_ms = curr.time_ms - prev.time_ms;
+        if (gap_ms > max_gap) {
+            return false;
+        }
+        const uint64_t segment_start = std::max(covered_until_ms, prev.time_ms);
+        const uint64_t segment_end = std::min(end_ms, curr.time_ms);
+        if (segment_end <= segment_start) {
+            continue;
+        }
+        const float dt_s = static_cast<float>(segment_end - segment_start) / 1000.0F;
+        delta_yaw_rad += prev.gyro_z * dt_s;
+        covered_until_ms = segment_end;
+        if (covered_until_ms >= end_ms) {
+            return true;
+        }
+    }
+    return covered_until_ms >= end_ms;
+}
+
+struct MotionArcQueryContext {
+    const MotionHistory* history = nullptr;
+    int max_gap_ms = 30;
+};
+
+bool QueryMotionArcYawDelta(void* context, uint64_t from_ms, uint64_t to_ms, float& out_delta_rad) {
+    const MotionArcQueryContext* query = static_cast<const MotionArcQueryContext*>(context);
+    if (query == nullptr || query->history == nullptr) {
+        return false;
+    }
+    return IntegrateYawForCircle(*query->history,
+                                 from_ms,
+                                 to_ms,
+                                 query->max_gap_ms,
+                                 out_delta_rad);
+}
+
+CircleV2Params BuildCircleV2Params(const port::RuntimeParameters& params) {
+    CircleV2Params circle_params{};
+    circle_params.exit_yaw_threshold_rad =
+        params.bev_element.circle_v2_exit_yaw_threshold_deg * kPi / 180.0F;
+    circle_params.exit_hold_frames = std::max(2, params.bev_element.circle_v2_exit_hold_frames);
+    circle_params.inner_trace_stall_timeout_ms =
+        std::max(1, params.bev_element.circle_v2_inner_trace_stall_timeout_ms);
+    circle_params.inner_trace_stall_yaw_min_rad =
+        params.bev_element.circle_v2_inner_trace_stall_yaw_min_deg * kPi / 180.0F;
+    circle_params.inner_trace_path_offset_m =
+        params.bev_element.circle_v2_inner_trace_path_offset_m;
+    circle_params.opposite_straight_confidence_min =
+        params.bev_element.circle_v2_opposite_straight_confidence_min;
+    return circle_params;
+}
+
+port::CircleV2TelemetrySnapshot BuildCircleV2TelemetrySnapshot(bool enabled,
+                                                               const CircleV2Telemetry& telemetry) {
+    port::CircleV2TelemetrySnapshot snapshot{};
+    snapshot.enabled = enabled;
+    snapshot.frame_phase = ToString(telemetry.frame_phase);
+    snapshot.next_phase = ToString(telemetry.next_phase);
+    snapshot.dir = ToString(telemetry.dir);
+    snapshot.reference_role = ToString(telemetry.reference_role);
+    snapshot.reason = ToString(telemetry.reason);
+    snapshot.motion_arc_available = telemetry.motion_arc_available;
+    snapshot.inner_trace_elapsed_ms = telemetry.inner_trace_elapsed_ms;
+    snapshot.directed_turn_angle_rad = telemetry.directed_turn_angle_rad;
+    snapshot.entry_points = telemetry.entry_points;
+    return snapshot;
+}
+
+bool CrossExitSuppressesCircleV2(const legacy::VisualElementPipelineResult& element_result,
+                                 const port::RuntimeParameters& params) {
+    return params.bev_element.cross_exit_takeover_enabled &&
+           element_result.evidence.cross_exit.present;
 }
 
 }  // namespace
@@ -79,9 +223,9 @@ bool SteeringFramePerceptionPipeline::Configure(const port::RuntimeParameters& p
     return projector_configured_;
 }
 
-/// 重置感知记忆（清空参考连续性跟踪状态）
-void SteeringFramePerceptionPipeline::ResetMemory() {
-    ResetSteeringPerceptionMemory(perception_memory_);
+/// 重置普通参考连续性记忆（清空 reference hold，不触碰 scene-owned 记忆）
+void SteeringFramePerceptionPipeline::ResetReferenceMemory() {
+    ResetSteeringReferenceHoldMemory(perception_memory_);
 }
 
 /// 处理一帧图像：Otsu 阈值 → BEV 感知 → 元素检测 → 视觉参考选择 → 横向误差计算 → 参考控制就绪评估
@@ -90,7 +234,8 @@ void SteeringFramePerceptionPipeline::ResetMemory() {
 /// @return          处理后的感知结果
 port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
     const port::CameraCapture& capture,
-    const port::RuntimeParameters& params) {
+    const port::RuntimeParameters& params,
+    const MotionHistory& motion_history) {
     int threshold = 0;
     {
         LS2K_PERF_SCOPE(port::PerfStage::kPerceptionOtsu);
@@ -103,6 +248,8 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
     port::ReferenceControlReadiness reference_control{};
     port::PerceptionHealth health{};
     port::VisualElementEvidenceFrame element_evidence{};
+    port::CircleV2TelemetrySnapshot circle_v2_snapshot{};
+    port::VisualReferenceCandidatePathSet candidate_paths{};
     port::VisualReferenceSelection visual_selection{};
     {
         LS2K_PERF_SCOPE(port::PerfStage::kPerceptionBev);
@@ -136,15 +283,60 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
         }
         element_evidence = element_result.evidence;
 
+        std::optional<port::VisualReferenceCandidate> circle_candidate{};
+        const bool cross_exit_takeover_active =
+            CrossExitSuppressesCircleV2(element_result, params);
+        const bool circle_v2_should_step =
+            params.bev_element.circle_v2_enabled && !cross_exit_takeover_active;
+        if (circle_v2_should_step) {
+            MotionArcQueryContext motion_query{};
+            motion_query.history = &motion_history;
+            motion_query.max_gap_ms = params.reference_time_alignment.max_integration_gap_ms;
+            SceneFrameView scene_frame{};
+            scene_frame.rows.rows =
+                ConstArrayView<legacy::BEVSimpleRowScan>(current_facts.rows.data(),
+                                                         current_facts.rows.size());
+            scene_frame.ordinary_road =
+                BuildOrdinaryRoadModel(current_facts,
+                                       params.bev_geometry.nominal_road_half_width_m);
+            scene_frame.motion_arc = MotionArcView(&motion_query, QueryMotionArcYawDelta);
+            scene_frame.stamp.capture_time_ms = capture.capture_time_ms;
+            const CircleV2StepResult circle_result =
+                CircleV2Scene{}.Step(scene_frame,
+                                      prior_memory.circle_v2,
+                                      BuildCircleV2Params(params));
+            perception_memory_.circle_v2 = circle_result.next_memory;
+            circle_v2_snapshot =
+                BuildCircleV2TelemetrySnapshot(true, circle_result.telemetry);
+            circle_candidate = AdaptCircleV2ReferencePlan(circle_result.reference_plan);
+        } else {
+            if (prior_memory.circle_v2.phase != CirclePhase::kIdle) {
+                ResetCircleV2Memory(perception_memory_.circle_v2);
+            }
+            CircleV2Telemetry idle_telemetry{};
+            circle_v2_snapshot =
+                BuildCircleV2TelemetrySnapshot(params.bev_element.circle_v2_enabled,
+                                               idle_telemetry);
+        }
+
         port::ReferenceUsability current_usability{};
         {
             LS2K_PERF_SCOPE(port::PerfStage::kVisualReferenceSelect);
             std::vector<port::VisualReferenceCandidate> candidates;
-            candidates.reserve(1U + element_result.candidates.size());
+            candidates.reserve(1U + element_result.candidates.size() +
+                               (circle_candidate.has_value() ? 1U : 0U));
             candidates.push_back(line_candidate);
             candidates.insert(candidates.end(),
                               element_result.candidates.begin(),
                               element_result.candidates.end());
+            if (circle_candidate.has_value()) {
+                candidates.push_back(*circle_candidate);
+            }
+            for (const port::VisualReferenceCandidate& candidate : candidates) {
+                if (candidate.present) {
+                    port::AppendVisualReferenceCandidatePath(candidate_paths, candidate);
+                }
+            }
             visual_selection = legacy::SelectVisualReference(candidates);
         }
         {
@@ -204,6 +396,8 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
                                  threshold,
                                  health,
                                  element_evidence,
+                                 circle_v2_snapshot,
+                                 candidate_paths,
                                  visual_selection,
                                  continuity,
                                  selected_usability,

@@ -17,6 +17,7 @@ The runtime SHALL expose a project-owned steering tuning snapshot that can expla
 - `yaw_control`
 - `actuator`
 - `element_evidence`
+- `circle_v2`
 
 #### Scenario: Steering-chain evidence is visible without assistant rendering
 - **WHEN** reviewers inspect project-owned diagnostics, structured export, or harness-visible evidence during a steering tuning run
@@ -44,7 +45,7 @@ The accepted steering media endpoint SHALL use a project-owned startup-loaded co
 - **AND** they SHALL NOT need an undocumented second host field or manual hardcoded transport override for accepted behavior
 
 ### Requirement: Steering Media Protocol Uses One Length-Prefixed Binary Envelope
-The accepted first-release steering media protocol SHALL use one length-prefixed binary envelope carrying a UTF-8 JSON header plus an optional raw payload. The accepted first-release frame families SHALL be:
+The accepted first-release steering media protocol SHALL use one length-prefixed binary envelope carrying a UTF-8 JSON header plus an optional image payload. The accepted first-release frame families SHALL be:
 
 - `config_snapshot`
 - `image_frame`
@@ -70,20 +71,28 @@ The accepted `config_snapshot.param_snapshot` object SHALL include the current r
 - `BEV_CONTROL_MODEL`
 - `BEV_ELEMENT`
 - `BEV_ELEMENT_RASTER`
+- `BEV_ELEMENT.CIRCLE_V2_ENABLED`
+- `BEV_ELEMENT.CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG`
+- `BEV_ELEMENT.CIRCLE_V2_EXIT_HOLD_FRAMES`
 
-The accepted `image_frame` SHALL carry a raw grayscale payload whose dimensions are declared in the same frame header. Its JSON header SHALL use this top-level object shape:
+The accepted `image_frame` SHALL carry a grayscale payload whose dimensions and encoding are declared in the same frame header. Its JSON header SHALL use this top-level object shape:
 
 - `type="image_frame"`
 - `frame_id`
 - `capture_time_ms`
 - `publish_time_ms`
 - `motion_phase`
-- `pixel_format="gray8"`
+- `frame_source`
+- `snapshot_alignment`
+- `pixel_format="gray8"`, `pixel_format="gray4"`, `pixel_format="gray2"`, or `pixel_format="gray1"`
+- `payload_encoding="raw"`, `payload_encoding="gray4_packed"`, `payload_encoding="gray2_packed"`, or `payload_encoding="gray1_packed"`
 - `width`
 - `height`
 - `steering_snapshot`
 
 The accepted `image_frame.steering_snapshot` object SHALL use the same grouped steering snapshot contract as `control.steering_snapshot`.
+
+By default, accepted live image publication SHALL be `frame_source="snapshot_aligned"` and `snapshot_alignment.aligned=true`, meaning the displayed image is the exact camera frame referenced by `control.steering_snapshot`. A latest-camera-frame mode MAY exist only as an explicit diagnostic switch and SHALL expose non-alignment through the image header.
 
 #### Scenario: First-release host tooling can parse the media contract deterministically
 - **WHEN** implementers build the board-side steering media publisher and the accepted host recorder
@@ -92,7 +101,10 @@ The accepted `image_frame.steering_snapshot` object SHALL use the same grouped s
 
 #### Scenario: Image payload size is declared and validated
 - **WHEN** the runtime publishes an accepted `image_frame`
-- **THEN** the payload SHALL contain exactly `width * height` grayscale bytes
+- **THEN** a `gray8`/`raw` payload SHALL contain exactly `width * height` grayscale bytes
+- **AND** a `gray4`/`gray4_packed` payload SHALL contain exactly `ceil(width * height / 2)` bytes
+- **AND** a `gray2`/`gray2_packed` payload SHALL contain exactly `ceil(width * height / 4)` bytes
+- **AND** a `gray1`/`gray1_packed` payload SHALL contain exactly `ceil(width * height / 8)` bytes
 - **AND** the header and envelope lengths SHALL be sufficient for the host to validate that payload deterministically
 
 ### Requirement: Steering Media Publication Is Non-Blocking And Drop-Tolerant
@@ -111,6 +123,33 @@ The accepted steering tuning workflow SHALL preserve a minimal project-owned evi
 - **THEN** the preserved evidence SHALL include at minimum a board log, host control CSV, steering media records, and a time-aligned summary or equivalent alignment metadata
 - **AND** reviewers SHALL be able to explain a steering event without depending on undocumented manual alignment steps
 
+### Requirement: Host Live Viewer Uses The Accepted Steering Media Stream
+The host tooling SHALL provide an optional live browser viewer that consumes the accepted steering media envelope stream without changing the board-side media protocol, media port configuration, or read-only session semantics.
+
+#### Scenario: Live viewer renders the same decoded image frames as the evidence recorder
+- **WHEN** host capture is started with live viewing enabled and the board or a test peer sends accepted `config_snapshot` and `image_frame` envelopes
+- **THEN** the host SHALL decode those envelopes through the same media ingest path used for evidence capture
+- **AND** the browser viewer SHALL receive the image frame dimensions, source dimensions, downsample value, steering snapshot metadata, and raw or packed grayscale payload needed to render the frame
+- **AND** the evidence bundle SHALL still preserve the accepted `config_snapshot`, `frame_metadata.jsonl`, raw frame files, and summary files.
+
+#### Scenario: Live viewer remains a host-side adapter
+- **WHEN** implementers add or modify the live viewing surface
+- **THEN** board runtime code SHALL still only know how to connect to the configured host media TCP endpoint and send accepted steering media envelopes
+- **AND** browser, HTTP, WebSocket, canvas, and live UI concepts SHALL NOT appear in board runtime, platform, port, legacy, config, or steering media protocol code.
+
+### Requirement: Live Viewer Fan-Out Is Read-Only And Drop-Tolerant
+The live viewer fan-out SHALL be lower priority than media ingest and evidence recording. Slow, disconnected, or absent browser clients SHALL NOT block TCP receive, evidence persistence, control telemetry capture, or board media reconnect behavior.
+
+#### Scenario: Slow browser clients do not backpressure media ingest
+- **WHEN** a browser client cannot keep up with incoming image frames
+- **THEN** the live fan-out SHALL be allowed to drop stale live-view frames or keep only the latest frame for that client
+- **AND** the host evidence recorder SHALL continue to validate and persist accepted media envelopes independently of the browser client state.
+
+#### Scenario: Live viewer does not become a command channel
+- **WHEN** a browser connects to the live viewer
+- **THEN** the viewer SHALL expose only read-only media status and image display behavior
+- **AND** it SHALL NOT accept assistant commands, motion commands, runtime parameter writes, ACKs, or state mutations.
+
 ### Requirement: Public Steering Snapshots Expose Element Evidence Facts
 The project-owned public steering snapshot SHALL include a read-only `element_evidence` group serialized through the shared element-evidence serializer. The typed `cross_exit` group SHALL remain stable and generic element records MAY be appended without requiring old consumers to understand them.
 
@@ -126,6 +165,28 @@ The project-owned public steering snapshot SHALL include a read-only `element_ev
 - **AND** each record SHALL follow the stable generic record schema defined by `bev-visual-element-evidence`
 - **AND** old consumers that only read `cross_exit` SHALL remain compatible
 
+### Requirement: Steering Observability Exposes Circle V2 State
+The project-owned steering snapshot and steering media image-frame header SHALL expose CircleV2 telemetry when CircleV2 is registered. The telemetry SHALL distinguish the current-frame visible phase from the next stored memory phase.
+
+At minimum, the accepted telemetry SHALL include:
+
+- `frame_phase`
+- `next_phase`
+- `dir`
+- `reference_role`
+- `reason`
+
+#### Scenario: ExitTrace final frame is explainable
+- **WHEN** an `ExitTrace` frame is the final held frame before returning to idle
+- **THEN** public telemetry SHALL be able to report `frame_phase=ExitTrace`
+- **AND** it SHALL be able to report `next_phase=Idle`
+- **AND** the selected or candidate reference source SHALL remain explainable as a CircleV2 exit reference for that frame
+
+#### Scenario: Geometry absence is visible without changing phase
+- **WHEN** CircleV2 cannot construct the reference geometry for the current reference role
+- **THEN** telemetry SHALL expose a deterministic reason such as `GeometryUnavailable`
+- **AND** public evidence SHALL allow reviewers to distinguish an absent reference plan from a reducer reset
+
 ### Requirement: Steering Media Mirrors Element Evidence In Image Headers
 The steering media `image_frame.steering_snapshot` object SHALL mirror the public steering snapshot `element_evidence` group through the shared element-evidence serializer so image evidence and control evidence can be aligned from the same media bundle.
 
@@ -133,7 +194,7 @@ The steering media `image_frame.steering_snapshot` object SHALL mirror the publi
 - **WHEN** the runtime publishes an accepted steering media `image_frame`
 - **THEN** the JSON header SHALL include `steering_snapshot.element_evidence.cross_exit`
 - **AND** the mirrored `cross_exit.candidate` object SHALL include `built`, `takeover_enabled`, `included_in_arbitration`, and `reason`
-- **AND** the raw grayscale payload framing and read-only media session semantics SHALL remain unchanged
+- **AND** the grayscale payload framing and read-only media session semantics SHALL remain unchanged
 
 ### Requirement: Steering Media Config Snapshot Includes Element Parameters
 The steering media `config_snapshot.param_snapshot` object SHALL include `BEV_ELEMENT` and `BEV_ELEMENT_RASTER` so element evidence, raster context, and candidate inclusion behavior can be interpreted from a captured media bundle.
@@ -148,3 +209,37 @@ The steering media `config_snapshot.param_snapshot` object SHALL include `BEV_EL
 - **THEN** the JSON header SHALL include `param_snapshot.BEV_ELEMENT_RASTER.ENABLED`
 - **AND** it SHALL include `param_snapshot.BEV_ELEMENT_RASTER.WIDTH`
 - **AND** those fields SHALL reflect startup-loaded runtime parameter values
+
+### Requirement: Steering Media Config Snapshot Uses Circle V2 Parameters
+The steering media `config_snapshot.param_snapshot` object SHALL include the active V2 circle parameter surface needed to interpret CircleV2 telemetry and candidate output:
+
+- `CIRCLE_V2_ENABLED`
+- `CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG`
+- `CIRCLE_V2_EXIT_HOLD_FRAMES`
+
+Old `CIRCLE_ENTRY_*` and old circle evidence fields SHALL NOT be required to interpret V2 behavior.
+
+#### Scenario: Config snapshot carries V2 circle lifecycle and exit gates
+- **WHEN** the runtime publishes a steering media `config_snapshot`
+- **THEN** the header SHALL include the active `CIRCLE_V2_*` values
+- **AND** those values SHALL match startup-loaded runtime parameters
+- **AND** reviewers SHALL be able to determine the configured B -> C yaw threshold and C hold duration from the snapshot
+
+#### Scenario: Old circle parameter expectations are removed
+- **WHEN** steering media selftests or host parsers validate a V2 config snapshot
+- **THEN** they SHALL not require `CIRCLE_ENTRY_TAKEOVER_ENABLED`
+- **AND** they SHALL not require `CIRCLE_ENTRY_MIN_FRONTIER_POINTS`, `CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M`, `CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M`, or `CIRCLE_ENTRY_MAX_JOIN_JUMP_M`
+- **AND** they SHALL not require old circle evidence keys such as `CIRCLE_EVIDENCE_ENABLED`, `CIRCLE_OPEN_EXPANSION_MIN_M`, or `CIRCLE_PRESENT_CONFIDENCE_MIN`
+
+### Requirement: Circle V2 Reference Sources Are Observable
+When CircleV2 adapts a `CircleV2ReferencePlan` into a `VisualReferenceCandidate`, the selected-reference and media surfaces SHALL expose V2-specific source names rather than old `circle_entry` mode/source names.
+
+#### Scenario: InnerTrace candidate source identifies V2 ownership
+- **WHEN** CircleV2 outputs an `InnerTrace` reference plan and that candidate is selected
+- **THEN** public steering evidence SHALL identify the reference source as a CircleV2 inner trace source such as `circle_v2_inner`
+- **AND** it SHALL not identify the selected reference as old `circle_entry`
+
+#### Scenario: ExitTrace candidate source identifies V2 ownership
+- **WHEN** CircleV2 outputs an `ExitTrace` reference plan and that candidate is selected
+- **THEN** public steering evidence SHALL identify the reference source as a CircleV2 exit trace source such as `circle_v2_exit`
+- **AND** it SHALL not identify the selected reference as old `circle_entry`

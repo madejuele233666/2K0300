@@ -275,7 +275,6 @@ bool RunStartup(const port::HardwareProfile& profile,
         return false;
     }
 
-    state.startup_complete = true;
     state.timer_started = false;
     state.actuators_armed = false;
     state.stop_requested.store(false);
@@ -288,6 +287,7 @@ bool RunStartup(const port::HardwareProfile& profile,
     state.control_observation = {};
     state.control_debug_snapshot = {};
     state.perception_memory_reset_generation.fetch_add(1);
+    state.startup_complete = true;
     diagnostics.Emit({port::DiagnosticLevel::kInfo,
                       "startup.complete",
                       "startup validated required adapters and applied critical params",

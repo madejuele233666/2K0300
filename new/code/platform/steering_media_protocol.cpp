@@ -4,6 +4,7 @@
 // 使用 JSON 头部 + 二进制负载的复合格式，支持媒体链路传输。
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <iomanip>
 #include <limits>
@@ -70,6 +71,149 @@ void AppendJsonBool(std::ostringstream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
+void AppendFiniteJsonNumber(std::ostringstream& stream, double value) {
+    if (std::isfinite(value)) {
+        AppendJsonNumber(stream, value);
+        return;
+    }
+    stream << "null";
+}
+
+void AppendOptionalJsonNumber(std::ostringstream& stream, bool available, double value) {
+    if (!available) {
+        stream << "null";
+        return;
+    }
+    AppendFiniteJsonNumber(stream, value);
+}
+
+const char* VisualReferenceCandidateKindToken(port::VisualReferenceCandidateKind kind) {
+    switch (kind) {
+        case port::VisualReferenceCandidateKind::kLine:
+            return "line";
+        case port::VisualReferenceCandidateKind::kCrossExit:
+            return "cross_exit";
+        case port::VisualReferenceCandidateKind::kCircleLeft:
+            return "circle_left";
+        case port::VisualReferenceCandidateKind::kCircleRight:
+            return "circle_right";
+        case port::VisualReferenceCandidateKind::kRoadblockBypass:
+            return "roadblock_bypass";
+        case port::VisualReferenceCandidateKind::kMlGrounded:
+            return "ml_grounded";
+    }
+    return "line";
+}
+
+const char* ReferenceModeToken(port::ReferenceMode mode) {
+    switch (mode) {
+        case port::ReferenceMode::kNone:
+            return "none";
+        case port::ReferenceMode::kIntervalCenter:
+            return "interval_center";
+        case port::ReferenceMode::kHoldLast:
+            return "hold_last";
+    }
+    return "none";
+}
+
+const char* PathPointSourceToken(port::BEVPathPointSource source) {
+    switch (source) {
+        case port::BEVPathPointSource::kNone:
+            return "none";
+        case port::BEVPathPointSource::kIntervalCenter:
+            return "interval_center";
+        case port::BEVPathPointSource::kHold:
+            return "hold";
+    }
+    return "none";
+}
+
+std::uint64_t CountPresentPathSamples(const port::BEVReferencePath& path) {
+    std::uint64_t count = 0;
+    for (const port::BEVPathSample& sample : path.sampled_path) {
+        if (sample.present) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void AppendPathSamplesJson(std::ostringstream& stream, const port::BEVReferencePath& path) {
+    stream << "[";
+    bool first = true;
+    for (std::size_t index = 0; index < path.sampled_path.size(); ++index) {
+        const port::BEVPathSample& sample = path.sampled_path[index];
+        if (!sample.present) {
+            continue;
+        }
+        if (!first) {
+            stream << ",";
+        }
+        first = false;
+        stream << "{\"index\":" << index;
+        stream << ",\"forward_m\":";
+        AppendFiniteJsonNumber(stream, sample.point.forward_m);
+        stream << ",\"lateral_m\":";
+        AppendFiniteJsonNumber(stream, sample.point.lateral_m);
+        stream << ",\"confidence\":";
+        AppendFiniteJsonNumber(stream, sample.confidence);
+        stream << ",\"source\":";
+        AppendJsonString(stream, PathPointSourceToken(sample.source));
+        stream << "}";
+    }
+    stream << "]";
+}
+
+void AppendVisualReferenceCandidatePathJson(std::ostringstream& stream,
+                                            const port::VisualReferenceCandidate& candidate) {
+    stream << "{\"present\":";
+    AppendJsonBool(stream, candidate.present);
+    stream << ",\"kind\":";
+    AppendJsonString(stream, VisualReferenceCandidateKindToken(candidate.kind));
+    stream << ",\"source\":";
+    AppendJsonString(stream, candidate.source);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, candidate.reason);
+    stream << ",\"confidence\":";
+    AppendFiniteJsonNumber(stream, candidate.confidence);
+    stream << ",\"mode\":";
+    AppendJsonString(stream, ReferenceModeToken(candidate.reference_path.mode));
+    stream << ",\"sample_count\":"
+           << CountPresentPathSamples(candidate.reference_path);
+    stream << ",\"samples\":";
+    AppendPathSamplesJson(stream, candidate.reference_path);
+    stream << "}";
+}
+
+void AppendVisualReferenceCandidatePathSetJson(
+    std::ostringstream& stream,
+    const port::VisualReferenceCandidatePathSet& candidate_paths) {
+    const std::size_t stored_count =
+        std::min(candidate_paths.count, candidate_paths.entries.size());
+    stream << "{\"count\":" << candidate_paths.count;
+    stream << ",\"omitted_count\":" << candidate_paths.omitted_count;
+    stream << ",\"items\":[";
+    for (std::size_t index = 0; index < stored_count; ++index) {
+        if (index > 0) {
+            stream << ",";
+        }
+        AppendVisualReferenceCandidatePathJson(stream, candidate_paths.entries[index]);
+    }
+    stream << "]}";
+}
+
+void AppendCircleV2PointObservationJson(std::ostringstream& stream,
+                                        const port::CircleV2PointObservation& point) {
+    stream << "{\"available\":";
+    AppendJsonBool(stream, point.available);
+    stream << ",\"forward_m\":";
+    AppendOptionalJsonNumber(stream, point.available, point.point.forward_m);
+    stream << ",\"lateral_m\":";
+    AppendOptionalJsonNumber(stream, point.available, point.point.lateral_m);
+    stream << "}";
+}
+
 /**
  * 构建转向快照 JSON —— 将 SteeringMediaSnapshotView 序列化为 JSON 对象字符串。
  * @param snapshot 转向快照视图数据
@@ -85,6 +229,30 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << "}";
     stream << ",\"element_evidence\":";
     AppendVisualElementEvidenceJson(stream, snapshot.element_evidence);
+    stream << ",\"circle_v2\":{\"enabled\":";
+    AppendJsonBool(stream, snapshot.circle_v2.enabled);
+    stream << ",\"frame_phase\":";
+    AppendJsonString(stream, snapshot.circle_v2.frame_phase);
+    stream << ",\"next_phase\":";
+    AppendJsonString(stream, snapshot.circle_v2.next_phase);
+    stream << ",\"dir\":";
+    AppendJsonString(stream, snapshot.circle_v2.dir);
+    stream << ",\"reference_role\":";
+    AppendJsonString(stream, snapshot.circle_v2.reference_role);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, snapshot.circle_v2.reason);
+    stream << ",\"motion_arc_available\":";
+    AppendJsonBool(stream, snapshot.circle_v2.motion_arc_available);
+    stream << ",\"inner_trace_elapsed_ms\":"
+           << snapshot.circle_v2.inner_trace_elapsed_ms;
+    stream << ",\"directed_turn_angle_rad\":"
+           << snapshot.circle_v2.directed_turn_angle_rad;
+    stream << ",\"entry_points\":{\"left\":";
+    AppendCircleV2PointObservationJson(stream, snapshot.circle_v2.entry_points.left);
+    stream << ",\"right\":";
+    AppendCircleV2PointObservationJson(stream, snapshot.circle_v2.entry_points.right);
+    stream << "}";
+    stream << "}";
     stream << ",\"visual_reference\":{\"present\":";
     AppendJsonBool(stream, snapshot.visual_reference.present);
     stream << ",\"source\":";
@@ -94,6 +262,8 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << ",\"candidate_count\":" << snapshot.visual_reference.candidate_count;
     stream << ",\"rejected_candidate_reason\":";
     AppendJsonString(stream, snapshot.visual_reference.rejected_candidate_reason);
+    stream << ",\"path_candidates\":";
+    AppendVisualReferenceCandidatePathSetJson(stream, snapshot.visual_reference.candidate_paths);
     stream << "}";
     stream << ",\"reference\":{\"mode\":";
     AppendJsonString(stream, snapshot.reference.mode);
@@ -202,6 +372,23 @@ std::size_t SteeringMediaImagePayloadBytes(int width, int height) {
     return static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
 }
 
+std::size_t SteeringMediaImagePayloadBytesForFormat(int width, int height, const char* pixel_format) {
+    const std::size_t pixels = SteeringMediaImagePayloadBytes(width, height);
+    if (pixels == 0) {
+        return 0;
+    }
+    if (pixel_format != nullptr && std::strcmp(pixel_format, "gray1") == 0) {
+        return (pixels + 7U) / 8U;
+    }
+    if (pixel_format != nullptr && std::strcmp(pixel_format, "gray2") == 0) {
+        return (pixels + 3U) / 4U;
+    }
+    if (pixel_format != nullptr && std::strcmp(pixel_format, "gray4") == 0) {
+        return (pixels + 1U) / 2U;
+    }
+    return pixels;
+}
+
 /**
  * 校验图像负载尺寸是否与声明分辨率一致。
  * @param width 声明的图像宽度
@@ -214,9 +401,25 @@ bool ValidateSteeringMediaImagePayload(int width,
                                        int height,
                                        std::size_t payload_size,
                                        std::string& error) {
-    const std::size_t expected = SteeringMediaImagePayloadBytes(width, height);
+    return ValidateSteeringMediaImagePayload(width, height, "gray8", payload_size, error);
+}
+
+bool ValidateSteeringMediaImagePayload(int width,
+                                       int height,
+                                       const char* pixel_format,
+                                       std::size_t payload_size,
+                                       std::string& error) {
+    const std::size_t expected = SteeringMediaImagePayloadBytesForFormat(width, height, pixel_format);
     if (expected == 0) {
         error = "steering image frame dimensions must be positive";
+        return false;
+    }
+    if (pixel_format != nullptr &&
+        std::strcmp(pixel_format, "gray8") != 0 &&
+        std::strcmp(pixel_format, "gray4") != 0 &&
+        std::strcmp(pixel_format, "gray2") != 0 &&
+        std::strcmp(pixel_format, "gray1") != 0) {
+        error = "steering image pixel_format must be gray8, gray4, gray2, or gray1";
         return false;
     }
     if (payload_size != expected) {
@@ -292,6 +495,8 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.search_lateral_limit_m);
     header << ",\"LATERAL_STEP_M\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.lateral_step_m);
+    header << ",\"NOMINAL_ROAD_HALF_WIDTH_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.nominal_road_half_width_m);
     header << "}";
     header << ",\"BEV_CLASSIFICATION\":{";
     header << "\"WHITE_CONFIDENCE_MIN\":";
@@ -315,35 +520,26 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonBool(header, snapshot.param_snapshot.bev_element.cross_exit_takeover_enabled);
     header << ",\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_element.cross_wide_row_white_ratio_min);
-    header << ",\"CIRCLE_EVIDENCE_ENABLED\":";
-    AppendJsonBool(header, snapshot.param_snapshot.bev_element.circle_evidence_enabled);
-    header << ",\"CIRCLE_MIN_SUPPORT_ROWS\":"
-           << snapshot.param_snapshot.bev_element.circle_min_support_rows;
-    header << ",\"CIRCLE_MIN_SAMPLEABLE_PER_ROW\":"
-           << snapshot.param_snapshot.bev_element.circle_min_sampleable_per_row;
-    header << ",\"CIRCLE_OPEN_EXPANSION_MIN_M\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_open_expansion_min_m);
-    header << ",\"CIRCLE_OPENING_EXPANSION_RATIO_MIN\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_opening_expansion_ratio_min);
-    header << ",\"CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M\":";
+    header << ",\"CIRCLE_V2_ENABLED\":";
+    AppendJsonBool(header, snapshot.param_snapshot.bev_element.circle_v2_enabled);
+    header << ",\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_v2_exit_yaw_threshold_deg);
+    header << ",\"CIRCLE_V2_EXIT_HOLD_FRAMES\":"
+           << snapshot.param_snapshot.bev_element.circle_v2_exit_hold_frames;
+    header << ",\"CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS\":"
+           << snapshot.param_snapshot.bev_element.circle_v2_inner_trace_stall_timeout_ms;
+    header << ",\"CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG\":";
     AppendJsonNumber(header,
-                     snapshot.param_snapshot.bev_element.circle_opposite_straight_drift_max_m);
-    header << ",\"CIRCLE_OPPOSITE_SHRINK_RATIO_MIN\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_opposite_shrink_ratio_min);
-    header << ",\"CIRCLE_PRESENT_CONFIDENCE_MIN\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_present_confidence_min);
-    header << ",\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":";
-    AppendJsonBool(header, snapshot.param_snapshot.bev_element.circle_entry_takeover_enabled);
-    header << ",\"CIRCLE_ENTRY_MIN_FRONTIER_POINTS\":"
-           << snapshot.param_snapshot.bev_element.circle_entry_min_frontier_points;
-    header << ",\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":";
+                     snapshot.param_snapshot.bev_element
+                         .circle_v2_inner_trace_stall_yaw_min_deg);
+    header << ",\"CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M\":";
     AppendJsonNumber(header,
-                     snapshot.param_snapshot.bev_element.circle_entry_direction_min_lateral_m);
-    header << ",\"CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M\":";
+                     snapshot.param_snapshot.bev_element
+                         .circle_v2_inner_trace_path_offset_m);
+    header << ",\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":";
     AppendJsonNumber(header,
-                     snapshot.param_snapshot.bev_element.circle_entry_max_interpolation_gap_m);
-    header << ",\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_element.circle_entry_max_join_jump_m);
+                     snapshot.param_snapshot.bev_element
+                         .circle_v2_opposite_straight_confidence_min);
     header << "}";
     header << ",\"BEV_ELEMENT_RASTER\":{";
     header << "\"ENABLED\":";
@@ -369,7 +565,8 @@ bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
         error = "steering image frame payload is missing";
         return false;
     }
-    if (!ValidateSteeringMediaImagePayload(frame.width, frame.height, frame.pixel_size, error)) {
+    const char* pixel_format = frame.pixel_format == nullptr ? "gray8" : frame.pixel_format;
+    if (!ValidateSteeringMediaImagePayload(frame.width, frame.height, pixel_format, frame.pixel_size, error)) {
         return false;
     }
 
@@ -379,9 +576,52 @@ bool EncodeSteeringMediaImageFrame(const SteeringMediaImageFrame& frame,
     header << ",\"frame_id\":" << frame.frame_id;
     header << ",\"capture_time_ms\":" << frame.capture_time_ms;
     header << ",\"publish_time_ms\":" << frame.publish_time_ms;
+    header << ",\"camera_frame\":{";
+    header << "\"source\":";
+    AppendJsonString(header, frame.camera_metadata.source);
+    header << ",\"frame_id\":" << frame.camera_metadata.frame_id;
+    header << ",\"capture_time_ms\":" << frame.camera_metadata.capture_time_ms;
+    header << ",\"dequeue_time_ms\":" << frame.camera_metadata.dequeue_time_ms;
+    header << ",\"width\":" << (frame.source_width > 0 ? frame.source_width : frame.width);
+    header << ",\"height\":" << (frame.source_height > 0 ? frame.source_height : frame.height);
+    header << ",\"stride\":" << (frame.source_stride > 0
+                                      ? frame.source_stride
+                                      : (frame.source_width > 0 ? frame.source_width : frame.width));
+    header << ",\"v4l2_sequence\":" << frame.camera_metadata.v4l2_sequence;
+    header << ",\"v4l2_timestamp_valid\":";
+    AppendJsonBool(header, frame.camera_metadata.v4l2_timestamp_valid);
+    header << ",\"drained_buffer_count\":" << frame.camera_metadata.drained_buffer_count;
+    header << ",\"poll_wait_us\":" << frame.camera_metadata.poll_wait_us;
+    header << ",\"dequeue_us\":" << frame.camera_metadata.dequeue_us;
+    header << ",\"yuyv_to_gray_us\":" << frame.camera_metadata.yuyv_to_gray_us;
+    header << ",\"store_submit_us\":" << frame.camera_metadata.store_submit_us;
+    header << ",\"submitted_frame_count\":" << frame.camera_store_health.submitted_frame_count;
+    header << ",\"overwritten_frame_count\":" << frame.camera_store_health.overwritten_frame_count;
+    header << ",\"dropped_frame_count\":" << frame.camera_store_health.dropped_frame_count;
+    header << ",\"lookup_miss_count\":" << frame.camera_store_health.lookup_miss_count;
+    header << "}";
     header << ",\"motion_phase\":";
     AppendJsonString(header, frame.motion_phase == nullptr ? "DISARMED" : frame.motion_phase);
-    header << ",\"pixel_format\":\"gray8\"";
+    header << ",\"frame_source\":";
+    AppendJsonString(header, frame.frame_source == nullptr ? "snapshot_aligned" : frame.frame_source);
+    header << ",\"snapshot_alignment\":{";
+    header << "\"aligned\":";
+    AppendJsonBool(header, frame.steering_snapshot_aligned);
+    header << ",\"frame_id\":" << frame.steering_snapshot_frame_id;
+    header << ",\"capture_time_ms\":" << frame.steering_snapshot_capture_time_ms;
+    header << "}";
+    header << ",\"pixel_format\":";
+    AppendJsonString(header, pixel_format);
+    header << ",\"payload_encoding\":";
+    if (std::strcmp(pixel_format, "gray4") == 0) {
+        AppendJsonString(header, "gray4_packed");
+    } else if (std::strcmp(pixel_format, "gray2") == 0) {
+        AppendJsonString(header, "gray2_packed");
+    } else if (std::strcmp(pixel_format, "gray1") == 0) {
+        AppendJsonString(header, "gray1_packed");
+    } else {
+        AppendJsonString(header, "raw");
+    }
     header << ",\"width\":" << frame.width;
     header << ",\"height\":" << frame.height;
     header << ",\"source_width\":"

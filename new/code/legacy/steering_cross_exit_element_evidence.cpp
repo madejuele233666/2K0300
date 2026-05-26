@@ -13,7 +13,7 @@ constexpr std::size_t kCrossMinContiguousWideRows = 3U;
 /// 每行最小可采样数
 constexpr std::size_t kCrossMinSampleablePerRow = 8U;
 /// 宽行最小宽度（米）
-constexpr float kCrossMinWideWidthM = 0.52F;
+constexpr float kCrossMinWideWidthM = 0.90F;
 /// 宽行占可采样区域的最小宽度比例
 constexpr float kCrossMinSampleableWidthRatio = 0.65F;
 /// 双侧最小伸达距离（米）
@@ -26,6 +26,8 @@ constexpr float kCrossUnknownRatioMax = 0.25F;
 constexpr float kCrossPresentConfidenceMin = 0.70F;
 /// 比率计算的分母最小值
 constexpr float kRatioDenominatorFloor = 1.0e-4F;
+/// 双侧开口的固定增长比例门限
+constexpr float kCrossOpeningExpansionRatioMin = 0.10F;
 /// 开口判断的持续行数
 constexpr std::size_t kOpeningSustainRows = 2U;
 
@@ -164,8 +166,9 @@ BoundaryOpeningFacts AssessCrossOpenings(const std::vector<BEVSimpleRowScan>& ro
         return {};
     }
 
+    (void)params;
     const float opening_ratio_min =
-        std::max(kRatioDenominatorFloor, params.bev_element.circle_opening_expansion_ratio_min);
+        std::max(kRatioDenominatorFloor, kCrossOpeningExpansionRatioMin);
 
     BoundaryOpeningFacts facts{};
     facts.left_open = SustainedGrowthRatio(observations, true) >= opening_ratio_min;

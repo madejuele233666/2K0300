@@ -97,8 +97,9 @@ struct BEVGeometryParameters {
          1.374870F,
          1.437435F,
          1.500000F}};
-    float search_lateral_limit_m = 0.65F;  ///< 横向搜索范围限制（米）
+    float search_lateral_limit_m = 1.60F;  ///< 横向搜索范围限制（米）
     float lateral_step_m = 0.02F;          ///< 横向搜索步长（米）
+    float nominal_road_half_width_m = 0.21F;  ///< 普通道路模型使用的名义半路宽（米）
 };
 
 /**
@@ -121,7 +122,7 @@ struct BEVClassificationParameters {
  */
 struct BEVControlModelParameters {
     double lateral_error_far_weight = 0.0;  ///< 远端横向误差权重
-    double lateral_error_to_wheel_delta_gain = 300.0;  ///< 横向误差到轮速差值的增益系数
+    double lateral_error_to_wheel_delta_gain = 500.0;  ///< 横向误差到轮速差值的增益系数
     int min_leading_reference_samples = 3;  ///< 最小前导参考采样点数量
 };
 

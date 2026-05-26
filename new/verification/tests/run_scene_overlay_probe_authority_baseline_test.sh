@@ -17,6 +17,7 @@ compile_test_binary \
   "${REPO_ROOT}/new/user/scene_overlay_probe.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_otsu_threshold.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_single_boundary_offset.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_element_raster.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_circle_element_evidence.cpp" \
@@ -26,6 +27,13 @@ compile_test_binary \
   "${REPO_ROOT}/new/code/legacy/steering_reference_usability.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_lateral_error.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_control_readiness.cpp" \
+  "${REPO_ROOT}/new/code/runtime/steering_circle_v2_scene.cpp" \
+  "${REPO_ROOT}/new/code/runtime/steering_circle_v2_reference_adapter.cpp" \
+  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_event_observer.cpp" \
+  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_expansion_observer.cpp" \
+  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_reducer.cpp" \
+  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_geometry_observer.cpp" \
+  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_composer.cpp" \
   "${REPO_ROOT}/new/code/port/perf_counter.cpp"
 
 require_token() {
@@ -71,13 +79,14 @@ run_probe_case() {
   fi
 
   "${OUT_BIN}" "${raw_path}" "${overlay_path}" "${params_path}" --bev-only > "${log_path}"
-  require_token "${log_path}" "${case_name}" "element_evidence.records.count=4"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[0].id=circle_left_raw"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[1].id=circle_right_raw"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[2].id=circle_left"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[3].id=circle_right"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[0].candidate.reason=evidence_only"
-  require_token "${log_path}" "${case_name}" "element_evidence.records[1].candidate.reason=evidence_only"
+  require_token "${log_path}" "${case_name}" "element_evidence.records.count=0"
+  require_token "${log_path}" "${case_name}" "circle_v2.enabled=true"
+  if grep -Fq "circle_entry." "${log_path}"; then
+    echo "scene_overlay_probe authority-baseline failed: ${case_name} still prints circle_entry diagnostics" >&2
+    echo "log_path=${log_path}" >&2
+    tail -n 80 "${log_path}" >&2 || true
+    exit 1
+  fi
 
   local token
   for token in "$@"; do
@@ -89,79 +98,12 @@ run_probe_case() {
 run_probe_case \
   "circle-2" \
   "element_evidence.cross_exit.present=false" \
-  "element_evidence.records[0].present=true" \
-  "element_evidence.records[0].reason=present" \
-  "element_evidence.records[1].present=false" \
-  "element_evidence.records[2].present=true" \
-  "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=false" \
-  "element_evidence.records[2].candidate.takeover_enabled=false" \
-  "element_evidence.records[2].candidate.included_in_arbitration=false" \
-  "element_evidence.records[2].candidate.reason=takeover_disabled" \
-  "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=false" \
-  "circle_entry.left.reason=not_evaluated"
-
-disabled_params_path="${ARTIFACT_DIR}/circle-evidence-disabled.json"
-python3 - "${PARAMS_PATH}" "${disabled_params_path}" <<'PY'
-import json
-import sys
-
-source_path, target_path = sys.argv[1:3]
-with open(source_path, "r", encoding="utf-8") as file:
-    params = json.load(file)
-params.setdefault("BEV_ELEMENT", {})["CIRCLE_EVIDENCE_ENABLED"] = 0
-with open(target_path, "w", encoding="utf-8") as file:
-    json.dump(params, file, indent=2)
-    file.write("\n")
-PY
-
-run_probe_case \
-  "circle-2" \
-  --label "circle-2-disabled" \
-  --params "${disabled_params_path}" \
-  "element_evidence.cross_exit.present=false" \
-  "element_evidence.records[0].present=false" \
-  "element_evidence.records[0].reason=circle_evidence_disabled" \
-  "element_evidence.records[1].present=false" \
-  "element_evidence.records[1].reason=circle_evidence_disabled" \
-  "element_evidence.records[2].present=false" \
-  "element_evidence.records[2].reason=circle_evidence_disabled" \
-  "element_evidence.records[2].candidate.built=false" \
-  "element_evidence.records[2].candidate.reason=circle_evidence_disabled" \
-  "element_evidence.records[3].present=false" \
-  "element_evidence.records[3].reason=circle_evidence_disabled" \
-  "element_evidence.records[3].candidate.built=false" \
-  "element_evidence.records[3].candidate.reason=circle_evidence_disabled"
-
-invalid_confidence_params_path="${ARTIFACT_DIR}/circle-invalid-confidence.json"
-python3 - "${PARAMS_PATH}" "${invalid_confidence_params_path}" <<'PY'
-import json
-import sys
-
-source_path, target_path = sys.argv[1:3]
-with open(source_path, "r", encoding="utf-8") as file:
-    params = json.load(file)
-params.setdefault("BEV_ELEMENT", {})["CIRCLE_PRESENT_CONFIDENCE_MIN"] = 1.5
-with open(target_path, "w", encoding="utf-8") as file:
-    json.dump(params, file, indent=2)
-    file.write("\n")
-PY
-
-run_probe_case \
-  "circle-2" \
-  --label "circle-2-invalid-confidence-fallback" \
-  --params "${invalid_confidence_params_path}" \
-  "element_evidence.cross_exit.present=false" \
-  "element_evidence.records[0].present=true" \
-  "element_evidence.records[0].reason=present" \
-  "element_evidence.records[1].present=false" \
-  "element_evidence.records[2].present=true" \
-  "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=false" \
-  "element_evidence.records[2].candidate.reason=takeover_disabled" \
-  "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=false"
+  "circle_v2.frame_phase=approach" \
+  "circle_v2.next_phase=approach" \
+  "circle_v2.dir=left" \
+  "circle_v2.reference_role=none" \
+  "circle_v2.reason=phase1_cue_left" \
+  "visual_reference.source=none"
 
 non_object_element_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element.json"
 python3 - "${PARAMS_PATH}" "${non_object_element_params_path}" <<'PY'
@@ -183,15 +125,9 @@ run_probe_case \
   --label "circle-2-non-object-bev-element-fallback" \
   --params "${non_object_element_params_path}" \
   "element_evidence.cross_exit.present=false" \
-  "element_evidence.records[0].present=true" \
-  "element_evidence.records[0].reason=present" \
-  "element_evidence.records[1].present=false" \
-  "element_evidence.records[2].present=true" \
-  "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=false" \
-  "element_evidence.records[2].candidate.reason=takeover_disabled" \
-  "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=false"
+  "circle_v2.frame_phase=approach" \
+  "circle_v2.dir=left" \
+  "circle_v2.reason=phase1_cue_left"
 
 non_object_raster_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element-raster.json"
 python3 - "${PARAMS_PATH}" "${non_object_raster_params_path}" <<'PY'
@@ -201,7 +137,6 @@ import sys
 source_path, target_path = sys.argv[1:3]
 with open(source_path, "r", encoding="utf-8") as file:
     params = json.load(file)
-params.setdefault("BEV_ELEMENT", {})["CIRCLE_EVIDENCE_ENABLED"] = 0
 params["BEV_ELEMENT_RASTER"] = 1
 with open(target_path, "w", encoding="utf-8") as file:
     json.dump(params, file, indent=2)
@@ -213,88 +148,85 @@ run_probe_case \
   --label "circle-2-non-object-bev-element-raster-fallback" \
   --params "${non_object_raster_params_path}" \
   "element_evidence.cross_exit.present=false" \
-  "element_evidence.records[0].present=true" \
-  "element_evidence.records[0].reason=present" \
-  "element_evidence.records[1].present=false" \
-  "element_evidence.records[2].present=true" \
-  "element_evidence.records[2].reason=present" \
-  "element_evidence.records[2].candidate.built=false" \
-  "element_evidence.records[2].candidate.reason=takeover_disabled" \
-  "element_evidence.records[3].present=false" \
-  "circle_entry.left.present=false"
+  "circle_v2.frame_phase=approach" \
+  "circle_v2.next_phase=approach" \
+  "circle_v2.dir=left" \
+  "circle_v2.reference_role=none"
 
-takeover_params_path="${ARTIFACT_DIR}/circle-entry-takeover-enabled.json"
-python3 - "${PARAMS_PATH}" "${takeover_params_path}" <<'PY'
-import json
-import sys
-
-source_path, target_path = sys.argv[1:3]
-with open(source_path, "r", encoding="utf-8") as file:
-    params = json.load(file)
-params.setdefault("BEV_ELEMENT", {})["CIRCLE_ENTRY_TAKEOVER_ENABLED"] = 1
-with open(target_path, "w", encoding="utf-8") as file:
-    json.dump(params, file, indent=2)
-    file.write("\n")
-PY
-
-for case_name in circle-1 circle-2 circle-3; do
-  run_probe_case \
-    "${case_name}" \
-    --label "${case_name}-takeover-enabled" \
-    --params "${takeover_params_path}" \
-    "element_evidence.cross_exit.present=false" \
-    "element_evidence.records[0].present=true" \
-    "element_evidence.records[1].present=false" \
-    "element_evidence.records[2].present=true" \
-    "element_evidence.records[2].candidate.built=true" \
-    "element_evidence.records[2].candidate.takeover_enabled=true" \
-    "element_evidence.records[2].candidate.included_in_arbitration=true" \
-    "element_evidence.records[2].candidate.reason=included_in_arbitration" \
-    "element_evidence.records[3].present=false" \
-    "circle_entry.left.present=true" \
-    "visual_reference.source=circle_left" \
-    "visual_reference.reason=special_visual_candidate_selected"
-done
+default_confirm_log_path="${ARTIFACT_DIR}/circle-2-confirmed-innertrace.log"
+"${OUT_BIN}" \
+  "${FIXTURE_DIR}/circle-2.raw" \
+  "${ARTIFACT_DIR}/circle-2-confirmed-innertrace.bmp" \
+  "${PARAMS_PATH}" \
+  --bev-only \
+  --confirm-cycles 2 > "${default_confirm_log_path}"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "circle_v2.frame_phase=inner_trace"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "circle_v2.next_phase=inner_trace"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "circle_v2.reason=entry_gate_reached"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "visual_reference.source=circle_v2_inner"
+echo "scene_overlay_probe authority-baseline circle-2-confirmed-innertrace passed"
 
 for case_name in circle-1 circle-3; do
   run_probe_case \
     "${case_name}" \
     "element_evidence.cross_exit.present=false" \
-    "element_evidence.records[0].present=true" \
-    "element_evidence.records[0].reason=present" \
-    "element_evidence.records[1].present=false" \
-    "element_evidence.records[2].present=true" \
-    "element_evidence.records[2].reason=present" \
-    "element_evidence.records[2].candidate.built=false" \
-    "element_evidence.records[2].candidate.takeover_enabled=false" \
-    "element_evidence.records[2].candidate.included_in_arbitration=false" \
-    "element_evidence.records[2].candidate.reason=takeover_disabled" \
-    "element_evidence.records[3].present=false" \
-    "circle_entry.left.present=false"
+    "circle_v2.frame_phase=approach" \
+    "circle_v2.dir=left" \
+    "circle_v2.reason=phase1_cue_left"
 done
 
 for case_name in cross-1 cross-2 cross-3; do
   run_probe_case \
     "${case_name}" \
     "element_evidence.cross_exit.present=true" \
-    "element_evidence.records[0].present=false" \
-    "element_evidence.records[1].present=false" \
-    "element_evidence.records[2].present=false" \
-    "element_evidence.records[2].candidate.built=false" \
-    "element_evidence.records[3].present=false" \
-    "element_evidence.records[3].candidate.built=false"
+    "circle_v2.frame_phase=idle" \
+    "circle_v2.next_phase=idle" \
+    "circle_v2.dir=none"
 done
+
+cross_suppresses_active_log_path="${ARTIFACT_DIR}/cross-suppresses-active-circle.log"
+"${OUT_BIN}" \
+  "${FIXTURE_DIR}/cross-1.raw" \
+  "${ARTIFACT_DIR}/cross-suppresses-active-circle.bmp" \
+  "${PARAMS_PATH}" \
+  --bev-only \
+  --warmup "${FIXTURE_DIR}/circle-2.raw" \
+  --warmup "${FIXTURE_DIR}/circle-2.raw" > "${cross_suppresses_active_log_path}"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "element_evidence.cross_exit.present=true"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "circle_v2.frame_phase=idle"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "circle_v2.next_phase=idle"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "circle_v2.dir=none"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "element_evidence.cross_exit.candidate.reason=line_candidate_absent"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "visual_reference.source=none"
+echo "scene_overlay_probe authority-baseline cross-suppresses-active-circle passed"
 
 for case_name in bend-1 bend-2 bend-3; do
   run_probe_case \
     "${case_name}" \
     "element_evidence.cross_exit.present=false" \
-    "element_evidence.records[0].present=false" \
-    "element_evidence.records[1].present=false" \
-    "element_evidence.records[2].present=false" \
-    "element_evidence.records[2].candidate.built=false" \
-    "element_evidence.records[3].present=false" \
-    "element_evidence.records[3].candidate.built=false"
+    "circle_v2.frame_phase=idle" \
+    "circle_v2.next_phase=idle" \
+    "circle_v2.dir=none"
 done
 
 echo "scene_overlay_probe authority-baseline passed"

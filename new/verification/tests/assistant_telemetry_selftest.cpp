@@ -40,7 +40,7 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
     snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
     ls2k::port::VisualElementEvidenceRecord record{};
-    record.id = "circle_left";
+    record.id = "synthetic_marker";
     record.present = true;
     record.confidence = 0.61F;
     record.reason = "synthetic_test_record";
@@ -109,7 +109,7 @@ void TestSnapshotFactsMapToAssistantView() {
            "disabled cross candidate inclusion must be copied");
     Expect(telemetry.element_evidence.records.size() == 1U,
            "generic element evidence records must be copied");
-    Expect(telemetry.element_evidence.records[0].id == "circle_left",
+    Expect(telemetry.element_evidence.records[0].id == "synthetic_marker",
            "generic element evidence record id must be copied");
     Expect(telemetry.visual_reference.present,
            "visual reference presence must be copied");
@@ -138,7 +138,7 @@ void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
            "assistant telemetry must include element candidate summary");
     Expect(Contains(json, "\"included_in_arbitration\":false"),
            "assistant telemetry must expose disabled arbitration inclusion");
-    Expect(Contains(json, "\"records\":[{\"id\":\"circle_left\""),
+    Expect(Contains(json, "\"records\":[{\"id\":\"synthetic_marker\""),
            "assistant telemetry must serialize generic element records");
     Expect(Contains(json, "\"supporting_black_count\":9"),
            "assistant telemetry must serialize generic record support fields");

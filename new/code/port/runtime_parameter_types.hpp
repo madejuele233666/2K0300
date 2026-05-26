@@ -40,7 +40,7 @@ struct WheelPidParameters {
  */
 struct AssistantTcpParameters {
     std::string host = "192.168.137.1";   ///< 上位机IP地址
-    int port = 39011;                     ///< TCP端口号
+    int port = 48011;                     ///< TCP端口号
 };
 
 /// Reference time alignment 参数
@@ -76,13 +76,13 @@ struct CameraSourceParameters {
 struct RuntimeParameters {
     // 运动控制参数
     double running_speed_target = 200.0;  ///< 目标行驶速度（PWM，0~5000）
-    double yaw_rate_pid_p = 20.0;         ///< 偏航角速率PID比例增益
+    double yaw_rate_pid_p = 3.0;          ///< 偏航角速率PID比例增益
     double yaw_rate_pid_i = 0.0;          ///< 偏航角速率PID积分增益
     double yaw_rate_pid_d = 0.0;          ///< 偏航角速率PID微分增益
     int exp_light = 65;                   ///< 相机曝光值
 
     // 安全与低电压
-    int low_voltage_raw_threshold = 2300; ///< 低电压原始阈值
+    int low_voltage_raw_threshold = 200; ///< 低电压原始阈值
 
     // 控制周期与超时
     int control_period_ms = 5;            ///< 控制周期（毫秒）
@@ -90,7 +90,7 @@ struct RuntimeParameters {
 
     // 电机PWM限制
     int pwm_limit = 5000;                 ///< PWM最大绝对值
-    int raw_turn_output_limit = 3000;     ///< 原始转向输出限幅
+    int raw_turn_output_limit = 20000;    ///< 原始转向输出限幅
     int pwm_floor = 0;                    ///< PWM最低有效值（低于此值电机不转）
     bool prohibit_reverse_pwm = false;    ///< 是否禁止反转PWM
     int prohibit_reverse_pwm_step_limit = 1000;  ///< 禁止反转时的阶梯限制
@@ -113,9 +113,11 @@ struct RuntimeParameters {
     bool assistant_enabled = true;                ///< 是否启用助理连接
     AssistantTcpParameters assistant_tcp{};        ///< 助理TCP参数
     bool steering_media_enabled = true;            ///< 是否启用转向媒体服务
-    int steering_media_port = 39012;               ///< 媒体服务端口
-    int steering_media_publish_interval_ms = 120;  ///< 媒体发布间隔（毫秒）
-    int steering_media_downsample = 4;             ///< 媒体图像下采样因子
+    int steering_media_port = 48012;               ///< 媒体服务端口
+    int steering_media_publish_interval_ms = 20;   ///< 媒体发布间隔（毫秒）
+    int steering_media_downsample = 1;             ///< 媒体图像下采样因子
+    bool steering_media_publish_latest_frame = false;  ///< 诊断开关：优先发布最新相机帧而非严格快照匹配帧
+    int steering_media_gray_bits = 2;               ///< 媒体图像灰度位深，支持 1/2/4/8
     bool steering_media_publish_disarmed = true;   ///< 媒体发布是否处于未就绪状态
     int low_voltage_sample_interval_ms = 1000;     ///< 低电压采样间隔（毫秒）
 

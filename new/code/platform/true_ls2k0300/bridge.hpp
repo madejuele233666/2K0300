@@ -83,6 +83,9 @@ ImuInitResult InitializeImu();
 // @return IMU 采样数据，valid=false 表示读取失败
 ImuBridgeSample ReadImuSample();
 
+// 关闭 IMU 桥接层资源
+void ShutdownImu();
+
 // 初始化编码器设备 —— 探测左右轮编码器字符设备的可访问性
 // @return 桥接状态，ok=false 表示初始化失败
 BridgeStatus InitializeEncoder();

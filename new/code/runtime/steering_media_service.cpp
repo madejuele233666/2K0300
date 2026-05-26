@@ -49,7 +49,13 @@ void SteeringMediaService::Start(const port::RuntimeParameters& params, port::Di
     enabled_ = params.steering_media_enabled;
     config_sent_ = false;
     publish_disarmed_ = params.steering_media_publish_disarmed;
+    publish_latest_frame_ = params.steering_media_publish_latest_frame;
     downsample_ = std::clamp(params.steering_media_downsample, 1, 8);
+    gray_bits_ = params.steering_media_gray_bits == 1 ||
+                         params.steering_media_gray_bits == 2 ||
+                         params.steering_media_gray_bits == 4
+                     ? params.steering_media_gray_bits
+                     : 8;
     publish_interval_ms_ = std::max(0, params.steering_media_publish_interval_ms);
     last_image_publish_ms_ = 0;
     last_image_frame_id_ = 0;
@@ -89,6 +95,8 @@ void SteeringMediaService::MaybeEmitWindowSummary(std::uint64_t now_ms,
             << " ready=" << (link_.Ready() ? "true" : "false")
             << " config_sent=" << (config_sent_ ? "true" : "false")
             << " publish_interval_ms=" << publish_interval_ms_
+            << " gray_bits=" << gray_bits_
+            << " latest_frame=" << (publish_latest_frame_ ? "true" : "false")
             << " last_frame_id=" << last_image_frame_id_
             << " not_ready=" << window_stats_.not_ready
             << " pending_flush_sent=" << window_stats_.pending_flush_sent
@@ -144,12 +152,14 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.perception_health.projector_ok = snapshot.perception_health.projector_ok;
     view.perception_health.reason = snapshot.perception_health.reason;
     view.element_evidence = snapshot.element_evidence;
+    view.circle_v2 = snapshot.circle_v2;
     view.visual_reference.present = snapshot.visual_reference.present;
     view.visual_reference.source = snapshot.visual_reference.source;
     view.visual_reference.reason = snapshot.visual_reference.reason;
     view.visual_reference.candidate_count = snapshot.visual_reference.candidate_count;
     view.visual_reference.rejected_candidate_reason =
         snapshot.visual_reference.rejected_candidate_reason;
+    view.visual_reference.candidate_paths = snapshot.visual_reference.candidate_paths;
     view.reference.mode = snapshot.reference.mode;
     view.reference.source = snapshot.reference.source;
     view.eligibility.usable = snapshot.eligibility.usable;
@@ -182,12 +192,36 @@ void SteeringMediaService::FillImageFrame(const port::LegacyCameraFrame& capture
     frame.source_width = capture_frame.width;
     frame.source_height = capture_frame.height;
     frame.downsample = downsample_;
+    auto set_payload = [&](const std::uint8_t* pixels, std::size_t pixel_count) {
+        if (gray_bits_ < 8) {
+            const std::size_t packed_bits = pixel_count * static_cast<std::size_t>(gray_bits_);
+            gray_pack_buffer_.assign((packed_bits + 7U) / 8U, 0);
+            const int max_level = (1 << gray_bits_) - 1;
+            for (std::size_t index = 0; index < pixel_count; ++index) {
+                const int level =
+                    std::min(max_level, (static_cast<int>(pixels[index]) * max_level + 127) / 255);
+                const std::size_t bit_index = index * static_cast<std::size_t>(gray_bits_);
+                const std::size_t byte_index = bit_index / 8U;
+                const int bit_offset = static_cast<int>(bit_index % 8U);
+                const int shift = 8 - gray_bits_ - bit_offset;
+                gray_pack_buffer_[byte_index] =
+                    static_cast<std::uint8_t>(gray_pack_buffer_[byte_index] |
+                                              static_cast<std::uint8_t>(level << shift));
+            }
+            frame.pixel_format = gray_bits_ == 4 ? "gray4" : (gray_bits_ == 2 ? "gray2" : "gray1");
+            frame.pixel_data = gray_pack_buffer_.data();
+            frame.pixel_size = gray_pack_buffer_.size();
+            return;
+        }
+        frame.pixel_format = "gray8";
+        frame.pixel_data = pixels;
+        frame.pixel_size = pixel_count;
+    };
 
     if (downsample_ <= 1) {
         frame.width = capture_frame.width;
         frame.height = capture_frame.height;
-        frame.pixel_data = capture_frame.gray.data();
-        frame.pixel_size = capture_frame.PixelCount();
+        set_payload(capture_frame.gray.data(), capture_frame.PixelCount());
         return;
     }
 
@@ -205,8 +239,7 @@ void SteeringMediaService::FillImageFrame(const port::LegacyCameraFrame& capture
 
     frame.width = output_width;
     frame.height = output_height;
-    frame.pixel_data = downsample_buffer_.data();
-    frame.pixel_size = downsample_buffer_.size();
+    set_payload(downsample_buffer_.data(), downsample_buffer_.size());
 }
 
 /// 媒体服务 Tick：检查连接 → 检查并发布挂起图像 → 发布配置快照 → 查找新帧 → 发布图像帧。
@@ -252,11 +285,18 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     ControlDebugSnapshot snapshot{};
     port::LegacyCameraFrame capture_frame{};
     CameraFrameHandle capture_handle{};
+    port::CameraFrameStoreHealth camera_store_health{};
     bool have_capture = false;
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         snapshot = state.control_debug_snapshot;
-        have_capture = ResolveSteeringCapture(state, snapshot, capture_frame, capture_handle);
+        if (publish_latest_frame_) {
+            capture_handle = state.latest_camera_frame;
+            have_capture = CopyOwnedCameraFrameByHandle(state.camera_frame_slots, capture_handle, capture_frame);
+        } else {
+            have_capture = ResolveSteeringCapture(state, snapshot, capture_frame, capture_handle);
+        }
+        camera_store_health = state.camera_frame_store_health;
     }
 
     if (!have_capture || snapshot.steering.frame_id == 0) {
@@ -291,8 +331,18 @@ void SteeringMediaService::Tick(RuntimeState& state, port::DiagnosticSink& diagn
     frame.frame_id = capture_handle.frame_id;
     frame.capture_time_ms = capture_handle.capture_time_ms;
     frame.publish_time_ms = now_ms;
+    frame.camera_metadata = capture_handle.metadata;
+    frame.camera_store_health = camera_store_health;
+    frame.source_stride = capture_handle.stride;
     frame.motion_phase = ToString(snapshot.motion_phase);
     frame.steering_snapshot = BuildSnapshotView(snapshot.steering);
+    frame.frame_source = publish_latest_frame_ ? "latest_camera_frame" : "snapshot_aligned";
+    frame.steering_snapshot_frame_id = snapshot.steering.frame_id;
+    frame.steering_snapshot_capture_time_ms = snapshot.steering.capture_time_ms;
+    frame.steering_snapshot_aligned =
+        snapshot.valid && snapshot.steering.valid &&
+        snapshot.steering.frame_id == capture_handle.frame_id &&
+        snapshot.steering.capture_time_ms == capture_handle.capture_time_ms;
     FillImageFrame(capture_frame, frame);
 
     const platform::SteeringMediaPublishResult result = link_.PublishImageFrame(frame, diagnostics);

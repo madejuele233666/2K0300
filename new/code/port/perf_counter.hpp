@@ -54,6 +54,9 @@ enum class PerfStage : std::size_t {
     kPerceptionElementRasterStorage, ///< 元素栅格存储准备
     kPerceptionElementRasterClassTable, ///< 元素栅格分类表构建
     kPerceptionElementRasterCells, ///< 元素栅格逐 cell 采样分类
+    kCirclePhase1Rows,      ///< circle Phase1 sparse row evidence
+    kCirclePhase2RoiScan,   ///< circle Phase2 ROI scan
+    kCirclePhase2ReferenceBuild, ///< circle Phase2 reference candidate build
     kVisualElementPipeline, ///< 视觉元素 pipeline
     kVisualLineCandidate,   ///< 基础 line candidate 包装
     kVisualReferenceSelect, ///< 视觉 reference arbitration

@@ -457,6 +457,8 @@ alignment 只需要几何适用范围，不需要场景补丁：
 
 这些条件表达“这条过去的路已经无法可靠转换成当前的路”。它们不判断 circle、cross、bend，也不根据转向输出大小做特判。
 
+2026-05-22 状态：alignment 已要求 motion history 完整覆盖 `[reference_capture_time_ms, control_time_ms]`；输入 reference 只转换 leading observed prefix，遇到输入缺失或 non-finite sample 不跨 gap 补点。
+
 ### 6.6 下游计算位置
 
 V1 的目标语义是：
@@ -570,6 +572,8 @@ gray output:      Y0 Y1
 
 它必须尊重 V4L2 `bytesperline`，不能假设每行一定是 `width * 2` 字节。它不计算 threshold、BEV projection、sparse rows、circle/cross evidence 或 debug overlay color。
 
+最近一次硬件 counter run 中，320x240 YUYV 到 gray 转换实测 `avg=0.283ms, max=0.374ms`。这说明格式转换本身不是 10ms 周期的主要风险，关键是不要让 frame wait 留在 main/control 同步路径。
+
 ### 7.3 Camera Capture Worker
 
 `CameraCaptureWorker` 是 blocking producer only。它拥有 capture thread，循环执行：
@@ -658,7 +662,9 @@ camera_frame:
   store_submit_us
 ```
 
-`capture_time_ms` 优先使用 V4L2 buffer timestamp。若 driver timestamp 不可用或不可信，退回 dequeue time，并在 debug facts 中显式记录 fallback。这些是调度和诊断事实，不是 circle/cross/bend evidence。
+`capture_time_ms` 只在 V4L2 buffer timestamp 明确是 monotonic 且与 dequeue time 同域合理时使用。若 driver timestamp 不可用、flag 不是 monotonic、晚于 dequeue time 或早于 dequeue time 过多，退回 dequeue time，并在 debug facts 中通过 `v4l2_timestamp_valid=false` 显式记录 fallback。这些是调度和诊断事实，不是 circle/cross/bend evidence。
+
+2026-05-22 状态：`CameraFrameStore` 已保存 `CameraRawFrameMetadata` 并把它随 `CameraFrameHandle` 进入 latest/history；steering media image header 已发布 `camera_frame` 组，包含 source、frame/capture/dequeue time、源 width/height/stride、V4L2 sequence/timestamp validity、drain count、poll/dequeue/convert/store timing 和 frame-store health counters。V4L2 timestamp selection 已在 platform 层收口，control/reference alignment 不读取 V4L2 flags。
 
 ## 8. Runtime 模块边界
 
@@ -688,6 +694,8 @@ camera_frame:
 - 负责注册 cross/circle detectors。
 - 负责 cross suppression circle effective records。
 - 负责决定是否调用 circle Phase2 candidate builder。
+- 普通 `RunVisualElementPipeline()` 是 sparse-only contract；`VisualElementPipelineInput` 不暴露 `element_raster`。
+- raster 兼容行为只能通过显式 `RunVisualElementRasterCompatibilityPipeline()` 进入，供 probe/legacy 测试保留。
 - 不执行 hold，不判断 usability/lateral error/readiness/safety/yaw。
 
 ### `steering_bev_element_raster.*`
@@ -720,6 +728,7 @@ camera_frame:
 ### `camera_frame_store.*`
 
 - 拥有 owned gray frame slots、latest handle、frame history、`(frame_id, capture_time_ms)` lookup。
+- 保留 camera source metadata、源几何和 submit timing，作为 frame handle 的诊断事实。
 - 向 perception/media 提供非阻塞 consumer API。
 - 不读取 V4L2、supplier globals、BEV facts 或 control state。
 
@@ -774,9 +783,15 @@ after:
 
 `camera.capture` 阻塞等待与 `main.loop` 的解耦属于独立 runtime scheduling 工作，不混入 circle/cross 识别实现。reference time alignment 解决的是残余 capture-to-control 时延的坐标语义，即使后续调度加速，它仍然是控制侧应有的时间对齐层。
 
-### 9.1 当前实测基线
+计时实现说明：
 
-以下耗时来自最近一次带细分 perf 的板端 run：
+- `LS2K_PERF_ENABLED=ON` 时应优先走硬件 counter path。
+- 当前板端工具链 `loongarch64-linux-gnu-g++ 8.3.0 / binutils 2.31.1` 不接受旧写法 `rdcntvh.w` / `rdcntvl.w`。
+- 当前可编译的硬件 counter 指令为 `rdtime.d`；文档中的最新实测使用该路径，runtime facts 中 `arch_counter=true`。
+
+### 9.1 历史实测基线（V1 迁移前）
+
+以下耗时来自 V1 迁移前带细分 perf 的板端 run：
 
 ```text
 new/verification/perf-instrumented-drive-20260520T131637Z/new_runtime.log
@@ -784,7 +799,7 @@ stable window timestamp: 3230733
 unit: ms / frame unless noted
 ```
 
-这些数字描述的是 V1 实现前的当前代码。V1 估算采用当前参数和当前 perf 成本做线性上界，不把估算写成实测：
+这些数字描述的是 V1 实现前的代码状态。V1 估算采用当时参数和当时 perf 成本做线性上界，不把估算写成实测：
 
 ```text
 forward rows = 24
@@ -797,9 +812,9 @@ old full raster classify cost = 11.39ms / 118080 ~= 0.096us / raster cell
 old visual pipeline scan cost proxy = 7.23ms / 118080 ~= 0.061us / raster cell
 ```
 
-| V1 流水线步骤 | 当前 perf stage | 当前实测 | V1 严谨估算 | 标注 |
+| V1 流水线步骤 | 历史 perf stage | 历史实测 | V1 严谨估算 | 标注 |
 | --- | --- | ---: | ---: | --- |
-| `camera frame` | `camera.capture` | `13.73` | `13.73` | 当前 camera capture/decode/gray conversion 会阻塞 foreground perception path；YUYV capture decoupling 把该等待移到 capture thread。 |
+| `camera frame` | `camera.capture` | `13.73` | `13.73` | 迁移前 camera capture/decode/gray conversion 会阻塞 foreground perception path；YUYV capture decoupling 把该等待移到 capture thread。 |
 | `Otsu threshold` | `perception.otsu` | `0.20` | `0.20` | 保持现状。 |
 | `sparse BEV row scan` 总计 | `bev.simple` | `1.52` | `1.52` | V1 公共事实面，line/cross/circle Phase1 共用。 |
 | sparse LUT 检查 | `bev.simple.lut` | `0.01` | `0.01` | 保持现状。 |
@@ -813,7 +828,7 @@ old visual pipeline scan cost proxy = 7.23ms / 118080 ~= 0.061us / raster cell
 | 旧 full raster storage | `perception.element_raster.storage` | `0.00` | `0.00` | V1 ordinary frame 不运行。 |
 | 旧 full raster class table | `perception.element_raster.class_table` | `0.10` | `0.00` | V1 ordinary frame 不运行。 |
 | 旧 full raster cell sampling | `perception.element_raster.cells` | `11.39` | `0.00` | V1 ordinary frame 删除的主要确定收益。 |
-| visual element pipeline 总计 | `visual.element_pipeline` | `7.23` | `0.20-0.35` | 当前包含 cross、旧 circle raster-row evidence、aggregation；V1 ordinary frame 只剩 sparse Phase1 + aggregation。 |
+| visual element pipeline 总计 | `visual.element_pipeline` | `7.23` | `0.20-0.35` | 迁移前包含 cross、旧 circle raster-row evidence、aggregation；V1 ordinary frame 只剩 sparse Phase1 + aggregation。 |
 | cross + raw circle aggregation | included in `visual.element_pipeline` | 未隔离 | `<0.02` | 只处理固定 records 和 candidate summary。 |
 | effective circle suppression | included in `visual.element_pipeline` | 未隔离 | `<0.01` | 只在 pipeline 层改 effective record，接近常数级。 |
 | circle Phase2 ROI scan, takeover disabled | not implemented | `0.00` | `0.00` | 默认 `CIRCLE_ENTRY_TAKEOVER_ENABLED=0`，runtime 不运行 ROI scan。 |
@@ -839,7 +854,7 @@ old visual pipeline scan cost proxy = 7.23ms / 118080 ~= 0.061us / raster cell
 | control decision | `control.decision` | `0.00` | `0.00` | 保持现状。 |
 | actuator apply | `control.apply` | `0.03` | `0.03` | 保持现状。 |
 
-当前可确认的确定收益：
+迁移前可确认的确定收益：
 
 ```text
 ordinary frame removes:
@@ -847,17 +862,122 @@ ordinary frame removes:
   perception.element_raster total ~= 11.52ms
 ```
 
-当前不能直接确认的收益：
+迁移前不能直接确认的收益：
 
 - `visual.element_pipeline` 中旧 circle evidence 扫描占比尚未独立埋点，但按 cell-count 上界可估算 V1 ordinary frame 约 `0.20-0.35ms`。
-- V1 `circle.phase1.rows` 尚未实现，估算 `0.10-0.20ms`，需实现后用 stage 实测确认。
-- V1 `circle.phase2.roi_scan` 尚未实现；默认 takeover disabled 为 `0ms`，开启后 typical 估算 `0.10-0.50ms`，conservative worst 估算 `3.0-6.0ms`。
+- V1 `circle.phase1.rows` 在该历史基线中尚未实现；2026-05-22 代码面已补 perf stage，仍需下一次 perf run 记录实测。
+- V1 `circle.phase2.roi_scan` 在该历史基线中尚未实现；2026-05-22 代码面已补 ROI scan/reference build perf stage。默认 takeover disabled 应为 `0ms`，开启后 typical 估算 `0.10-0.50ms`，conservative worst 估算 `3.0-6.0ms`，需下一次 perf run 记录实测。
 
-### 9.2 按完整流程标注
+### 9.2 最新硬件 counter 实测（V1 热路径迁移后）
 
-下面是更接近阅读和排查时使用的顺序时间线。`+` 后面的值是该步骤自身耗时，括号内是从进入该流程开始的累计耗时。当前实测仍来自同一 perf window；V1 为上节估算。
+以下耗时来自 V1 迁移后、启用硬件 counter 的板端 drive run：
 
-#### 当前实测流程
+```text
+new/verification/controlled-drive-10s-20260521T153318Z/board/new_runtime.log
+perf windows: 10
+arch_counter: true
+ticks_per_us_x1000: 120005
+unit: ms unless noted
+```
+
+这次 run 的关键结论：
+
+- ordinary frame 不再出现 `perception.element_raster*` perf stage，说明 full element raster 已不在普通帧热路径中运行。
+- `camera.v4l2_poll` 是 capture worker 内的等待，不是 `main.loop` 或 `control.tick` 的同步阻塞。
+- `main.loop` 实测 `avg=1.474ms, max=5.480ms`，说明 camera wait 已从主循环解耦。
+- `perception.frame` 的 `avg=0.148ms` 被大量 no-new-frame tick 稀释；评估单帧视觉处理成本时，应读取 `count=598` 的 Otsu / BEV / visual 子阶段。
+- `control.tick` 仍主要受 `control.imu_read` 影响，`control.tick avg=3.450ms, max=14.296ms`，其中 `control.imu_read avg=2.568ms, max=13.778ms`。
+- 本次 `REFERENCE_TIME_ALIGNMENT.ENABLED=false`，所以这些数据只说明 capture 解耦和 sparse visual 热路径，不说明 reference time alignment 的最终控制效果。
+
+| Stage | Count | Avg | Max | 说明 |
+| --- | ---: | ---: | ---: | --- |
+| `camera.v4l2_poll` | `598` | `16.059` | `44.535` | capture thread 等待新帧；不应计入 main/control 同步路径。 |
+| `camera.v4l2_dequeue` | `598` | `0.246` | `0.494` | V4L2 dequeue 成本。 |
+| `camera.yuyv_to_gray` | `598` | `0.283` | `0.374` | 当前板端 320x240 YUYV 到 gray 实测。 |
+| `camera.store_submit` | `598` | `0.054` | `0.418` | 平均很低，偶发峰值需要继续观察 slot/锁竞争。 |
+| `perception.otsu` | `598` | `0.161` | `0.243` | 每个新图像帧运行。 |
+| `perception.bev` | `598` | `1.131` | `2.062` | 包含 sparse BEV 相关处理；子阶段不要与总计重复相加。 |
+| `bev.simple` | `598` | `0.638` | `1.506` | sparse row scan 和 line reference。 |
+| `bev.simple.scan_rows` | `598` | `0.608` | `1.468` | sparse row scan 主体。 |
+| `visual.line_candidate` | `598` | `0.006` | `0.015` | line candidate 包装。 |
+| `visual.element_pipeline` | `598` | `0.163` | `0.663` | sparse cross/circle evidence + aggregation；已不含 full raster scan。 |
+| `visual.reference_select` | `598` | `0.161` | `1.180` | candidate selection。 |
+| `reference.usability` | `598` | `0.003` | `0.252` | 当前未启用 time alignment。 |
+| `reference.lateral_error` | `598` | `0.009` | `0.181` | 当前未启用 time alignment。 |
+| `perception.result_build` | `598` | `0.082` | `1.066` | result assembly。 |
+| `perception.publish` | `598` | `0.081` | `1.041` | publish 到 runtime consumer。 |
+| `main.loop` | `6778` | `1.474` | `5.480` | 包含无新帧 tick；已不等待 camera frame。 |
+| `control.tick` | `2064` | `3.450` | `14.296` | 控制 tick 总成本。 |
+| `control.imu_read` | `2064` | `2.568` | `13.778` | 当前控制侧最大优化点。 |
+| `control.encoder_read` | `2064` | `0.103` | `1.767` | encoder read 成本。 |
+| `control.decision` | `2064` | `0.005` | `2.048` | 控制决策本身很轻。 |
+| `control.apply` | `1970` | `0.063` | `3.467` | actuator apply。 |
+| `media.encode` | `84` | `0.406` | `0.739` | 板端 media encode 不是主要瓶颈。 |
+| `media.send` | `84` | `0.292` | `1.437` | 板端 send 不是主要瓶颈。 |
+
+按新图像帧观察，普通视觉路径可读为：
+
+```text
+Otsu                          ~= 0.16ms
+BEV total                     ~= 1.13ms
+visual.line_candidate         ~= 0.01ms
+visual.element_pipeline       ~= 0.16ms
+visual.reference_select       ~= 0.16ms
+reference/result/publish      ~= 0.18ms
+visible ordinary-frame work   ~= 1.8ms
+```
+
+这里没有把 `bev.simple` 再加一次，因为它是 `perception.bev` 的子阶段。这个数值也不包含 capture thread 的 `v4l2_poll` 等待，因为等待已经属于 producer side。
+
+媒体链路仍需单独看 host/network：
+
+```text
+steering_media_frames: 81
+media effective fps: 6.023
+host frame interval mean/max: 166.025ms / 3795ms
+publish-to-capture min/mean/max: 19ms / 28.79ms / 39ms
+capture_time -> control snapshot RUNNING mean: 25.2ms
+```
+
+因此，runtime 视觉热路径已经从 full raster 迁出；下一类延迟问题应拆成两条线看：控制侧 IMU read 峰值，以及 host/network/media 观测链路的帧间隔峰值。
+
+### 9.3 按完整流程标注
+
+下面是更接近阅读和排查时使用的顺序时间线。`+` 后面的值是该步骤自身耗时，括号内是从进入该流程开始的累计耗时。最新实测来自 2026-05-21 硬件 counter run；历史实测和 V1 估算保留用于解释架构迁移动机。
+
+#### 最新 V1 已迁移后实测流程
+
+下面的流程用于读最新实测，不表示所有 stage 都严格可加；`perception.bev` 与 `bev.simple.*` 有嵌套关系，`main.loop` 还包含 no-new-frame tick。
+
+```text
+capture worker:
+  -> camera.v4l2_poll                      +16.06ms  (capture thread wait only)
+  -> camera.v4l2_dequeue                    +0.25ms
+  -> camera.yuyv_to_gray                    +0.28ms
+  -> camera.store_submit                    +0.05ms
+
+main/perception thread, new-frame path:
+  -> Otsu threshold                         +0.16ms
+  -> BEV total                              +1.13ms
+       -> sparse scan rows                  +0.61ms
+  -> line candidate                         +0.01ms
+  -> visual element pipeline                +0.16ms
+  -> visual reference selection             +0.16ms
+  -> reference usability                    +0.00ms
+  -> reference lateral error                +0.01ms
+  -> result build + publish                 +0.16ms
+  -> main.loop                              +1.47ms avg / 5.48ms max
+
+control tick:
+  -> control.imu_read                       +2.57ms
+  -> control.encoder_read                   +0.10ms
+  -> motion.history_record                  +0.00ms
+  -> control.decision                       +0.01ms
+  -> control.apply                          +0.06ms
+  -> control.tick                           +3.45ms avg / 14.30ms max
+```
+
+#### 历史迁移前实测流程
 
 ```text
 main.loop start
@@ -888,7 +1008,7 @@ main.loop start
 
 这里的 `perception.frame` 实测为 `35.60ms`，略高于上面按可见 stage 相加的 `34.79ms`，差值来自未单独展开的小段开销和计时窗口差异。
 
-#### V1 Ordinary Frame 估算
+#### V1 Ordinary Frame 迁移前估算
 
 ordinary frame 指没有 circle takeover，且不构建 full element raster 的普通帧。
 
@@ -923,14 +1043,14 @@ replace visual.element_pipeline:  7.23ms -> ~0.30ms
 net reduction:                 ~18.45ms
 ```
 
-因此按当前同步 camera 模型估算：
+因此按迁移前同步 camera 模型估算：
 
 ```text
 perception.frame: 35.60ms -> ~17.1ms
 main.loop:        38.24ms -> ~19.8ms
 ```
 
-#### V1 Circle Takeover Typical 估算
+#### V1 Circle Takeover Typical 迁移前估算
 
 circle takeover typical 指 effective circle present 且 `CIRCLE_ENTRY_TAKEOVER_ENABLED=1`，Phase2 ROI scan 按 typical 规模运行。
 
@@ -958,7 +1078,7 @@ circle Phase2 ROI scan: 3.0-6.0ms
 main.loop estimate:     ~22.8-25.8ms
 ```
 
-这仍低于保留旧 full raster 热路径的当前 `38.24ms main.loop`，但不能满足完整 `10ms` 周期。`10ms` 目标需要把 `camera.capture ~= 13.73ms` 从 main/control 同步路径中解耦。
+这仍低于保留旧 full raster 热路径的迁移前 `38.24ms main.loop`，但不能满足完整 `10ms` 周期。`10ms` 目标需要把 `camera.capture ~= 13.73ms` 从 main/control 同步路径中解耦。
 
 #### V1 Control Tick Reference Alignment 估算
 
@@ -981,7 +1101,7 @@ control.tick start
 
 该路径的目标不是降低 perception frame 耗时，而是消除“旧车身坐标下的大误差被当作当前误差继续控制”的语义错误。
 
-#### V1 YUYV Camera Capture 解耦估算
+#### V1 YUYV Camera Capture 解耦实测约束
 
 YUYV camera path 改变的是 capture cost 的归属：
 
@@ -989,8 +1109,8 @@ YUYV camera path 改变的是 capture cost 的归属：
 capture thread:
   -> V4L2 poll / DQBUF wait                 outside main/control path
   -> drain ready buffers                    outside main/control path
-  -> YUYV -> gray 320x240                   ~0.08-0.25ms estimate
-  -> CameraFrameStore submit                ~0.05-0.15ms estimate
+  -> YUYV -> gray 320x240                   latest avg/max 0.283/0.374ms
+  -> CameraFrameStore submit                latest avg/max 0.054/0.418ms
 
 main/perception thread:
   -> TryGetLatestAfter                      ~0.00ms
@@ -1096,25 +1216,25 @@ camera source 使用独立参数族，避免混入 `BEV_ELEMENT`：
 
 ## 12. Migration Steps
 
-建议实现顺序：
+下面保留原 1-18 迁移顺序作为检查清单。当前代码与 2026-05-21 硬件 counter run 已确认：ordinary frame 不再运行 full element raster，camera wait 已移入 capture worker，`CameraFrameStore` 拥有 latest/history 语义。2026-05-22 代码面已把 raster path 隔离到显式 compatibility 入口，并把 camera metadata/health facts 发布到 media image header。`reference_time_alignment` 代码路径已接入，但最近一次板端 run 中参数为 disabled，因此控制效果仍需要单独启用后验证。
 
-1. 抽出 circle Phase1 row observation helper，使其从 sparse rows 产生 opening/straight/shrink facts。
-2. 修改 `DetectCircleElementEvidence()` 输入为 sparse rows。
-3. 修改 `RunVisualElementPipeline()`，让 circle Phase1 与 cross 使用同一份 rows。
-4. 移除 `SteeringFramePerceptionPipeline::ProcessFrame()` 中无条件 full element raster build。
-5. 增加 ROI metric sampler，作为 Phase2 builder 的局部工具。
-6. 把 Phase2 调用移动到 effective circle + takeover enabled 之后。
-7. 修正 camera capture timestamp：优先硬件帧时间，否则用 `wait_image_refresh()` 返回后的时间。
-8. 在 control tick 中记录 motion history ring buffer。
-9. 新增 `steering_reference_time_alignment.*`，先 diagnostics-only 输出 aligned facts。
-10. 将 control-side usability、lateral error、readiness 切到 aligned reference；保留 perception-time facts 仅作 debug 对照。
-11. 更新参数文档与 perf stage。
-12. 运行单测、authority-baseline、perf build 和板端 no-motion/drive 验证。
-13. 新增 `ICameraFrameSource`，先实现 `V4l2YuyvFrameSource` startup probe，并把 supplier fallback 保持在同一接口后面。
-14. 新增 `YuyvToGray` 单测，再接入 runtime。
-15. 新增 `CameraCaptureWorker` 和 `CameraFrameStore`，确保 latest/history 只由 Frame Store 拥有。
-16. 将 `PerceptionFrontend` 从 blocking capture 改为 non-blocking `TryGetLatestAfter()`。
-17. 将 steering media 改为从 `CameraFrameStore` history 查帧，lookup miss 或发送慢时丢 media frame。
-18. 增加 camera perf facts，先做 board no-motion capture 验证，再进入 drive 验证。
+1. `[done]` 抽出 circle Phase1 row observation helper，使其从 sparse rows 产生 opening/straight/shrink facts。
+2. `[done]` 修改 `DetectCircleElementEvidence()` 输入为 sparse rows。
+3. `[done]` 修改 `RunVisualElementPipeline()`，让 circle Phase1 与 cross 使用同一份 rows。
+4. `[done]` 移除 `SteeringFramePerceptionPipeline::ProcessFrame()` 中无条件 full element raster build。
+5. `[done]` 增加 ROI metric sampler，作为 Phase2 builder 的局部工具。
+6. `[done]` 把 Phase2 调用移动到 effective circle + takeover enabled 之后。
+7. `[done]` 修正 camera capture timestamp：只信任 monotonic 且同域合理的 V4L2 buffer timestamp，否则退回 dequeue time，并显式记录 fallback。
+8. `[done]` 在 control tick 中记录 motion history ring buffer。
+9. `[done, needs enabled-board-run]` 新增 `steering_reference_time_alignment.*`，输出 aligned facts。
+10. `[done, needs enabled-board-run]` 将 control-side usability、lateral error、readiness 切到 aligned reference；保留 perception-time facts 仅作 debug 对照。
+11. `[done]` 更新参数文档与 perf stage。
+12. `[done, needs next-board-run]` 运行单测、authority-baseline、perf build 和板端 no-motion/drive 验证；最新离线回归已覆盖 sparse-only pipeline、raster compatibility pipeline、camera frame store metadata、steering media `camera_frame` facts 和 no-upload build，下一次板端 run 用于确认实车延迟效果。
+13. `[done]` 新增 `ICameraFrameSource`，先实现 `V4l2YuyvFrameSource` startup probe，并把 supplier fallback 保持在同一接口后面。
+14. `[done]` 新增 `YuyvToGray` 单测，再接入 runtime。
+15. `[done]` 新增 `CameraCaptureWorker` 和 `CameraFrameStore`，确保 latest/history 只由 Frame Store 拥有。
+16. `[done]` 将 `PerceptionFrontend` 从 blocking capture 改为 non-blocking `TryGetLatestAfter()`。
+17. `[done]` 将 steering media 改为从 `CameraFrameStore` history 查帧，lookup miss 或发送慢时丢 media frame。
+18. `[done, needs next-perf-run]` 增加 camera/circle perf facts；最新 run 已记录 `camera.v4l2_poll/dequeue/yuyv_to_gray/store_submit/frame_age`，media image header 也已发布同一组 frame-level camera facts。`circle.phase1.rows`、`circle.phase2.roi_scan`、`circle.phase2.reference_build` 已补代码埋点，下一次 perf run 需要确认 disabled/enabled 场景下的出现关系和耗时。
 
-每一步都应保持旧消费者可编译。full element raster 类型可以先保留，避免把架构迁移和 debug/overlay 清理混在同一次改动里。
+每一步都应保持旧消费者可编译。full element raster 类型继续保留给 debug/overlay、authority-baseline probe、未来消费者或离线验证，不能重新进入 ordinary runtime circle/cross 热路径。

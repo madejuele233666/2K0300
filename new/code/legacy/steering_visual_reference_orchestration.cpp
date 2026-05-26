@@ -34,11 +34,11 @@ int Priority(port::VisualReferenceCandidateKind kind) {
     switch (kind) {
         case port::VisualReferenceCandidateKind::kRoadblockBypass:
             return 50;
+        case port::VisualReferenceCandidateKind::kCrossExit:
+            return 45;
         case port::VisualReferenceCandidateKind::kCircleLeft:
         case port::VisualReferenceCandidateKind::kCircleRight:
             return 40;
-        case port::VisualReferenceCandidateKind::kCrossExit:
-            return 30;
         case port::VisualReferenceCandidateKind::kMlGrounded:
             return 20;
         case port::VisualReferenceCandidateKind::kLine:

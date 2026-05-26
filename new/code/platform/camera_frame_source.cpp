@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <vector>
 
+#include "platform/camera_v4l2_timestamp.hpp"
 #include "platform/true_ls2k0300/bridge.hpp"
 #include "port/perf_counter.hpp"
 
@@ -24,14 +25,6 @@ uint64_t NowUs() {
     using namespace std::chrono;
     return static_cast<uint64_t>(
         duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
-}
-
-uint64_t TimevalToMs(const timeval& value) {
-    if (value.tv_sec <= 0 && value.tv_usec <= 0) {
-        return 0;
-    }
-    return static_cast<uint64_t>(value.tv_sec) * 1000U +
-           static_cast<uint64_t>(value.tv_usec) / 1000U;
 }
 
 bool IoctlRetry(int fd, unsigned long request, void* arg) {
@@ -286,11 +279,12 @@ public:
                 last.metadata.source = Name();
                 last.metadata.frame_id = ++frame_id_;
                 last.metadata.dequeue_time_ms = port::NowMs();
-                last.metadata.capture_time_ms = TimevalToMs(buffer.timestamp);
-                last.metadata.v4l2_timestamp_valid = last.metadata.capture_time_ms != 0;
-                if (!last.metadata.v4l2_timestamp_valid) {
-                    last.metadata.capture_time_ms = last.metadata.dequeue_time_ms;
-                }
+                const V4l2CaptureTimestampSelection timestamp =
+                    SelectV4l2CaptureTimestamp(buffer.timestamp,
+                                               buffer.flags,
+                                               last.metadata.dequeue_time_ms);
+                last.metadata.capture_time_ms = timestamp.capture_time_ms;
+                last.metadata.v4l2_timestamp_valid = timestamp.v4l2_timestamp_valid;
                 last.metadata.v4l2_sequence = buffer.sequence;
             }
             (void)IoctlRetry(fd_, VIDIOC_QBUF, &buffer);

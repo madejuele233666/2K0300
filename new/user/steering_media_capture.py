@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-SOCKET_BUFFER_BYTES = 256 * 1024
+SOCKET_BUFFER_BYTES = 4 * 1024 * 1024
 
 
 def now_monotonic_ms() -> int:
@@ -59,6 +59,7 @@ class SteeringMediaListener:
             "frame_dir": str(output_dir / "frames"),
             "frame_count": 0,
             "payload_bytes": 0,
+            "decoded_payload_bytes": 0,
             "receiver_error": None,
             "first_host_receive_monotonic_ms": None,
             "last_host_receive_monotonic_ms": None,
@@ -240,7 +241,7 @@ class SteeringMediaListener:
 
         frame_width = int(header.get("width", 0))
         frame_height = int(header.get("height", 0))
-        expected_payload_bytes = max(0, frame_width) * max(0, frame_height)
+        expected_payload_bytes = self._expected_payload_bytes(header, frame_width, frame_height)
         if frame_width <= 0 or frame_height <= 0:
             self._summary["receiver_error"] = (
                 f"invalid steering image dimensions: width={frame_width}, height={frame_height}"
@@ -255,9 +256,13 @@ class SteeringMediaListener:
             return
 
         frame_id = int(header.get("frame_id", 0))
+        decoded_payload = self._decode_image_payload(header, payload, frame_width, frame_height)
         frame_path = self._output_dir / "frames" / f"frame-{frame_id:06d}.raw"
-        frame_path.write_bytes(payload)
+        frame_path.write_bytes(decoded_payload)
         self._update_frame_stats(header, payload, receive_monotonic_ms)
+        self._summary["decoded_payload_bytes"] = (
+            int(self._summary["decoded_payload_bytes"]) + len(decoded_payload)
+        )
         metadata = {
             "host_received_utc": utc_timestamp(),
             "host_received_monotonic_ms": receive_monotonic_ms,
@@ -275,9 +280,12 @@ class SteeringMediaListener:
                 "[media] "
                 f"frames={self._summary['frame_count']} frame_id={frame_id} "
                 f"fps={self._summary.get('effective_fps', 0.0):.2f} "
+                f"encoding={header.get('payload_encoding', header.get('pixel_format', 'raw'))} "
+                f"frame_source={header.get('frame_source')} "
                 f"phase={header.get('motion_phase')} "
                 f"ref={nested(steering, 'reference', 'mode')} "
                 f"source={nested(steering, 'reference', 'source')} "
+                f"path_candidates={nested(steering, 'visual_reference', 'path_candidates', 'count')} "
                 f"usable={nested(steering, 'eligibility', 'usable')} "
                 f"gate={nested(steering, 'safety_gate', 'reason')} "
                 f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
@@ -285,6 +293,40 @@ class SteeringMediaListener:
                 f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
                 f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
             )
+
+    def _expected_payload_bytes(self, header: Dict[str, Any], width: int, height: int) -> int:
+        pixels = max(0, width) * max(0, height)
+        bits = self._packed_gray_bits(header)
+        if bits is not None:
+            return (pixels * bits + 7) // 8
+        return pixels
+
+    def _packed_gray_bits(self, header: Dict[str, Any]) -> Optional[int]:
+        encoding = header.get("payload_encoding")
+        pixel_format = header.get("pixel_format")
+        if encoding == "gray1_packed" or pixel_format == "gray1":
+            return 1
+        if encoding == "gray2_packed" or pixel_format == "gray2":
+            return 2
+        if encoding == "gray4_packed" or pixel_format == "gray4":
+            return 4
+        return None
+
+    def _decode_image_payload(
+        self, header: Dict[str, Any], payload: bytes, width: int, height: int
+    ) -> bytes:
+        bits = self._packed_gray_bits(header)
+        if bits is None:
+            return payload
+        max_level = (1 << bits) - 1
+        decoded = bytearray(width * height)
+        for index in range(width * height):
+            bit_index = index * bits
+            packed = payload[bit_index // 8]
+            shift = 8 - bits - (bit_index % 8)
+            level = (packed >> shift) & max_level
+            decoded[index] = (level * 255) // max(1, max_level)
+        return bytes(decoded)
 
     def _update_frame_stats(
         self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int

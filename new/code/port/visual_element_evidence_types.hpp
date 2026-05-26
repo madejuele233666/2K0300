@@ -107,30 +107,21 @@ struct VisualElementEvidenceFrame {
  * @struct BEVElementParameters
  * @brief BEV元素检测的运行参数
  *
- * 控制十字路口出口检测、圆形转弯检测和圆形入口检测的
- * 启用/禁用状态和各种判定阈值。
+ * 控制十字路口出口检测和 Circle V2 场景注册/退出门限。
  */
 struct BEVElementParameters {
     // 十字路口出口检测参数
-    bool cross_exit_takeover_enabled = false;  ///< 是否启用十字路口出口接管
+    bool cross_exit_takeover_enabled = true;   ///< 是否启用十字路口出口接管
     float cross_wide_row_white_ratio_min = 0.95F;  ///< 十字路口宽行白色比例最小值
 
-    // 圆形转弯检测参数
-    bool circle_evidence_enabled = true;          ///< 是否启用圆形转弯证据检测
-    int circle_min_support_rows = 4;              ///< 最小支持行数
-    int circle_min_sampleable_per_row = 16;       ///< 每行最小可采样点数
-    float circle_open_expansion_min_m = 0.05F;    ///< 开口扩张最小距离（米）
-    float circle_opening_expansion_ratio_min = 0.10F;  ///< 开口扩张最小比例
-    float circle_opposite_straight_drift_max_m = 0.06F;  ///< 对侧直线漂移最大距离（米）
-    float circle_opposite_shrink_ratio_min = 0.10F;  ///< 对侧收缩最小比例
-    float circle_present_confidence_min = 0.65F;  ///< 圆形存在置信度最小值
-
-    // 圆形入口检测参数
-    bool circle_entry_takeover_enabled = false;           ///< 是否启用圆形入口接管
-    int circle_entry_min_frontier_points = 4;             ///< 最小前缘点数
-    float circle_entry_direction_min_lateral_m = 0.05F;   ///< 入口方向最小横向距离（米）
-    float circle_entry_max_interpolation_gap_m = 0.12F;   ///< 最大插值间隙（米）
-    float circle_entry_max_join_jump_m = 0.12F;           ///< 最大连接跳跃距离（米）
+    // Circle V2 场景状态机参数
+    bool circle_v2_enabled = true;                  ///< 是否注册 CircleV2Scene
+    float circle_v2_exit_yaw_threshold_deg = 330.0F; ///< B->C 出环角度阈值（度）
+    int circle_v2_exit_hold_frames = 60;            ///< C 状态保持帧数，最小为 2
+    int circle_v2_inner_trace_stall_timeout_ms = 4000; ///< InnerTrace 无明显 yaw 积分退回 Idle 超时
+    float circle_v2_inner_trace_stall_yaw_min_deg = 16.5F; ///< InnerTrace 超时退回 Idle 的最小明显 yaw 积分
+    float circle_v2_inner_trace_path_offset_m = 0.0F; ///< InnerTrace 从内圆边线向道路内部偏移的距离
+    float circle_v2_opposite_straight_confidence_min = 0.50F; ///< CircleV2 对侧直线最低拟合置信度
 };
 
 }  // namespace ls2k::port

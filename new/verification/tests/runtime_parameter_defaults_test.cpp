@@ -202,6 +202,13 @@ int main(int argc, char** argv) {
         ExpectNear(params.bev_geometry.lateral_step_m,
                    NumberField(geometry, "LATERAL_STEP_M"),
                    "BEV_GEOMETRY.LATERAL_STEP_M");
+        ExpectNear(params.bev_geometry.nominal_road_half_width_m,
+                   NumberField(geometry, "NOMINAL_ROAD_HALF_WIDTH_M"),
+                   "BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M");
+        ExpectInRange(params.bev_geometry.nominal_road_half_width_m,
+                      0.01,
+                      2.0,
+                      "BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M");
 
         const std::string classification = ObjectBody(json, "BEV_CLASSIFICATION");
         ExpectNear(params.bev_classification.white_confidence_min,
@@ -258,77 +265,59 @@ int main(int argc, char** argv) {
                       0.0,
                       1.0,
                       "BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN");
-        ExpectBool(params.bev_element.circle_evidence_enabled,
-                   NumberField(element, "CIRCLE_EVIDENCE_ENABLED"),
-                   "BEV_ELEMENT.CIRCLE_EVIDENCE_ENABLED");
-        ExpectInt(params.bev_element.circle_min_support_rows,
-                  NumberField(element, "CIRCLE_MIN_SUPPORT_ROWS"),
-                  "BEV_ELEMENT.CIRCLE_MIN_SUPPORT_ROWS");
-        ExpectInt(params.bev_element.circle_min_sampleable_per_row,
-                  NumberField(element, "CIRCLE_MIN_SAMPLEABLE_PER_ROW"),
-                  "BEV_ELEMENT.CIRCLE_MIN_SAMPLEABLE_PER_ROW");
-        ExpectNear(params.bev_element.circle_open_expansion_min_m,
-                   NumberField(element, "CIRCLE_OPEN_EXPANSION_MIN_M"),
-                   "BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M");
-        ExpectInRange(params.bev_element.circle_open_expansion_min_m,
-                      1.0e-4,
-                      2.0,
-                      "BEV_ELEMENT.CIRCLE_OPEN_EXPANSION_MIN_M");
-        ExpectNear(params.bev_element.circle_opening_expansion_ratio_min,
-                   NumberField(element, "CIRCLE_OPENING_EXPANSION_RATIO_MIN"),
-                   "BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN");
-        ExpectInRange(params.bev_element.circle_opening_expansion_ratio_min,
-                      1.0e-4,
-                      10.0,
-                      "BEV_ELEMENT.CIRCLE_OPENING_EXPANSION_RATIO_MIN");
-        ExpectNear(params.bev_element.circle_opposite_straight_drift_max_m,
-                   NumberField(element, "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M"),
-                   "BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M");
-        ExpectInRange(params.bev_element.circle_opposite_straight_drift_max_m,
+        ExpectBool(params.bev_element.circle_v2_enabled,
+                   NumberField(element, "CIRCLE_V2_ENABLED"),
+                   "BEV_ELEMENT.CIRCLE_V2_ENABLED");
+        ExpectNear(params.bev_element.circle_v2_exit_yaw_threshold_deg,
+                   NumberField(element, "CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG"),
+                   "BEV_ELEMENT.CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG");
+        ExpectInRange(params.bev_element.circle_v2_exit_yaw_threshold_deg,
+                      1.0,
+                      720.0,
+                      "BEV_ELEMENT.CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG");
+        ExpectInt(params.bev_element.circle_v2_exit_hold_frames,
+                  NumberField(element, "CIRCLE_V2_EXIT_HOLD_FRAMES"),
+                  "BEV_ELEMENT.CIRCLE_V2_EXIT_HOLD_FRAMES");
+        Expect(params.bev_element.circle_v2_exit_hold_frames >= 2,
+               "BEV_ELEMENT.CIRCLE_V2_EXIT_HOLD_FRAMES must be >= 2");
+        ExpectInt(params.bev_element.circle_v2_inner_trace_stall_timeout_ms,
+                  NumberField(element, "CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS"),
+                  "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS");
+        Expect(params.bev_element.circle_v2_inner_trace_stall_timeout_ms >= 1,
+               "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS must be >= 1");
+        ExpectNear(params.bev_element.circle_v2_inner_trace_stall_yaw_min_deg,
+                   NumberField(element, "CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG"),
+                   "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG");
+        ExpectInRange(params.bev_element.circle_v2_inner_trace_stall_yaw_min_deg,
+                      0.0,
+                      720.0,
+                      "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG");
+        ExpectNear(params.bev_element.circle_v2_inner_trace_path_offset_m,
+                   NumberField(element, "CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M"),
+                   "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M");
+        ExpectInRange(params.bev_element.circle_v2_inner_trace_path_offset_m,
                       0.0,
                       2.0,
-                      "BEV_ELEMENT.CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M");
-        ExpectNear(params.bev_element.circle_opposite_shrink_ratio_min,
-                   NumberField(element, "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN"),
-                   "BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN");
-        ExpectInRange(params.bev_element.circle_opposite_shrink_ratio_min,
-                      1.0e-4,
-                      10.0,
-                      "BEV_ELEMENT.CIRCLE_OPPOSITE_SHRINK_RATIO_MIN");
-        ExpectNear(params.bev_element.circle_present_confidence_min,
-                   NumberField(element, "CIRCLE_PRESENT_CONFIDENCE_MIN"),
-                   "BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN");
-        ExpectInRange(params.bev_element.circle_present_confidence_min,
+                      "BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M");
+        ExpectNear(params.bev_element.circle_v2_opposite_straight_confidence_min,
+                   NumberField(element, "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN"),
+                   "BEV_ELEMENT.CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN");
+        ExpectInRange(params.bev_element.circle_v2_opposite_straight_confidence_min,
                       0.0,
                       1.0,
-                      "BEV_ELEMENT.CIRCLE_PRESENT_CONFIDENCE_MIN");
-        ExpectBool(params.bev_element.circle_entry_takeover_enabled,
-                   NumberField(element, "CIRCLE_ENTRY_TAKEOVER_ENABLED"),
-                   "BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED");
-        ExpectInt(params.bev_element.circle_entry_min_frontier_points,
-                  NumberField(element, "CIRCLE_ENTRY_MIN_FRONTIER_POINTS"),
-                  "BEV_ELEMENT.CIRCLE_ENTRY_MIN_FRONTIER_POINTS");
-        ExpectNear(params.bev_element.circle_entry_direction_min_lateral_m,
-                   NumberField(element, "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M"),
-                   "BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M");
-        ExpectInRange(params.bev_element.circle_entry_direction_min_lateral_m,
-                      0.0,
-                      2.0,
-                      "BEV_ELEMENT.CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M");
-        ExpectNear(params.bev_element.circle_entry_max_interpolation_gap_m,
-                   NumberField(element, "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M"),
-                   "BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M");
-        ExpectInRange(params.bev_element.circle_entry_max_interpolation_gap_m,
-                      1.0e-4,
-                      2.0,
-                      "BEV_ELEMENT.CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M");
-        ExpectNear(params.bev_element.circle_entry_max_join_jump_m,
-                   NumberField(element, "CIRCLE_ENTRY_MAX_JOIN_JUMP_M"),
-                   "BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M");
-        ExpectInRange(params.bev_element.circle_entry_max_join_jump_m,
-                      0.0,
-                      2.0,
-                      "BEV_ELEMENT.CIRCLE_ENTRY_MAX_JOIN_JUMP_M");
+                      "BEV_ELEMENT.CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN");
+        Expect(element.find("\"CIRCLE_ENTRY_") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy CIRCLE_ENTRY keys");
+        Expect(element.find("\"CIRCLE_EVIDENCE_") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy circle evidence keys");
+        Expect(element.find("\"CIRCLE_MIN_") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy circle support keys");
+        Expect(element.find("\"CIRCLE_OPEN") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy circle opening keys");
+        Expect(element.find("\"CIRCLE_OPPOSITE_") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy circle opposite-side keys");
+        Expect(element.find("\"CIRCLE_PRESENT_") == std::string::npos,
+               "BEV_ELEMENT must not retain legacy circle confidence keys");
 
         const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
         ExpectBool(params.bev_element_raster.enabled,

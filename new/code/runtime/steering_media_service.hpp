@@ -59,7 +59,9 @@ private:
     bool enabled_ = false;                          ///< 媒体服务是否启用
     bool config_sent_ = false;                      ///< 配置快照是否已发送
     bool publish_disarmed_ = false;                  ///< 是否在 DISARMED 状态也发布
+    bool publish_latest_frame_ = false;              ///< 诊断模式：是否发布最新相机帧而非快照匹配帧
     int downsample_ = 1;                             ///< 图像降采样因子
+    int gray_bits_ = 8;                              ///< 传输灰度位深
     int publish_interval_ms_ = 80;                   ///< 图像发布间隔（ms）
     std::uint64_t last_image_publish_ms_ = 0;        ///< 上次图像发布时间戳
     std::uint64_t last_image_frame_id_ = 0;          ///< 上次发布的帧 ID
@@ -67,6 +69,7 @@ private:
     WindowStats window_stats_{};                     ///< 窗口统计
     port::RuntimeParameters params_{};               ///< 运行时参数副本
     std::vector<std::uint8_t> downsample_buffer_{};  ///< 降采样缓冲
+    std::vector<std::uint8_t> gray_pack_buffer_{};    ///< 低位深灰度打包缓冲
     platform::SteeringMediaLink link_{};             ///< 媒体链路层实例
 };
 

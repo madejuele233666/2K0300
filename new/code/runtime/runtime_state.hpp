@@ -25,6 +25,12 @@ inline void ResetSteeringPerceptionMemory(port::SteeringPerceptionMemory& memory
     memory = {};
 }
 
+/// 重置普通参考连续性记忆，不触碰 scene-owned 记忆。
+/// @param memory  要重置的感知记忆
+inline void ResetSteeringReferenceHoldMemory(port::SteeringPerceptionMemory& memory) {
+    memory.reference_hold = {};
+}
+
 /// 重置转向控制记忆（清空结构体）
 /// @param memory  要重置的控制记忆
 inline void ResetSteeringControlMemory(port::SteeringControlMemory& memory) {
@@ -48,6 +54,7 @@ struct CameraFrameHandle {
     int width = 0;                 ///< 图像宽度
     int height = 0;                ///< 图像高度
     int stride = 0;                ///< 图像行跨度
+    port::CameraRawFrameMetadata metadata{};  ///< 相机采集/提交元数据
 };
 
 /// 自有相机帧槽 —— 存储相机帧数据的固定槽位
@@ -59,6 +66,7 @@ struct OwnedCameraFrameSlot {
     int width = 0;                 ///< 图像宽度
     int height = 0;                ///< 图像高度
     int stride = 0;                ///< 图像行跨度
+    port::CameraRawFrameMetadata metadata{};  ///< 相机采集/提交元数据
     OwnedCameraFrameSlotState state = OwnedCameraFrameSlotState::kFree;  ///< 槽状态
     std::array<std::uint8_t, port::kCompiledCameraFrameWidth * port::kCompiledCameraFrameHeight> gray{};  ///< 灰度图像数据
 };
@@ -108,7 +116,7 @@ struct MotionHistorySample {
 
 /// 固定容量运动历史 ring buffer
 struct MotionHistory {
-    static constexpr std::size_t kCapacity = 128;
+    static constexpr std::size_t kCapacity = 2048;
 
     void Push(const MotionHistorySample& sample) {
         samples[next_index] = sample;
@@ -121,10 +129,14 @@ struct MotionHistory {
     std::array<MotionHistorySample, kCapacity> Ordered() const {
         std::array<MotionHistorySample, kCapacity> ordered{};
         for (std::size_t offset = 0; offset < count; ++offset) {
-            const std::size_t src = (next_index + kCapacity - count + offset) % kCapacity;
-            ordered[offset] = samples[src];
+            ordered[offset] = OldestOffset(offset);
         }
         return ordered;
+    }
+
+    const MotionHistorySample& OldestOffset(std::size_t offset) const {
+        const std::size_t src = (next_index + kCapacity - count + offset) % kCapacity;
+        return samples[src];
     }
 
     std::array<MotionHistorySample, kCapacity> samples{};
@@ -140,7 +152,8 @@ struct MotionHistory {
 inline CameraFrameHandle MaterializeOwnedCameraFrame(
     std::array<OwnedCameraFrameSlot, 3>& slots,
     std::size_t& next_slot_index,
-    const port::LegacyCameraFrameView& view) {
+    const port::LegacyCameraFrameView& view,
+    port::CameraRawFrameMetadata metadata = {}) {
     CameraFrameHandle handle{};
     if (!view.Valid() ||
         view.width > port::kCompiledCameraFrameWidth ||
@@ -171,6 +184,9 @@ inline CameraFrameHandle MaterializeOwnedCameraFrame(
     slot.width = view.width;
     slot.height = view.height;
     slot.stride = view.width;
+    metadata.frame_id = view.frame_id;
+    metadata.capture_time_ms = view.capture_time_ms;
+    slot.metadata = metadata;
     for (int row = 0; row < view.height; ++row) {
         const std::uint8_t* src =
             view.gray + static_cast<std::size_t>(row) * static_cast<std::size_t>(view.stride);
@@ -187,6 +203,7 @@ inline CameraFrameHandle MaterializeOwnedCameraFrame(
     handle.width = slot.width;
     handle.height = slot.height;
     handle.stride = slot.stride;
+    handle.metadata = slot.metadata;
     return handle;
 }
 

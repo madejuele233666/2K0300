@@ -91,6 +91,12 @@ std::atomic<std::uint64_t> g_ticks_per_us_x1000{1000000};  ///< 每微秒计数�
             return "perception.element_raster.class_table";
         case PerfStage::kPerceptionElementRasterCells:
             return "perception.element_raster.cells";
+        case PerfStage::kCirclePhase1Rows:
+            return "circle.phase1.rows";
+        case PerfStage::kCirclePhase2RoiScan:
+            return "circle.phase2.roi_scan";
+        case PerfStage::kCirclePhase2ReferenceBuild:
+            return "circle.phase2.reference_build";
         case PerfStage::kVisualElementPipeline:
             return "visual.element_pipeline";
         case PerfStage::kVisualLineCandidate:
@@ -148,23 +154,17 @@ std::uint64_t ReadSteadyClockNs() {
 /**
  * @brief 读取LoongArch硬件周期计数器的值
  *
- * 使用 rdcntvh.w / rdcntvl.w 指令读取64位周期计数器。
- * 通过循环确保高低32位读取的一致性（防止高位溢出）。
+ * 使用 rdtime.d 指令读取64位硬件时间计数器。
  * 在非LoongArch平台上回退到稳态时钟。
  *
  * @return 当前周期计数值
  */
 [[maybe_unused]] std::uint64_t ReadArchCounterTicks() {
 #if LS2K_PERF_ENABLED && LS2K_PERF_USE_CYCLE_COUNTER && defined(__loongarch64)
-    std::uint32_t hi_before = 0;
-    std::uint32_t hi_after = 0;
-    std::uint32_t lo = 0;
-    do {
-        asm volatile("rdcntvh.w %0" : "=r"(hi_before));
-        asm volatile("rdcntvl.w %0" : "=r"(lo));
-        asm volatile("rdcntvh.w %0" : "=r"(hi_after));
-    } while (hi_before != hi_after);
-    return (static_cast<std::uint64_t>(hi_after) << 32U) | static_cast<std::uint64_t>(lo);
+    std::uint64_t ticks = 0;
+    std::uint64_t time_id = 0;
+    asm volatile("rdtime.d %0, %1" : "=r"(ticks), "=r"(time_id));
+    return ticks;
 #else
     return ReadSteadyClockNs();
 #endif

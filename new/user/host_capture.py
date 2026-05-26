@@ -19,10 +19,13 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
 
-SOCKET_BUFFER_BYTES = 256 * 1024
+from steering_media_live_server import SteeringMediaLiveServer
+
+SOCKET_BUFFER_BYTES = 4 * 1024 * 1024
 MAX_JSON_FRAME_BYTES = 4096
 MAX_MEDIA_HEADER_BYTES = 512 * 1024
 MAX_MEDIA_PAYLOAD_BYTES = 2 * 1024 * 1024
+MEDIA_RECORD_MODES = ("all", "metadata", "none")
 
 
 def log(message: str) -> None:
@@ -48,7 +51,10 @@ def nested(frame: Dict[str, Any], *keys: str, default: Any = "") -> Any:
 
 def create_listen_socket(host: str, port: int) -> socket.socket:
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if sys.platform == "win32" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    elif sys.platform != "win32":
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SOCKET_BUFFER_BYTES)
     except OSError:
@@ -136,6 +142,7 @@ class AssistantJsonListener:
         self._csv_writer = csv.DictWriter(self._csv_file, fieldnames=self.FIELDNAMES)
         self._csv_writer.writeheader()
         self._jsonl_file = self._jsonl_path.open("w", encoding="utf-8")
+        self._log(f"[control] binding assistant listener on {self._listen_host}:{self._listen_port}")
         self._server = create_listen_socket(self._listen_host, self._listen_port)
         self._summary["bound"] = True
         self._thread = threading.Thread(target=self._run, name="assistant-json-listener", daemon=True)
@@ -350,12 +357,18 @@ class SteeringMediaListener:
         *,
         accept_timeout_s: float = 8.0,
         log_fn: Optional[Callable[[str], None]] = None,
+        live_server: Optional[SteeringMediaLiveServer] = None,
+        record_mode: str = "all",
     ) -> None:
         self._listen_host = listen_host
         self._listen_port = listen_port
         self._output_dir = output_dir
         self._accept_timeout_s = max(0.1, accept_timeout_s)
         self._log = log_fn or (lambda message: None)
+        self._live_server = live_server
+        if record_mode not in MEDIA_RECORD_MODES:
+            raise ValueError(f"unsupported media record mode: {record_mode}")
+        self._record_mode = record_mode
         self._server: Optional[socket.socket] = None
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
@@ -370,7 +383,11 @@ class SteeringMediaListener:
             "metadata_path": str(output_dir / "frame_metadata.jsonl"),
             "frame_dir": str(output_dir / "frames"),
             "frame_count": 0,
+            "record_mode": record_mode,
+            "raw_frames_recorded": 0,
+            "metadata_frames_recorded": 0,
             "payload_bytes": 0,
+            "decoded_payload_bytes": 0,
             "rx_bytes": 0,
             "partial_buffer_bytes": 0,
             "envelope_count": 0,
@@ -390,6 +407,7 @@ class SteeringMediaListener:
             "effective_fps": 0.0,
             "last_frame_id": None,
             "last_capture_time_ms": None,
+            "live_publish_errors": 0,
         }
         self._metadata_lock = threading.Lock()
         self._ever_connected = False
@@ -401,7 +419,9 @@ class SteeringMediaListener:
 
     def start(self) -> None:
         self._output_dir.mkdir(parents=True, exist_ok=True)
-        (self._output_dir / "frames").mkdir(parents=True, exist_ok=True)
+        if self._record_mode == "all":
+            (self._output_dir / "frames").mkdir(parents=True, exist_ok=True)
+        self._log(f"[media] binding steering media listener on {self._listen_host}:{self._listen_port}")
         self._server = create_listen_socket(self._listen_host, self._listen_port)
         self._summary["bound"] = True
         self._thread = threading.Thread(target=self._run, name="steering-media-listener", daemon=True)
@@ -565,6 +585,7 @@ class SteeringMediaListener:
                 f"interval_ms={header.get('media_publish_interval_ms')} "
                 f"yaw_rate_pid_p={header.get('param_snapshot', {}).get('yaw_rate_pid', {}).get('p')}"
             )
+            self._publish_live(header, payload, receive_monotonic_ms)
             return
 
         if frame_type != "image_frame":
@@ -574,7 +595,7 @@ class SteeringMediaListener:
 
         frame_width = int(header.get("width", 0))
         frame_height = int(header.get("height", 0))
-        expected_payload_bytes = max(0, frame_width) * max(0, frame_height)
+        expected_payload_bytes = self._expected_payload_bytes(header, frame_width, frame_height)
         if frame_width <= 0 or frame_height <= 0:
             self._summary["receiver_error"] = (
                 f"invalid steering image dimensions: width={frame_width}, height={frame_height}"
@@ -589,29 +610,32 @@ class SteeringMediaListener:
             return
 
         frame_id = int(header.get("frame_id", 0))
-        frame_path = self._output_dir / "frames" / f"frame-{frame_id:06d}.raw"
-        frame_path.write_bytes(payload)
+        decoded_payload = self._decode_image_payload(header, payload, frame_width, frame_height)
         self._update_frame_stats(header, payload, receive_monotonic_ms)
-        metadata = {
-            "host_received_utc": utc_timestamp(),
-            "host_received_monotonic_ms": receive_monotonic_ms,
-            "frame_path": str(frame_path),
-            **header,
-        }
-        with self._metadata_lock:
-            metadata_path = Path(str(self._summary["metadata_path"]))
-            with metadata_path.open("a", encoding="utf-8") as file:
-                file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
+        self._summary["decoded_payload_bytes"] = (
+            int(self._summary["decoded_payload_bytes"]) + len(decoded_payload)
+        )
         self._summary["frame_count"] = int(self._summary["frame_count"]) + 1
+        self._publish_live(header, payload, receive_monotonic_ms)
+        frame_path = self._record_image_frame(header, decoded_payload, receive_monotonic_ms)
+        if frame_path is not None:
+            self._summary["raw_frames_recorded"] = int(self._summary["raw_frames_recorded"]) + 1
+        if self._record_mode in ("all", "metadata"):
+            self._record_image_metadata(header, frame_path, receive_monotonic_ms)
+            self._summary["metadata_frames_recorded"] = int(self._summary["metadata_frames_recorded"]) + 1
         if self._should_log_progress(receive_monotonic_ms):
             steering = header.get("steering_snapshot", {})
             self._log(
                 "[media] "
                 f"frames={self._summary['frame_count']} frame_id={frame_id} "
                 f"fps={self._summary.get('effective_fps', 0.0):.2f} "
+                f"record={self._record_mode} "
+                f"encoding={header.get('payload_encoding', header.get('pixel_format', 'raw'))} "
+                f"frame_source={header.get('frame_source')} "
                 f"phase={header.get('motion_phase')} "
                 f"ref={nested(steering, 'reference', 'mode')} "
                 f"source={nested(steering, 'reference', 'source')} "
+                f"path_candidates={nested(steering, 'visual_reference', 'path_candidates', 'count')} "
                 f"usable={nested(steering, 'eligibility', 'usable')} "
                 f"gate={nested(steering, 'safety_gate', 'reason')} "
                 f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
@@ -619,6 +643,73 @@ class SteeringMediaListener:
                 f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
                 f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
             )
+
+    def _record_image_frame(
+        self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int
+    ) -> Optional[Path]:
+        if self._record_mode != "all":
+            return None
+        frame_id = int(header.get("frame_id", 0))
+        frame_path = self._output_dir / "frames" / f"frame-{frame_id:06d}.raw"
+        frame_path.write_bytes(payload)
+        return frame_path
+
+    def _expected_payload_bytes(self, header: Dict[str, Any], width: int, height: int) -> int:
+        pixels = max(0, width) * max(0, height)
+        bits = self._packed_gray_bits(header)
+        if bits is not None:
+            return (pixels * bits + 7) // 8
+        return pixels
+
+    def _packed_gray_bits(self, header: Dict[str, Any]) -> Optional[int]:
+        encoding = header.get("payload_encoding")
+        pixel_format = header.get("pixel_format")
+        if encoding == "gray1_packed" or pixel_format == "gray1":
+            return 1
+        if encoding == "gray2_packed" or pixel_format == "gray2":
+            return 2
+        if encoding == "gray4_packed" or pixel_format == "gray4":
+            return 4
+        return None
+
+    def _decode_image_payload(
+        self, header: Dict[str, Any], payload: bytes, width: int, height: int
+    ) -> bytes:
+        bits = self._packed_gray_bits(header)
+        if bits is None:
+            return payload
+        max_level = (1 << bits) - 1
+        decoded = bytearray(width * height)
+        for index in range(width * height):
+            bit_index = index * bits
+            packed = payload[bit_index // 8]
+            shift = 8 - bits - (bit_index % 8)
+            level = (packed >> shift) & max_level
+            decoded[index] = (level * 255) // max(1, max_level)
+        return bytes(decoded)
+
+    def _record_image_metadata(
+        self, header: Dict[str, Any], frame_path: Optional[Path], receive_monotonic_ms: int
+    ) -> None:
+        metadata = {
+            "host_received_utc": utc_timestamp(),
+            "host_received_monotonic_ms": receive_monotonic_ms,
+            "frame_path": str(frame_path) if frame_path is not None else None,
+            **header,
+        }
+        with self._metadata_lock:
+            metadata_path = Path(str(self._summary["metadata_path"]))
+            with metadata_path.open("a", encoding="utf-8") as file:
+                file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
+
+    def _publish_live(self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int) -> None:
+        if self._live_server is None:
+            return
+        try:
+            self._live_server.publish(header, payload, receive_monotonic_ms)
+        except Exception as error:
+            self._summary["live_publish_errors"] = int(self._summary["live_publish_errors"]) + 1
+            self._log(f"[live] publish error: {error}")
 
     def _update_frame_stats(
         self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int
@@ -702,6 +793,34 @@ def parse_args() -> argparse.Namespace:
         default=str(default_output_dir()),
         help="directory for assistant/media evidence bundle",
     )
+    parser.add_argument(
+        "--live-web",
+        action="store_true",
+        help="serve a local read-only browser viewer for steering media frames",
+    )
+    parser.add_argument(
+        "--live-host",
+        default="127.0.0.1",
+        help="host/interface for the optional live web viewer",
+    )
+    parser.add_argument(
+        "--live-port",
+        type=int,
+        default=8765,
+        help="TCP port for the optional live web viewer",
+    )
+    parser.add_argument(
+        "--live-display-mode",
+        choices=("bev", "raw"),
+        default="bev",
+        help="initial live viewer image mode: bev shows the BEV-warped image, raw shows the camera frame",
+    )
+    parser.add_argument(
+        "--media-record-mode",
+        choices=MEDIA_RECORD_MODES,
+        default="all",
+        help="steering media evidence recording mode: all writes raw frames and metadata, metadata skips raw files, none keeps live/summary only",
+    )
     parser.add_argument("--duration-s", type=float, default=20.0, help="capture duration in seconds")
     parser.add_argument("--board-ip", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--board-user", default=None, help=argparse.SUPPRESS)
@@ -727,9 +846,21 @@ def main() -> int:
         log_fn=log,
     )
     media_listener: Optional[SteeringMediaListener] = None
+    live_server: Optional[SteeringMediaLiveServer] = None
     started = False
     interrupted = False
     try:
+        if args.live_web:
+            live_server = SteeringMediaLiveServer(args.live_host, args.live_port, args.live_display_mode)
+            try:
+                live_server.start()
+            except OSError as error:
+                log(
+                    "[live] failed to start viewer "
+                    f"on {args.live_host}:{args.live_port}: {error}"
+                )
+                return 1
+            log(f"[live] viewer_url={live_server.url}")
         assistant_listener.start()
         if args.media_listen_port is not None:
             media_listener = SteeringMediaListener(
@@ -738,6 +869,8 @@ def main() -> int:
                 output_dir / "steering-media",
                 accept_timeout_s=args.media_accept_timeout_s,
                 log_fn=log,
+                live_server=live_server,
+                record_mode=args.media_record_mode,
             )
             media_listener.start()
         started = True
@@ -760,6 +893,7 @@ def main() -> int:
     finally:
         assistant_summary = assistant_listener.close() if started else {"receiver_error": "assistant listener failed to start"}
         media_summary = media_listener.close() if media_listener is not None else None
+        live_summary = live_server.close() if live_server is not None else None
 
     summary: Dict[str, Any] = {
         "timestamp_utc": utc_timestamp(),
@@ -770,6 +904,8 @@ def main() -> int:
     }
     if media_summary is not None:
         summary["media_summary"] = media_summary
+    if live_summary is not None:
+        summary["live_summary"] = live_summary
 
     summary_path = output_dir / "summary.json"
     with summary_path.open("w", encoding="utf-8") as file:
@@ -784,6 +920,9 @@ def main() -> int:
         log(f"[summary] steering_media_bound={media_summary.get('bound')}")
         log(f"[summary] steering_media_connected={media_summary.get('connected')}")
         log(f"[summary] steering_media_frames={media_summary.get('frame_count')}")
+    if live_summary is not None:
+        log(f"[summary] live_url={live_summary.get('url')}")
+        log(f"[summary] live_messages={live_summary.get('messages_published')}")
 
     if assistant_summary.get("receiver_error") is not None:
         log(f"[summary] assistant_error={assistant_summary['receiver_error']}")

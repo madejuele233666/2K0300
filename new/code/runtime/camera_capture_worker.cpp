@@ -128,12 +128,10 @@ void CameraCaptureWorker::ThreadMain() {
         const uint64_t capture_time_ms =
             metadata.capture_time_ms == 0 ? port::NowMs() : metadata.capture_time_ms;
         const port::LegacyCameraFrameView view = gray.View(frame_id, capture_time_ms);
-        const uint64_t submit_begin_us = NowUs();
         {
             LS2K_PERF_SCOPE(port::PerfStage::kCameraStoreSubmit);
             frame_store_.Submit(view, metadata);
         }
-        metadata.store_submit_us = NowUs() - submit_begin_us;
     }
     running_.store(false);
 }

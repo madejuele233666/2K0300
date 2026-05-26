@@ -61,5 +61,6 @@ fi
 exec env \
     LS2K_AUTO_START="${auto_start}" \
     LS2K_AUTO_START_DELAY_MS="${auto_start_delay_ms}" \
+    LS2K_AUTO_STOP_AFTER_MS=0 \
     CONFIRM_POWERED_START="${CONFIRM_POWERED_START:-0}" \
     "${SCRIPT_DIR}/debug.sh" remote restart normal

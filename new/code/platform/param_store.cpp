@@ -581,24 +581,23 @@ bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
            IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
 }
 
+bool ValidateBEVGeometry(const port::BEVGeometryParameters& params) {
+    return IsFiniteInRange(params.nominal_road_half_width_m, 0.01, 2.0);
+}
+
 /**
- * 校验 BEV 元素参数（含圆形证据和路口退出相关参数）是否在合理范围内。
+ * 校验 BEV 元素参数（含 cross 和 Circle V2 参数）是否在合理范围内。
  * @param params BEV 元素参数结构体
  * @return true 表示所有参数均通过合法性校验
  */
 bool ValidateBEVElement(const port::BEVElementParameters& params) {
     return IsFiniteInRange(params.cross_wide_row_white_ratio_min, 0.0, 1.0) &&
-           params.circle_min_support_rows >= 1 &&
-           params.circle_min_sampleable_per_row >= 1 &&
-           IsFiniteInRange(params.circle_open_expansion_min_m, 1.0e-4, 2.0) &&
-           IsFiniteInRange(params.circle_opening_expansion_ratio_min, 1.0e-4, 10.0) &&
-           IsFiniteInRange(params.circle_opposite_straight_drift_max_m, 0.0, 2.0) &&
-           IsFiniteInRange(params.circle_opposite_shrink_ratio_min, 1.0e-4, 10.0) &&
-           IsFiniteInRange(params.circle_present_confidence_min, 0.0, 1.0) &&
-           params.circle_entry_min_frontier_points >= 1 &&
-           IsFiniteInRange(params.circle_entry_direction_min_lateral_m, 0.0, 2.0) &&
-           IsFiniteInRange(params.circle_entry_max_interpolation_gap_m, 1.0e-4, 2.0) &&
-           IsFiniteInRange(params.circle_entry_max_join_jump_m, 0.0, 2.0);
+           IsFiniteInRange(params.circle_v2_exit_yaw_threshold_deg, 1.0, 720.0) &&
+           params.circle_v2_exit_hold_frames >= 2 &&
+           params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
+           IsFiniteInRange(params.circle_v2_inner_trace_stall_yaw_min_deg, 0.0, 720.0) &&
+           IsFiniteInRange(params.circle_v2_inner_trace_path_offset_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_v2_opposite_straight_confidence_min, 0.0, 1.0);
 }
 
 bool ValidateReferenceTimeAlignment(const port::ReferenceTimeAlignmentParameters& params) {
@@ -813,6 +812,20 @@ public:
             optional_malformed = true;
         }
         ReadOptionalBool(root,
+                         "steering_media_publish_latest_frame",
+                         parsed.steering_media_publish_latest_frame,
+                         optional_malformed);
+        ReadOptionalInt(root,
+                        "steering_media_gray_bits",
+                        parsed.steering_media_gray_bits,
+                        optional_malformed);
+        if (parsed.steering_media_gray_bits != 1 &&
+            parsed.steering_media_gray_bits != 2 &&
+            parsed.steering_media_gray_bits != 4 &&
+            parsed.steering_media_gray_bits != 8) {
+            optional_malformed = true;
+        }
+        ReadOptionalBool(root,
                          "steering_media_publish_disarmed",
                          parsed.steering_media_publish_disarmed,
                          optional_malformed);
@@ -894,6 +907,14 @@ public:
                                  "LATERAL_STEP_M",
                                  parsed.bev_geometry.lateral_step_m,
                                  optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_GEOMETRY",
+                                 "NOMINAL_ROAD_HALF_WIDTH_M",
+                                 parsed.bev_geometry.nominal_road_half_width_m,
+                                 optional_malformed);
+        if (!ValidateBEVGeometry(parsed.bev_geometry)) {
+            optional_malformed = true;
+        }
         // --- BEV 分类与白点 hold 参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_CLASSIFICATION",
@@ -941,68 +962,38 @@ public:
                                  optional_malformed);
         ReadOptionalNestedBool(root,
                                "BEV_ELEMENT",
-                               "CIRCLE_EVIDENCE_ENABLED",
-                               parsed.bev_element.circle_evidence_enabled,
+                               "CIRCLE_V2_ENABLED",
+                               parsed.bev_element.circle_v2_enabled,
                                optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG",
+                                 parsed.bev_element.circle_v2_exit_yaw_threshold_deg,
+                                 optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_ELEMENT",
-                              "CIRCLE_MIN_SUPPORT_ROWS",
-                              parsed.bev_element.circle_min_support_rows,
+                              "CIRCLE_V2_EXIT_HOLD_FRAMES",
+                              parsed.bev_element.circle_v2_exit_hold_frames,
                               optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_ELEMENT",
-                              "CIRCLE_MIN_SAMPLEABLE_PER_ROW",
-                              parsed.bev_element.circle_min_sampleable_per_row,
+                              "CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS",
+                              parsed.bev_element.circle_v2_inner_trace_stall_timeout_ms,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_ELEMENT",
-                                 "CIRCLE_OPEN_EXPANSION_MIN_M",
-                                 parsed.bev_element.circle_open_expansion_min_m,
+                                 "CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG",
+                                 parsed.bev_element.circle_v2_inner_trace_stall_yaw_min_deg,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_ELEMENT",
-                                 "CIRCLE_OPENING_EXPANSION_RATIO_MIN",
-                                 parsed.bev_element.circle_opening_expansion_ratio_min,
+                                 "CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M",
+                                 parsed.bev_element.circle_v2_inner_trace_path_offset_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_ELEMENT",
-                                 "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M",
-                                 parsed.bev_element.circle_opposite_straight_drift_max_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_ELEMENT",
-                                 "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN",
-                                 parsed.bev_element.circle_opposite_shrink_ratio_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_ELEMENT",
-                                 "CIRCLE_PRESENT_CONFIDENCE_MIN",
-                                 parsed.bev_element.circle_present_confidence_min,
-                                 optional_malformed);
-        ReadOptionalNestedBool(root,
-                               "BEV_ELEMENT",
-                               "CIRCLE_ENTRY_TAKEOVER_ENABLED",
-                               parsed.bev_element.circle_entry_takeover_enabled,
-                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_ELEMENT",
-                              "CIRCLE_ENTRY_MIN_FRONTIER_POINTS",
-                              parsed.bev_element.circle_entry_min_frontier_points,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_ELEMENT",
-                                 "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M",
-                                 parsed.bev_element.circle_entry_direction_min_lateral_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_ELEMENT",
-                                 "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M",
-                                 parsed.bev_element.circle_entry_max_interpolation_gap_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_ELEMENT",
-                                 "CIRCLE_ENTRY_MAX_JOIN_JUMP_M",
-                                 parsed.bev_element.circle_entry_max_join_jump_m,
+                                 "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN",
+                                 parsed.bev_element.circle_v2_opposite_straight_confidence_min,
                                  optional_malformed);
         if (!ValidateBEVElement(parsed.bev_element)) {
             optional_malformed = true;

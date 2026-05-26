@@ -4,6 +4,8 @@
 
 参数说明与调参攻略见 [`../config/default_params.md`](../config/default_params.md)。
 
+实时图像显示系统说明见 [`STEERING_LIVE_VIEWER_README.md`](STEERING_LIVE_VIEWER_README.md)。
+
 ## 常用命令
 
 ```bash
@@ -13,6 +15,7 @@
 ./debug.sh assistant off
 ./debug.sh tuning --sequence 20,40,60,100 --disabled-mode-checks --invalid-target-speed 170 --listen-port 39011 --media-listen-port 39012
 ./debug.sh steering --duration-s 20
+./start_steering_live_viewer.sh
 CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ./debug.sh remote start normal
 ./debug.sh remote start smoke
@@ -38,6 +41,7 @@ CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
 - `smoke`：执行板端或本地冒烟验证，并生成验证日志。
 - `start_with_upload.sh`：一键停旧进程、上传最新参数和程序，然后以 no-motion 默认启动；显式 `drive` 模式才会请求自动发车。
 - `start_with_params_upload.sh`：只上传最新 `default_params.json`，不重新编译，然后以 no-motion 默认启动；显式 `drive` 模式才会请求自动发车。
+- `start_steering_live_viewer.sh`：一键启动 host 侧 steering/media capture 和只读本地网页 viewer；默认会同步并上传所选 control/media 端口参数，但不上传程序、不重启板端、不发车。
 - `stop_car.sh`：停车入口。默认 `now` 为立即停运行时并关执行器；低速测试的正常收车使用 `controlled`，超时会回退到 `now`。
 
 ## 启动安全语义
@@ -55,6 +59,8 @@ CONFIRM_POWERED_START=1 ./start_with_params_upload.sh drive
 ```
 
 在参数、标定或场景证据未知时，不要使用 `drive` 模式；先用 steering-media 和 `control.steering_snapshot` 确认 BEV 观测、门控和 0 PWM 状态。
+
+`./start_with_upload.sh drive` 和 `./start_with_params_upload.sh drive` 是普通一键发车入口，不继承当前终端残留的 `LS2K_AUTO_STOP_AFTER_MS`，因此不会自动定时停车；需要定时停车和证据采集时使用 `./debug.sh steering drive --drive-s <seconds>`。
 
 正常低速测试结束时优先使用：
 
@@ -100,6 +106,19 @@ CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 
 `steering drive` 是受控发车采集入口：它先启动 assistant/steering-media listener 并确认端口已绑定，再启动 normal runtime 的 `LS2K_AUTO_START=1` 和 `LS2K_AUTO_STOP_AFTER_MS=<drive-s>`；输出默认落在 `../verification/controlled-drive-<drive-s>s-<timestamp>/`。不要用两个独立终端手工拼接 listener 与 `remote restart normal`，否则板端可能在 listener 未就绪时先连接，日志表现为 `assistant.backoff Connection refused` / `steering_media.backoff Connection refused`。
 
+需要实时看 steering media 图像时，可在 host-capture 路径上打开只读本地网页：
+
+```bash
+./start_steering_live_viewer.sh
+./debug.sh steering host-capture --live-web --live-host 127.0.0.1 --live-port 8765 --duration-s 20
+```
+
+一键脚本默认监听 `127.0.0.1:8765`、长时采集 86400 秒并尝试打开浏览器，适合启动一次后覆盖多轮发车；在 Windows host-capture backend 下会自动检测写给板端连接的 `advertise_host`，本地 listener 默认绑定 `0.0.0.0`，避免热点关闭或网段变化后继续绑定旧 `192.168.137.1` 导致 `WinError 10049`。脚本会自动选择 control/media 端口、写回 `default_params.json` 并上传参数；可用 `--no-auto-ports` 或 `--no-upload-params` 禁用，也可用 `--advertise-host` / `--capture-bind-host` 显式覆盖连接地址和本地绑定地址。长时 viewer 默认 `--media-record-mode none`，只保留 live/summary，不把每帧 320x240 raw 写盘；默认 `--display-mode bev`，网页显示按真实 `BEV_PROJECTOR`/`BEV_GEOMETRY` 变换后的 BEV 图像，需要原始相机图像时使用 `--display-mode raw`。需要取证时使用 `--media-record-mode all`。需要高帧率 320x240 时使用 `--high-fps-320x240`，等价于 `steering_media_downsample=1`、`steering_media_publish_interval_ms=20`、`steering_media_gray_bits=2` 且保持 snapshot-aligned；近距离需要更清晰实时画面时追加 `--media-gray-bits 4`，需要原始 gray8 时显式加 `--media-gray-bits 8`。`--duration-s`、`--live-host`、`--live-port` 可覆盖默认值，其他 `host_capture.py` 参数放在 `--` 后透传。
+
+`--live-web` 只在主机侧增加 HTTP/WebSocket viewer；板端仍然只连接既有 steering media TCP 端口并发送 accepted envelope。浏览器端输入不会变成 assistant 命令。实时显示与 evidence 写盘由 `--media-record-mode` 解耦：`all` 写 raw+metadata，`metadata` 只写 frame metadata，`none` 只更新 live hub 和 summary。
+
+网页 BEV 显示只读消费真实 `config_snapshot` 里的 `BEV_PROJECTOR`/`BEV_GEOMETRY` 和每帧 gray payload，按 `STEERING_LIVE_VIEWER_README.md` 中记录的单应矩阵算法反投影采样；每帧 media header 同步携带 `steering_snapshot.visual_reference.path_candidates` 里的板端候选路径事实，网页直接把这些事实点绘制到 canvas 上，不在侧栏显示候选摘要，也不复刻板端候选路径算法。CircleV2 的独立几何中间点如果没有出现在发送端合同中，网页不推断、不绘制。
+
 新的 `host-capture` evidence bundle 包含：
 
 - `assistant_control.csv`
@@ -138,7 +157,7 @@ accepted control/media wiring 的冻结键集合是：
 - `steering_media_publish_interval_ms`
 - `steering_media_downsample`
 
-其中 `steering_media_publish_interval_ms` 和 `steering_media_downsample` 由板端启动参数读取，host workflow 只读取和记录，不在线改写。`steering_media_downsample=1` 发送原始 320x240 raw；热点吞吐不足时可设为 `4`，发送 80x60 gray8 并在 header 记录 source 尺寸。
+其中 `steering_media_publish_interval_ms`、`steering_media_downsample`、`steering_media_gray_bits` 和 `steering_media_publish_latest_frame` 由板端启动参数读取，普通 host capture 只读取和记录；`start_steering_live_viewer.sh --high-fps-320x240` 会在上传参数前显式覆盖为 320x240、20ms、gray2、snapshot-aligned。默认图像显示与 `control.steering_snapshot` 强绑定；只有显式使用 `--media-latest-frame` 才会改为最新相机帧诊断模式。
 
 如果只想跑 headless 调试而不保留 plotting fallback 证据，可以显式关闭绘图：
 

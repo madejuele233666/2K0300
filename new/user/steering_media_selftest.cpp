@@ -108,7 +108,8 @@ void Require(bool condition, const std::string& message) {
 
 void FillMatchingCapture(ls2k::runtime::RuntimeState& state,
                          std::uint64_t frame_id,
-                         std::uint64_t capture_time_ms) {
+                         std::uint64_t capture_time_ms,
+                         ls2k::port::CameraRawFrameMetadata metadata = {}) {
     ls2k::port::LegacyCameraFrame frame{};
     frame.width = 320;
     frame.height = 240;
@@ -116,9 +117,41 @@ void FillMatchingCapture(ls2k::runtime::RuntimeState& state,
     const ls2k::runtime::CameraFrameHandle handle =
         ls2k::runtime::MaterializeOwnedCameraFrame(state.camera_frame_slots,
                                                   state.next_camera_frame_slot,
-                                                  frame.View(frame_id, capture_time_ms));
+                                                  frame.View(frame_id, capture_time_ms),
+                                                  metadata);
     state.latest_camera_frame = handle;
     state.recent_camera_captures.Push(handle);
+}
+
+ls2k::port::VisualReferenceCandidate MakeCandidatePath(
+    ls2k::port::VisualReferenceCandidateKind kind,
+    const std::string& source,
+    float lateral_base_m) {
+    ls2k::port::VisualReferenceCandidate candidate{};
+    candidate.present = true;
+    candidate.kind = kind;
+    candidate.reference_path.mode = ls2k::port::ReferenceMode::kIntervalCenter;
+    candidate.confidence = 0.86F;
+    candidate.source = source;
+    candidate.reason = "unit_test_path_candidate";
+    for (std::size_t index = 0; index < 3U; ++index) {
+        ls2k::port::BEVPathSample& sample = candidate.reference_path.sampled_path[index];
+        sample.present = true;
+        sample.point.forward_m = 0.05F + 0.05F * static_cast<float>(index);
+        sample.point.lateral_m = lateral_base_m + 0.01F * static_cast<float>(index);
+        sample.confidence = 0.90F;
+        sample.source = ls2k::port::BEVPathPointSource::kIntervalCenter;
+    }
+    return candidate;
+}
+
+void AddCandidatePath(ls2k::runtime::SteeringDebugSnapshot& snapshot,
+                      ls2k::port::VisualReferenceCandidateKind kind,
+                      const std::string& source,
+                      float lateral_base_m) {
+    ls2k::port::AppendVisualReferenceCandidatePath(
+        snapshot.visual_reference.candidate_paths,
+        MakeCandidatePath(kind, source, lateral_base_m));
 }
 
 void TestReporterEmitsMinimalSteeringSnapshot() {
@@ -155,8 +188,17 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
     snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
     snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
+    snapshot.steering.circle_v2.enabled = true;
+    snapshot.steering.circle_v2.frame_phase = "exit_trace";
+    snapshot.steering.circle_v2.next_phase = "idle";
+    snapshot.steering.circle_v2.dir = "left";
+    snapshot.steering.circle_v2.reference_role = "exit_trace";
+    snapshot.steering.circle_v2.reason = "exit_hold_released";
+    snapshot.steering.circle_v2.entry_points.left.available = true;
+    snapshot.steering.circle_v2.entry_points.left.point.forward_m = 0.5F;
+    snapshot.steering.circle_v2.entry_points.left.point.lateral_m = -0.25F;
     ls2k::port::VisualElementEvidenceRecord record{};
-    record.id = "circle_left";
+    record.id = "synthetic_marker";
     record.present = true;
     record.confidence = 0.64F;
     record.reason = "synthetic_test_record";
@@ -167,6 +209,10 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.visual_reference.reason = "line_candidate_selected";
     snapshot.steering.visual_reference.candidate_count = 1;
     snapshot.steering.visual_reference.rejected_candidate_reason = "none";
+    AddCandidatePath(snapshot.steering,
+                     ls2k::port::VisualReferenceCandidateKind::kLine,
+                     "simple_interval_center",
+                     -0.02F);
     snapshot.steering.reference.mode = "interval_center";
     snapshot.steering.reference.source = "simple_interval_center";
     snapshot.steering.eligibility.usable = true;
@@ -226,7 +272,23 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose cross-exit evidence reason");
     Require(Contains(message, "element_evidence.cross_exit.candidate.included_in_arbitration=false"),
             "steering snapshot must expose cross-exit arbitration inclusion");
-    Require(Contains(message, "element_evidence.records[0].id=circle_left"),
+    Require(Contains(message, "circle_v2.enabled=true"),
+            "steering snapshot must expose CircleV2 enablement");
+    Require(Contains(message, "circle_v2.frame_phase=exit_trace"),
+            "steering snapshot must expose CircleV2 current-frame phase");
+    Require(Contains(message, "circle_v2.next_phase=idle"),
+            "steering snapshot must expose CircleV2 next memory phase");
+    Require(Contains(message, "circle_v2.reference_role=exit_trace"),
+            "steering snapshot must expose CircleV2 reference role");
+    Require(Contains(message, "circle_v2.reason=exit_hold_released"),
+            "steering snapshot must expose CircleV2 reason");
+    Require(Contains(message, "circle_v2.entry_points.left.available=true"),
+            "steering snapshot must expose CircleV2 left P availability");
+    Require(Contains(message, "circle_v2.entry_points.left.forward_m=0.5"),
+            "steering snapshot must expose CircleV2 left P forward coordinate");
+    Require(Contains(message, "circle_v2.entry_points.left.lateral_m=-0.25"),
+            "steering snapshot must expose CircleV2 left P lateral coordinate");
+    Require(Contains(message, "element_evidence.records[0].id=synthetic_marker"),
             "steering snapshot must expose generic evidence record id");
     Require(Contains(message, "element_evidence.records[0].support.supporting_black_count=7"),
             "steering snapshot must expose generic evidence record support");
@@ -234,6 +296,10 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose visual reference orchestration reason");
     Require(Contains(message, "visual_reference.candidate_count=1"),
             "steering snapshot must expose visual reference candidate count");
+    Require(Contains(message, "visual_reference.path_candidates.count=1"),
+            "steering snapshot must expose candidate path count");
+    Require(Contains(message, "visual_reference.path_candidates[0].source=simple_interval_center"),
+            "steering snapshot must expose candidate path source");
     Require(Contains(message, "reference_control.ready=true"),
             "steering snapshot must expose reference-control readiness");
     Require(Contains(message, "safety_gate.veto_active=false"),
@@ -363,20 +429,26 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include default-off cross-exit takeover");
     Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
             "config snapshot must include cross wide-row white-ratio threshold");
-    Require(Contains(header_json, "\"CIRCLE_EVIDENCE_ENABLED\":true"),
-            "config snapshot must include circle evidence enablement");
-    Require(Contains(header_json, "\"CIRCLE_OPENING_EXPANSION_RATIO_MIN\":0.10000000149"),
-            "config snapshot must include circle opening-ratio threshold");
-    Require(Contains(header_json, "\"CIRCLE_OPPOSITE_SHRINK_RATIO_MIN\":0.10000000149"),
-            "config snapshot must include circle opposite-shrink threshold");
-    Require(Contains(header_json, "\"CIRCLE_PRESENT_CONFIDENCE_MIN\":0.649999976158"),
-            "config snapshot must include circle confidence threshold");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":false"),
-            "config snapshot must include default-off circle entry takeover");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M\":0.0500000007451"),
-            "config snapshot must include circle entry direction threshold");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY_MAX_JOIN_JUMP_M\":0.119999997318"),
-            "config snapshot must include circle entry join threshold");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENABLED\":true"),
+            "config snapshot must include CircleV2 enablement");
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":330"),
+            "config snapshot must include CircleV2 exit yaw threshold");
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":60"),
+            "config snapshot must include CircleV2 exit hold frames");
+    Require(Contains(header_json, "\"CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M\":0"),
+            "config snapshot must include CircleV2 inner path offset");
+    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
+            "config snapshot must include CircleV2 opposite-straight confidence threshold");
+    Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
+            "config snapshot must not include legacy circle entry parameters");
+    Require(!Contains(header_json, "\"CIRCLE_EVIDENCE_"),
+            "config snapshot must not include legacy circle evidence parameters");
+    Require(!Contains(header_json, "\"CIRCLE_OPEN"),
+            "config snapshot must not include legacy circle opening parameters");
+    Require(!Contains(header_json, "\"CIRCLE_OPPOSITE_"),
+            "config snapshot must not include legacy circle opposite-side parameters");
+    Require(!Contains(header_json, "\"CIRCLE_PRESENT_"),
+            "config snapshot must not include legacy circle confidence parameters");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "config snapshot must include BEV element raster group");
     Require(Contains(header_json, "\"WIDTH\":320"),
@@ -418,6 +490,102 @@ void TestImagePayloadValidation() {
     Require(!ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
             "invalid image payload size must be rejected");
     Require(Contains(error, "exactly"), "payload validation error should mention exact size");
+}
+
+void TestGray4ImagePayloadEncoding() {
+    std::vector<std::uint8_t> payload(320U * 240U, 0);
+    for (std::size_t index = 0; index < payload.size(); ++index) {
+        payload[index] = static_cast<std::uint8_t>(index % 256U);
+    }
+
+    std::vector<std::uint8_t> packed((payload.size() + 1U) / 2U, 0);
+    for (std::size_t index = 0; index < payload.size(); ++index) {
+        const std::uint8_t nibble =
+            static_cast<std::uint8_t>(std::min(15, (static_cast<int>(payload[index]) + 8) >> 4));
+        if ((index & 1U) == 0U) {
+            packed[index / 2U] = static_cast<std::uint8_t>(nibble << 4U);
+        } else {
+            packed[index / 2U] = static_cast<std::uint8_t>(packed[index / 2U] | nibble);
+        }
+    }
+
+    ls2k::platform::SteeringMediaImageFrame frame{};
+    frame.frame_id = 9;
+    frame.capture_time_ms = 90;
+    frame.publish_time_ms = 91;
+    frame.width = 320;
+    frame.height = 240;
+    frame.pixel_format = "gray4";
+    frame.motion_phase = "DISARMED";
+    frame.pixel_data = packed.data();
+    frame.pixel_size = packed.size();
+
+    std::vector<std::uint8_t> encoded;
+    std::string error;
+    Require(ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
+            "gray4 image frame should encode");
+
+    std::string header_json;
+    std::vector<std::uint8_t> decoded_payload;
+    Require(ls2k::platform::DecodeSteeringMediaEnvelope(encoded.data(),
+                                                        encoded.size(),
+                                                        header_json,
+                                                        decoded_payload,
+                                                        error),
+            "gray4 image frame should decode");
+    Require(Contains(header_json, "\"pixel_format\":\"gray4\""),
+            "gray4 image frame must declare pixel format");
+    Require(Contains(header_json, "\"payload_encoding\":\"gray4_packed\""),
+            "gray4 image frame must declare packed payload encoding");
+    Require(decoded_payload.size() == (320U * 240U) / 2U,
+            "gray4 payload should pack two pixels per byte");
+}
+
+void TestGray2ImagePayloadEncoding() {
+    std::vector<std::uint8_t> payload(320U * 240U, 0);
+    for (std::size_t index = 0; index < payload.size(); ++index) {
+        payload[index] = static_cast<std::uint8_t>(index % 256U);
+    }
+
+    std::vector<std::uint8_t> packed((payload.size() + 3U) / 4U, 0);
+    for (std::size_t index = 0; index < payload.size(); ++index) {
+        const std::uint8_t level =
+            static_cast<std::uint8_t>(std::min(3, (static_cast<int>(payload[index]) * 3 + 127) / 255));
+        const std::size_t bit_index = index * 2U;
+        const int shift = 6 - static_cast<int>(bit_index % 8U);
+        packed[bit_index / 8U] = static_cast<std::uint8_t>(packed[bit_index / 8U] | (level << shift));
+    }
+
+    ls2k::platform::SteeringMediaImageFrame frame{};
+    frame.frame_id = 10;
+    frame.capture_time_ms = 100;
+    frame.publish_time_ms = 101;
+    frame.width = 320;
+    frame.height = 240;
+    frame.pixel_format = "gray2";
+    frame.motion_phase = "DISARMED";
+    frame.pixel_data = packed.data();
+    frame.pixel_size = packed.size();
+
+    std::vector<std::uint8_t> encoded;
+    std::string error;
+    Require(ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
+            "gray2 image frame should encode");
+
+    std::string header_json;
+    std::vector<std::uint8_t> decoded_payload;
+    Require(ls2k::platform::DecodeSteeringMediaEnvelope(encoded.data(),
+                                                        encoded.size(),
+                                                        header_json,
+                                                        decoded_payload,
+                                                        error),
+            "gray2 image frame should decode");
+    Require(Contains(header_json, "\"pixel_format\":\"gray2\""),
+            "gray2 image frame must declare pixel format");
+    Require(Contains(header_json, "\"payload_encoding\":\"gray2_packed\""),
+            "gray2 image frame must declare packed payload encoding");
+    Require(decoded_payload.size() == (320U * 240U) / 4U,
+            "gray2 payload should pack four pixels per byte");
 }
 
 void TestLinkQueuesLatestFrameOnBusySocket() {
@@ -463,6 +631,21 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
 
     ls2k::platform::SteeringMediaImageFrame second_frame = first_frame;
     second_frame.frame_id = 2;
+    second_frame.camera_metadata.source = "unit_v4l2";
+    second_frame.camera_metadata.frame_id = 2;
+    second_frame.camera_metadata.capture_time_ms = 10;
+    second_frame.camera_metadata.dequeue_time_ms = 12;
+    second_frame.camera_metadata.v4l2_sequence = 44;
+    second_frame.camera_metadata.v4l2_timestamp_valid = true;
+    second_frame.camera_metadata.drained_buffer_count = 3;
+    second_frame.camera_metadata.poll_wait_us = 101;
+    second_frame.camera_metadata.dequeue_us = 202;
+    second_frame.camera_metadata.yuyv_to_gray_us = 303;
+    second_frame.camera_metadata.store_submit_us = 404;
+    second_frame.camera_store_health.submitted_frame_count = 9;
+    second_frame.camera_store_health.overwritten_frame_count = 1;
+    second_frame.camera_store_health.dropped_frame_count = 2;
+    second_frame.camera_store_health.lookup_miss_count = 3;
     Require(link.PublishImageFrame(second_frame, diagnostics) ==
                 ls2k::platform::SteeringMediaPublishResult::kQueued,
             "second busy publish should replace the stale queued frame");
@@ -482,6 +665,32 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
                                                         error),
             "queued image frame should decode");
     Require(Contains(header_json, "\"frame_id\":2"), "latest queued frame must win");
+    Require(Contains(header_json, "\"camera_frame\":{\"source\":\"unit_v4l2\""),
+            "image frame must expose camera metadata group");
+    Require(Contains(header_json, "\"width\":320"),
+            "image frame camera metadata must expose source width");
+    Require(Contains(header_json, "\"height\":240"),
+            "image frame camera metadata must expose source height");
+    Require(Contains(header_json, "\"stride\":320"),
+            "image frame camera metadata must expose source stride");
+    Require(Contains(header_json, "\"v4l2_sequence\":44"),
+            "image frame must expose v4l2 sequence");
+    Require(Contains(header_json, "\"v4l2_timestamp_valid\":true"),
+            "image frame must expose v4l2 timestamp validity");
+    Require(Contains(header_json, "\"poll_wait_us\":101"),
+            "image frame must expose camera poll timing");
+    Require(Contains(header_json, "\"dequeue_us\":202"),
+            "image frame must expose camera dequeue timing");
+    Require(Contains(header_json, "\"yuyv_to_gray_us\":303"),
+            "image frame must expose camera conversion timing");
+    Require(Contains(header_json, "\"store_submit_us\":404"),
+            "image frame must expose camera frame-store timing");
+    Require(Contains(header_json, "\"overwritten_frame_count\":1"),
+            "image frame must expose frame-store overwrite count");
+    Require(Contains(header_json, "\"dropped_frame_count\":2"),
+            "image frame must expose frame-store drop count");
+    Require(Contains(header_json, "\"lookup_miss_count\":3"),
+            "image frame must expose frame-store lookup misses");
     Require(Contains(header_json, "\"reference_control\":{\"ready\":true"),
             "image frame snapshot must nest reference-control readiness");
     Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),
@@ -574,8 +783,17 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.takeover_enabled = false;
         state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.included_in_arbitration = false;
         state.control_debug_snapshot.steering.element_evidence.cross_exit.candidate.reason = "takeover_disabled";
+        state.control_debug_snapshot.steering.circle_v2.enabled = true;
+        state.control_debug_snapshot.steering.circle_v2.frame_phase = "inner_trace";
+        state.control_debug_snapshot.steering.circle_v2.next_phase = "inner_trace";
+        state.control_debug_snapshot.steering.circle_v2.dir = "left";
+        state.control_debug_snapshot.steering.circle_v2.reference_role = "inner_trace";
+        state.control_debug_snapshot.steering.circle_v2.reason = "none";
+        state.control_debug_snapshot.steering.circle_v2.entry_points.left.available = true;
+        state.control_debug_snapshot.steering.circle_v2.entry_points.left.point.forward_m = 0.5F;
+        state.control_debug_snapshot.steering.circle_v2.entry_points.left.point.lateral_m = -0.25F;
         ls2k::port::VisualElementEvidenceRecord record{};
-        record.id = "circle_left";
+        record.id = "synthetic_marker";
         record.present = true;
         record.confidence = 0.64F;
         record.reason = "synthetic_test_record";
@@ -586,6 +804,10 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.visual_reference.reason = "line_candidate_selected";
         state.control_debug_snapshot.steering.visual_reference.candidate_count = 1;
         state.control_debug_snapshot.steering.visual_reference.rejected_candidate_reason = "none";
+        AddCandidatePath(state.control_debug_snapshot.steering,
+                         ls2k::port::VisualReferenceCandidateKind::kLine,
+                         "simple_interval_center",
+                         -0.02F);
         state.control_debug_snapshot.steering.reference.mode = "interval_center";
         state.control_debug_snapshot.steering.reference.source = "simple_interval_center";
         state.control_debug_snapshot.steering.eligibility.usable = true;
@@ -605,7 +827,19 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.degraded.active = false;
         state.control_debug_snapshot.steering.degraded.reason = "none";
         state.control_debug_snapshot.steering.yaw_control.turn_output_target = -0.20;
-        FillMatchingCapture(state, 41, 1234);
+        ls2k::port::CameraRawFrameMetadata metadata{};
+        metadata.source = "service_v4l2";
+        metadata.v4l2_sequence = 88;
+        metadata.v4l2_timestamp_valid = true;
+        metadata.poll_wait_us = 11;
+        metadata.dequeue_us = 22;
+        metadata.yuyv_to_gray_us = 33;
+        metadata.store_submit_us = 44;
+        FillMatchingCapture(state, 41, 1234, metadata);
+        state.camera_frame_store_health.submitted_frame_count = 12;
+        state.camera_frame_store_health.overwritten_frame_count = 2;
+        state.camera_frame_store_health.dropped_frame_count = 1;
+        state.camera_frame_store_health.lookup_miss_count = 4;
     }
 
     fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
@@ -635,10 +869,22 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV element settings");
     Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
             "service config snapshot must expose cross white-ratio settings");
-    Require(Contains(header_json, "\"CIRCLE_EVIDENCE_ENABLED\":true"),
-            "service config snapshot must expose circle evidence settings");
-    Require(Contains(header_json, "\"CIRCLE_ENTRY_TAKEOVER_ENABLED\":false"),
-            "service config snapshot must expose circle entry takeover settings");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENABLED\":true"),
+            "service config snapshot must expose CircleV2 enablement");
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":330"),
+            "service config snapshot must expose CircleV2 yaw threshold");
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":60"),
+            "service config snapshot must expose CircleV2 hold frames");
+    Require(Contains(header_json, "\"CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M\":0"),
+            "service config snapshot must expose CircleV2 inner path offset");
+    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
+            "service config snapshot must expose CircleV2 opposite-straight confidence threshold");
+    Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
+            "service config snapshot must not expose legacy circle entry settings");
+    Require(!Contains(header_json, "\"CIRCLE_EVIDENCE_"),
+            "service config snapshot must not expose legacy circle evidence settings");
+    Require(!Contains(header_json, "\"CIRCLE_OPEN"),
+            "service config snapshot must not expose legacy circle opening settings");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "service config snapshot must expose BEV element raster settings");
     Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
@@ -658,6 +904,20 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame should decode");
     Require(Contains(header_json, "\"type\":\"image_frame\""),
             "second emitted frame must be image_frame");
+    Require(Contains(header_json, "\"camera_frame\":{\"source\":\"service_v4l2\""),
+            "service image frame must include camera metadata");
+    Require(Contains(header_json, "\"v4l2_sequence\":88"),
+            "service image frame must publish camera v4l2 sequence");
+    Require(Contains(header_json, "\"store_submit_us\":44"),
+            "service image frame must publish frame-store timing");
+    Require(Contains(header_json, "\"submitted_frame_count\":12"),
+            "service image frame must publish frame-store submitted count");
+    Require(Contains(header_json, "\"overwritten_frame_count\":2"),
+            "service image frame must publish frame-store overwritten count");
+    Require(Contains(header_json, "\"dropped_frame_count\":1"),
+            "service image frame must publish frame-store drop count");
+    Require(Contains(header_json, "\"lookup_miss_count\":4"),
+            "service image frame must publish frame-store lookup misses");
     Require(Contains(header_json, "\"perception_health\":{\"projector_ok\":true"),
             "image frame must include perception health");
     Require(Contains(header_json, "\"element_evidence\":{\"cross_exit\":{\"present\":true"),
@@ -666,12 +926,26 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include cross-exit candidate summary");
     Require(Contains(header_json, "\"included_in_arbitration\":false"),
             "image frame must expose cross-exit arbitration inclusion");
-    Require(Contains(header_json, "\"records\":[{\"id\":\"circle_left\""),
+    Require(Contains(header_json, "\"circle_v2\":{\"enabled\":true"),
+            "image frame must include CircleV2 telemetry");
+    Require(Contains(header_json, "\"reference_role\":\"inner_trace\""),
+            "image frame must expose CircleV2 reference role");
+    Require(Contains(header_json, "\"entry_points\":{\"left\":{\"available\":true,\"forward_m\":0.5,\"lateral_m\":-0.25}"),
+            "image frame must expose CircleV2 left P coordinate");
+    Require(Contains(header_json, "\"right\":{\"available\":false,\"forward_m\":null,\"lateral_m\":null}"),
+            "image frame must expose absent CircleV2 right P as null coordinates");
+    Require(!Contains(header_json, "\"circle_entry"),
+            "image frame must not expose legacy circle entry diagnostics");
+    Require(Contains(header_json, "\"records\":[{\"id\":\"synthetic_marker\""),
             "image frame must include generic element evidence records");
     Require(Contains(header_json, "\"visual_reference\":{\"present\":true"),
             "image frame must include visual reference orchestration summary");
     Require(Contains(header_json, "\"candidate_count\":1"),
             "image frame must include visual reference candidate count");
+    Require(Contains(header_json, "\"path_candidates\":{\"count\":1"),
+            "image frame must include visual reference path candidate set");
+    Require(Contains(header_json, "\"samples\":[{\"index\":0,\"forward_m\":"),
+            "image frame must include path candidate BEV samples");
     Require(Contains(header_json, "\"reference_control\":{\"ready\":true"),
             "image frame must include reference-control readiness");
     Require(Contains(header_json, "\"safety_gate\":{\"veto_active\":false"),
@@ -759,6 +1033,66 @@ void TestServicePublishesFromRecentMatchingCapture() {
             "recent-history image frame should decode");
     Require(Contains(header_json, "\"frame_id\":41"),
             "service must publish the capture that exactly matches steering snapshot metadata");
+    Require(Contains(header_json, "\"frame_source\":\"snapshot_aligned\""),
+            "default media mode must keep snapshot-aligned image publication");
+    Require(Contains(header_json, "\"snapshot_alignment\":{\"aligned\":true"),
+            "default media mode must expose exact snapshot/image alignment");
+}
+
+void TestServiceCanPublishLatestCameraFrameForLiveView() {
+    auto* fake_transport = new FakeSteeringMediaTransport();
+    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
+        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    CollectingDiagnostics diagnostics;
+
+    ls2k::port::RuntimeParameters params{};
+    params.assistant_tcp.host = "127.0.0.1";
+    params.steering_media_enabled = true;
+    params.steering_media_port = 8890;
+    params.steering_media_publish_interval_ms = 0;
+    params.steering_media_downsample = 1;
+    params.steering_media_publish_disarmed = true;
+    params.steering_media_publish_latest_frame = true;
+    params.steering_media_gray_bits = 4;
+    service.Start(params, diagnostics);
+
+    ls2k::runtime::RuntimeState state{};
+    {
+        std::lock_guard<std::mutex> lock(state.shared_mutex);
+        state.control_debug_snapshot.valid = true;
+        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.steering.valid = true;
+        state.control_debug_snapshot.steering.frame_id = 41;
+        state.control_debug_snapshot.steering.capture_time_ms = 1234;
+        FillMatchingCapture(state, 41, 1234);
+        FillMatchingCapture(state, 99, 2222);
+    }
+
+    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    service.Tick(state, diagnostics);
+
+    Require(fake_transport->sent_frames.size() >= 2,
+            "latest-frame mode should publish image even when latest capture is newer than steering snapshot");
+
+    std::string header_json;
+    std::vector<std::uint8_t> payload;
+    std::string error;
+    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+                                                        fake_transport->sent_frames[1].size(),
+                                                        header_json,
+                                                        payload,
+                                                        error),
+            "latest-frame image should decode");
+    Require(Contains(header_json, "\"frame_id\":99"),
+            "latest-frame mode should publish newest camera frame");
+    Require(Contains(header_json, "\"frame_source\":\"latest_camera_frame\""),
+            "latest-frame mode must declare frame source");
+    Require(Contains(header_json, "\"snapshot_alignment\":{\"aligned\":false"),
+            "latest-frame mode must expose non-exact snapshot alignment");
+    Require(Contains(header_json, "\"payload_encoding\":\"gray4_packed\""),
+            "latest-frame high-fps mode should use gray4 payload");
+    Require(payload.size() == (320U * 240U) / 2U,
+            "latest-frame gray4 payload should be half-size");
 }
 
 void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
@@ -849,6 +1183,7 @@ void TestServiceCanPublishDisarmedImagesForCalibration() {
     params.steering_media_port = 8890;
     params.steering_media_publish_interval_ms = 0;
     params.steering_media_downsample = 4;
+    params.steering_media_gray_bits = 8;
     params.steering_media_publish_disarmed = true;
     service.Start(params, diagnostics);
 
@@ -902,10 +1237,13 @@ int main() {
         TestReporterEmitsMinimalSteeringSnapshot();
         TestConfigEnvelopeIsMinimalBevContract();
         TestImagePayloadValidation();
+        TestGray4ImagePayloadEncoding();
+        TestGray2ImagePayloadEncoding();
         TestLinkQueuesLatestFrameOnBusySocket();
         TestLinkDoesNotCacheFrameAcceptedInFlight();
         TestServicePublishesConfigSnapshotOnReadyTransition();
         TestServicePublishesFromRecentMatchingCapture();
+        TestServiceCanPublishLatestCameraFrameForLiveView();
         TestServiceSkipsDisarmedImagesAndPublishesRunningImage();
         TestServiceCanPublishDisarmedImagesForCalibration();
     } catch (const std::exception& error) {

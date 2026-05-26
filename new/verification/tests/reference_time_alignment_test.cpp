@@ -40,6 +40,17 @@ ls2k::runtime::MotionHistory MakeMotionHistory(float gyro_z, std::uint64_t step_
     return history;
 }
 
+ls2k::runtime::MotionHistory MakeMotionHistoryRange(std::uint64_t start_ms,
+                                                    std::uint64_t end_ms,
+                                                    float gyro_z,
+                                                    std::uint64_t step_ms = 10) {
+    ls2k::runtime::MotionHistory history{};
+    for (std::uint64_t time_ms = start_ms; time_ms <= end_ms; time_ms += step_ms) {
+        history.Push({time_ms, true, gyro_z, true, 0, 0});
+    }
+    return history;
+}
+
 ls2k::port::RuntimeParameters EnabledParams() {
     ls2k::port::RuntimeParameters params{};
     params.reference_time_alignment.enabled = true;
@@ -95,6 +106,35 @@ void TestFailClosed() {
         path, 100, 130, MakeMotionHistory(0.0F, 10), params);
     Expect(!gap.facts.valid && gap.facts.reason == "motion_history_unavailable",
            "gap fail reason mismatch");
+
+    params = EnabledParams();
+    auto missing_start = ls2k::runtime::AlignReferencePathToControlTime(
+        path, 100, 130, MakeMotionHistoryRange(110, 130, 0.0F), params);
+    Expect(!missing_start.facts.valid &&
+               missing_start.facts.reason == "motion_history_unavailable",
+           "missing start coverage must fail closed");
+
+    auto missing_end = ls2k::runtime::AlignReferencePathToControlTime(
+        path, 100, 130, MakeMotionHistoryRange(100, 120, 0.0F), params);
+    Expect(!missing_end.facts.valid &&
+               missing_end.facts.reason == "motion_history_unavailable",
+           "missing end coverage must fail closed");
+}
+
+void TestDoesNotCrossInputReferenceGap() {
+    auto path = MakeStraightPath();
+    path.sampled_path[1].present = false;
+    auto params = EnabledParams();
+    params.reference_time_alignment.min_aligned_samples = 1;
+    auto result = ls2k::runtime::AlignReferencePathToControlTime(
+        path, 100, 130, MakeMotionHistory(0.0F), params);
+    Expect(result.facts.valid, "single leading prefix sample should remain alignable");
+    Expect(result.facts.aligned_sample_count == 1,
+           "alignment must not compact samples across an input reference gap");
+    Expect(result.reference_path.sampled_path[0].present,
+           "leading observed prefix sample must remain present");
+    Expect(!result.reference_path.sampled_path[1].present,
+           "gap-after sample must not be compacted into output index 1");
 }
 
 }  // namespace
@@ -104,6 +144,7 @@ int main() {
         TestDisabledKeepsPath();
         TestIdentityAndYawSign();
         TestFailClosed();
+        TestDoesNotCrossInputReferenceGap();
     } catch (const std::exception& error) {
         std::cerr << "reference_time_alignment_test failed: " << error.what() << "\n";
         return 1;

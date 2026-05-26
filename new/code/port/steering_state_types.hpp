@@ -13,6 +13,7 @@
 #include <string>
 
 #include "port/bev_reference_types.hpp"
+#include "port/circle_v2_types.hpp"
 
 namespace ls2k::port {
 
@@ -39,6 +40,7 @@ struct BEVControllerMemory {
  */
 struct SteeringPerceptionMemory {
     ReferenceHoldState reference_hold{};  ///< 参考路径保持状态
+    CircleV2Memory circle_v2{};           ///< CircleV2 场景记忆
 };
 
 /**

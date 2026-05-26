@@ -9,6 +9,7 @@
 #ifndef LS2K_PORT_VISUAL_REFERENCE_ORCHESTRATION_TYPES_HPP
 #define LS2K_PORT_VISUAL_REFERENCE_ORCHESTRATION_TYPES_HPP
 
+#include <array>
 #include <cstddef>
 #include <string>
 
@@ -45,6 +46,24 @@ struct VisualReferenceCandidate {
     std::string source = "none";                       ///< 候选来源描述
     std::string reason = "none";                       ///< 原因描述
 };
+
+constexpr std::size_t kVisualReferenceCandidatePathCapacity = 6U;
+
+struct VisualReferenceCandidatePathSet {
+    std::array<VisualReferenceCandidate, kVisualReferenceCandidatePathCapacity> entries{};
+    std::size_t count = 0;
+    std::size_t omitted_count = 0;
+};
+
+inline void AppendVisualReferenceCandidatePath(VisualReferenceCandidatePathSet& set,
+                                               const VisualReferenceCandidate& candidate) {
+    if (set.count < set.entries.size()) {
+        set.entries[set.count] = candidate;
+        ++set.count;
+        return;
+    }
+    ++set.omitted_count;
+}
 
 /**
  * @struct VisualReferenceSelection

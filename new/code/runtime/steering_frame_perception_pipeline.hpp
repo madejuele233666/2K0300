@@ -10,6 +10,8 @@
 
 namespace ls2k::runtime {
 
+struct MotionHistory;
+
 /// 转向帧感知管线 —— 单帧图像感知处理管线。
 /// 包含 BEV 投影、Otsu 二值化、视觉元素检测、视觉参考选择与连续性跟踪。
 class SteeringFramePerceptionPipeline {
@@ -20,14 +22,16 @@ public:
     /// @return             配置是否成功
     bool Configure(const port::RuntimeParameters& params,
                    port::DiagnosticSink& diagnostics);
-    /// 重置感知记忆（清空参考连续性跟踪状态）
-    void ResetMemory();
+    /// 重置普通参考连续性记忆（不触碰 scene-owned 记忆）
+    void ResetReferenceMemory();
     /// 处理一帧图像：Otsu 阈值 → BEV 感知 → 元素检测 → 参考选择 → 横向误差计算
     /// @param capture   相机捕获数据
     /// @param params    运行时参数
+    /// @param motion_history  控制侧运动历史快照
     /// @return          处理后的感知结果
     port::PerceptionResult ProcessFrame(const port::CameraCapture& capture,
-                                        const port::RuntimeParameters& params);
+                                        const port::RuntimeParameters& params,
+                                        const MotionHistory& motion_history);
 
 private:
     legacy::BEVProjector projector_{};                          ///< BEV 投影器

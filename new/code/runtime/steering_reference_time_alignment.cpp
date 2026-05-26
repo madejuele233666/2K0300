@@ -27,48 +27,65 @@ bool IntegrateYawOnly(const MotionHistory& history,
         delta_yaw_rad = 0.0;
         return end_ms >= start_ms;
     }
-    const std::array<MotionHistorySample, MotionHistory::kCapacity> ordered = history.Ordered();
-    bool saw_segment = false;
+    uint64_t covered_until_ms = start_ms;
+    const uint64_t max_gap = static_cast<uint64_t>(std::max(1, max_gap_ms));
     for (std::size_t index = 1; index < history.count; ++index) {
-        const MotionHistorySample& prev = ordered[index - 1U];
-        const MotionHistorySample& curr = ordered[index];
-        if (curr.time_ms <= start_ms || prev.time_ms >= end_ms) {
+        const MotionHistorySample& prev = history.OldestOffset(index - 1U);
+        const MotionHistorySample& curr = history.OldestOffset(index);
+        if (curr.time_ms <= covered_until_ms) {
             continue;
+        }
+        if (prev.time_ms > covered_until_ms || prev.time_ms >= end_ms) {
+            break;
         }
         if (!prev.imu_valid || !curr.imu_valid || curr.time_ms <= prev.time_ms) {
             return false;
         }
         const uint64_t gap_ms = curr.time_ms - prev.time_ms;
-        if (gap_ms > static_cast<uint64_t>(std::max(1, max_gap_ms))) {
+        if (gap_ms > max_gap) {
             return false;
         }
-        const uint64_t segment_start = std::max(start_ms, prev.time_ms);
+        const uint64_t segment_start = std::max(covered_until_ms, prev.time_ms);
         const uint64_t segment_end = std::min(end_ms, curr.time_ms);
         if (segment_end <= segment_start) {
             continue;
         }
         const double dt_s = static_cast<double>(segment_end - segment_start) / 1000.0;
         delta_yaw_rad += static_cast<double>(prev.gyro_z) * dt_s;
-        saw_segment = true;
+        covered_until_ms = segment_end;
+        if (covered_until_ms >= end_ms) {
+            return true;
+        }
     }
-    return saw_segment;
+    return covered_until_ms >= end_ms;
 }
 
-port::BEVReferencePath TransformPath(const port::BEVReferencePath& input,
-                                     double delta_s_m,
-                                     double delta_yaw_rad,
-                                     std::size_t& aligned_count) {
+std::size_t LeadingObservedReferencePrefixLength(const port::BEVReferencePath& path) {
+    std::size_t length = 0;
+    for (const port::BEVPathSample& sample : path.sampled_path) {
+        if (!sample.present ||
+            !std::isfinite(sample.point.forward_m) ||
+            !std::isfinite(sample.point.lateral_m)) {
+            break;
+        }
+        ++length;
+    }
+    return length;
+}
+
+port::BEVReferencePath TransformReferencePrefix(const port::BEVReferencePath& input,
+                                                std::size_t prefix_length,
+                                                double delta_s_m,
+                                                double delta_yaw_rad,
+                                                std::size_t& aligned_count) {
     port::BEVReferencePath output{};
     output.mode = input.mode;
     const double c = std::cos(-delta_yaw_rad);
     const double s = std::sin(-delta_yaw_rad);
     std::size_t out_index = 0;
-    for (const port::BEVPathSample& sample : input.sampled_path) {
-        if (!sample.present ||
-            !std::isfinite(sample.point.forward_m) ||
-            !std::isfinite(sample.point.lateral_m)) {
-            continue;
-        }
+    const std::size_t sample_count = std::min(prefix_length, input.sampled_path.size());
+    for (std::size_t index = 0; index < sample_count; ++index) {
+        const port::BEVPathSample& sample = input.sampled_path[index];
         const double x = static_cast<double>(sample.point.forward_m) - delta_s_m;
         const double y = static_cast<double>(sample.point.lateral_m);
         const double forward = c * x - s * y;
@@ -144,7 +161,13 @@ ReferenceTimeAlignmentResult AlignReferencePathToControlTime(
 
     facts.delta_s_m = 0.0;
     facts.delta_yaw_rad = delta_yaw;
-    result.reference_path = TransformPath(reference_path, facts.delta_s_m, delta_yaw, facts.aligned_sample_count);
+    const std::size_t observed_prefix_length =
+        LeadingObservedReferencePrefixLength(reference_path);
+    result.reference_path = TransformReferencePrefix(reference_path,
+                                                    observed_prefix_length,
+                                                    facts.delta_s_m,
+                                                    delta_yaw,
+                                                    facts.aligned_sample_count);
     if (facts.aligned_sample_count <
         static_cast<std::size_t>(std::max(1, params.reference_time_alignment.min_aligned_samples))) {
         facts.reason = "aligned_samples_insufficient";

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -19,7 +20,11 @@
 #include "legacy/steering_reference_usability.hpp"
 #include "legacy/steering_visual_element_pipeline.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
+#include "port/perception_result.hpp"
 #include "port/steering_state_types.hpp"
+#include "runtime/steering_circle_v2_reference_adapter.hpp"
+#include "runtime/steering_circle_v2_scene.hpp"
+#include "runtime/steering_scene_frame_view.hpp"
 
 namespace {
 
@@ -36,7 +41,7 @@ using ls2k::port::VisualElementEvidenceRecord;
 struct ProbePipelineResult {
     BEVSimplePerceptionResult simple{};
     VisualElementEvidenceFrame element_evidence{};
-    ls2k::legacy::CircleEntryPipelineDiagnostics circle_entry_diagnostics{};
+    ls2k::port::CircleV2TelemetrySnapshot circle_v2{};
     ls2k::port::VisualReferenceSelection visual_selection{};
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
@@ -49,6 +54,78 @@ struct ProbePipelineResult {
 
 const char* BoolToken(bool value) {
     return value ? "true" : "false";
+}
+
+constexpr float kPi = 3.14159265358979323846F;
+
+bool StaticYawDelta(void*, std::uint64_t, std::uint64_t, float& out_delta_rad) {
+    out_delta_rad = 0.0F;
+    return true;
+}
+
+bool HasLeadingCenterPath(const ls2k::port::BEVReferencePath& path) {
+    if (path.mode == ls2k::port::ReferenceMode::kNone ||
+        !path.sampled_path[0].present) {
+        return false;
+    }
+    for (const ls2k::port::BEVPathSample& sample : path.sampled_path) {
+        if (!sample.present) {
+            break;
+        }
+        return std::isfinite(sample.point.forward_m) &&
+               std::isfinite(sample.point.lateral_m);
+    }
+    return false;
+}
+
+std::optional<ls2k::runtime::OrdinaryRoadModel> BuildProbeOrdinaryRoadModel(
+    const BEVSimplePerceptionResult& facts,
+    const RuntimeParameters& params) {
+    if (!HasLeadingCenterPath(facts.reference_path)) {
+        return std::nullopt;
+    }
+    ls2k::runtime::OrdinaryRoadModel ordinary_road{};
+    ordinary_road.center_path = facts.reference_path;
+    ordinary_road.half_width.value_m = params.bev_geometry.nominal_road_half_width_m;
+    return ordinary_road;
+}
+
+ls2k::runtime::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params) {
+    ls2k::runtime::CircleV2Params circle_params{};
+    circle_params.exit_yaw_threshold_rad =
+        params.bev_element.circle_v2_exit_yaw_threshold_deg * kPi / 180.0F;
+    circle_params.exit_hold_frames = std::max(2, params.bev_element.circle_v2_exit_hold_frames);
+    circle_params.inner_trace_stall_timeout_ms =
+        std::max(1, params.bev_element.circle_v2_inner_trace_stall_timeout_ms);
+    circle_params.inner_trace_stall_yaw_min_rad =
+        params.bev_element.circle_v2_inner_trace_stall_yaw_min_deg * kPi / 180.0F;
+    circle_params.inner_trace_path_offset_m =
+        params.bev_element.circle_v2_inner_trace_path_offset_m;
+    circle_params.opposite_straight_confidence_min =
+        params.bev_element.circle_v2_opposite_straight_confidence_min;
+    return circle_params;
+}
+
+ls2k::port::CircleV2TelemetrySnapshot MakeCircleV2Snapshot(
+    bool enabled,
+    const ls2k::runtime::CircleV2Telemetry& telemetry) {
+    ls2k::port::CircleV2TelemetrySnapshot snapshot{};
+    snapshot.enabled = enabled;
+    snapshot.frame_phase = ls2k::runtime::ToString(telemetry.frame_phase);
+    snapshot.next_phase = ls2k::runtime::ToString(telemetry.next_phase);
+    snapshot.dir = ls2k::runtime::ToString(telemetry.dir);
+    snapshot.reference_role = ls2k::runtime::ToString(telemetry.reference_role);
+    snapshot.reason = ls2k::runtime::ToString(telemetry.reason);
+    snapshot.motion_arc_available = telemetry.motion_arc_available;
+    snapshot.inner_trace_elapsed_ms = telemetry.inner_trace_elapsed_ms;
+    snapshot.directed_turn_angle_rad = telemetry.directed_turn_angle_rad;
+    return snapshot;
+}
+
+bool CrossExitSuppressesCircleV2(const ls2k::legacy::VisualElementPipelineResult& element_result,
+                                 const RuntimeParameters& params) {
+    return params.bev_element.cross_exit_takeover_enabled &&
+           element_result.evidence.cross_exit.present;
 }
 
 struct Color {
@@ -390,33 +467,20 @@ bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& para
     return std::isfinite(params.cross_wide_row_white_ratio_min) &&
            params.cross_wide_row_white_ratio_min >= 0.0F &&
            params.cross_wide_row_white_ratio_min <= 1.0F &&
-           params.circle_min_support_rows >= 1 &&
-           params.circle_min_sampleable_per_row >= 1 &&
-           std::isfinite(params.circle_open_expansion_min_m) &&
-           params.circle_open_expansion_min_m >= 1.0e-4F &&
-           params.circle_open_expansion_min_m <= 2.0F &&
-           std::isfinite(params.circle_opening_expansion_ratio_min) &&
-           params.circle_opening_expansion_ratio_min >= 1.0e-4F &&
-           params.circle_opening_expansion_ratio_min <= 10.0F &&
-           std::isfinite(params.circle_opposite_straight_drift_max_m) &&
-           params.circle_opposite_straight_drift_max_m >= 0.0F &&
-           params.circle_opposite_straight_drift_max_m <= 2.0F &&
-           std::isfinite(params.circle_opposite_shrink_ratio_min) &&
-           params.circle_opposite_shrink_ratio_min >= 1.0e-4F &&
-           params.circle_opposite_shrink_ratio_min <= 10.0F &&
-           std::isfinite(params.circle_present_confidence_min) &&
-           params.circle_present_confidence_min >= 0.0F &&
-           params.circle_present_confidence_min <= 1.0F &&
-           params.circle_entry_min_frontier_points >= 1 &&
-           std::isfinite(params.circle_entry_direction_min_lateral_m) &&
-           params.circle_entry_direction_min_lateral_m >= 0.0F &&
-           params.circle_entry_direction_min_lateral_m <= 2.0F &&
-           std::isfinite(params.circle_entry_max_interpolation_gap_m) &&
-           params.circle_entry_max_interpolation_gap_m >= 1.0e-4F &&
-           params.circle_entry_max_interpolation_gap_m <= 2.0F &&
-           std::isfinite(params.circle_entry_max_join_jump_m) &&
-           params.circle_entry_max_join_jump_m >= 0.0F &&
-           params.circle_entry_max_join_jump_m <= 2.0F;
+           std::isfinite(params.circle_v2_exit_yaw_threshold_deg) &&
+           params.circle_v2_exit_yaw_threshold_deg >= 1.0F &&
+           params.circle_v2_exit_yaw_threshold_deg <= 720.0F &&
+           params.circle_v2_exit_hold_frames >= 2 &&
+           params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
+           std::isfinite(params.circle_v2_inner_trace_stall_yaw_min_deg) &&
+           params.circle_v2_inner_trace_stall_yaw_min_deg >= 0.0F &&
+           params.circle_v2_inner_trace_stall_yaw_min_deg <= 720.0F &&
+           std::isfinite(params.circle_v2_inner_trace_path_offset_m) &&
+           params.circle_v2_inner_trace_path_offset_m >= 0.0F &&
+           params.circle_v2_inner_trace_path_offset_m <= 2.0F &&
+           std::isfinite(params.circle_v2_opposite_straight_confidence_min) &&
+           params.circle_v2_opposite_straight_confidence_min >= 0.0F &&
+           params.circle_v2_opposite_straight_confidence_min <= 1.0F;
 }
 
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
@@ -478,56 +542,32 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
                              params.bev_element.cross_wide_row_white_ratio_min,
                              element_malformed);
         ReadStrictBoolField(block,
-                            "CIRCLE_EVIDENCE_ENABLED",
-                            params.bev_element.circle_evidence_enabled,
+                            "CIRCLE_V2_ENABLED",
+                            params.bev_element.circle_v2_enabled,
                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG",
+                             params.bev_element.circle_v2_exit_yaw_threshold_deg,
+                             element_malformed);
         ReadStrictIntField(block,
-                           "CIRCLE_MIN_SUPPORT_ROWS",
-                           params.bev_element.circle_min_support_rows,
+                           "CIRCLE_V2_EXIT_HOLD_FRAMES",
+                           params.bev_element.circle_v2_exit_hold_frames,
                            element_malformed);
         ReadStrictIntField(block,
-                           "CIRCLE_MIN_SAMPLEABLE_PER_ROW",
-                           params.bev_element.circle_min_sampleable_per_row,
+                           "CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS",
+                           params.bev_element.circle_v2_inner_trace_stall_timeout_ms,
                            element_malformed);
         ReadStrictFloatField(block,
-                             "CIRCLE_OPEN_EXPANSION_MIN_M",
-                             params.bev_element.circle_open_expansion_min_m,
+                             "CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG",
+                             params.bev_element.circle_v2_inner_trace_stall_yaw_min_deg,
                              element_malformed);
         ReadStrictFloatField(block,
-                             "CIRCLE_OPENING_EXPANSION_RATIO_MIN",
-                             params.bev_element.circle_opening_expansion_ratio_min,
+                             "CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M",
+                             params.bev_element.circle_v2_inner_trace_path_offset_m,
                              element_malformed);
         ReadStrictFloatField(block,
-                             "CIRCLE_OPPOSITE_STRAIGHT_DRIFT_MAX_M",
-                             params.bev_element.circle_opposite_straight_drift_max_m,
-                             element_malformed);
-        ReadStrictFloatField(block,
-                             "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN",
-                             params.bev_element.circle_opposite_shrink_ratio_min,
-                             element_malformed);
-        ReadStrictFloatField(block,
-                             "CIRCLE_PRESENT_CONFIDENCE_MIN",
-                             params.bev_element.circle_present_confidence_min,
-                             element_malformed);
-        ReadStrictBoolField(block,
-                            "CIRCLE_ENTRY_TAKEOVER_ENABLED",
-                            params.bev_element.circle_entry_takeover_enabled,
-                            element_malformed);
-        ReadStrictIntField(block,
-                           "CIRCLE_ENTRY_MIN_FRONTIER_POINTS",
-                           params.bev_element.circle_entry_min_frontier_points,
-                           element_malformed);
-        ReadStrictFloatField(block,
-                             "CIRCLE_ENTRY_DIRECTION_MIN_LATERAL_M",
-                             params.bev_element.circle_entry_direction_min_lateral_m,
-                             element_malformed);
-        ReadStrictFloatField(block,
-                             "CIRCLE_ENTRY_MAX_INTERPOLATION_GAP_M",
-                             params.bev_element.circle_entry_max_interpolation_gap_m,
-                             element_malformed);
-        ReadStrictFloatField(block,
-                             "CIRCLE_ENTRY_MAX_JOIN_JUMP_M",
-                             params.bev_element.circle_entry_max_join_jump_m,
+                             "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN",
+                             params.bev_element.circle_v2_opposite_straight_confidence_min,
                              element_malformed);
         if (!ValidProbeBEVElementParameters(params.bev_element)) {
             element_malformed = true;
@@ -827,35 +867,19 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
                   << record.candidate.reason
                   << "\n";
     }
-    const auto print_entry = [](const char* id, const ls2k::legacy::CircleEntryPathFacts& entry) {
-        std::cout << "circle_entry." << id << ".present=" << BoolToken(entry.present)
-                  << " circle_entry." << id << ".reason=" << entry.reason
-                  << " circle_entry." << id << ".direction_delta_lateral_m="
-                  << entry.direction_delta_lateral_m
-                  << " circle_entry." << id << ".direction_delta_forward_m="
-                  << entry.direction_delta_forward_m
-                  << " circle_entry." << id << ".road_half_width_m="
-                  << entry.road_half_width_m
-                  << " circle_entry." << id << ".frontier_count="
-                  << entry.frontier_points.size()
-                  << " circle_entry." << id << ".centerline_count="
-                  << entry.centerline_points.size()
-                  << " circle_entry." << id << ".near_centerline_count="
-                  << entry.near_centerline_points.size()
-                  << "\n";
-        for (std::size_t point_index = 0; point_index < entry.frontier_points.size(); ++point_index) {
-            const auto& frontier = entry.frontier_points[point_index];
-            const auto& centerline = entry.centerline_points[point_index];
-            std::cout << "circle_entry." << id << ".frontier_point index=" << point_index
-                      << " forward_m=" << frontier.forward_m
-                      << " lateral_m=" << frontier.lateral_m
-                      << " center_forward_m=" << centerline.forward_m
-                      << " center_lateral_m=" << centerline.lateral_m
-                      << "\n";
-        }
-    };
-    print_entry("left", pipeline.circle_entry_diagnostics.left);
-    print_entry("right", pipeline.circle_entry_diagnostics.right);
+    std::cout << "circle_v2.enabled=" << BoolToken(pipeline.circle_v2.enabled)
+              << " circle_v2.frame_phase=" << pipeline.circle_v2.frame_phase
+              << " circle_v2.next_phase=" << pipeline.circle_v2.next_phase
+              << " circle_v2.dir=" << pipeline.circle_v2.dir
+              << " circle_v2.reference_role=" << pipeline.circle_v2.reference_role
+              << " circle_v2.reason=" << pipeline.circle_v2.reason
+              << " circle_v2.motion_arc_available="
+              << BoolToken(pipeline.circle_v2.motion_arc_available)
+              << " circle_v2.inner_trace_elapsed_ms="
+              << pipeline.circle_v2.inner_trace_elapsed_ms
+              << " circle_v2.directed_turn_angle_rad="
+              << pipeline.circle_v2.directed_turn_angle_rad
+              << "\n";
     for (std::size_t index = 0;
          index < pipeline.visual_selection.reference_path.sampled_path.size();
          ++index) {
@@ -918,13 +942,44 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);
     result.element_evidence = element_result.evidence;
-    result.circle_entry_diagnostics = element_result.circle_entry_diagnostics;
+
+    std::optional<ls2k::port::VisualReferenceCandidate> circle_candidate{};
+    ls2k::runtime::CircleV2StepResult circle_result{};
+    const bool cross_exit_takeover_active =
+        CrossExitSuppressesCircleV2(element_result, params);
+    const bool circle_v2_should_step =
+        params.bev_element.circle_v2_enabled && !cross_exit_takeover_active;
+    if (circle_v2_should_step) {
+        ls2k::runtime::SceneFrameView scene_frame{};
+        scene_frame.rows.rows =
+            ls2k::runtime::ConstArrayView<ls2k::legacy::BEVSimpleRowScan>(
+                result.simple.rows.data(),
+                result.simple.rows.size());
+        scene_frame.ordinary_road = BuildProbeOrdinaryRoadModel(result.simple, params);
+        scene_frame.motion_arc = ls2k::runtime::MotionArcView(nullptr, StaticYawDelta);
+        scene_frame.stamp.capture_time_ms = frame_view.capture_time_ms;
+        circle_result = ls2k::runtime::CircleV2Scene{}.Step(scene_frame,
+                                                            prior_memory.circle_v2,
+                                                            MakeCircleV2Params(params));
+        result.circle_v2 = MakeCircleV2Snapshot(true, circle_result.telemetry);
+        circle_candidate =
+            ls2k::runtime::AdaptCircleV2ReferencePlan(circle_result.reference_plan);
+    } else {
+        ls2k::runtime::CircleV2Telemetry telemetry{};
+        result.circle_v2 =
+            MakeCircleV2Snapshot(params.bev_element.circle_v2_enabled, telemetry);
+    }
+
     std::vector<ls2k::port::VisualReferenceCandidate> candidates;
-    candidates.reserve(1U + element_result.candidates.size());
+    candidates.reserve(1U + element_result.candidates.size() +
+                       (circle_candidate.has_value() ? 1U : 0U));
     candidates.push_back(line_candidate);
     candidates.insert(candidates.end(),
                       element_result.candidates.begin(),
                       element_result.candidates.end());
+    if (circle_candidate.has_value()) {
+        candidates.push_back(*circle_candidate);
+    }
     result.visual_selection = ls2k::legacy::SelectVisualReference(candidates);
     const ls2k::port::ReferenceUsability current_usability =
         ls2k::legacy::EvaluateReferenceUsability(result.visual_selection.reference_path, params);
@@ -961,6 +1016,9 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                                         result.lateral_error,
                                                         result.continuity.hold_selected);
     result.next_memory = prior_memory;
+    result.next_memory.circle_v2 = circle_v2_should_step
+                                       ? circle_result.next_memory
+                                       : ls2k::port::CircleV2Memory{};
     result.next_memory.reference_hold = result.continuity.next_hold_state;
     result.memory_update_valid = true;
     return result;

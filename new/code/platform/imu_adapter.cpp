@@ -235,6 +235,9 @@ public:
     /// @param diagnostics 诊断输出接口
     void Shutdown(port::DiagnosticSink& diagnostics) override {
         ready_ = false;
+        if (enabled_ && !adaptation_hook_) {
+            true_ls2k0300::ShutdownImu();
+        }
         ResetCalibrationState();
         diagnostics.Emit({port::DiagnosticLevel::kInfo,
                           "imu.shutdown",
