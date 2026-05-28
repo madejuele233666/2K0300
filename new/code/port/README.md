@@ -14,7 +14,8 @@ Do not create aggregate include headers for steering/reference/control types.
 - `visual_element_evidence_types.hpp`: BEV visual element evidence facts and element-specific runtime parameters.
 - `reference_usability_types.hpp`: reference usability result.
 - `reference_lateral_error_types.hpp`: reference weighted lateral-error result.
-- `reference_control_readiness_types.hpp`: selected reference and lateral-error readiness result.
+- `reference_tracking_geometry_types.hpp`: selected reference tracking geometry result.
+- `reference_control_readiness_types.hpp`: selected reference and tracking-geometry readiness result.
 - `perception_result.hpp`: runtime steering pipeline transport snapshot.
 - `steering_state_types.hpp`: owner-specific steering memory.
 - `sensor_sample_types.hpp`: IMU, encoder, and low-voltage samples.
@@ -30,7 +31,8 @@ Do not create aggregate include headers for steering/reference/control types.
 - Visual element evidence includes BEV simple row facts, visual element evidence types, visual-reference candidate types, and runtime parameter types. V1 circle/cross Phase1 consumes BEV simple row facts; full raster is optional for debug, legacy, roadblock, ML, or future full-raster consumers.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.
 - Reference lateral error includes BEV reference, reference usability, reference lateral-error, and runtime parameter types.
-- Reference-control readiness includes reference-control readiness, reference usability, and reference lateral-error types.
+- Reference tracking geometry includes BEV reference, reference usability, tracking geometry, and BEV control-model parameter types.
+- Reference-control readiness includes reference-control readiness, reference usability, and reference tracking geometry types.
 - Otsu threshold includes only camera frame types.
 - Perception frontend includes camera frame, perception result, steering state, sensor sample, runtime parameter types, and the single-frame perception pipeline.
 - Steering yaw target includes steering state and runtime parameter types.
@@ -42,6 +44,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - Active code must not include `port/control_types.hpp`.
 - Reference usability must not include `perception_result.hpp`.
 - Reference lateral error must not include `perception_result.hpp`.
+- Reference tracking geometry must not include `perception_result.hpp`.
 - Steering yaw target must not include `perception_result.hpp`.
 - Reference-control readiness must not depend on low voltage, projector state, IMU, encoder, or stale timing.
 - BEV simple perception and reference hold builders must not depend on reference usability.
@@ -52,7 +55,7 @@ Do not create aggregate include headers for steering/reference/control types.
 - Safety gate is the only owner of low voltage, perception health, stale, IMU, and encoder veto.
 - Low-voltage raw thresholds belong to the power adapter / low-voltage sampler owner, not perception, reference, readiness, or yaw.
 - Steering yaw target must not depend on readiness or control validity.
-- `source` and `mode` may be serialized or drawn, but must not decide usability, lateral error, reference-control readiness, safety gate, or yaw target.
+- `source` and `mode` may be serialized or drawn, but must not decide usability, lateral error, tracking geometry, reference-control readiness, safety gate, or yaw target.
 
 PerceptionResult is a runtime transport snapshot, not a dependency shortcut.
 

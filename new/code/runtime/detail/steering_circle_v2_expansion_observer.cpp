@@ -17,8 +17,7 @@ constexpr std::size_t kOpeningSustainRows = 2U;
 struct ExpansionParams {
     int min_support_rows = 4;
     int min_sampleable_per_row = 16;
-    float bottom_start_forward_max_m = 0.20F;
-    float bottom_row_gap_max_m = 0.10F;
+    float center_sample_forward_gap_max_m = 0.10F;
     float open_expansion_min_m = 0.05F;
     float opening_expansion_ratio_min = 0.10F;
     float opposite_straight_drift_max_m = 0.06F;
@@ -71,7 +70,8 @@ std::optional<float> CenterLateralForRow(const SceneFrameView& frame,
         const port::BEVPathSample& sample = center_path.sampled_path[row_index];
         if (sample.present && std::isfinite(sample.point.forward_m) &&
             std::isfinite(sample.point.lateral_m) &&
-            std::fabs(sample.point.forward_m - forward_m) <= kParams.bottom_row_gap_max_m) {
+            std::fabs(sample.point.forward_m - forward_m) <=
+                kParams.center_sample_forward_gap_max_m) {
             return sample.point.lateral_m;
         }
     }
@@ -89,7 +89,8 @@ std::optional<float> CenterLateralForRow(const SceneFrameView& frame,
             best_sample = &sample;
         }
     }
-    if (best_sample != nullptr && best_forward_error <= kParams.bottom_row_gap_max_m) {
+    if (best_sample != nullptr &&
+        best_forward_error <= kParams.center_sample_forward_gap_max_m) {
         return best_sample->point.lateral_m;
     }
     return std::nullopt;
@@ -318,21 +319,28 @@ bool ReliableStraight(const BoundaryLineFit& fit, const CircleV2Params& params) 
     return fit.straight && fit.confidence >= params.opposite_straight_confidence_min;
 }
 
-std::vector<RowObservation> BottomRows(const std::vector<RowObservation>& rows) {
+std::size_t EntryBottomRowCount(const CircleV2Params& params) {
+    return static_cast<std::size_t>(
+        std::max(kParams.min_support_rows, params.entry_bottom_row_count));
+}
+
+bool RowInsideEntryBottomForwardRoi(const RowObservation& row,
+                                    const CircleV2Params& params) {
+    return std::isfinite(row.forward_m) &&
+           row.forward_m >= params.entry_bottom_forward_min_m &&
+           row.forward_m <= params.entry_bottom_forward_max_m;
+}
+
+std::vector<RowObservation> BottomRows(const std::vector<RowObservation>& rows,
+                                       const CircleV2Params& params) {
     std::vector<RowObservation> bottom_rows;
-    if (rows.empty() || rows.front().forward_m > kParams.bottom_start_forward_max_m) {
-        return bottom_rows;
-    }
-    const std::size_t target_count = std::min(
-        rows.size(), static_cast<std::size_t>(std::max(1, kParams.min_support_rows)));
+    const std::size_t target_count = EntryBottomRowCount(params);
     bottom_rows.reserve(target_count);
     for (std::size_t index = 0; index < rows.size() && bottom_rows.size() < target_count;
          ++index) {
-        if (!bottom_rows.empty() &&
-            rows[index].forward_m - bottom_rows.back().forward_m > kParams.bottom_row_gap_max_m) {
-            break;
+        if (RowInsideEntryBottomForwardRoi(rows[index], params)) {
+            bottom_rows.push_back(rows[index]);
         }
-        bottom_rows.push_back(rows[index]);
     }
     return bottom_rows;
 }
@@ -345,9 +353,8 @@ bool BottomSideOpeningReached(const std::vector<RowObservation>& bottom_rows, bo
 bool BottomEntryGateReached(const std::vector<RowObservation>& rows,
                             bool use_left,
                             const CircleV2Params& params) {
-    const std::vector<RowObservation> bottom_rows = BottomRows(rows);
-    if (bottom_rows.size() <
-        static_cast<std::size_t>(std::max(1, kParams.min_support_rows))) {
+    const std::vector<RowObservation> bottom_rows = BottomRows(rows, params);
+    if (bottom_rows.size() < EntryBottomRowCount(params)) {
         return false;
     }
 

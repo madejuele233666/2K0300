@@ -55,6 +55,16 @@ struct LateralErrorDebugView {
     std::string reason = "reference_unusable"; ///< 未计算原因
 };
 
+/// 跟踪几何调试视图 —— 描述 selected/aligned reference 的控制几何事实
+struct TrackingGeometryDebugView {
+    bool computed = false;                  ///< 是否已计算跟踪几何
+    double lateral_offset_m = 0.0;          ///< 横向位置项
+    double heading_error_rad = 0.0;         ///< 航向误差项
+    double curvature_m_inv = 0.0;           ///< 曲率前馈项
+    std::size_t sample_count = 0;           ///< 拟合采样点数
+    std::string reason = "reference_unusable";  ///< 未计算原因
+};
+
 /// 参考控制就绪调试视图 —— 描述参考控制系统是否就绪
 struct ReferenceControlDebugView {
     bool ready = false;                      ///< 参考控制是否就绪
@@ -90,6 +100,9 @@ struct DegradedDebugView {
 /// 偏航控制调试视图 —— 描述偏航控制器的输出目标
 struct YawControlDebugView {
     double turn_output_target = 0.0;  ///< 偏航控制输出的转向目标值
+    double lateral_term = 0.0;        ///< 横向位置修正项
+    double heading_term = 0.0;        ///< 航向误差修正项
+    double curvature_term = 0.0;      ///< 曲率前馈项
 };
 
 /// 转向执行器调试视图 —— 描述原始和应用后的转向输出
@@ -111,6 +124,7 @@ struct SteeringDebugSnapshot {
     ReferenceDebugView reference{};                          ///< 参考路径信息
     ReferenceEligibilityDebugView eligibility{};             ///< 参考可用性
     LateralErrorDebugView lateral_error{};                   ///< 横向误差估计
+    TrackingGeometryDebugView tracking_geometry{};           ///< 参考跟踪几何
     ReferenceTimeAlignmentDebugView reference_time_alignment{}; ///< reference 时间对齐
     ReferenceControlDebugView reference_control{};           ///< 参考控制就绪
     SafetyGateDebugView safety_gate{};                       ///< 安全门状态
@@ -124,7 +138,9 @@ struct SteeringInternalDebugSnapshot {
     bool valid = false;                       ///< 内部快照是否有效
     std::uint64_t frame_id = 0;              ///< 关联的相机帧 ID
     std::uint64_t capture_time_ms = 0;       ///< 帧捕获时间戳（ms）
-    double lateral_error_gain = 0.0;          ///< 横向误差增益
+    double lateral_offset_gain = 0.0;         ///< 横向位置项增益
+    double heading_error_gain = 0.0;          ///< 航向误差项增益
+    double curvature_gain = 0.0;              ///< 曲率前馈项增益
     double speed_scale = 0.0;                 ///< 速度缩放因子
     double turn_output_candidate = 0.0;       ///< 转向输出候选值
     double gyro_z = 0.0;                      ///< 陀螺仪 Z 轴角速度

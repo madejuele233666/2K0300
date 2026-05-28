@@ -28,10 +28,19 @@ float LinearReferenceWeight(std::size_t index, float far_weight) {
     return 1.0F + (far_weight - 1.0F) * static_cast<float>(index) / kDenominator;
 }
 
+std::size_t FirstPresentSegmentStart(const port::BEVReferencePath& reference_path) {
+    for (std::size_t index = 0; index < reference_path.sampled_path.size(); ++index) {
+        if (IsReferencePointPresent(reference_path.sampled_path[index])) {
+            return index;
+        }
+    }
+    return reference_path.sampled_path.size();
+}
+
 }  // namespace
 
 /// ComputeReferenceLateralError 实现
-/// 对参考路径的前导可用采样点进行加权平均，距离越近权重越高
+/// 对参考路径的第一个连续可用采样段进行加权平均，距离越近权重越高
 /// 使用线性权重（近端1.0，远端由参数控制）
 port::ReferenceLateralErrorEstimate ComputeReferenceLateralError(
     const port::BEVReferencePath& reference_path,
@@ -41,14 +50,19 @@ port::ReferenceLateralErrorEstimate ComputeReferenceLateralError(
         return UncomputedOutput(usability.reason);
     }
 
-    const std::size_t bounded_count = std::min(usability.leading_usable_samples,
-                                               reference_path.sampled_path.size());
+    const std::size_t start_index = FirstPresentSegmentStart(reference_path);
+    if (start_index >= reference_path.sampled_path.size()) {
+        return UncomputedOutput("lateral_error_unavailable");
+    }
+    const std::size_t bounded_count =
+        std::min(usability.leading_usable_samples,
+                 reference_path.sampled_path.size() - start_index);
     float weighted_sum = 0.0F;
     float weight_sum = 0.0F;
     std::size_t used_count = 0;
     const float far_weight = static_cast<float>(params.bev_control_model.lateral_error_far_weight);
     for (std::size_t index = 0; index < bounded_count; ++index) {
-        const port::BEVPathSample& sample = reference_path.sampled_path[index];
+        const port::BEVPathSample& sample = reference_path.sampled_path[start_index + index];
         if (!IsReferencePointPresent(sample)) {
             break;
         }

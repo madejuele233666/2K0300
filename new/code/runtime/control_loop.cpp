@@ -10,6 +10,7 @@
 
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
+#include "legacy/steering_reference_tracking_geometry.hpp"
 #include "legacy/steering_reference_usability.hpp"
 #include "port/perf_counter.hpp"
 #include "runtime/steering_reference_time_alignment.hpp"
@@ -205,6 +206,8 @@ port::PerceptionResult BuildControlTimePerception(const port::PerceptionResult& 
         out.reference_usability.reason = "reference_time_alignment_" + alignment.facts.reason;
         out.reference_lateral_error = {};
         out.reference_lateral_error.reason = out.reference_usability.reason;
+        out.reference_tracking_geometry = {};
+        out.reference_tracking_geometry.reason = out.reference_usability.reason;
         out.reference_control = {};
         out.reference_control.reason = out.reference_usability.reason;
         return out;
@@ -215,10 +218,14 @@ port::PerceptionResult BuildControlTimePerception(const port::PerceptionResult& 
         legacy::ComputeReferenceLateralError(alignment.reference_path,
                                              out.reference_usability,
                                              params);
+    out.reference_tracking_geometry =
+        legacy::ComputeReferenceTrackingGeometry(alignment.reference_path,
+                                                 out.reference_usability,
+                                                 params.bev_control_model);
     out.reference_control =
         legacy::EvaluateReferenceControlReadiness(out.reference_usability,
-                                                  out.reference_lateral_error,
-                                                  perception.reference_source == "hold");
+                                                  out.reference_tracking_geometry,
+                                                  perception.reference_control.degraded);
     return out;
 }
 
@@ -285,6 +292,18 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         perception.reference_lateral_error.weighted_sample_count;
     debug_snapshot.steering.lateral_error.weight_sum = perception.reference_lateral_error.weight_sum;
     debug_snapshot.steering.lateral_error.reason = perception.reference_lateral_error.reason;
+    debug_snapshot.steering.tracking_geometry.computed =
+        perception.reference_tracking_geometry.computed;
+    debug_snapshot.steering.tracking_geometry.lateral_offset_m =
+        perception.reference_tracking_geometry.lateral_offset_m;
+    debug_snapshot.steering.tracking_geometry.heading_error_rad =
+        perception.reference_tracking_geometry.heading_error_rad;
+    debug_snapshot.steering.tracking_geometry.curvature_m_inv =
+        perception.reference_tracking_geometry.curvature_m_inv;
+    debug_snapshot.steering.tracking_geometry.sample_count =
+        perception.reference_tracking_geometry.sample_count;
+    debug_snapshot.steering.tracking_geometry.reason =
+        perception.reference_tracking_geometry.reason;
     debug_snapshot.steering.reference_time_alignment.enabled =
         perception.reference_time_alignment.enabled;
     debug_snapshot.steering.reference_time_alignment.valid =
@@ -314,14 +333,24 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         perception.reference_control.degraded ? perception.reference_control.reason : "none";
     debug_snapshot.steering.yaw_control.turn_output_target =
         inputs.turn_output_target_result.turn_output_target;
+    debug_snapshot.steering.yaw_control.lateral_term =
+        inputs.turn_output_target_result.lateral_term;
+    debug_snapshot.steering.yaw_control.heading_term =
+        inputs.turn_output_target_result.heading_term;
+    debug_snapshot.steering.yaw_control.curvature_term =
+        inputs.turn_output_target_result.curvature_term;
     debug_snapshot.steering.actuator.raw_turn_output = inputs.raw_turn_output;
     debug_snapshot.steering.actuator.applied_turn_output = inputs.applied_turn_output;
 
     debug_snapshot.steering_internal.valid = inputs.steering_terms_valid;
     debug_snapshot.steering_internal.frame_id = perception.frame_id;
     debug_snapshot.steering_internal.capture_time_ms = perception.capture_time_ms;
-    debug_snapshot.steering_internal.lateral_error_gain =
-        inputs.turn_output_target_result.lateral_error_gain;
+    debug_snapshot.steering_internal.lateral_offset_gain =
+        inputs.turn_output_target_result.lateral_offset_gain;
+    debug_snapshot.steering_internal.heading_error_gain =
+        inputs.turn_output_target_result.heading_error_gain;
+    debug_snapshot.steering_internal.curvature_gain =
+        inputs.turn_output_target_result.curvature_gain;
     debug_snapshot.steering_internal.speed_scale =
         inputs.turn_output_target_result.speed_scale;
     debug_snapshot.steering_internal.turn_output_candidate =
@@ -867,7 +896,7 @@ void ControlLoop::Tick() {
     } else {
         const double constrained_speed_target = motion.effective_speed_target;
         turn_output_target_result =
-            yaw_controller_.ComputeTurnOutputTarget(perception.reference_lateral_error.weighted_lateral_error_m,
+            yaw_controller_.ComputeTurnOutputTarget(perception.reference_tracking_geometry,
                                                     constrained_speed_target,
                                                     steering_control_memory_.controller_memory);
         gyro_turn = yaw_controller_.ComputeGyroTurn(turn_output_target_result.turn_output_target,

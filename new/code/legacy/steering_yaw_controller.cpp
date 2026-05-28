@@ -12,8 +12,13 @@ void SteeringYawController::Configure(const port::RuntimeParameters& params) {
     gyro_i_ = static_cast<float>(params.yaw_rate_pid_i);
     gyro_d_ = static_cast<float>(params.yaw_rate_pid_d);
     running_speed_target_ = static_cast<float>(std::max(1.0, params.running_speed_target));
-    lateral_error_to_wheel_delta_gain_ =
-        static_cast<float>(params.bev_control_model.lateral_error_to_wheel_delta_gain);
+    raw_turn_output_limit_ = static_cast<float>(std::max(0, params.raw_turn_output_limit));
+    lateral_offset_to_wheel_delta_gain_ =
+        static_cast<float>(params.bev_control_model.lateral_offset_to_wheel_delta_gain);
+    heading_error_to_wheel_delta_gain_ =
+        static_cast<float>(params.bev_control_model.heading_error_to_wheel_delta_gain);
+    curvature_to_wheel_delta_gain_ =
+        static_cast<float>(params.bev_control_model.curvature_to_wheel_delta_gain);
 }
 
 /// SteeringYawController::Reset 实现
@@ -21,24 +26,38 @@ void SteeringYawController::Configure(const port::RuntimeParameters& params) {
 void SteeringYawController::Reset() {}
 
 /// SteeringYawController::ComputeTurnOutputTarget 实现
-/// 根据横向误差和速度目标计算转向输出目标
-/// 公式：转向输出 = 增益 * 速度缩放 * 加权横向误差
-TurnOutputTargetComputation SteeringYawController::ComputeTurnOutputTarget(float weighted_lateral_error_m,
-                                                                           double effective_speed_target,
-                                                                           port::BEVControllerMemory& memory) {
+/// 根据参考跟踪几何和速度目标计算转向输出目标
+TurnOutputTargetComputation SteeringYawController::ComputeTurnOutputTarget(
+    const port::ReferenceTrackingGeometry& tracking_geometry,
+    double effective_speed_target,
+    port::BEVControllerMemory& memory) {
     const float speed_scale =
         static_cast<float>(effective_speed_target) / std::max(running_speed_target_, 1.0F);
+    const float lateral_term =
+        lateral_offset_to_wheel_delta_gain_ * speed_scale * tracking_geometry.lateral_offset_m;
+    const float heading_term =
+        heading_error_to_wheel_delta_gain_ * speed_scale * tracking_geometry.heading_error_rad;
+    const float curvature_term =
+        curvature_to_wheel_delta_gain_ * speed_scale *
+        tracking_geometry.curvature_m_inv;
     const float turn_output_candidate =
-        lateral_error_to_wheel_delta_gain_ * speed_scale * weighted_lateral_error_m;
-    memory.weighted_lateral_error_last = weighted_lateral_error_m;
+        lateral_term + heading_term + curvature_term;
+    const float turn_output_target =
+        std::clamp(turn_output_candidate, -raw_turn_output_limit_, raw_turn_output_limit_);
+    memory.weighted_lateral_error_last = tracking_geometry.lateral_offset_m;
     memory.last_gain_scale = speed_scale;
-    memory.turn_output_target_last = turn_output_candidate;
+    memory.turn_output_target_last = turn_output_target;
 
     TurnOutputTargetComputation computation{};
-    computation.lateral_error_gain = lateral_error_to_wheel_delta_gain_;
+    computation.lateral_offset_gain = lateral_offset_to_wheel_delta_gain_;
+    computation.heading_error_gain = heading_error_to_wheel_delta_gain_;
+    computation.curvature_gain = curvature_to_wheel_delta_gain_;
     computation.speed_scale = speed_scale;
+    computation.lateral_term = lateral_term;
+    computation.heading_term = heading_term;
+    computation.curvature_term = curvature_term;
     computation.turn_output_candidate = turn_output_candidate;
-    computation.turn_output_target = turn_output_candidate;
+    computation.turn_output_target = turn_output_target;
     return computation;
 }
 

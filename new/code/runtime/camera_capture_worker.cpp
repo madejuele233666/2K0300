@@ -107,15 +107,34 @@ bool CameraCaptureWorker::ConvertRawFrame(const port::CameraRawFrame& raw,
 
 void CameraCaptureWorker::ThreadMain() {
     while (!stop_requested_.load()) {
-        port::CameraRawFrame raw =
-            source_->WaitRawFrame(std::max(1, params_.camera_source.poll_timeout_ms),
-                                  diagnostics_);
+        port::CameraRawFrame raw{};
+        {
+            LS2K_PERF_SCOPE(port::PerfStage::kCameraCapture);
+            raw = source_->WaitRawFrame(std::max(1, params_.camera_source.poll_timeout_ms),
+                                        diagnostics_);
+        }
         if (!raw.valid) {
             continue;
         }
         port::LegacyCameraFrame gray{};
         port::CameraRawFrameMetadata metadata{};
-        if (!ConvertRawFrame(raw, gray, metadata)) {
+        bool materialized = false;
+        {
+            LS2K_PERF_SCOPE(port::PerfStage::kCameraFrameMaterialize);
+            materialized = ConvertRawFrame(raw, gray, metadata);
+            if (materialized) {
+                const uint64_t frame_id =
+                    metadata.frame_id == 0 ? raw.metadata.frame_id : metadata.frame_id;
+                const uint64_t capture_time_ms =
+                    metadata.capture_time_ms == 0 ? port::NowMs() : metadata.capture_time_ms;
+                const port::LegacyCameraFrameView view = gray.View(frame_id, capture_time_ms);
+                {
+                    LS2K_PERF_SCOPE(port::PerfStage::kCameraStoreSubmit);
+                    frame_store_.Submit(view, metadata);
+                }
+            }
+        }
+        if (!materialized) {
             port::EmitRateLimited(diagnostics_,
                                   {port::DiagnosticLevel::kWarning,
                                    "camera_capture_worker.convert_failed",
@@ -123,14 +142,6 @@ void CameraCaptureWorker::ThreadMain() {
                                    port::NowMs()},
                                   1000);
             continue;
-        }
-        const uint64_t frame_id = metadata.frame_id == 0 ? raw.metadata.frame_id : metadata.frame_id;
-        const uint64_t capture_time_ms =
-            metadata.capture_time_ms == 0 ? port::NowMs() : metadata.capture_time_ms;
-        const port::LegacyCameraFrameView view = gray.View(frame_id, capture_time_ms);
-        {
-            LS2K_PERF_SCOPE(port::PerfStage::kCameraStoreSubmit);
-            frame_store_.Submit(view, metadata);
         }
     }
     running_.store(false);

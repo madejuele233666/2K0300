@@ -205,6 +205,18 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << snapshot.steering.lateral_error.weighted_sample_count
                      << " lateral_error.weight_sum=" << snapshot.steering.lateral_error.weight_sum
                      << " lateral_error.reason=" << snapshot.steering.lateral_error.reason
+                     << " tracking_geometry.computed="
+                     << BoolToken(snapshot.steering.tracking_geometry.computed)
+                     << " tracking_geometry.lateral_offset_m="
+                     << snapshot.steering.tracking_geometry.lateral_offset_m
+                     << " tracking_geometry.heading_error_rad="
+                     << snapshot.steering.tracking_geometry.heading_error_rad
+                     << " tracking_geometry.curvature_m_inv="
+                     << snapshot.steering.tracking_geometry.curvature_m_inv
+                     << " tracking_geometry.sample_count="
+                     << snapshot.steering.tracking_geometry.sample_count
+                     << " tracking_geometry.reason="
+                     << snapshot.steering.tracking_geometry.reason
                      << " reference_time_alignment.enabled="
                      << BoolToken(snapshot.steering.reference_time_alignment.enabled)
                      << " reference_time_alignment.valid="
@@ -235,6 +247,12 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " degraded.reason=" << snapshot.steering.degraded.reason
                      << " yaw_control.turn_output_target="
                      << snapshot.steering.yaw_control.turn_output_target
+                     << " yaw_control.lateral_term="
+                     << snapshot.steering.yaw_control.lateral_term
+                     << " yaw_control.heading_term="
+                     << snapshot.steering.yaw_control.heading_term
+                     << " yaw_control.curvature_term="
+                     << snapshot.steering.yaw_control.curvature_term
                      << " threshold=" << snapshot.steering.threshold
                      << " actuator.raw_turn_output=" << snapshot.steering.actuator.raw_turn_output
                      << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output;
@@ -267,7 +285,9 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << " phase=" << ToString(snapshot.motion_phase)
                      << " frame_id=" << snapshot.steering_internal.frame_id
                      << " capture_time_ms=" << snapshot.steering_internal.capture_time_ms
-                     << " lateral_error_gain=" << snapshot.steering_internal.lateral_error_gain
+                     << " lateral_offset_gain=" << snapshot.steering_internal.lateral_offset_gain
+                     << " heading_error_gain=" << snapshot.steering_internal.heading_error_gain
+                     << " curvature_gain=" << snapshot.steering_internal.curvature_gain
                      << " speed_scale=" << snapshot.steering_internal.speed_scale
                      << " turn_output_candidate=" << snapshot.steering_internal.turn_output_candidate
                      << " gyro_z=" << snapshot.steering_internal.gyro_z

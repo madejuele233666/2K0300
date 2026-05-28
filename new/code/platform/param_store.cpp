@@ -578,11 +578,18 @@ bool IsFiniteInRange(double value, double min_value, double max_value) {
  */
 bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
     return IsFiniteInRange(params.lateral_error_far_weight, 0.0, 1.0) &&
-           IsFiniteInRange(params.lateral_error_to_wheel_delta_gain, 0.0, 1000.0);
+           IsFiniteInRange(params.lateral_offset_to_wheel_delta_gain, 0.0, 1000.0) &&
+           IsFiniteInRange(params.heading_error_to_wheel_delta_gain, 0.0, 1000.0) &&
+           IsFiniteInRange(params.curvature_to_wheel_delta_gain, 0.0, 1000.0) &&
+           params.tracking_fit_min_samples >= 3 &&
+           params.tracking_fit_min_samples <= static_cast<int>(port::kBevReferenceSampleCount);
 }
 
 bool ValidateBEVGeometry(const port::BEVGeometryParameters& params) {
-    return IsFiniteInRange(params.nominal_road_half_width_m, 0.01, 2.0);
+    return IsFiniteInRange(params.nominal_road_half_width_m, 0.01, 2.0) &&
+           IsFiniteInRange(params.reference_lateral_jump_gate_m, 0.0, 1000.0) &&
+           params.sparse_row_count >= 1 &&
+           params.sparse_row_count <= static_cast<int>(port::kBevReferenceSampleCount);
 }
 
 /**
@@ -597,7 +604,14 @@ bool ValidateBEVElement(const port::BEVElementParameters& params) {
            params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
            IsFiniteInRange(params.circle_v2_inner_trace_stall_yaw_min_deg, 0.0, 720.0) &&
            IsFiniteInRange(params.circle_v2_inner_trace_path_offset_m, 0.0, 2.0) &&
-           IsFiniteInRange(params.circle_v2_opposite_straight_confidence_min, 0.0, 1.0);
+           IsFiniteInRange(params.circle_v2_opposite_straight_confidence_min, 0.0, 1.0) &&
+           params.circle_v2_entry_bottom_row_count >= 4 &&
+           params.circle_v2_entry_bottom_row_count <=
+               static_cast<int>(port::kBevReferenceSampleCount) &&
+           IsFiniteInRange(params.circle_v2_entry_bottom_forward_min_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_v2_entry_bottom_forward_max_m, 0.0, 2.0) &&
+           params.circle_v2_entry_bottom_forward_max_m >=
+               params.circle_v2_entry_bottom_forward_min_m;
 }
 
 bool ValidateReferenceTimeAlignment(const port::ReferenceTimeAlignmentParameters& params) {
@@ -912,6 +926,16 @@ public:
                                  "NOMINAL_ROAD_HALF_WIDTH_M",
                                  parsed.bev_geometry.nominal_road_half_width_m,
                                  optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_GEOMETRY",
+                                 "REFERENCE_LATERAL_JUMP_GATE_M",
+                                 parsed.bev_geometry.reference_lateral_jump_gate_m,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_GEOMETRY",
+                              "SPARSE_ROW_COUNT",
+                              parsed.bev_geometry.sparse_row_count,
+                              optional_malformed);
         if (!ValidateBEVGeometry(parsed.bev_geometry)) {
             optional_malformed = true;
         }
@@ -940,12 +964,34 @@ public:
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
                                  "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
-                                 parsed.bev_control_model.lateral_error_to_wheel_delta_gain,
+                                 parsed.bev_control_model.lateral_offset_to_wheel_delta_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.lateral_offset_to_wheel_delta_gain,
+                                 optional_malformed);
+        parsed.bev_control_model.lateral_error_to_wheel_delta_gain =
+            parsed.bev_control_model.lateral_offset_to_wheel_delta_gain;
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "HEADING_ERROR_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.heading_error_to_wheel_delta_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "CURVATURE_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.curvature_to_wheel_delta_gain,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_CONTROL_MODEL",
                               "MIN_LEADING_REFERENCE_SAMPLES",
                               parsed.bev_control_model.min_leading_reference_samples,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_CONTROL_MODEL",
+                              "TRACKING_FIT_MIN_SAMPLES",
+                              parsed.bev_control_model.tracking_fit_min_samples,
                               optional_malformed);
         if (!ValidateBEVControlModel(parsed.bev_control_model)) {
             optional_malformed = true;
@@ -994,6 +1040,21 @@ public:
                                  "BEV_ELEMENT",
                                  "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN",
                                  parsed.bev_element.circle_v2_opposite_straight_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT",
+                              parsed.bev_element.circle_v2_entry_bottom_row_count,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M",
+                                 parsed.bev_element.circle_v2_entry_bottom_forward_min_m,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M",
+                                 parsed.bev_element.circle_v2_entry_bottom_forward_max_m,
                                  optional_malformed);
         if (!ValidateBEVElement(parsed.bev_element)) {
             optional_malformed = true;

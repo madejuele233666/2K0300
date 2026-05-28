@@ -1,6 +1,7 @@
 #include "legacy/steering_circle_element_evidence.hpp"
 
 #include "legacy/steering_bev_element_raster.hpp"
+#include "legacy/steering_bev_interval_edges.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -116,10 +117,24 @@ void AddBounds(port::VisualElementEvidenceRecord& record,
     record.bounds.lateral_max_m = std::max(record.bounds.lateral_max_m, row.right_m);
 }
 
-/// 选择一行中最宽的白色区间
-const BEVSimpleWhiteInterval* WidestInterval(const BEVSimpleRowScan& scan) {
+bool IntervalSupportsTwoEdgeObservation(
+    const BEVSimpleRowScan& scan,
+    const BEVSimpleWhiteInterval& interval,
+    const BEVIntervalEdgeVisibilityOptions& edge_options) {
+    const BEVIntervalEdgeVisibility visibility =
+        EvaluateIntervalEdgeVisibility(scan, interval, edge_options);
+    return visibility.low_visible && visibility.high_visible;
+}
+
+/// 选择一行中最宽、且两侧边界都实际可见的白色区间。
+const BEVSimpleWhiteInterval* WidestTwoEdgeInterval(const BEVSimpleRowScan& scan) {
+    BEVIntervalEdgeVisibilityOptions edge_options{};
+    edge_options.treat_unknown_sampleable_edge_as_boundary = true;
     const BEVSimpleWhiteInterval* best = nullptr;
     for (const BEVSimpleWhiteInterval& interval : scan.intervals) {
+        if (!IntervalSupportsTwoEdgeObservation(scan, interval, edge_options)) {
+            continue;
+        }
         if (best == nullptr || interval.width_m > best->width_m) {
             best = &interval;
         }
@@ -137,7 +152,7 @@ bool BuildRowObservation(const BEVSimpleRowScan& scan,
         scan.sampleable_count < static_cast<std::size_t>(std::max(1, min_sampleable_per_row))) {
         return false;
     }
-    const BEVSimpleWhiteInterval* interval = WidestInterval(scan);
+    const BEVSimpleWhiteInterval* interval = WidestTwoEdgeInterval(scan);
     if (interval == nullptr || interval->right_m < interval->left_m) {
         return false;
     }
@@ -191,6 +206,11 @@ std::vector<BEVSimpleRowScan> BuildSparseRowsFromRasterForCompatibility(
         row.row_px = y;
         row.forward_m = raster.CellToMetric(raster.width / 2, y).forward_m;
         bool have_sampleable = false;
+        bool left_unknown_prefix_active = true;
+        bool left_unknown_prefix_seen = false;
+        float left_unknown_prefix_right_m = 0.0F;
+        bool right_unknown_suffix_active = false;
+        float right_unknown_suffix_left_m = 0.0F;
         int current_first = -1;
         int current_last = -1;
         const auto finish_interval = [&]() {
@@ -224,6 +244,7 @@ std::vector<BEVSimpleRowScan> BuildSparseRowsFromRasterForCompatibility(
                 continue;
             }
             const float lateral = raster.CellToMetric(x, y).lateral_m;
+            const port::BEVElementRasterCellClass cell_class = raster.classes[index];
             if (!have_sampleable) {
                 row.sampleable_left_m = lateral;
                 row.sampleable_right_m = lateral;
@@ -233,7 +254,23 @@ std::vector<BEVSimpleRowScan> BuildSparseRowsFromRasterForCompatibility(
                 row.sampleable_right_m = std::max(row.sampleable_right_m, lateral);
             }
             ++row.sampleable_count;
-            switch (raster.classes[index]) {
+            if (left_unknown_prefix_active) {
+                if (cell_class == port::BEVElementRasterCellClass::kUnknown) {
+                    left_unknown_prefix_seen = true;
+                    left_unknown_prefix_right_m = lateral;
+                } else {
+                    left_unknown_prefix_active = false;
+                }
+            }
+            if (cell_class == port::BEVElementRasterCellClass::kUnknown) {
+                if (!right_unknown_suffix_active) {
+                    right_unknown_suffix_left_m = lateral;
+                }
+                right_unknown_suffix_active = true;
+            } else {
+                right_unknown_suffix_active = false;
+            }
+            switch (cell_class) {
                 case port::BEVElementRasterCellClass::kWhite:
                     ++row.white_count;
                     if (current_first < 0) {
@@ -258,6 +295,14 @@ std::vector<BEVSimpleRowScan> BuildSparseRowsFromRasterForCompatibility(
         row.sampleable_width_m = have_sampleable
                                      ? row.sampleable_right_m - row.sampleable_left_m
                                      : 0.0F;
+        if (left_unknown_prefix_seen) {
+            row.sampleable_left_unknown_run = true;
+            row.sampleable_left_unknown_run_right_m = left_unknown_prefix_right_m;
+        }
+        if (right_unknown_suffix_active) {
+            row.sampleable_right_unknown_run = true;
+            row.sampleable_right_unknown_run_left_m = right_unknown_suffix_left_m;
+        }
         rows.push_back(row);
     }
     std::sort(rows.begin(), rows.end(), [](const BEVSimpleRowScan& lhs,

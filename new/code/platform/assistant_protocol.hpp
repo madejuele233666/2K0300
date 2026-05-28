@@ -93,6 +93,16 @@ struct AssistantLateralErrorView {
     std::string reason = "reference_unusable";   ///< 无法计算的原因
 };
 
+/// @brief 参考跟踪几何视图
+struct AssistantTrackingGeometryView {
+    bool computed = false;                    ///< 是否已计算跟踪几何
+    double lateral_offset_m = 0.0;            ///< 横向位置项（米）
+    double heading_error_rad = 0.0;           ///< 航向误差项（弧度）
+    double curvature_m_inv = 0.0;             ///< 曲率前馈项（1/米）
+    std::uint64_t sample_count = 0;           ///< 拟合样本数量
+    std::string reason = "reference_unusable"; ///< 无法计算的原因
+};
+
 /// @brief 参考控制状态视图
 struct AssistantReferenceControlView {
     bool ready = false;                          ///< 参考控制是否准备就绪
@@ -114,6 +124,9 @@ struct AssistantDegradedView {
 /// @brief 偏航控制视图
 struct AssistantYawControlView {
     double turn_output_target = 0.0;  ///< 偏航（转向）输出目标值
+    double lateral_term = 0.0;        ///< 横向位置修正项
+    double heading_term = 0.0;        ///< 航向误差修正项
+    double curvature_term = 0.0;      ///< 曲率前馈项
 };
 
 /// @brief 执行器视图
@@ -137,6 +150,7 @@ struct AssistantTelemetryView {
     AssistantReferenceView reference{};                 ///< 参考路径视图
     AssistantEligibilityView eligibility{};             ///< 合格性视图
     AssistantLateralErrorView lateral_error{};           ///< 横向误差视图
+    AssistantTrackingGeometryView tracking_geometry{};   ///< 跟踪几何视图
     AssistantReferenceControlView reference_control{};   ///< 参考控制视图
     AssistantSafetyGateView safety_gate{};               ///< 安全门视图
     AssistantDegradedView degraded{};                    ///< 降级模式视图

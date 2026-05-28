@@ -35,8 +35,8 @@ struct BEVSimpleImage {
 /// BEV行扫描中的白色连通区间（一条白色标记段的左右边界）
 struct BEVSimpleWhiteInterval {
     float forward_m = 0.0F;   ///< 该区间所处的前向距离（米）
-    float left_m = 0.0F;      ///< 区间左边界横向坐标（米）
-    float right_m = 0.0F;     ///< 区间右边界横向坐标（米）
+    float left_m = 0.0F;      ///< 区间横向低坐标边界（米），不是物理左侧语义
+    float right_m = 0.0F;     ///< 区间横向高坐标边界（米），不是物理右侧语义
     float center_m = 0.0F;    ///< 区间中心横向坐标（米）
     float width_m = 0.0F;     ///< 区间宽度（米）
     int left_px = 0;          ///< 区间左边界像素索引
@@ -53,9 +53,13 @@ struct BEVSimpleRowScan {
     std::size_t black_count = 0;      ///< 黑色像素计数
     std::size_t unknown_count = 0;    ///< 不确定像素计数
     std::size_t unavailable_count = 0;///< 不可用像素计数
-    float sampleable_left_m = 0.0F;   ///< 可采样区域左边界（米）
-    float sampleable_right_m = 0.0F;  ///< 可采样区域右边界（米）
+    float sampleable_left_m = 0.0F;   ///< 可采样区域横向低坐标边界（米）
+    float sampleable_right_m = 0.0F;  ///< 可采样区域横向高坐标边界（米）
     float sampleable_width_m = 0.0F;  ///< 可采样区域宽度（米）
+    bool sampleable_left_unknown_run = false;  ///< 可采样左边界是否以 unknown 连续段开始
+    float sampleable_left_unknown_run_right_m = 0.0F; ///< 左边界 unknown 段的最右横向坐标
+    bool sampleable_right_unknown_run = false; ///< 可采样右边界是否以 unknown 连续段结束
+    float sampleable_right_unknown_run_left_m = 0.0F; ///< 右边界 unknown 段的最左横向坐标
     std::vector<BEVSimpleWhiteInterval> intervals{}; ///< 该行的白色连通区间列表
 };
 
@@ -83,6 +87,7 @@ struct BEVSampleProjectionLut {
     int frame_height = 0;                                           ///< 源图像高度
     int frame_stride = 0;                                           ///< 源图像行跨度
     std::array<float, port::kBevReferenceSampleCount> forward_samples_m{}; ///< 前向采样距离数组
+    std::size_t sparse_row_count = port::kBevReferenceSampleCount;          ///< 启用的前向采样前缀长度
     float lateral_limit_m = 0.0F;                                   ///< 横向采样限制（米）
     float lateral_step_m = 0.0F;                                    ///< 横向采样步长（米）
     std::size_t lateral_sample_count = 0;                           ///< 横向采样点数
@@ -138,7 +143,7 @@ bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
                                   const port::RuntimeParameters& params,
                                   const BEVProjector& projector);
 
-/// 从行扫描结果中提取严格的前导参考段（从最近端开始连续有效的区间中心路径）
+/// 从行扫描结果中提取第一个连续参考段（允许近端缺失，输出点保留真实 forward_m）
 /// @param rows 行扫描结果数组
 /// @param params 运行时参数
 /// @return 提取的参考路径

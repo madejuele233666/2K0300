@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "port/perf_counter.hpp"
+#include "legacy/steering_bev_interval_edges.hpp"
 #include "legacy/steering_single_boundary_offset.hpp"
 
 namespace ls2k::legacy {
@@ -29,6 +30,13 @@ std::size_t ComputeLateralSampleCount(float lateral_limit, float lateral_step) {
         return 0;
     }
     return static_cast<std::size_t>(std::floor((2.0F * lateral_limit) / lateral_step + 1.0e-4F)) + 1U;
+}
+
+std::size_t ActiveSparseRowCount(const port::RuntimeParameters& params) {
+    return static_cast<std::size_t>(
+        std::clamp(params.bev_geometry.sparse_row_count,
+                   1,
+                   static_cast<int>(port::kBevReferenceSampleCount)));
 }
 
 bool SameCalibration(const port::BEVProjectorCalibration& lhs,
@@ -65,6 +73,7 @@ port::ReferenceGeometryIdentity MakeReferenceGeometryIdentity(const port::Runtim
     port::ReferenceGeometryIdentity identity{};
     identity.initialized = true;
     identity.forward_samples_m = params.bev_geometry.forward_samples_m;
+    identity.sparse_row_count = static_cast<int>(ActiveSparseRowCount(params));
     identity.search_lateral_limit_m = params.bev_geometry.search_lateral_limit_m;
     identity.lateral_step_m = params.bev_geometry.lateral_step_m;
     return identity;
@@ -73,6 +82,7 @@ port::ReferenceGeometryIdentity MakeReferenceGeometryIdentity(const port::Runtim
 bool SameReferenceGeometryIdentity(const port::ReferenceGeometryIdentity& lhs,
                                    const port::ReferenceGeometryIdentity& rhs) {
     return lhs.initialized && rhs.initialized &&
+           lhs.sparse_row_count == rhs.sparse_row_count &&
            lhs.search_lateral_limit_m == rhs.search_lateral_limit_m &&
            lhs.lateral_step_m == rhs.lateral_step_m &&
            SameForwardSamples(lhs.forward_samples_m, rhs.forward_samples_m);
@@ -98,17 +108,19 @@ bool LutMatches(const BEVSampleProjectionLut& lut,
                 const BEVProjector& projector,
                 std::size_t lateral_count,
                 float lateral_limit,
-                float lateral_step) {
+                float lateral_step,
+                std::size_t active_sparse_rows) {
     return lut.valid &&
            lut.frame_width == frame.width &&
            lut.frame_height == frame.height &&
            lut.frame_stride == frame.stride &&
+           lut.sparse_row_count == active_sparse_rows &&
            lut.lateral_sample_count == lateral_count &&
            lut.lateral_limit_m == lateral_limit &&
            lut.lateral_step_m == lateral_step &&
            SameForwardSamples(lut.forward_samples_m, params.bev_geometry.forward_samples_m) &&
            SameCalibration(lut.calibration, projector.Calibration()) &&
-           lut.entries.size() == port::kBevReferenceSampleCount * lateral_count;
+           lut.entries.size() == active_sparse_rows * lateral_count;
 }
 
 }  // namespace
@@ -264,19 +276,27 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
     const float min_width_m = std::max(0.02F, params.bev_geometry.lateral_step_m * 1.5F);
     int run_begin = -1;
     bool have_sampleable_lateral = false;
+    bool left_unknown_prefix_active = true;
+    bool left_unknown_prefix_seen = false;
+    float left_unknown_prefix_right_m = 0.0F;
+    bool right_unknown_suffix_active = false;
+    float right_unknown_suffix_left_m = 0.0F;
     for (std::size_t lateral_index = 0; lateral_index <= lut.lateral_sample_count; ++lateral_index) {
         bool white = false;
         if (lateral_index < lut.lateral_sample_count) {
             const BEVSampleProjectionEntry& entry =
                 lut.entries[row_index * lut.lateral_sample_count + lateral_index];
             BEVSimplePixelClass pixel_class = BEVSimplePixelClass::kInvalid;
+            float lateral = 0.0F;
+            bool have_lateral = false;
             if (entry.state == BEVSampleProjectionState::kSampleable) {
                 std::uint8_t gray = 0;
                 if (SampleFrameBilinear(frame, entry.image_row_px, entry.image_col_px, gray)) {
                     pixel_class = ClassifyBevPixel(gray, threshold, params.bev_classification);
-                    const float lateral = LateralAtIndex(lateral_index,
-                                                         lut.lateral_limit_m,
-                                                         lut.lateral_step_m);
+                    lateral = LateralAtIndex(lateral_index,
+                                             lut.lateral_limit_m,
+                                             lut.lateral_step_m);
+                    have_lateral = true;
                     if (!have_sampleable_lateral) {
                         row.sampleable_left_m = lateral;
                         row.sampleable_right_m = lateral;
@@ -299,6 +319,24 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
             if (pixel_class != BEVSimplePixelClass::kInvalid) {
                 ++row.sampleable_count;
                 white = pixel_class == BEVSimplePixelClass::kWhite;
+                if (have_lateral) {
+                    if (left_unknown_prefix_active) {
+                        if (pixel_class == BEVSimplePixelClass::kUnknown) {
+                            left_unknown_prefix_seen = true;
+                            left_unknown_prefix_right_m = lateral;
+                        } else {
+                            left_unknown_prefix_active = false;
+                        }
+                    }
+                    if (pixel_class == BEVSimplePixelClass::kUnknown) {
+                        if (!right_unknown_suffix_active) {
+                            right_unknown_suffix_left_m = lateral;
+                        }
+                        right_unknown_suffix_active = true;
+                    } else {
+                        right_unknown_suffix_active = false;
+                    }
+                }
             }
         }
 
@@ -329,6 +367,14 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
     if (have_sampleable_lateral) {
         row.sampleable_width_m = std::max(0.0F, row.sampleable_right_m - row.sampleable_left_m);
     }
+    if (left_unknown_prefix_seen) {
+        row.sampleable_left_unknown_run = true;
+        row.sampleable_left_unknown_run_right_m = left_unknown_prefix_right_m;
+    }
+    if (right_unknown_suffix_active) {
+        row.sampleable_right_unknown_run = true;
+        row.sampleable_right_unknown_run_left_m = right_unknown_suffix_left_m;
+    }
     return row;
 }
 
@@ -337,8 +383,9 @@ std::vector<BEVSimpleRowScan> ScanSparseRows(const port::LegacyCameraFrameView& 
                                              const port::RuntimeParameters& params,
                                              const BEVSampleProjectionLut& lut) {
     std::vector<BEVSimpleRowScan> rows;
-    rows.reserve(port::kBevReferenceSampleCount);
-    for (std::size_t index = 0; index < port::kBevReferenceSampleCount; ++index) {
+    const std::size_t active_sparse_rows = ActiveSparseRowCount(params);
+    rows.reserve(active_sparse_rows);
+    for (std::size_t index = 0; index < active_sparse_rows; ++index) {
         rows.push_back(ScanSparseRow(frame, threshold, params, lut, index));
     }
     return rows;
@@ -358,55 +405,34 @@ using CenterCandidateRows =
     std::array<std::vector<CenterCandidate>, port::kBevReferenceSampleCount>;
 
 float ReferenceMaxJump(const port::RuntimeParameters& params) {
-    return std::clamp(params.bev_geometry.lateral_step_m * 6.0F, 0.08F, 0.14F);
+    return params.bev_geometry.reference_lateral_jump_gate_m;
 }
 
-float BoundaryTouchTolerance(const port::RuntimeParameters& params) {
-    return std::max(1.0e-4F, params.bev_geometry.lateral_step_m * 1.5F);
+BEVIntervalEdgeVisibilityOptions ReferenceEdgeVisibilityOptions() {
+    BEVIntervalEdgeVisibilityOptions options{};
+    options.treat_unknown_sampleable_edge_as_boundary = true;
+    return options;
 }
 
-bool HasSampleableBoundaryFacts(const BEVSimpleRowScan& row) {
-    return row.sampleable_count > 0U &&
-           row.sampleable_width_m > 0.0F &&
-           std::isfinite(row.sampleable_left_m) &&
-           std::isfinite(row.sampleable_right_m);
-}
-
-bool LowEdgeVisible(const BEVSimpleRowScan& row,
-                    const BEVSimpleWhiteInterval& interval,
-                    float tolerance_m) {
-    if (!HasSampleableBoundaryFacts(row)) {
-        return true;
-    }
-    return std::fabs(interval.left_m - row.sampleable_left_m) > tolerance_m;
-}
-
-bool HighEdgeVisible(const BEVSimpleRowScan& row,
-                     const BEVSimpleWhiteInterval& interval,
-                     float tolerance_m) {
-    if (!HasSampleableBoundaryFacts(row)) {
-        return true;
-    }
-    return std::fabs(interval.right_m - row.sampleable_right_m) > tolerance_m;
-}
-
-bool CenterInsideInterval(float lateral_m,
-                          const BEVSimpleWhiteInterval& interval,
-                          float tolerance_m) {
-    return lateral_m >= interval.left_m - tolerance_m &&
-           lateral_m <= interval.right_m + tolerance_m;
+bool IntervalSupportsMidpointCandidate(
+    const BEVSimpleRowScan& row,
+    const BEVSimpleWhiteInterval& interval,
+    const BEVIntervalEdgeVisibilityOptions& options) {
+    const BEVIntervalEdgeVisibility visibility =
+        EvaluateIntervalEdgeVisibility(row, interval, options);
+    return visibility.low_visible && visibility.high_visible;
 }
 
 bool IsSingleEdgeInterval(const BEVSimpleRowScan& row,
                           const BEVSimpleWhiteInterval& interval,
                           SingleEdgeKind kind,
-                          float tolerance_m) {
-    const bool low_visible = LowEdgeVisible(row, interval, tolerance_m);
-    const bool high_visible = HighEdgeVisible(row, interval, tolerance_m);
+                          const BEVIntervalEdgeVisibilityOptions& options) {
+    const BEVIntervalEdgeVisibility visibility =
+        EvaluateIntervalEdgeVisibility(row, interval, options);
     if (kind == SingleEdgeKind::kLow) {
-        return low_visible && !high_visible;
+        return visibility.low_visible && !visibility.high_visible;
     }
-    return !low_visible && high_visible;
+    return !visibility.low_visible && visibility.high_visible;
 }
 
 float EdgeLateral(const BEVSimpleWhiteInterval& interval, SingleEdgeKind kind) {
@@ -421,7 +447,7 @@ float SignedNormalOffset(const port::RuntimeParameters& params, SingleEdgeKind k
 const BEVSimpleWhiteInterval* FindNearestSingleEdgeNeighbor(
     const std::vector<BEVSimpleRowScan>& rows,
     SingleEdgeKind kind,
-    float tolerance_m,
+    const BEVIntervalEdgeVisibilityOptions& options,
     std::size_t row_index,
     float edge_lateral,
     float max_jump_m) {
@@ -435,7 +461,7 @@ const BEVSimpleWhiteInterval* FindNearestSingleEdgeNeighbor(
     const BEVSimpleWhiteInterval* best = nullptr;
     float best_cost = 0.0F;
     for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-        if (!IsSingleEdgeInterval(row, interval, kind, tolerance_m)) {
+        if (!IsSingleEdgeInterval(row, interval, kind, options)) {
             continue;
         }
         const float cost = std::fabs(EdgeLateral(interval, kind) - edge_lateral);
@@ -453,7 +479,7 @@ const BEVSimpleWhiteInterval* FindNearestSingleEdgeNeighbor(
 void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
                              SingleEdgeKind kind,
                              const port::RuntimeParameters& params,
-                             float tolerance_m,
+                             const BEVIntervalEdgeVisibilityOptions& options,
                              CenterCandidateRows& candidate_rows) {
     const std::size_t count =
         std::min(rows.size(), static_cast<std::size_t>(port::kBevReferenceSampleCount));
@@ -464,7 +490,7 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
             continue;
         }
         for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-            if (!IsSingleEdgeInterval(row, interval, kind, tolerance_m)) {
+            if (!IsSingleEdgeInterval(row, interval, kind, options)) {
                 continue;
             }
             const float edge_lateral = EdgeLateral(interval, kind);
@@ -472,7 +498,7 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
                 row_index + 1U < count
                     ? FindNearestSingleEdgeNeighbor(rows,
                                                     kind,
-                                                    tolerance_m,
+                                                    options,
                                                     row_index + 1U,
                                                     edge_lateral,
                                                     max_jump)
@@ -481,7 +507,7 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
                 row_index > 0U
                     ? FindNearestSingleEdgeNeighbor(rows,
                                                     kind,
-                                                    tolerance_m,
+                                                    options,
                                                     row_index - 1U,
                                                     edge_lateral,
                                                     max_jump)
@@ -501,10 +527,7 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
                 BuildSingleBoundaryOffsetReference(boundary_trace,
                                                    target_forward_samples,
                                                    SignedNormalOffset(params, kind));
-            if (center_points.empty() ||
-                !CenterInsideInterval(center_points.front().lateral_m,
-                                      interval,
-                                      tolerance_m)) {
+            if (center_points.empty()) {
                 continue;
             }
             candidate_rows[row_index].push_back(
@@ -518,9 +541,9 @@ CenterCandidateRows BuildOrdinaryCenterCandidates(
     const std::vector<BEVSimpleRowScan>& rows,
     const port::RuntimeParameters& params) {
     CenterCandidateRows candidate_rows{};
-    const float tolerance_m = BoundaryTouchTolerance(params);
     const std::size_t count =
         std::min(rows.size(), static_cast<std::size_t>(port::kBevReferenceSampleCount));
+    const BEVIntervalEdgeVisibilityOptions options = ReferenceEdgeVisibilityOptions();
 
     for (std::size_t row_index = 0; row_index < count; ++row_index) {
         const BEVSimpleRowScan& row = rows[row_index];
@@ -528,9 +551,7 @@ CenterCandidateRows BuildOrdinaryCenterCandidates(
             continue;
         }
         for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-            const bool low_visible = LowEdgeVisible(row, interval, tolerance_m);
-            const bool high_visible = HighEdgeVisible(row, interval, tolerance_m);
-            if (!low_visible || !high_visible) {
+            if (!IntervalSupportsMidpointCandidate(row, interval, options)) {
                 continue;
             }
             candidate_rows[row_index].push_back(
@@ -542,12 +563,12 @@ CenterCandidateRows BuildOrdinaryCenterCandidates(
     AddSingleEdgeCandidates(rows,
                             SingleEdgeKind::kLow,
                             params,
-                            tolerance_m,
+                            options,
                             candidate_rows);
     AddSingleEdgeCandidates(rows,
                             SingleEdgeKind::kHigh,
                             params,
-                            tolerance_m,
+                            options,
                             candidate_rows);
     return candidate_rows;
 }
@@ -575,9 +596,9 @@ const CenterCandidate* ChooseCenterCandidate(const std::vector<CenterCandidate>&
 
 }  // namespace
 
-// 提取基础 line reference 的严格前导段：参考必须从最近端 BEV 行开始连续成立。
-// 一旦某一行无法选出可信白色区间，就立即停止，不向后补点，也不跳到远处重新开始。
-// 这个约束用于避免“只看到远处线”时仍输出参考线，导致车辆等到近端偏差出现后才迟滞转向。
+// 提取基础 line reference 的第一个连续可用段。
+// 近端行暂时无候选时允许继续向远端寻找起点；一旦连续段开始，遇到第一个缺口就停止，
+// 不跨缺口重连后续远端点。参考路径按真实点顺序紧凑输出，forward_m 保留原始行距离。
 port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
     const port::RuntimeParameters& params) {
@@ -587,18 +608,26 @@ port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
         BuildOrdinaryCenterCandidates(rows, params);
     bool have_previous = false;
     float previous_lateral = 0.0F;
+    bool segment_started = false;
+    std::size_t output_index = 0U;
 
     for (std::size_t index = 0; index < rows.size() && index < reference.sampled_path.size(); ++index) {
-        port::BEVPathSample& sample = reference.sampled_path[index];
         const CenterCandidate* candidate =
             ChooseCenterCandidate(candidate_rows[index],
                                   have_previous,
                                   previous_lateral,
                                   params);
         if (candidate == nullptr) {
-            break;
+            if (segment_started) {
+                break;
+            }
+            continue;
         }
 
+        if (output_index >= reference.sampled_path.size()) {
+            break;
+        }
+        port::BEVPathSample& sample = reference.sampled_path[output_index];
         reference.mode = port::ReferenceMode::kIntervalCenter;
         sample.present = true;
         sample.point.forward_m = candidate->forward_m;
@@ -607,6 +636,8 @@ port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
         sample.source = port::BEVPathPointSource::kIntervalCenter;
         previous_lateral = candidate->lateral_m;
         have_previous = true;
+        segment_started = true;
+        ++output_index;
     }
     return reference;
 }
@@ -682,11 +713,19 @@ bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
     const float lateral_limit = std::max(0.1F, params.bev_geometry.search_lateral_limit_m);
     const float lateral_step = std::max(0.005F, params.bev_geometry.lateral_step_m);
     const std::size_t lateral_count = ComputeLateralSampleCount(lateral_limit, lateral_step);
+    const std::size_t active_sparse_rows = ActiveSparseRowCount(params);
     if (!projector.Valid() || !frame.Valid() || lateral_count == 0) {
         lut = {};
         return false;
     }
-    if (LutMatches(lut, frame, params, projector, lateral_count, lateral_limit, lateral_step)) {
+    if (LutMatches(lut,
+                   frame,
+                   params,
+                   projector,
+                   lateral_count,
+                   lateral_limit,
+                   lateral_step,
+                   active_sparse_rows)) {
         return true;
     }
 
@@ -697,12 +736,13 @@ bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
     rebuilt.frame_height = frame.height;
     rebuilt.frame_stride = frame.stride;
     rebuilt.forward_samples_m = params.bev_geometry.forward_samples_m;
+    rebuilt.sparse_row_count = active_sparse_rows;
     rebuilt.lateral_limit_m = lateral_limit;
     rebuilt.lateral_step_m = lateral_step;
     rebuilt.lateral_sample_count = lateral_count;
-    rebuilt.entries.resize(port::kBevReferenceSampleCount * lateral_count);
+    rebuilt.entries.resize(active_sparse_rows * lateral_count);
 
-    for (std::size_t row_index = 0; row_index < port::kBevReferenceSampleCount; ++row_index) {
+    for (std::size_t row_index = 0; row_index < active_sparse_rows; ++row_index) {
         const float forward_m = params.bev_geometry.forward_samples_m[row_index];
         for (std::size_t lateral_index = 0; lateral_index < lateral_count; ++lateral_index) {
             BEVSampleProjectionEntry& entry =

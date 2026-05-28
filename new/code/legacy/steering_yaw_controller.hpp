@@ -1,15 +1,21 @@
 #ifndef LS2K_LEGACY_STEERING_YAW_CONTROLLER_HPP
 #define LS2K_LEGACY_STEERING_YAW_CONTROLLER_HPP
 
+#include "port/reference_tracking_geometry_types.hpp"
 #include "port/runtime_parameter_types.hpp"
 #include "port/steering_state_types.hpp"
 
 namespace ls2k::legacy {
 
-/// 转向输出目标计算结果，包含横向误差增益、速度缩放和转向候选/目标值
+/// 转向输出目标计算结果，包含跟踪几何三项、速度缩放和转向候选/目标值
 struct TurnOutputTargetComputation {
-    float lateral_error_gain = 0.0F;       ///< 横向误差增益
+    float lateral_offset_gain = 0.0F;      ///< 横向位置项增益
+    float heading_error_gain = 0.0F;       ///< 航向误差项增益
+    float curvature_gain = 0.0F;           ///< 曲率前馈项增益
     float speed_scale = 0.0F;              ///< 速度缩放因子
+    float lateral_term = 0.0F;             ///< 横向位置项输出
+    float heading_term = 0.0F;             ///< 航向误差项输出
+    float curvature_term = 0.0F;           ///< 曲率前馈项输出
     float turn_output_candidate = 0.0F;    ///< 转向输出候选值
     float turn_output_target = 0.0F;       ///< 最终转向输出目标值
 };
@@ -31,12 +37,12 @@ public:
     /// 重置控制器内部状态
     void Reset();
 
-    /// 从加权横向误差计算转向输出目标
-    /// @param weighted_lateral_error_m 加权横向误差（米）
+    /// 从参考跟踪几何计算转向输出目标
+    /// @param tracking_geometry selected/aligned reference 的跟踪几何事实
     /// @param effective_speed_target 有效速度目标
     /// @param memory 控制器记忆状态（更新上一帧误差和增益）
     /// @return 转向输出目标计算结果
-    TurnOutputTargetComputation ComputeTurnOutputTarget(float weighted_lateral_error_m,
+    TurnOutputTargetComputation ComputeTurnOutputTarget(const port::ReferenceTrackingGeometry& tracking_geometry,
                                                         double effective_speed_target,
                                                         port::BEVControllerMemory& memory);
 
@@ -54,7 +60,10 @@ private:
     float gyro_i_ = 0.0F;               ///< 陀螺仪PID积分系数
     float gyro_d_ = 0.0F;               ///< 陀螺仪PID微分系数
     float running_speed_target_ = 100.0F;  ///< 运行速度目标值
-    float lateral_error_to_wheel_delta_gain_ = 180.0F; ///< 横向误差到轮距增量的增益
+    float raw_turn_output_limit_ = 20000.0F; ///< 转向目标限幅
+    float lateral_offset_to_wheel_delta_gain_ = 180.0F; ///< 横向位置项到轮距增量的增益
+    float heading_error_to_wheel_delta_gain_ = 0.0F;    ///< 航向误差项到轮距增量的增益
+    float curvature_to_wheel_delta_gain_ = 0.0F;        ///< 曲率前馈项到轮距增量的增益
 };
 
 }  // namespace ls2k::legacy

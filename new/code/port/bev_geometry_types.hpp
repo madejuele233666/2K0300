@@ -33,7 +33,7 @@ struct ImagePoint {
  */
 struct BEVPoint {
     float forward_m = 0.0F;  ///< 前向距离（米），沿车辆纵轴方向
-    float lateral_m = 0.0F;  ///< 横向距离（米），沿车辆横轴方向（左正右负）
+    float lateral_m = 0.0F;  ///< 横向距离（米），沿车辆横轴方向（右正左负）
 };
 
 constexpr std::size_t kBevCalibrationPointCount = 4;  ///< 透视变换标定点数量
@@ -70,6 +70,7 @@ struct BEVProjectorCalibration {
  *
  * 定义参考路径的前向采样网格和横向搜索范围。
  * forward_samples_m 数组定义了从车头到最远探测距离的24个前向采样位置。
+ * sparse_row_count 只控制启用前缀长度，不重新分布采样行。
  */
 struct BEVGeometryParameters {
     std::array<float, kBevReferenceSampleCount> forward_samples_m{  ///< 24个前向采样位置（米），从近到远
@@ -97,8 +98,10 @@ struct BEVGeometryParameters {
          1.374870F,
          1.437435F,
          1.500000F}};
+    int sparse_row_count = static_cast<int>(kBevReferenceSampleCount);  ///< 启用原始前向采样行的前 N 行
     float search_lateral_limit_m = 1.60F;  ///< 横向搜索范围限制（米）
     float lateral_step_m = 0.02F;          ///< 横向搜索步长（米）
+    float reference_lateral_jump_gate_m = 1000.0F;  ///< 参考路径横向跳变门限（米），默认失效化
     float nominal_road_half_width_m = 0.21F;  ///< 普通道路模型使用的名义半路宽（米）
 };
 
@@ -122,8 +125,12 @@ struct BEVClassificationParameters {
  */
 struct BEVControlModelParameters {
     double lateral_error_far_weight = 0.0;  ///< 远端横向误差权重
-    double lateral_error_to_wheel_delta_gain = 500.0;  ///< 横向误差到轮速差值的增益系数
+    double lateral_offset_to_wheel_delta_gain = 600.0;  ///< 横向位置项到轮速差值的增益系数
+    double heading_error_to_wheel_delta_gain = 0.0;  ///< 航向误差项到轮速差值的增益系数
+    double curvature_to_wheel_delta_gain = 0.0;  ///< nominal speed下曲率前馈项到轮速差值的增益系数
+    double lateral_error_to_wheel_delta_gain = 600.0;  ///< 旧参数名兼容别名，映射到 lateral offset gain
     int min_leading_reference_samples = 3;  ///< 最小前导参考采样点数量
+    int tracking_fit_min_samples = 3;       ///< 跟踪几何拟合最小采样点数量
 };
 
 }  // namespace ls2k::port

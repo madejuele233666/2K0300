@@ -133,6 +133,24 @@ struct SteeringMediaLateralErrorView {
 };
 
 /**
+ * 参考跟踪几何视图 —— 描述 selected/aligned reference 的控制几何事实。
+ */
+struct SteeringMediaTrackingGeometryView {
+    /** 是否已成功计算跟踪几何 */
+    bool computed = false;
+    /** 横向位置项（米） */
+    double lateral_offset_m = 0.0;
+    /** 航向误差项（弧度） */
+    double heading_error_rad = 0.0;
+    /** 曲率前馈项（1/米） */
+    double curvature_m_inv = 0.0;
+    /** 拟合样本数量 */
+    std::uint64_t sample_count = 0;
+    /** 计算失败的原因描述 */
+    std::string reason = "reference_unusable";
+};
+
+/**
  * 参考控制视图 —— 描述参考控制系统是否就绪。
  */
 struct SteeringMediaReferenceControlView {
@@ -168,6 +186,12 @@ struct SteeringMediaDegradedView {
 struct SteeringMediaYawControlView {
     /** 转向输出目标值 */
     double turn_output_target = 0.0;
+    /** 横向位置修正项 */
+    double lateral_term = 0.0;
+    /** 航向误差修正项 */
+    double heading_term = 0.0;
+    /** 曲率前馈项 */
+    double curvature_term = 0.0;
 };
 
 /**
@@ -206,6 +230,8 @@ struct SteeringMediaSnapshotView {
     SteeringMediaEligibilityView eligibility{};
     /** 加权横向误差 */
     SteeringMediaLateralErrorView lateral_error{};
+    /** 跟踪几何 */
+    SteeringMediaTrackingGeometryView tracking_geometry{};
     /** 参考控制就绪状态 */
     SteeringMediaReferenceControlView reference_control{};
     /** 安全门禁状态 */

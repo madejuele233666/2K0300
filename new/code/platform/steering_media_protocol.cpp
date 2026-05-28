@@ -290,6 +290,18 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << ",\"reason\":";
     AppendJsonString(stream, snapshot.lateral_error.reason);
     stream << "}";
+    stream << ",\"tracking_geometry\":{\"computed\":";
+    AppendJsonBool(stream, snapshot.tracking_geometry.computed);
+    stream << ",\"lateral_offset_m\":";
+    AppendJsonNumber(stream, snapshot.tracking_geometry.lateral_offset_m);
+    stream << ",\"heading_error_rad\":";
+    AppendJsonNumber(stream, snapshot.tracking_geometry.heading_error_rad);
+    stream << ",\"curvature_m_inv\":";
+    AppendJsonNumber(stream, snapshot.tracking_geometry.curvature_m_inv);
+    stream << ",\"sample_count\":" << snapshot.tracking_geometry.sample_count;
+    stream << ",\"reason\":";
+    AppendJsonString(stream, snapshot.tracking_geometry.reason);
+    stream << "}";
     stream << ",\"reference_control\":{\"ready\":";
     AppendJsonBool(stream, snapshot.reference_control.ready);
     stream << ",\"reason\":";
@@ -307,6 +319,12 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     stream << "}";
     stream << ",\"yaw_control\":{\"turn_output_target\":";
     AppendJsonNumber(stream, snapshot.yaw_control.turn_output_target);
+    stream << ",\"lateral_term\":";
+    AppendJsonNumber(stream, snapshot.yaw_control.lateral_term);
+    stream << ",\"heading_term\":";
+    AppendJsonNumber(stream, snapshot.yaw_control.heading_term);
+    stream << ",\"curvature_term\":";
+    AppendJsonNumber(stream, snapshot.yaw_control.curvature_term);
     stream << "}";
     stream << ",\"actuator\":{\"raw_turn_output\":" << snapshot.actuator.raw_turn_output;
     stream << ",\"applied_turn_output\":" << snapshot.actuator.applied_turn_output << "}";
@@ -495,8 +513,12 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.search_lateral_limit_m);
     header << ",\"LATERAL_STEP_M\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.lateral_step_m);
+    header << ",\"REFERENCE_LATERAL_JUMP_GATE_M\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.reference_lateral_jump_gate_m);
     header << ",\"NOMINAL_ROAD_HALF_WIDTH_M\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.nominal_road_half_width_m);
+    header << ",\"SPARSE_ROW_COUNT\":"
+           << snapshot.param_snapshot.bev_geometry.sparse_row_count;
     header << "}";
     header << ",\"BEV_CLASSIFICATION\":{";
     header << "\"WHITE_CONFIDENCE_MIN\":";
@@ -509,11 +531,19 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"BEV_CONTROL_MODEL\":{";
     header << "\"LATERAL_ERROR_FAR_WEIGHT\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_control_model.lateral_error_far_weight);
-    header << ",\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":";
+    header << ",\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":";
     AppendJsonNumber(header,
-                     snapshot.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain);
+                     snapshot.param_snapshot.bev_control_model.lateral_offset_to_wheel_delta_gain);
+    header << ",\"HEADING_ERROR_TO_WHEEL_DELTA_GAIN\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_control_model.heading_error_to_wheel_delta_gain);
+    header << ",\"CURVATURE_TO_WHEEL_DELTA_GAIN\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_control_model.curvature_to_wheel_delta_gain);
     header << ",\"MIN_LEADING_REFERENCE_SAMPLES\":"
            << snapshot.param_snapshot.bev_control_model.min_leading_reference_samples;
+    header << ",\"TRACKING_FIT_MIN_SAMPLES\":"
+           << snapshot.param_snapshot.bev_control_model.tracking_fit_min_samples;
     header << "}";
     header << ",\"BEV_ELEMENT\":{";
     header << "\"CROSS_EXIT_TAKEOVER_ENABLED\":";
@@ -540,6 +570,16 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header,
                      snapshot.param_snapshot.bev_element
                          .circle_v2_opposite_straight_confidence_min);
+    header << ",\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":"
+           << snapshot.param_snapshot.bev_element.circle_v2_entry_bottom_row_count;
+    header << ",\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_element
+                         .circle_v2_entry_bottom_forward_min_m);
+    header << ",\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_element
+                         .circle_v2_entry_bottom_forward_max_m);
     header << "}";
     header << ",\"BEV_ELEMENT_RASTER\":{";
     header << "\"ENABLED\":";

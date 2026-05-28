@@ -38,6 +38,16 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
         snapshot.steering.lateral_error.weighted_sample_count;
     telemetry.lateral_error.weight_sum = snapshot.steering.lateral_error.weight_sum;
     telemetry.lateral_error.reason = snapshot.steering.lateral_error.reason;
+    telemetry.tracking_geometry.computed = snapshot.steering.tracking_geometry.computed;
+    telemetry.tracking_geometry.lateral_offset_m =
+        snapshot.steering.tracking_geometry.lateral_offset_m;
+    telemetry.tracking_geometry.heading_error_rad =
+        snapshot.steering.tracking_geometry.heading_error_rad;
+    telemetry.tracking_geometry.curvature_m_inv =
+        snapshot.steering.tracking_geometry.curvature_m_inv;
+    telemetry.tracking_geometry.sample_count =
+        snapshot.steering.tracking_geometry.sample_count;
+    telemetry.tracking_geometry.reason = snapshot.steering.tracking_geometry.reason;
     telemetry.perception_health.projector_ok =
         snapshot.steering.perception_health.projector_ok;
     telemetry.perception_health.reason = snapshot.steering.perception_health.reason;
@@ -49,6 +59,9 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     telemetry.degraded.reason = snapshot.steering.degraded.reason;
     telemetry.yaw_control.turn_output_target =
         snapshot.steering.yaw_control.turn_output_target;
+    telemetry.yaw_control.lateral_term = snapshot.steering.yaw_control.lateral_term;
+    telemetry.yaw_control.heading_term = snapshot.steering.yaw_control.heading_term;
+    telemetry.yaw_control.curvature_term = snapshot.steering.yaw_control.curvature_term;
     telemetry.actuator.raw_turn_output = snapshot.steering.actuator.raw_turn_output;
     telemetry.actuator.applied_turn_output =
         snapshot.steering.actuator.applied_turn_output;

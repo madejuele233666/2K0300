@@ -16,6 +16,7 @@
 #include "port/circle_v2_types.hpp"
 #include "port/reference_control_readiness_types.hpp"
 #include "port/reference_lateral_error_types.hpp"
+#include "port/reference_tracking_geometry_types.hpp"
 #include "port/reference_usability_types.hpp"
 #include "port/visual_element_evidence_types.hpp"
 #include "port/visual_reference_orchestration_types.hpp"
@@ -76,6 +77,7 @@ struct PerceptionResult {
     VisualReferenceSelection visual_reference_selection{};         ///< 视觉参考路径选择结果
     ReferenceUsability reference_usability{};                      ///< 参考路径可用性
     ReferenceLateralErrorEstimate reference_lateral_error{};       ///< 参考横向误差估计
+    ReferenceTrackingGeometry reference_tracking_geometry{};       ///< 参考路径跟踪几何事实
     ReferenceControlReadiness reference_control{};                 ///< 参考路径控制就绪状态
 };
 

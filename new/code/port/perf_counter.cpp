@@ -99,8 +99,14 @@ std::atomic<std::uint64_t> g_ticks_per_us_x1000{1000000};  ///< 每微秒计数�
             return "circle.phase2.reference_build";
         case PerfStage::kVisualElementPipeline:
             return "visual.element_pipeline";
+        case PerfStage::kCircleV2Scene:
+            return "circle.v2.scene";
         case PerfStage::kVisualLineCandidate:
             return "visual.line_candidate";
+        case PerfStage::kVisualReferenceConnectivity:
+            return "visual.reference_connectivity";
+        case PerfStage::kVisualReferenceArbitration:
+            return "visual.reference_arbitration";
         case PerfStage::kVisualReferenceSelect:
             return "visual.reference_select";
         case PerfStage::kReferenceUsability:

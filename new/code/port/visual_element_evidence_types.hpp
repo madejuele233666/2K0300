@@ -120,8 +120,11 @@ struct BEVElementParameters {
     int circle_v2_exit_hold_frames = 60;            ///< C 状态保持帧数，最小为 2
     int circle_v2_inner_trace_stall_timeout_ms = 4000; ///< InnerTrace 无明显 yaw 积分退回 Idle 超时
     float circle_v2_inner_trace_stall_yaw_min_deg = 16.5F; ///< InnerTrace 超时退回 Idle 的最小明显 yaw 积分
-    float circle_v2_inner_trace_path_offset_m = 0.0F; ///< InnerTrace 从内圆边线向道路内部偏移的距离
+    float circle_v2_inner_trace_path_offset_m = 0.1F; ///< InnerTrace 从内圆边线向道路内部偏移的距离
     float circle_v2_opposite_straight_confidence_min = 0.50F; ///< CircleV2 对侧直线最低拟合置信度
+    int circle_v2_entry_bottom_row_count = 4; ///< Approach entry gate 使用的下部 ROI 行数
+    float circle_v2_entry_bottom_forward_min_m = 0.0F; ///< Approach entry gate 下部 ROI 前向下限
+    float circle_v2_entry_bottom_forward_max_m = 0.25F; ///< Approach entry gate 下部 ROI 前向上限
 };
 
 }  // namespace ls2k::port

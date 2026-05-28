@@ -56,6 +56,9 @@ struct CircleV2Params {
     float inner_trace_stall_yaw_min_rad = 0.28797932658F;
     float inner_trace_path_offset_m = 0.0F;
     float opposite_straight_confidence_min = 0.50F;
+    int entry_bottom_row_count = 4;
+    float entry_bottom_forward_min_m = 0.0F;
+    float entry_bottom_forward_max_m = 0.25F;
 };
 
 struct CircleV2ReferencePlan {

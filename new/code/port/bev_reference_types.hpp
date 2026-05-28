@@ -76,6 +76,7 @@ struct BEVReferencePath {
 struct ReferenceGeometryIdentity {
     bool initialized = false;                              ///< 是否已初始化
     std::array<float, kBevReferenceSampleCount> forward_samples_m{};  ///< 前向采样距离集合
+    int sparse_row_count = static_cast<int>(kBevReferenceSampleCount); ///< 启用的前向采样前缀长度
     float search_lateral_limit_m = 0.0F;                   ///< 横向搜索限制
     float lateral_step_m = 0.0F;                           ///< 横向步长
 };

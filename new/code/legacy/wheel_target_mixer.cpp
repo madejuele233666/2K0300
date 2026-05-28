@@ -6,8 +6,8 @@ namespace ls2k::legacy {
 
 /// WheelTargetMixer::Compute 实现
 /// 根据差速转向原理计算左右轮目标速度
-/// 左轮 = 速度目标 + 转向输出（左转时左轮增速）
-/// 右轮 = 速度目标 - 转向输出（左转时右轮减速）
+/// 左轮 = 速度目标 + 转向输出（正转向输出使左轮增速）
+/// 右轮 = 速度目标 - 转向输出（正转向输出使右轮减速）
 WheelSpeedTargets WheelTargetMixer::Compute(double effective_speed_target,
                                             int applied_turn_output) const {
     const double base_target = std::max(0.0, effective_speed_target);

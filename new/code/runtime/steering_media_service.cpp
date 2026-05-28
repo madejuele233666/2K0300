@@ -172,6 +172,12 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.lateral_error.weighted_sample_count = snapshot.lateral_error.weighted_sample_count;
     view.lateral_error.weight_sum = snapshot.lateral_error.weight_sum;
     view.lateral_error.reason = snapshot.lateral_error.reason;
+    view.tracking_geometry.computed = snapshot.tracking_geometry.computed;
+    view.tracking_geometry.lateral_offset_m = snapshot.tracking_geometry.lateral_offset_m;
+    view.tracking_geometry.heading_error_rad = snapshot.tracking_geometry.heading_error_rad;
+    view.tracking_geometry.curvature_m_inv = snapshot.tracking_geometry.curvature_m_inv;
+    view.tracking_geometry.sample_count = snapshot.tracking_geometry.sample_count;
+    view.tracking_geometry.reason = snapshot.tracking_geometry.reason;
     view.reference_control.ready = snapshot.reference_control.ready;
     view.reference_control.reason = snapshot.reference_control.reason;
     view.safety_gate.veto_active = snapshot.safety_gate.veto_active;
@@ -179,6 +185,9 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.degraded.active = snapshot.degraded.active;
     view.degraded.reason = snapshot.degraded.reason;
     view.yaw_control.turn_output_target = snapshot.yaw_control.turn_output_target;
+    view.yaw_control.lateral_term = snapshot.yaw_control.lateral_term;
+    view.yaw_control.heading_term = snapshot.yaw_control.heading_term;
+    view.yaw_control.curvature_term = snapshot.yaw_control.curvature_term;
     view.actuator.raw_turn_output = snapshot.actuator.raw_turn_output;
     view.actuator.applied_turn_output = snapshot.actuator.applied_turn_output;
     return view;
