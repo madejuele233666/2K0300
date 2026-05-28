@@ -10,6 +10,10 @@ c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   -I"${REPO_ROOT}/new/code/port" \
   -I"${REPO_ROOT}/new/code/legacy" \
   "${REPO_ROOT}/new/verification/tests/visual_reference_orchestration_test.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_single_boundary_offset.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_reference_connectivity.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_visual_reference_orchestration.cpp" \
   -o "${OUT_BIN}"
 

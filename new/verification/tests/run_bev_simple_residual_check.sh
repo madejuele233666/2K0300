@@ -220,12 +220,13 @@ if ! grep -Fq 'element_evidence.records[' new/user/scene_overlay_probe.cpp; then
 fi
 
 if rg -n "source ==|source !=|mode == port::ReferenceMode|mode != port::ReferenceMode|switch \\(mode\\)|ReferenceMode" \
-  new/code/runtime \
+  new/code/runtime/control_loop.cpp \
   new/code/legacy/steering_reference_control_readiness.cpp \
   new/code/legacy/steering_reference_usability.cpp \
   new/code/legacy/steering_reference_lateral_error.cpp \
+  new/code/legacy/steering_reference_tracking_geometry.cpp \
   new/code/legacy/steering_yaw_controller.cpp; then
-  echo "bev_simple_residual_check failed: control/usability/lateral-error/yaw layers must not decide from source or mode" >&2
+  echo "bev_simple_residual_check failed: control/usability/tracking/yaw layers must not decide from source or mode" >&2
   exit 1
 fi
 
@@ -241,6 +242,8 @@ if rg -n "perception_result\\.hpp" \
   new/code/legacy/steering_reference_usability.hpp \
   new/code/legacy/steering_reference_lateral_error.cpp \
   new/code/legacy/steering_reference_lateral_error.hpp \
+  new/code/legacy/steering_reference_tracking_geometry.cpp \
+  new/code/legacy/steering_reference_tracking_geometry.hpp \
   new/code/legacy/steering_yaw_controller.cpp \
   new/code/legacy/steering_yaw_controller.hpp; then
   echo "bev_simple_residual_check failed: reference/yaw layers must not include perception_result.hpp" >&2

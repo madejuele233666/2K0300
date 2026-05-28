@@ -225,6 +225,12 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.lateral_error.weighted_sample_count = 4;
     snapshot.steering.lateral_error.weight_sum = 3.75;
     snapshot.steering.lateral_error.reason = "ok";
+    snapshot.steering.tracking_geometry.computed = true;
+    snapshot.steering.tracking_geometry.lateral_offset_m = -0.08;
+    snapshot.steering.tracking_geometry.heading_error_rad = 0.04;
+    snapshot.steering.tracking_geometry.curvature_m_inv = 0.12;
+    snapshot.steering.tracking_geometry.sample_count = 5;
+    snapshot.steering.tracking_geometry.reason = "ok";
     snapshot.steering.reference_control.ready = true;
     snapshot.steering.reference_control.reason = "reference_hold";
     snapshot.steering.safety_gate.veto_active = false;
@@ -232,12 +238,17 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.degraded.active = true;
     snapshot.steering.degraded.reason = "reference_hold";
     snapshot.steering.yaw_control.turn_output_target = -0.18;
+    snapshot.steering.yaw_control.lateral_term = -0.12;
+    snapshot.steering.yaw_control.heading_term = 0.01;
+    snapshot.steering.yaw_control.curvature_term = -0.07;
     snapshot.steering.actuator.raw_turn_output = -17;
     snapshot.steering.actuator.applied_turn_output = -15;
     snapshot.steering_internal.valid = true;
     snapshot.steering_internal.frame_id = 7;
     snapshot.steering_internal.capture_time_ms = 88;
-    snapshot.steering_internal.lateral_error_gain = 18.0;
+    snapshot.steering_internal.lateral_offset_gain = 18.0;
+    snapshot.steering_internal.heading_error_gain = 2.0;
+    snapshot.steering_internal.curvature_gain = 3.0;
     snapshot.steering_internal.speed_scale = 1.2;
     snapshot.steering_internal.turn_output_candidate = -2.0;
     snapshot.steering_internal.gyro_z = 0.2;
@@ -262,8 +273,22 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose weighted lateral sample count");
     Require(Contains(message, "lateral_error.weight_sum=3.75"),
             "steering snapshot must expose lateral-error weight sum");
+    Require(Contains(message, "tracking_geometry.lateral_offset_m=-0.08"),
+            "steering snapshot must expose tracking geometry lateral offset");
+    Require(Contains(message, "tracking_geometry.heading_error_rad=0.04"),
+            "steering snapshot must expose tracking geometry heading");
+    Require(Contains(message, "tracking_geometry.curvature_m_inv=0.12"),
+            "steering snapshot must expose tracking geometry curvature");
+    Require(Contains(message, "tracking_geometry.sample_count=5"),
+            "steering snapshot must expose tracking geometry sample count");
     Require(Contains(message, "yaw_control.turn_output_target=-0.18"),
             "steering snapshot must expose turn-output target");
+    Require(Contains(message, "yaw_control.lateral_term=-0.12"),
+            "steering snapshot must expose lateral yaw term");
+    Require(Contains(message, "yaw_control.heading_term=0.01"),
+            "steering snapshot must expose heading yaw term");
+    Require(Contains(message, "yaw_control.curvature_term=-0.07"),
+            "steering snapshot must expose curvature yaw term");
     Require(Contains(message, "perception_health.projector_ok=true"),
             "steering snapshot must expose perception health");
     Require(Contains(message, "element_evidence.cross_exit.present=true"),
@@ -336,7 +361,7 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "public steering snapshot must not expose threshold veto internals");
     Require(!Contains(message, std::string("roadblock_") + "interface_state"),
             "public steering snapshot must not expose roadblock internals");
-    Require(!Contains(message, "lateral_error_gain"),
+    Require(!Contains(message, "lateral_offset_gain"),
             "public steering snapshot must not expose PID internals");
 
     const std::string& internal_message = diagnostics.events[2].message;
@@ -346,8 +371,12 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "internal steering diagnostics must identify non-authority scope");
     Require(!Contains(internal_message, std::string("roadblock_") + "interface_state"),
             "internal steering diagnostics must not expose removed roadblock state");
-    Require(Contains(internal_message, "lateral_error_gain=18"),
+    Require(Contains(internal_message, "lateral_offset_gain=18"),
             "internal steering diagnostics must expose PID internals");
+    Require(Contains(internal_message, "heading_error_gain=2"),
+            "internal steering diagnostics must expose heading gain");
+    Require(Contains(internal_message, "curvature_gain=3"),
+            "internal steering diagnostics must expose curvature gain");
     Require(Contains(internal_message, "speed_scale=1.2"),
             "internal steering diagnostics must expose speed scaling");
 }
@@ -363,13 +392,18 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.control_period_ms = 5;
     config.param_snapshot.low_voltage_raw_threshold = 400;
     config.param_snapshot.raw_turn_output_limit = 8000;
-    config.param_snapshot.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
+    config.param_snapshot.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
+    config.param_snapshot.bev_control_model.heading_error_to_wheel_delta_gain = 12.0;
+    config.param_snapshot.bev_control_model.curvature_to_wheel_delta_gain = 34.0;
     config.param_snapshot.bev_control_model.lateral_error_far_weight = 0.25;
+    config.param_snapshot.bev_control_model.tracking_fit_min_samples = 5;
     config.param_snapshot.bev_element.cross_exit_takeover_enabled = false;
     config.param_snapshot.bev_element_raster.enabled = true;
     config.param_snapshot.bev_element_raster.width = 320;
     config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
+    config.param_snapshot.bev_geometry.sparse_row_count = 12;
+    config.param_snapshot.bev_geometry.reference_lateral_jump_gate_m = 1000.0F;
     config.param_snapshot.bev_classification.white_confidence_min = 0.60F;
 
     std::vector<std::uint8_t> encoded;
@@ -393,8 +427,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include low-voltage raw threshold");
     Require(Contains(header_json, "\"raw_turn_output_limit\":8000"),
             "config snapshot must include raw turn output limit");
-    Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
-            "config snapshot must include lateral-error-to-wheel-delta gain");
+    Require(Contains(header_json, "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":180"),
+            "config snapshot must include lateral-offset-to-wheel-delta gain");
+    Require(Contains(header_json, "\"HEADING_ERROR_TO_WHEEL_DELTA_GAIN\":12"),
+            "config snapshot must include heading-error-to-wheel-delta gain");
+    Require(Contains(header_json, "\"CURVATURE_TO_WHEEL_DELTA_GAIN\":34"),
+            "config snapshot must include curvature-to-wheel-delta gain");
     Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
             "config snapshot must include lateral-error far weight");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
@@ -409,6 +447,10 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include BEV geometry group");
     Require(Contains(header_json, "\"SEARCH_LATERAL_LIMIT_M\""),
             "config snapshot must include BEV image scan lateral range");
+    Require(Contains(header_json, "\"SPARSE_ROW_COUNT\":12"),
+            "config snapshot must include sparse row count");
+    Require(Contains(header_json, "\"REFERENCE_LATERAL_JUMP_GATE_M\":1000"),
+            "config snapshot must include V5 reference lateral jump gate");
     Require(Contains(header_json, "\"BEV_CLASSIFICATION\""),
             "config snapshot must include BEV classification group");
     Require(Contains(header_json, "\"WHITE_CONFIDENCE_MIN\":0.600000023842"),
@@ -423,6 +465,8 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must not include removed yaw-rate target gain");
     Require(Contains(header_json, "\"MIN_LEADING_REFERENCE_SAMPLES\""),
             "config snapshot must include configured leading reference minimum");
+    Require(Contains(header_json, "\"TRACKING_FIT_MIN_SAMPLES\":5"),
+            "config snapshot must include tracking fit minimum");
     Require(Contains(header_json, "\"BEV_ELEMENT\""),
             "config snapshot must include BEV element group");
     Require(Contains(header_json, "\"CROSS_EXIT_TAKEOVER_ENABLED\":false"),
@@ -439,6 +483,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include CircleV2 inner path offset");
     Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
             "config snapshot must include CircleV2 opposite-straight confidence threshold");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":4"),
+            "config snapshot must include CircleV2 entry bottom row count");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0"),
+            "config snapshot must include CircleV2 entry bottom forward min");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.25"),
+            "config snapshot must include CircleV2 entry bottom forward max");
     Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
             "config snapshot must not include legacy circle entry parameters");
     Require(!Contains(header_json, "\"CIRCLE_EVIDENCE_"),
@@ -755,7 +805,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.yaw_rate_pid_d = 0.0;
     params.running_speed_target = 100.0;
     params.control_period_ms = 5;
-    params.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
+    params.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
     params.bev_control_model.lateral_error_far_weight = 0.25;
     service.Start(params, diagnostics);
 
@@ -820,6 +870,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.lateral_error.weighted_sample_count = 4;
         state.control_debug_snapshot.steering.lateral_error.weight_sum = 3.75;
         state.control_debug_snapshot.steering.lateral_error.reason = "ok";
+        state.control_debug_snapshot.steering.tracking_geometry.computed = true;
+        state.control_debug_snapshot.steering.tracking_geometry.lateral_offset_m = -0.08;
+        state.control_debug_snapshot.steering.tracking_geometry.heading_error_rad = 0.04;
+        state.control_debug_snapshot.steering.tracking_geometry.curvature_m_inv = 0.12;
+        state.control_debug_snapshot.steering.tracking_geometry.sample_count = 5;
+        state.control_debug_snapshot.steering.tracking_geometry.reason = "ok";
         state.control_debug_snapshot.steering.reference_control.ready = true;
         state.control_debug_snapshot.steering.reference_control.reason = "ok";
         state.control_debug_snapshot.steering.safety_gate.veto_active = false;
@@ -827,6 +883,9 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.degraded.active = false;
         state.control_debug_snapshot.steering.degraded.reason = "none";
         state.control_debug_snapshot.steering.yaw_control.turn_output_target = -0.20;
+        state.control_debug_snapshot.steering.yaw_control.lateral_term = -0.12;
+        state.control_debug_snapshot.steering.yaw_control.heading_term = 0.01;
+        state.control_debug_snapshot.steering.yaw_control.curvature_term = -0.09;
         ls2k::port::CameraRawFrameMetadata metadata{};
         metadata.source = "service_v4l2";
         metadata.v4l2_sequence = 88;
@@ -879,6 +938,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose CircleV2 inner path offset");
     Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
             "service config snapshot must expose CircleV2 opposite-straight confidence threshold");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":4"),
+            "service config snapshot must expose CircleV2 entry bottom row count");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0"),
+            "service config snapshot must expose CircleV2 entry bottom forward min");
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.25"),
+            "service config snapshot must expose CircleV2 entry bottom forward max");
     Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
             "service config snapshot must not expose legacy circle entry settings");
     Require(!Contains(header_json, "\"CIRCLE_EVIDENCE_"),
@@ -887,8 +952,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must not expose legacy circle opening settings");
     Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
             "service config snapshot must expose BEV element raster settings");
-    Require(Contains(header_json, "\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\":180"),
-            "service config snapshot must expose lateral-error-to-wheel-delta gain");
+    Require(Contains(header_json, "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":180"),
+            "service config snapshot must expose lateral-offset-to-wheel-delta gain");
     Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
             "service config snapshot must expose lateral-error far weight");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
@@ -958,8 +1023,24 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include lateral-error sample count");
     Require(Contains(header_json, "\"weight_sum\":3.75"),
             "image frame must include lateral-error weight sum");
+    Require(Contains(header_json, "\"tracking_geometry\":{\"computed\":true"),
+            "image frame must include tracking-geometry group");
+    Require(Contains(header_json, "\"lateral_offset_m\":-0.08"),
+            "image frame must include tracking lateral offset");
+    Require(Contains(header_json, "\"heading_error_rad\":0.04"),
+            "image frame must include tracking heading error");
+    Require(Contains(header_json, "\"curvature_m_inv\":0.12"),
+            "image frame must include tracking curvature");
+    Require(Contains(header_json, "\"sample_count\":5"),
+            "image frame must include tracking sample count");
     Require(Contains(header_json, "\"turn_output_target\":-0.2"),
             "image frame must include turn-output target");
+    Require(Contains(header_json, "\"lateral_term\":-0.12"),
+            "image frame must include lateral yaw term");
+    Require(Contains(header_json, "\"heading_term\":0.01"),
+            "image frame must include heading yaw term");
+    Require(Contains(header_json, "\"curvature_term\":-0.09"),
+            "image frame must include curvature yaw term");
     Require(Contains(header_json, "\"reference\":{\"mode\":\"interval_center\",\"source\":\"simple_interval_center\"}"),
             "image frame must include nested reference facts");
     Require(!Contains(header_json, "\"reference_mode\""),
@@ -986,7 +1067,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must not include threshold veto internals");
     Require(!Contains(header_json, std::string("\"roadblock_") + "interface_state\""),
             "image frame must not include roadblock internals");
-    Require(!Contains(header_json, "\"lateral_error_gain\""),
+    Require(!Contains(header_json, "\"lateral_offset_gain\""),
             "image frame must not include PID internals");
 }
 

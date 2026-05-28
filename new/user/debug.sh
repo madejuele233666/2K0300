@@ -687,6 +687,7 @@ EOF
 
     log_info "uploading runtime assets to ${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}"
     run_scp "${artifact_path}" "${BOARD_USER}@${BOARD_IP}:${BOARD_PATH}/"
+    run_ssh "chmod 755 '${BOARD_BIN}'"
     run_scp "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
     run_scp "${PROFILE_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PROFILE_NORMAL}"
     log_info "upload complete"

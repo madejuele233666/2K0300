@@ -202,6 +202,20 @@ int main(int argc, char** argv) {
         ExpectNear(params.bev_geometry.lateral_step_m,
                    NumberField(geometry, "LATERAL_STEP_M"),
                    "BEV_GEOMETRY.LATERAL_STEP_M");
+        ExpectInt(params.bev_geometry.sparse_row_count,
+                  NumberField(geometry, "SPARSE_ROW_COUNT"),
+                  "BEV_GEOMETRY.SPARSE_ROW_COUNT");
+        ExpectInRange(params.bev_geometry.sparse_row_count,
+                      1.0,
+                      static_cast<double>(ls2k::port::kBevReferenceSampleCount),
+                      "BEV_GEOMETRY.SPARSE_ROW_COUNT");
+        ExpectNear(params.bev_geometry.reference_lateral_jump_gate_m,
+                   NumberField(geometry, "REFERENCE_LATERAL_JUMP_GATE_M"),
+                   "BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M");
+        ExpectInRange(params.bev_geometry.reference_lateral_jump_gate_m,
+                      0.0,
+                      1000.0,
+                      "BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M");
         ExpectNear(params.bev_geometry.nominal_road_half_width_m,
                    NumberField(geometry, "NOMINAL_ROAD_HALF_WIDTH_M"),
                    "BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M");
@@ -229,13 +243,27 @@ int main(int argc, char** argv) {
                       0.0,
                       1.0,
                       "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
-        ExpectNear(params.bev_control_model.lateral_error_to_wheel_delta_gain,
-                   NumberField(control_model, "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN"),
-                   "BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN");
-        ExpectInRange(params.bev_control_model.lateral_error_to_wheel_delta_gain,
+        ExpectNear(params.bev_control_model.lateral_offset_to_wheel_delta_gain,
+                   NumberField(control_model, "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN"),
+                   "BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN");
+        ExpectInRange(params.bev_control_model.lateral_offset_to_wheel_delta_gain,
                       0.0,
                       1000.0,
-                      "BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN");
+                      "BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN");
+        ExpectNear(params.bev_control_model.heading_error_to_wheel_delta_gain,
+                   NumberField(control_model, "HEADING_ERROR_TO_WHEEL_DELTA_GAIN"),
+                   "BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN");
+        ExpectInRange(params.bev_control_model.heading_error_to_wheel_delta_gain,
+                      0.0,
+                      1000.0,
+                      "BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN");
+        ExpectNear(params.bev_control_model.curvature_to_wheel_delta_gain,
+                   NumberField(control_model, "CURVATURE_TO_WHEEL_DELTA_GAIN"),
+                   "BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN");
+        ExpectInRange(params.bev_control_model.curvature_to_wheel_delta_gain,
+                      0.0,
+                      1000.0,
+                      "BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN");
         Expect(control_model.find("\"LOOKAHEAD_VISIBLE_RANGE_RATIO\"") == std::string::npos,
                "BEV_CONTROL_MODEL must not retain LOOKAHEAD_VISIBLE_RANGE_RATIO");
         Expect(control_model.find("\"LOOKAHEAD_MIN_M\"") == std::string::npos,
@@ -253,6 +281,9 @@ int main(int argc, char** argv) {
         ExpectInt(params.bev_control_model.min_leading_reference_samples,
                   NumberField(control_model, "MIN_LEADING_REFERENCE_SAMPLES"),
                   "BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES");
+        ExpectInt(params.bev_control_model.tracking_fit_min_samples,
+                  NumberField(control_model, "TRACKING_FIT_MIN_SAMPLES"),
+                  "BEV_CONTROL_MODEL.TRACKING_FIT_MIN_SAMPLES");
 
         const std::string element = ObjectBody(json, "BEV_ELEMENT");
         ExpectBool(params.bev_element.cross_exit_takeover_enabled,
@@ -306,6 +337,31 @@ int main(int argc, char** argv) {
                       0.0,
                       1.0,
                       "BEV_ELEMENT.CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN");
+        ExpectInt(params.bev_element.circle_v2_entry_bottom_row_count,
+                  NumberField(element, "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT"),
+                  "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT");
+        Expect(params.bev_element.circle_v2_entry_bottom_row_count >= 4,
+               "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT must be >= 4");
+        Expect(params.bev_element.circle_v2_entry_bottom_row_count <=
+                   static_cast<int>(ls2k::port::kBevReferenceSampleCount),
+               "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT must fit sparse samples");
+        ExpectNear(params.bev_element.circle_v2_entry_bottom_forward_min_m,
+                   NumberField(element, "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M"),
+                   "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M");
+        ExpectInRange(params.bev_element.circle_v2_entry_bottom_forward_min_m,
+                      0.0,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M");
+        ExpectNear(params.bev_element.circle_v2_entry_bottom_forward_max_m,
+                   NumberField(element, "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M"),
+                   "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M");
+        ExpectInRange(params.bev_element.circle_v2_entry_bottom_forward_max_m,
+                      0.0,
+                      2.0,
+                      "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M");
+        Expect(params.bev_element.circle_v2_entry_bottom_forward_max_m >=
+                   params.bev_element.circle_v2_entry_bottom_forward_min_m,
+               "BEV_ELEMENT CircleV2 entry bottom forward interval must not be inverted");
         Expect(element.find("\"CIRCLE_ENTRY_") == std::string::npos,
                "BEV_ELEMENT must not retain legacy CIRCLE_ENTRY keys");
         Expect(element.find("\"CIRCLE_EVIDENCE_") == std::string::npos,

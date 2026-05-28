@@ -10,7 +10,9 @@
 
 #include "legacy/steering_bev_projector.hpp"
 #include "legacy/steering_bev_element_raster.hpp"
+#include "legacy/steering_bev_interval_edges.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
+#include "legacy/steering_reference_connectivity.hpp"
 #include "legacy/steering_reference_usability.hpp"
 #include "legacy/steering_single_boundary_offset.hpp"
 
@@ -65,6 +67,47 @@ ls2k::legacy::BEVProjector MakeProjector(const ls2k::port::RuntimeParameters& pa
     ls2k::legacy::BEVProjector projector{};
     Expect(projector.Configure(params.bev_projector), "default projector must configure");
     return projector;
+}
+
+ls2k::legacy::BEVProjector MakeIdentityConnectivityProjector() {
+    ls2k::port::BEVProjectorCalibration calibration{};
+    calibration.source_points = {
+        {ls2k::port::ImagePoint{0.0F, 0.0F},
+         ls2k::port::ImagePoint{0.0F, 9.0F},
+         ls2k::port::ImagePoint{9.0F, 0.0F},
+         ls2k::port::ImagePoint{9.0F, 9.0F}}};
+    calibration.target_points = {
+        {ls2k::port::BEVPoint{0.0F, 0.0F},
+         ls2k::port::BEVPoint{0.0F, 9.0F},
+         ls2k::port::BEVPoint{9.0F, 0.0F},
+         ls2k::port::BEVPoint{9.0F, 9.0F}}};
+    ls2k::legacy::BEVProjector projector{};
+    Expect(projector.Configure(calibration),
+           "identity connectivity projector must configure");
+    return projector;
+}
+
+ls2k::port::BEVReferencePath MakeReferencePath(
+    const std::vector<ls2k::port::BEVPoint>& points) {
+    ls2k::port::BEVReferencePath path{};
+    path.mode = points.empty() ? ls2k::port::ReferenceMode::kNone
+                               : ls2k::port::ReferenceMode::kIntervalCenter;
+    for (std::size_t index = 0; index < points.size() &&
+                                index < path.sampled_path.size(); ++index) {
+        ls2k::port::BEVPathSample& sample = path.sampled_path[index];
+        sample.present = true;
+        sample.point = points[index];
+        sample.confidence = 1.0F;
+        sample.source = ls2k::port::BEVPathPointSource::kIntervalCenter;
+    }
+    return path;
+}
+
+ls2k::legacy::ReferenceConnectivityFrameView ConnectivityView(
+    const ls2k::port::LegacyCameraFrameView& frame,
+    const ls2k::legacy::BEVProjector& projector,
+    const ls2k::port::RuntimeParameters& params) {
+    return {frame, projector, 100, params.bev_classification};
 }
 
 void DrawVehicleStripe(ls2k::port::LegacyCameraFrame& frame,
@@ -305,6 +348,92 @@ void TestElementRasterSegmentTouchesBlack() {
            "metric segment crossing a black cell must report black contact");
 }
 
+void TestReferenceConnectivityHelper() {
+    ls2k::port::RuntimeParameters params{};
+    const ls2k::legacy::BEVProjector projector =
+        MakeIdentityConnectivityProjector();
+    const ls2k::port::BEVReferencePath diagonal =
+        MakeReferencePath({{1.0F, 1.0F}, {8.0F, 8.0F}});
+
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        Expect(ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(1, 1), projector, params),
+                   diagonal),
+               "all-white segment must pass connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 4, 4, 0U);
+        Expect(!ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(2, 2), projector, params),
+                   diagonal),
+               "diagonal black pixel must block connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 1, 1, 0U);
+        Expect(!ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(3, 3), projector, params),
+                   diagonal),
+               "endpoint black pixel must block connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 4, 4, 105U);
+        Expect(ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(4, 4), projector, params),
+                   diagonal),
+               "unknown pixel must not block V5 black-only connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        const ls2k::port::BEVReferencePath single =
+            MakeReferencePath({{1.0F, 1.0F}});
+        Expect(ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(5, 5), projector, params),
+                   single),
+               "single-point path must not be rejected by connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 1, 1, 0U);
+        const ls2k::port::BEVReferencePath single =
+            MakeReferencePath({{2.0F, 2.0F}});
+        Expect(!ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(6, 6), projector, params),
+                   single),
+               "vehicle-origin to first reference sample must pass connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 8, 8, 0U);
+        ls2k::port::BEVReferencePath gapped =
+            MakeReferencePath({{1.0F, 1.0F}, {2.0F, 2.0F}, {8.0F, 8.0F}});
+        gapped.sampled_path[2].present = false;
+        gapped.sampled_path[3].present = true;
+        gapped.sampled_path[3].point = {8.0F, 8.0F};
+        Expect(ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(6, 6), projector, params),
+                   gapped),
+               "path connectivity must stop at the first absent leading sample");
+    }
+}
+
 void TestBevGeometryControlsWideImageScan() {
     ls2k::port::RuntimeParameters params{};
     params.bev_geometry.search_lateral_limit_m = 0.85F;
@@ -387,9 +516,16 @@ void TestHoldIsExplicitNonVisualSource() {
     const ls2k::port::ReferenceContinuityResult rejected =
         ls2k::legacy::BuildReferenceHoldCandidate(first_hold, changed_geometry);
     Expect(!rejected.hold_selected, "geometry identity change must reject hold output");
+
+    ls2k::port::RuntimeParameters changed_sparse_rows = params;
+    changed_sparse_rows.bev_geometry.sparse_row_count = 12;
+    const ls2k::port::ReferenceContinuityResult rejected_sparse_rows =
+        ls2k::legacy::BuildReferenceHoldCandidate(first_hold, changed_sparse_rows);
+    Expect(!rejected_sparse_rows.hold_selected,
+           "sparse row count identity change must reject hold output");
 }
 
-void TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap() {
+void TestReferencePathStartsAtFirstContinuousSegmentAndStopsAtFirstGap() {
     ls2k::port::RuntimeParameters params{};
     std::vector<ls2k::legacy::BEVSimpleRowScan> rows(ls2k::port::kBevReferenceSampleCount);
     for (std::size_t index = 0; index < rows.size(); ++index) {
@@ -412,10 +548,14 @@ void TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap() {
     add_interval(5, 0.0F);
     const ls2k::port::BEVReferencePath no_near =
         ls2k::legacy::BuildReferencePath(rows, params);
-    Expect(!ls2k::legacy::EvaluateReferenceUsability(no_near, params).usable,
-           "far intervals must not be connected back when index zero is missing");
-    Expect(CountPresentPathPoints(no_near, ls2k::port::BEVPathPointSource::kIntervalCenter) == 0,
-           "strict builder must publish no visual points before a leading segment starts at index zero");
+    Expect(ls2k::legacy::EvaluateReferenceUsability(no_near, params).usable,
+           "near missing rows must not make the first real continuous segment unusable");
+    Expect(CountPresentPathPoints(no_near, ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "reference builder must publish the first real continuous segment");
+    ExpectNear(no_near.sampled_path[0].point.forward_m,
+               params.bev_geometry.forward_samples_m[3],
+               1.0e-6F,
+               "compact output must preserve the real forward distance of the first segment point");
 
     for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
         row.intervals.clear();
@@ -429,9 +569,9 @@ void TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap() {
     Expect(ls2k::legacy::EvaluateReferenceUsability(stopped, params).usable,
            "first three leading intervals satisfy the configured control minimum");
     Expect(CountPresentPathPoints(stopped, ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
-           "strict builder must stop at the first gap and not publish far reappearing intervals");
+           "reference builder must stop at the first gap and not publish far reappearing intervals");
     Expect(!stopped.sampled_path[5].present,
-           "strict builder must not reconnect far points across a gap");
+           "reference builder must not reconnect far points across a gap");
 }
 
 void TestOrdinaryReferenceInterpretsLostBoundaries() {
@@ -492,8 +632,96 @@ void TestOrdinaryReferenceInterpretsLostBoundaries() {
     const ls2k::port::BEVReferencePath double_lost =
         ls2k::legacy::BuildReferencePath(rows, params);
     Expect(CountPresentPathPoints(double_lost,
-                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 0,
-           "double-lost leading row must not produce current visual samples");
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 2,
+           "double-lost leading row must not discard the later real segment");
+    Expect(!ls2k::legacy::EvaluateReferenceUsability(double_lost, params).usable,
+           "two real points after a leading lost row must remain unusable");
+}
+
+void TestSingleEdgeOffsetMayLeaveSampleableSpan() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.lateral_step_m = 0.02F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
+    }
+
+    for (std::size_t index = 0; index < 3U; ++index) {
+        AddSyntheticInterval(rows[index], -1.0F, -0.90F);
+    }
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "visible single-edge rows may offset the center outside the sampleable span");
+    Expect(reference.sampled_path[0].point.lateral_m < rows[0].sampleable_left_m,
+           "single-edge offset must not be clamped back to the screen/sampleable edge");
+    ExpectNear(reference.sampled_path[0].point.lateral_m, -1.11F, 1.0e-5F,
+               "single-edge offset must be based on the visible edge, not the clipped edge");
+}
+
+void TestUnknownSampleableEdgeCountsAsBoundaryForVisibility() {
+    ls2k::legacy::BEVSimpleRowScan row = SyntheticRow(1.0F, -1.30F, 1.24F);
+    row.sampleable_count = 128U;
+    row.sampleable_left_unknown_run = true;
+    row.sampleable_left_unknown_run_right_m = -1.24F;
+    ls2k::legacy::BEVSimpleWhiteInterval interval{};
+    interval.forward_m = row.forward_m;
+    interval.left_m = -1.22F;
+    interval.right_m = -1.00F;
+    interval.center_m = -1.11F;
+    interval.width_m = 0.22F;
+
+    const ls2k::legacy::BEVIntervalEdgeVisibility default_visibility =
+        ls2k::legacy::EvaluateIntervalEdgeVisibility(row, interval);
+    Expect(default_visibility.low_visible && default_visibility.high_visible,
+           "default helper options must preserve legacy visible-edge semantics");
+
+    ls2k::legacy::BEVIntervalEdgeVisibilityOptions options{};
+    options.treat_unknown_sampleable_edge_as_boundary = true;
+    const ls2k::legacy::BEVIntervalEdgeVisibility visibility =
+        ls2k::legacy::EvaluateIntervalEdgeVisibility(row, interval, options);
+    Expect(!visibility.low_visible && visibility.high_visible,
+           "unknown prefix touching the interval must hide the low edge");
+    Expect(!(visibility.low_visible && visibility.high_visible),
+           "unknown prefix must disqualify two-edge midpoint support");
+
+    row.sampleable_left_unknown_run = false;
+    row.sampleable_right_unknown_run = true;
+    row.sampleable_right_unknown_run_left_m = 1.24F;
+    interval.left_m = 1.00F;
+    interval.right_m = 1.22F;
+    const ls2k::legacy::BEVIntervalEdgeVisibility right_visibility =
+        ls2k::legacy::EvaluateIntervalEdgeVisibility(row, interval, options);
+    Expect(right_visibility.low_visible && !right_visibility.high_visible,
+           "unknown suffix touching the interval must hide the high edge");
+}
+
+void TestUnknownSampleablePrefixEntersSingleEdgeOffset() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.lateral_step_m = 0.02F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.30F, 1.24F));
+    }
+
+    for (std::size_t index = 0; index < 3U; ++index) {
+        rows[index].sampleable_left_unknown_run = true;
+        rows[index].sampleable_left_unknown_run_right_m = -1.24F;
+        AddSyntheticInterval(rows[index], -1.22F, -1.00F);
+    }
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "unknown screen-edge interval must enter single-edge reference generation");
+    ExpectNear(reference.sampled_path[0].point.lateral_m, -1.21F, 1.0e-5F,
+               "single-edge offset must use the visible interval edge, not the unknown screen edge");
 }
 
 void TestOrdinaryReferenceSelectsAfterCandidateInterpretation() {
@@ -533,6 +761,27 @@ void TestOrdinaryReferenceSelectsAfterCandidateInterpretation() {
         ls2k::legacy::BuildReferenceHoldCandidate(hold, params);
     Expect(held.hold_selected,
            "existing hold bridge must remain responsible for double-lost continuity");
+}
+
+void TestDefaultReferenceJumpGateDoesNotRejectLargeAdjacentChange() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.lateral_step_m = 0.02F;
+    Expect(params.bev_geometry.reference_lateral_jump_gate_m > 10.0F,
+           "default reference jump gate must be disabled for normal BEV ranges");
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
+    }
+    AddSyntheticInterval(rows[0], -0.50F, -0.30F);
+    AddSyntheticInterval(rows[1], 0.30F, 0.50F);
+    AddSyntheticInterval(rows[2], 0.30F, 0.50F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "disabled reference jump gate must not reject normal large adjacent lateral change");
 }
 
 void TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange() {
@@ -584,6 +833,35 @@ void TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange() {
            "lateral step identity change must rebuild LUT with a different entry count");
 }
 
+void TestSparseRowCountUsesOriginalForwardSamplePrefix() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.sparse_row_count = 12;
+    ls2k::legacy::BEVProjector projector = MakeProjector(params);
+    ls2k::port::LegacyCameraFrame frame = MakeFrame(0U);
+    DrawVehicleStripe(frame, projector, params, -0.18F, 0.18F, 255U);
+
+    ls2k::legacy::BEVSampleProjectionLut lut{};
+    const ls2k::legacy::BEVSimplePerceptionResult result =
+        ls2k::legacy::RunBEVSimplePerception(frame.View(9, 9), 100, params, projector, &lut);
+
+    Expect(result.rows.size() == 12U,
+           "SPARSE_ROW_COUNT=12 must scan exactly the first 12 sparse rows");
+    Expect(lut.sparse_row_count == 12U,
+           "projection LUT must record the active sparse row prefix length");
+    Expect(lut.entries.size() == 12U * lut.lateral_sample_count,
+           "projection LUT must allocate only active sparse rows");
+    for (std::size_t index = 0; index < result.rows.size(); ++index) {
+        ExpectNear(result.rows[index].forward_m,
+                   params.bev_geometry.forward_samples_m[index],
+                   1.0e-6F,
+                   "active sparse rows must keep the original forward sample positions");
+    }
+    for (std::size_t index = 12U; index < result.reference_path.sampled_path.size(); ++index) {
+        Expect(!result.reference_path.sampled_path[index].present,
+               "disabled sparse rows must remain absent in the reference path");
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -593,12 +871,18 @@ int main() {
         TestUnknownBandUsesCenterBrightnessOnly();
         TestElementRasterClassificationAndCoordinates();
         TestElementRasterSegmentTouchesBlack();
+        TestReferenceConnectivityHelper();
         TestBevGeometryControlsWideImageScan();
         TestHoldIsExplicitNonVisualSource();
-        TestReferencePathStartsAtIndexZeroAndStopsAtFirstGap();
+        TestReferencePathStartsAtFirstContinuousSegmentAndStopsAtFirstGap();
         TestOrdinaryReferenceInterpretsLostBoundaries();
+        TestSingleEdgeOffsetMayLeaveSampleableSpan();
+        TestUnknownSampleableEdgeCountsAsBoundaryForVisibility();
+        TestUnknownSampleablePrefixEntersSingleEdgeOffset();
         TestOrdinaryReferenceSelectsAfterCandidateInterpretation();
+        TestDefaultReferenceJumpGateDoesNotRejectLargeAdjacentChange();
         TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange();
+        TestSparseRowCountUsesOriginalForwardSamplePrefix();
     } catch (const TestFailure& failure) {
         std::cerr << "bev_simple_perception_test failed: " << failure.message << "\n";
         return EXIT_FAILURE;

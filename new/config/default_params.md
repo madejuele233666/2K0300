@@ -5,8 +5,8 @@
 当前闭环固定为：
 
 ```text
-frame -> sparse BEV reference facts -> reference usability -> reference lateral error
--> reference-control readiness -> safety gate -> turn-output target -> actuator
+frame -> sparse BEV reference facts -> reference usability -> tracking geometry
+-> reference-control readiness -> safety gate -> yaw-control terms -> actuator
 ```
 
 `new/config/default_params.json` 是人工编辑的运行默认合同。`RuntimeParameters` 内建默认值只用于缺文件或解析失败时的 fallback 镜像，必须通过 `run_runtime_parameter_defaults_test.sh` 保持同步。
@@ -31,10 +31,11 @@ Windows 热点链路优先使用当前高端口配置。`debug.sh` 会在 `BOARD
 - `perception_health.{projector_ok,reason}`：投影和感知健康。
 - `reference.{mode,source}`：白点事实来源。
 - `eligibility.{usable,leading_usable_samples,leading_min_forward_m,leading_max_forward_m,reason}`：reference facts 是否足够连续。
-- `lateral_error.{computed,weighted_lateral_error_m,weighted_sample_count,weight_sum,reason}`：按近端更高权重计算的横向误差事实。
-- `reference_control.{ready,reason}`：reference + lateral error 是否可进入控制。
+- `lateral_error.{computed,weighted_lateral_error_m,weighted_sample_count,weight_sum,reason}`：legacy weighted lateral-error 迁移对照事实，不再是 V6 主控输入。
+- `tracking_geometry.{computed,lateral_offset_m,heading_error_rad,curvature_m_inv,sample_count,reason}`：V6 reference-control readiness 和 yaw target 的权威几何输入。
+- `reference_control.{ready,reason}`：reference + tracking geometry 是否可进入控制。
 - `safety_gate.{veto_active,reason}`：唯一安全 gate，独占低电压、感知健康、stale、IMU、encoder 否决。
-- `yaw_control.{turn_output_target}`：weighted lateral error 生成的 turn-output 目标，单位与左右轮速半差一致。
+- `yaw_control.{lateral_term,heading_term,curvature_term,turn_output_target}`：tracking geometry 三项组合后的 turn-output 目标，单位与左右轮速半差一致。
 - `actuator.{raw_turn_output,applied_turn_output}`：最终 turn-output，直接作为左右轮速半差。
 
 最小离线回归：
@@ -77,8 +78,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 1. 没有 host 连接或数据很少：先看 `assistant_tcp.*`、`assistant_enabled`、`steering_media_*`，再看板端 `assistant.backoff`、`steering_media.backoff`、`steering_media.summary`。
 2. 白点不对：先看 `exp_light`、`BEV_PROJECTOR`、`BEV_GEOMETRY`、`BEV_CLASSIFICATION`。
 3. 白点对但 `eligibility.usable=false`：看 `BEV_CLASSIFICATION.HOLD_LAST_MAX_CYCLES`、`BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES`、`BEV_GEOMETRY.FORWARD_SAMPLE_*`。
-4. 白点对但 `lateral_error` 不合理：看 row intervals、leading reference path 和 `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT`。
-5. lateral error 合理但转向幅度不对：看 `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`、`YAW_RATE_PID.*`、`raw_turn_output_limit`。
+4. 白点对但 `tracking_geometry` 不合理：看 row intervals、leading reference path、`BEV_CONTROL_MODEL.TRACKING_FIT_MIN_SAMPLES`，并用 `lateral_error` 只做迁移期对照。
+5. tracking geometry 合理但转向幅度不对：看 `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN`、`BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN`、`BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN`、`YAW_RATE_PID.*`、`raw_turn_output_limit`。
 6. `element_evidence.cross_exit` 与画面不一致：先看 row intervals、sampleable/unknown 支撑和 `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` 是否仍为默认关闭。
 7. 直行速度或左右轮跟随不对：看 `RUNNING_SPEED_TARGET`、`LEFT_WHEEL_PID.*`、`RIGHT_WHEEL_PID.*`。
 8. 起步、停止、fail-safe 恢复节奏不对：看 `motion_*`、`pwm_limit`、`pwm_floor`、反转保护和低电压参数。
@@ -87,8 +88,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `RUNNING_SPEED_TARGET` | `200.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
-| `YAW_RATE_PID.P` | `3.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 lateral-error 前馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 `LATERAL_ERROR_TO_WHEEL_DELTA_GAIN`。 |
+| `RUNNING_SPEED_TARGET` | `300.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
+| `YAW_RATE_PID.P` | `3.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 reference tracking geometry 前馈/反馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 BEV control model 的三项 gain。 |
 | `YAW_RATE_PID.I` | `0.0` | gyro feedback | gyro 反馈积分。当前默认不用。只有长期同向 gyro 偏差且 P/D 不能解决时小幅增加；积分过大会拖尾。 |
 | `YAW_RATE_PID.D` | `0.0` | gyro feedback | 抑制 gyro 反馈误差变化。抖动和过冲明显时增加；过大时转向变钝。 |
 | `LEFT_WHEEL_PID.P` | `84.0` | 左轮速度 PID | 左轮速度误差主增益。左轮跟随慢增大；PWM 抖或超调减小。看 `left_speed_target`、`left_measured_speed`、`left_pwm_command`。 |
@@ -215,11 +216,17 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `BEV_GEOMETRY.FORWARD_SAMPLE_21` | `1.37487` | 第 21 层。 |
 | `BEV_GEOMETRY.FORWARD_SAMPLE_22` | `1.437435` | 第 22 层。 |
 | `BEV_GEOMETRY.FORWARD_SAMPLE_23` | `1.5` | 第 23 层，最远端视觉事实；当前算法不会为了远端点跨 gap 补点。 |
+| `BEV_GEOMETRY.SPARSE_ROW_COUNT` | `24` | 启用原 24 个 `FORWARD_SAMPLE_*` 的前 N 行。设为 `12` 表示只扫描并输出 `FORWARD_SAMPLE_0..11`，不是把 12 行重新均匀分布到 0.061..1.5m。 |
 | `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` | `1.6` | BEV 后横向扫描半宽。漏掉真实白线时可增大；噪声 interval 变多时减小。它不是原图有效 span 裁剪。 |
 | `BEV_GEOMETRY.LATERAL_STEP_M` | `0.02` | BEV 横向采样步长。减小会更精细但更耗时、更易拾取细碎噪声；增大会更稳但白点量化更粗。 |
+| `BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M` | `1000.0` | 参考路径相邻点横向跳变旧门限。默认极大，正常 BEV 范围内等同禁用；路径是否跨黑由 V5 连通性 gate 判断。 |
 | `BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M` | `0.21` | 普通道路模型的稳定半路宽事实。CircleV2 ExitTrace 通过 `OrdinaryRoadModel.half_width` 消费该值，不再从每帧 rows 宽度实时重算。 |
 
 `FORWARD_SAMPLE_*` 必须单调递增。改采样分布会影响 LUT identity、leading range、lateral-error 权重含义和 steering media snapshot；不要只改某一个点来修局部画面。
+
+`SPARSE_ROW_COUNT` 是活跃前缀长度，合法范围为 `1..24`。它改变性能和最大前视距离，但不改变任何已定义采样行的物理位置；参数变化会让 sparse LUT 与 hold geometry identity 失效并重建。
+
+`REFERENCE_LATERAL_JUMP_GATE_M` 是旧横向跳变拒绝门的显式参数，合法范围为 `0..1000`。默认 `1000.0` 表示在正常 BEV 横向范围内不再拒绝路径；V5 使用当前灰度帧连通性 gate 判断路径段是否跨黑。
 
 ## 10. BEV Classification 与 hold
 
@@ -240,9 +247,14 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | reference lateral error | 24 点线性权重的远端权重，近端固定为 `1.0`。合法范围 `[0.0, 1.0]`，越界参数按解析失败处理，不在公式里隐藏修正。减小会更重视近端；增大会让远端趋势更影响输出。 |
-| `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` | `500` | turn-output target | weighted lateral error 到左右轮速半差目标的直接增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。`0.20m` 横向误差在 speed scale 为 `1` 时输出约 `100`。 |
-| `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 从 index 0 开始连续 present 白点的最小数量。降低会更容易进入控制但容错差；提高更保守但可能频繁 unusable。小于数学下限时按 2 处理。 |
+| `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | legacy lateral-error debug | 旧 weighted lateral error 对照字段的远端权重。V6 主控不再使用 weighted future lateral average 作为唯一输入。 |
+| `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` | `600` | turn-output target | `tracking_geometry.lateral_offset_m` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
+| `BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN` | `0` | turn-output target | `tracking_geometry.heading_error_rad` 到左右轮速半差目标的反馈增益。第一版默认 `0`，保留参数面便于后续启用 heading feedback。 |
+| `BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN` | `0` | turn-output target | `tracking_geometry.curvature_m_inv` 到左右轮速半差目标的曲率前馈增益，语义与 lateral/heading gain 一样是在 `RUNNING_SPEED_TARGET` 下的 nominal gain；运行时再统一乘 `speed_scale`。第一版默认 `0`，调参时结合 `yaw_control.curvature_term` 查看贡献。 |
+| `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 第一个连续真实 reference 点段的最小数量。近端丢线本身不使路径不可用，但真实连续点少于该值仍不可用。低于 3 时按 3 处理。 |
+| `BEV_CONTROL_MODEL.TRACKING_FIT_MIN_SAMPLES` | `3` | reference tracking geometry | 二次拟合 `tracking_geometry` 所需的最小 leading usable 样本数。合法范围 `[3, 24]`。 |
+
+兼容说明：旧 `BEV_CONTROL_MODEL.LATERAL_ERROR_TO_WHEEL_DELTA_GAIN` 如果出现在旧参数文件中，会被当作 `LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` 的兼容别名读取；它不再表达 weighted future lateral average 的主控语义。
 
 ## 12. BEV Element
 
@@ -250,7 +262,7 @@ Circle V2 架构见 `new/docs/visual-element-sparse-circle-v2.zh-CN.md`。运行
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `1` | visual element candidate inclusion | 默认开启。`element_evidence.cross_exit` 触发并构造 candidate 后可进入 visual-reference arbitration；最终仍必须通过 existing candidate validation、reference usability、lateral error、reference-control readiness 和 safety gate。 |
+| `BEV_ELEMENT.CROSS_EXIT_TAKEOVER_ENABLED` | `1` | visual element candidate inclusion | 默认开启。`element_evidence.cross_exit` 触发并构造 candidate 后可进入 visual-reference arbitration；最终仍必须通过 existing candidate validation、reference usability、tracking geometry、reference-control readiness 和 safety gate。 |
 | `BEV_ELEMENT.CROSS_WIDE_ROW_WHITE_RATIO_MIN` | `0.95` | visual element evidence | cross 宽白行的最低白点占比。用于把“横向够宽但白点并不接近整行”的 circle/bend 误判压掉；可在 evidence 重放中评估是否提高到 `0.98`。 |
 | `BEV_ELEMENT.CIRCLE_V2_ENABLED` | `1` | scene registry | CircleV2Scene 启动期组合开关。关闭时不注册 V2 场景；运行时热切换若存在，必须由组合层 reset scene memory，不属于 reducer 正常转移。 |
 | `BEV_ELEMENT.CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG` | `330` | CircleV2 B->C gate | InnerTrace 进入后的方向归一化累计 yaw 阈值。左/右符号由 CircleV2EventObserver 按锁存方向归一化，不使用 `abs(yaw_delta)`。 |
@@ -259,6 +271,9 @@ Circle V2 架构见 `new/docs/visual-element-sparse-circle-v2.zh-CN.md`。运行
 | `BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG` | `16.5` | CircleV2 B stall fallback | InnerTrace 超时兜底的“明显 yaw 积分”阈值。超时后 directed yaw 小于该值才退回 Idle。合法值 `0..720`。 |
 | `BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M` | `0.1` | CircleV2 B path | InnerTrace 路径从内圆边线向道路内部偏移的距离。`0.0` 表示贴内圆边线；正值左环岛向右偏、右环岛向左偏。合法值 `0..2`。 |
 | `BEV_ELEMENT.CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN` | `0.5` | CircleV2 observer | CircleV2 Phase1 cue 和 Approach entry gate 使用“对侧直线”时的最低拟合置信度。`0.0` 等价旧行为；合法值 `0..1`。 |
+| `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` | `4` | CircleV2 Approach gate | Approach entry gate 使用的下部 ROI 行数。它只定义“下部开口”的 ROI 行数，不改变 Phase1 cue 的全局 trace 语义。合法值 `4..24`。 |
+| `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M` | `0.0` | CircleV2 Approach gate | Approach entry gate 下部 ROI 的前向下限。只限制“下部开口”观察，不限制 InnerTrace/ExitTrace 边线几何搜索。合法值 `0..2` 且不大于 max。 |
+| `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M` | `0.25` | CircleV2 Approach gate | Approach entry gate 下部 ROI 的前向上限。BottomRows 在该区间内取前 `CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` 行；不足行数则 entry gate 为 false。合法值 `0..2` 且不小于 min。 |
 | `BEV_ELEMENT_RASTER.ENABLED` | `0` | optional full BEV element raster | full 元素 raster 开关。V2 下不再控制 circle/cross runtime recognition；保留给 debug、legacy、roadblock、ML 或未来 full-raster 消费者。关闭时 full raster 不采样、不产出 sampleable cells，sparse line/cross/circle cue 仍走 row facts。 |
 | `BEV_ELEMENT_RASTER.WIDTH` | `320` | optional full BEV element raster | full raster 横向 cell 数。高度按 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 和最远 `FORWARD_SAMPLE_*` 的 metric aspect 派生。V1 circle/cross 不应依赖该宽度；小于 `2` 或格式错误按参数解析失败处理，不在公式层偷偷 clamp。 |
 
@@ -284,6 +299,7 @@ Circle V2 架构见 `new/docs/visual-element-sparse-circle-v2.zh-CN.md`。运行
   reference:
   eligibility:
   lateral_error:
+  tracking_geometry:
   reference_control:
   safety_gate:
   yaw_control:

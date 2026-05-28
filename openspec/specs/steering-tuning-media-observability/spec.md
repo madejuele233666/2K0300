@@ -5,12 +5,12 @@ Define the project-owned steering-tuning observability surface, including the ru
 
 ## Requirements
 ### Requirement: Runtime Steering Snapshot Exposes The Current Reference/Control Chain
-The runtime SHALL expose a project-owned steering tuning snapshot that can explain one control cycle from perception health through selected reference facts, reference usability, curvature, reference-control readiness, safety gate, yaw target, and final actuator output. At minimum, the accepted snapshot SHALL include these grouped objects:
+The runtime SHALL expose a project-owned steering tuning snapshot that can explain one control cycle from perception health through selected reference facts, reference usability, tracking geometry, reference-control readiness, safety gate, yaw target, and final actuator output. At minimum, the accepted snapshot SHALL include these grouped objects:
 
 - `perception_health`
 - `reference`
 - `eligibility`
-- `curvature`
+- `tracking_geometry`
 - `reference_control`
 - `safety_gate`
 - `degraded`
@@ -19,10 +19,22 @@ The runtime SHALL expose a project-owned steering tuning snapshot that can expla
 - `element_evidence`
 - `circle_v2`
 
+The `tracking_geometry` group SHALL include computed state, lateral offset, heading error, curvature, sample count, and reason. The `yaw_control` group SHALL include lateral, heading, and curvature term decomposition in addition to the final turn target.
+
 #### Scenario: Steering-chain evidence is visible without assistant rendering
 - **WHEN** reviewers inspect project-owned diagnostics, structured export, or harness-visible evidence during a steering tuning run
 - **THEN** they SHALL be able to identify the accepted steering snapshot groups above from a project-owned non-assistant evidence surface such as `control.steering_snapshot`
 - **AND** assistant connectivity or vendor-only image rendering SHALL NOT be required to explain the steering chain
+
+#### Scenario: Steering-chain evidence exposes tracking geometry
+- **WHEN** reviewers inspect `control.steering_snapshot` or steering media image-frame `steering_snapshot`
+- **THEN** they SHALL be able to identify `tracking_geometry.computed`, `tracking_geometry.lateral_offset_m`, `tracking_geometry.heading_error_rad`, `tracking_geometry.curvature_m_inv`, `tracking_geometry.sample_count`, and `tracking_geometry.reason`
+- **AND** they SHALL be able to identify `yaw_control.lateral_term`, `yaw_control.heading_term`, `yaw_control.curvature_term`, and `yaw_control.turn_output_target`
+
+#### Scenario: Legacy lateral error is not the main control fact
+- **WHEN** legacy lateral-error fields remain visible for comparison during migration
+- **THEN** the public evidence SHALL still expose tracking geometry as the V6 control input
+- **AND** consumers SHALL NOT need to infer curvature-aware control behavior from `lateral_error.weighted_lateral_error_m`
 
 ### Requirement: Steering Media Uses A Separate Read-Only Board-To-Host Session
 The accepted steering tuning observability path SHALL use a project-owned steering media TCP session that is separate from the accepted assistant JSON control session. The board SHALL actively connect to the host for this media session, and the media session SHALL remain read-only push traffic.
@@ -243,3 +255,15 @@ When CircleV2 adapts a `CircleV2ReferencePlan` into a `VisualReferenceCandidate`
 - **WHEN** CircleV2 outputs an `ExitTrace` reference plan and that candidate is selected
 - **THEN** public steering evidence SHALL identify the reference source as a CircleV2 exit trace source such as `circle_v2_exit`
 - **AND** it SHALL not identify the selected reference as old `circle_entry`
+
+### Requirement: Steering Media Config Snapshot Exposes V5 BEV Geometry Controls
+The steering media `config_snapshot.param_snapshot.BEV_GEOMETRY` object SHALL include the BEV geometry controls needed to interpret V5 sparse reference behavior:
+
+- `SPARSE_ROW_COUNT`
+- `REFERENCE_LATERAL_JUMP_GATE_M`
+
+#### Scenario: Config snapshot carries sparse row and lateral jump settings
+- **WHEN** the runtime publishes a steering media `config_snapshot`
+- **THEN** the header SHALL include `param_snapshot.BEV_GEOMETRY.SPARSE_ROW_COUNT`
+- **AND** it SHALL include `param_snapshot.BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M`
+- **AND** both fields SHALL reflect startup-loaded runtime parameters

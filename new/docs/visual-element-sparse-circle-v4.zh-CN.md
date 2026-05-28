@@ -107,9 +107,11 @@ hold 属于 reference continuity，不属于 row scan，也不属于 FSM。
 ```text
 x = lateral_m
 y = forward_m
-lateral_m > 0 表示车辆左侧
-lateral_m < 0 表示车辆右侧
+lateral_m > 0 表示车辆右侧
+lateral_m < 0 表示车辆左侧
 ```
+
+该方向来自当前 BEV 标定和旧发车 `signfix` 记录：正 `near_lateral_error` 修正后对应正 `turn_output`，运行时输出 `left_target > right_target`，即向正 `lateral_m` 一侧修正。不要再沿用旧注释中的“左正右负”说法。
 
 本文中 `low_edge` / `high_edge` 表示 BEV 横向坐标序，而不是屏幕左右，也不是物理左/右边线语义：
 

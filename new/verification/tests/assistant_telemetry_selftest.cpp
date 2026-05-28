@@ -72,6 +72,12 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.lateral_error.weighted_sample_count = 4;
     snapshot.steering.lateral_error.weight_sum = 2.5;
     snapshot.steering.lateral_error.reason = "ok";
+    snapshot.steering.tracking_geometry.computed = true;
+    snapshot.steering.tracking_geometry.lateral_offset_m = 0.011;
+    snapshot.steering.tracking_geometry.heading_error_rad = -0.022;
+    snapshot.steering.tracking_geometry.curvature_m_inv = 0.33;
+    snapshot.steering.tracking_geometry.sample_count = 5;
+    snapshot.steering.tracking_geometry.reason = "ok";
     snapshot.steering.perception_health.projector_ok = true;
     snapshot.steering.perception_health.reason = "ok";
     snapshot.steering.reference_control.ready = true;
@@ -81,6 +87,9 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.degraded.active = false;
     snapshot.steering.degraded.reason = "none";
     snapshot.steering.yaw_control.turn_output_target = 0.12;
+    snapshot.steering.yaw_control.lateral_term = 0.03;
+    snapshot.steering.yaw_control.heading_term = -0.01;
+    snapshot.steering.yaw_control.curvature_term = 0.10;
     snapshot.steering.actuator.raw_turn_output = 12;
     snapshot.steering.actuator.applied_turn_output = 10;
     snapshot.tuning_mode_enabled = true;
@@ -126,6 +135,12 @@ void TestSnapshotFactsMapToAssistantView() {
            "selected reference mode must be copied");
     Expect(telemetry.reference.source == "roadblock_bypass",
            "selected reference source must be copied");
+    Expect(telemetry.tracking_geometry.computed,
+           "tracking geometry computed state must be copied");
+    Expect(telemetry.tracking_geometry.sample_count == 5,
+           "tracking geometry sample count must be copied");
+    Expect(telemetry.yaw_control.curvature_term > 0.09,
+           "yaw curvature term must be copied");
 }
 
 void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
@@ -156,6 +171,24 @@ void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
     Expect(Contains(json,
                     "\"reference\":{\"mode\":\"interval_center\",\"source\":\"roadblock_bypass\"}"),
            "assistant telemetry must preserve selected reference facts");
+    Expect(Contains(json, "\"tracking_geometry\":{\"computed\":true"),
+           "assistant telemetry must include tracking geometry object");
+    Expect(Contains(json, "\"lateral_offset_m\":0.011"),
+           "assistant telemetry must include tracking lateral offset");
+    Expect(Contains(json, "\"heading_error_rad\":-0.022"),
+           "assistant telemetry must include tracking heading error");
+    Expect(Contains(json, "\"curvature_m_inv\":0.33"),
+           "assistant telemetry must include tracking curvature");
+    Expect(Contains(json, "\"sample_count\":5"),
+           "assistant telemetry must include tracking sample count");
+    Expect(Contains(json, "\"yaw_control\":{\"turn_output_target\":0.12"),
+           "assistant telemetry must include yaw-control object");
+    Expect(Contains(json, "\"lateral_term\":0.03"),
+           "assistant telemetry must include lateral yaw term");
+    Expect(Contains(json, "\"heading_term\":-0.01"),
+           "assistant telemetry must include heading yaw term");
+    Expect(Contains(json, "\"curvature_term\":0.1"),
+           "assistant telemetry must include curvature yaw term");
 }
 
 }  // namespace

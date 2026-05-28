@@ -38,7 +38,7 @@
   "control_snapshot_emit_interval_ms": 100,
   "assistant_enabled": 1,
   "steering_media_enabled": 1,
-  "steering_media_port": 47012,
+  "steering_media_port": 48012,
   "steering_media_publish_interval_ms": 20,
   "steering_media_downsample": 1,
   "steering_media_publish_latest_frame": 0,
@@ -95,8 +95,10 @@
     "FORWARD_SAMPLE_21": 1.37487,
     "FORWARD_SAMPLE_22": 1.437435,
     "FORWARD_SAMPLE_23": 1.5,
+    "SPARSE_ROW_COUNT": 24,
     "SEARCH_LATERAL_LIMIT_M": 1.6,
     "LATERAL_STEP_M": 0.02,
+    "REFERENCE_LATERAL_JUMP_GATE_M": 1000.0,
     "NOMINAL_ROAD_HALF_WIDTH_M": 0.21
   },
   "BEV_CLASSIFICATION": {
@@ -106,8 +108,11 @@
   },
   "BEV_CONTROL_MODEL": {
     "LATERAL_ERROR_FAR_WEIGHT": 0.0,
-    "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN": 500,
-    "MIN_LEADING_REFERENCE_SAMPLES": 3
+    "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN": 600,
+    "HEADING_ERROR_TO_WHEEL_DELTA_GAIN": 0,
+    "CURVATURE_TO_WHEEL_DELTA_GAIN": 0,
+    "MIN_LEADING_REFERENCE_SAMPLES": 3,
+    "TRACKING_FIT_MIN_SAMPLES": 3
   },
   "BEV_ELEMENT": {
     "CROSS_EXIT_TAKEOVER_ENABLED": 1,
@@ -118,7 +123,10 @@
     "CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS": 4000,
     "CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG": 16.5,
     "CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M": 0.1,
-    "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN": 0.5
+    "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN": 0.5,
+    "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT": 4,
+    "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M": 0.0,
+    "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M": 0.25
   },
   "BEV_ELEMENT_RASTER": {
     "ENABLED": 0,
@@ -144,6 +152,6 @@
   },
   "assistant_tcp": {
     "host": "192.168.137.1",
-    "port": 47011
+    "port": 48011
   }
 }

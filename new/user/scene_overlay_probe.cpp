@@ -16,8 +16,11 @@
 #include "legacy/steering_bev_simple_perception.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
 #include "legacy/steering_reference_control_readiness.hpp"
+#include "legacy/steering_reference_connectivity.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
+#include "legacy/steering_reference_tracking_geometry.hpp"
 #include "legacy/steering_reference_usability.hpp"
+#include "legacy/steering_yaw_controller.hpp"
 #include "legacy/steering_visual_element_pipeline.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
 #include "port/perception_result.hpp"
@@ -46,7 +49,9 @@ struct ProbePipelineResult {
     ls2k::port::ReferenceContinuityResult continuity{};
     ls2k::port::ReferenceUsability selected_usability{};
     ls2k::port::ReferenceLateralErrorEstimate lateral_error{};
+    ls2k::port::ReferenceTrackingGeometry tracking_geometry{};
     ls2k::port::ReferenceControlReadiness reference_control{};
+    ls2k::legacy::TurnOutputTargetComputation turn_output_target{};
     ls2k::port::SteeringPerceptionMemory next_memory{};
     bool memory_update_valid = false;
     int threshold = 0;
@@ -103,6 +108,12 @@ ls2k::runtime::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params
         params.bev_element.circle_v2_inner_trace_path_offset_m;
     circle_params.opposite_straight_confidence_min =
         params.bev_element.circle_v2_opposite_straight_confidence_min;
+    circle_params.entry_bottom_row_count =
+        params.bev_element.circle_v2_entry_bottom_row_count;
+    circle_params.entry_bottom_forward_min_m =
+        params.bev_element.circle_v2_entry_bottom_forward_min_m;
+    circle_params.entry_bottom_forward_max_m =
+        params.bev_element.circle_v2_entry_bottom_forward_max_m;
     return circle_params;
 }
 
@@ -480,7 +491,17 @@ bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& para
            params.circle_v2_inner_trace_path_offset_m <= 2.0F &&
            std::isfinite(params.circle_v2_opposite_straight_confidence_min) &&
            params.circle_v2_opposite_straight_confidence_min >= 0.0F &&
-           params.circle_v2_opposite_straight_confidence_min <= 1.0F;
+           params.circle_v2_opposite_straight_confidence_min <= 1.0F &&
+           params.circle_v2_entry_bottom_row_count >= 4 &&
+           params.circle_v2_entry_bottom_row_count <=
+               static_cast<int>(ls2k::port::kBevReferenceSampleCount) &&
+           std::isfinite(params.circle_v2_entry_bottom_forward_min_m) &&
+           params.circle_v2_entry_bottom_forward_min_m >= 0.0F &&
+           params.circle_v2_entry_bottom_forward_min_m <= 2.0F &&
+           std::isfinite(params.circle_v2_entry_bottom_forward_max_m) &&
+           params.circle_v2_entry_bottom_forward_max_m >=
+               params.circle_v2_entry_bottom_forward_min_m &&
+           params.circle_v2_entry_bottom_forward_max_m <= 2.0F;
 }
 
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
@@ -523,10 +544,24 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
                         params.bev_control_model.lateral_error_far_weight);
         ReadDoubleField(block,
                         "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
-                        params.bev_control_model.lateral_error_to_wheel_delta_gain);
+                        params.bev_control_model.lateral_offset_to_wheel_delta_gain);
+        ReadDoubleField(block,
+                        "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN",
+                        params.bev_control_model.lateral_offset_to_wheel_delta_gain);
+        params.bev_control_model.lateral_error_to_wheel_delta_gain =
+            params.bev_control_model.lateral_offset_to_wheel_delta_gain;
+        ReadDoubleField(block,
+                        "HEADING_ERROR_TO_WHEEL_DELTA_GAIN",
+                        params.bev_control_model.heading_error_to_wheel_delta_gain);
+        ReadDoubleField(block,
+                        "CURVATURE_TO_WHEEL_DELTA_GAIN",
+                        params.bev_control_model.curvature_to_wheel_delta_gain);
         ReadIntField(block,
                      "MIN_LEADING_REFERENCE_SAMPLES",
                      params.bev_control_model.min_leading_reference_samples);
+        ReadIntField(block,
+                     "TRACKING_FIT_MIN_SAMPLES",
+                     params.bev_control_model.tracking_fit_min_samples);
     }
     bool element_malformed = false;
     ObjectBlockStatus object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT", block);
@@ -568,6 +603,18 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadStrictFloatField(block,
                              "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN",
                              params.bev_element.circle_v2_opposite_straight_confidence_min,
+                             element_malformed);
+        ReadStrictIntField(block,
+                           "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT",
+                           params.bev_element.circle_v2_entry_bottom_row_count,
+                           element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M",
+                             params.bev_element.circle_v2_entry_bottom_forward_min_m,
+                             element_malformed);
+        ReadStrictFloatField(block,
+                             "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M",
+                             params.bev_element.circle_v2_entry_bottom_forward_max_m,
                              element_malformed);
         if (!ValidProbeBEVElementParameters(params.bev_element)) {
             element_malformed = true;
@@ -824,6 +871,26 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << pipeline.lateral_error.weighted_sample_count
               << " lateral_error.weight_sum=" << pipeline.lateral_error.weight_sum
               << " lateral_error.reason=" << pipeline.lateral_error.reason
+              << " tracking_geometry.computed="
+              << (pipeline.tracking_geometry.computed ? "true" : "false")
+              << " tracking_geometry.lateral_offset_m="
+              << pipeline.tracking_geometry.lateral_offset_m
+              << " tracking_geometry.heading_error_rad="
+              << pipeline.tracking_geometry.heading_error_rad
+              << " tracking_geometry.curvature_m_inv="
+              << pipeline.tracking_geometry.curvature_m_inv
+              << " tracking_geometry.sample_count="
+              << pipeline.tracking_geometry.sample_count
+              << " tracking_geometry.reason="
+              << pipeline.tracking_geometry.reason
+              << " yaw_control.turn_output_target="
+              << pipeline.turn_output_target.turn_output_target
+              << " yaw_control.lateral_term="
+              << pipeline.turn_output_target.lateral_term
+              << " yaw_control.heading_term="
+              << pipeline.turn_output_target.heading_term
+              << " yaw_control.curvature_term="
+              << pipeline.turn_output_target.curvature_term
               << " reference_control.ready=" << (pipeline.reference_control.ready ? "true" : "false")
               << " reference_control.reason=" << pipeline.reference_control.reason
               << " degraded.active=" << (pipeline.reference_control.degraded ? "true" : "false")
@@ -973,12 +1040,25 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     std::vector<ls2k::port::VisualReferenceCandidate> candidates;
     candidates.reserve(1U + element_result.candidates.size() +
                        (circle_candidate.has_value() ? 1U : 0U));
-    candidates.push_back(line_candidate);
-    candidates.insert(candidates.end(),
-                      element_result.candidates.begin(),
-                      element_result.candidates.end());
+    const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
+        frame_view,
+        projector,
+        result.threshold,
+        params.bev_classification,
+    };
+    ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+                                                          line_candidate,
+                                                          candidates);
+    for (const ls2k::port::VisualReferenceCandidate& candidate :
+         element_result.candidates) {
+        ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+                                                              candidate,
+                                                              candidates);
+    }
     if (circle_candidate.has_value()) {
-        candidates.push_back(*circle_candidate);
+        ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+                                                              *circle_candidate,
+                                                              candidates);
     }
     result.visual_selection = ls2k::legacy::SelectVisualReference(candidates);
     const ls2k::port::ReferenceUsability current_usability =
@@ -1011,10 +1091,21 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
         ls2k::legacy::ComputeReferenceLateralError(result.continuity.reference_path,
                                                   result.selected_usability,
                                                   params);
+    result.tracking_geometry =
+        ls2k::legacy::ComputeReferenceTrackingGeometry(result.continuity.reference_path,
+                                                      result.selected_usability,
+                                                      params.bev_control_model);
     result.reference_control =
         ls2k::legacy::EvaluateReferenceControlReadiness(result.selected_usability,
-                                                        result.lateral_error,
+                                                        result.tracking_geometry,
                                                         result.continuity.hold_selected);
+    ls2k::legacy::SteeringYawController yaw_controller{};
+    ls2k::port::BEVControllerMemory probe_controller_memory{};
+    yaw_controller.Configure(params);
+    result.turn_output_target =
+        yaw_controller.ComputeTurnOutputTarget(result.tracking_geometry,
+                                               params.running_speed_target,
+                                               probe_controller_memory);
     result.next_memory = prior_memory;
     result.next_memory.circle_v2 = circle_v2_should_step
                                        ? circle_result.next_memory

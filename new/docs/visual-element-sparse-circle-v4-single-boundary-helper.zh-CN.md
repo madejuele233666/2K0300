@@ -95,9 +95,11 @@ BEV 坐标约定：
 ```text
 x = lateral_m
 y = forward_m
-lateral_m > 0 表示车辆左侧
-lateral_m < 0 表示车辆右侧
+lateral_m > 0 表示车辆右侧
+lateral_m < 0 表示车辆左侧
 ```
+
+该符号约定必须跟随当前 BEV 标定和控制 signfix 记录，不允许调用方按字段名臆测物理左右。`left_m` / `right_m` 这类历史字段名在 helper 语境中只应理解为横向低坐标 / 横向高坐标。
 
 helper 的 `left/right` 不参与几何计算。若调用方使用“左边界/右边界”这样的业务词，必须先在调用方内部映射为：
 

@@ -156,6 +156,43 @@ ls2k::legacy::BEVElementRasterFrame MakeRasterFromReachRows(
     return raster;
 }
 
+ls2k::legacy::BEVElementRasterFrame MakeRasterWithUnknownEdgeReachRows(
+    const std::vector<float>& left_reach_near_to_far,
+    const std::vector<float>& right_reach_near_to_far,
+    bool left_unknown_prefix,
+    bool right_unknown_suffix) {
+    ls2k::legacy::BEVElementRasterFrame raster{};
+    raster.valid = true;
+    raster.enabled = true;
+    raster.width = 65;
+    raster.height = static_cast<int>(std::min(left_reach_near_to_far.size(),
+                                              right_reach_near_to_far.size()));
+    raster.lateral_limit_m = 0.65F;
+    raster.forward_max_m = 1.50F;
+    const std::size_t cell_count = static_cast<std::size_t>(raster.width * raster.height);
+    raster.classes.assign(cell_count, ls2k::port::BEVElementRasterCellClass::kBlack);
+    raster.projection_states.assign(cell_count,
+                                    ls2k::port::BEVElementRasterProjectionState::kSampleable);
+    for (int y = 0; y < raster.height; ++y) {
+        const std::size_t reach_index = static_cast<std::size_t>(raster.height - 1 - y);
+        const float left_m = -left_reach_near_to_far[reach_index];
+        const float right_m = right_reach_near_to_far[reach_index];
+        for (int x = 0; x < raster.width; ++x) {
+            const float lateral_m = raster.CellToMetric(x, y).lateral_m;
+            ls2k::port::BEVElementRasterCellClass cell_class =
+                ls2k::port::BEVElementRasterCellClass::kBlack;
+            if (lateral_m >= left_m && lateral_m <= right_m) {
+                cell_class = ls2k::port::BEVElementRasterCellClass::kWhite;
+            } else if ((left_unknown_prefix && lateral_m < left_m) ||
+                       (right_unknown_suffix && lateral_m > right_m)) {
+                cell_class = ls2k::port::BEVElementRasterCellClass::kUnknown;
+            }
+            raster.classes[raster.Index(x, y)] = cell_class;
+        }
+    }
+    return raster;
+}
+
 void AddDetachedLeftIsland(ls2k::legacy::BEVElementRasterFrame& raster,
                            std::size_t near_to_far_index,
                            float left_m,
@@ -448,6 +485,50 @@ void TestCircleAbsentCases() {
            "missing raster must fail closed");
 }
 
+void TestCircleRejectsSampleableBoundaryClippedOpening() {
+    const ls2k::port::RuntimeParameters params{};
+    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows =
+        MakeRowsFromReachRows({0.12F, 0.18F, 0.65F, 0.65F},
+                              {0.20F, 0.20F, 0.20F, 0.20F});
+    const ls2k::legacy::CircleElementEvidenceResult evidence =
+        ls2k::legacy::DetectCircleElementEvidence(rows, params);
+    Expect(!evidence.left_raw.present && !evidence.right_raw.present,
+           "sampleable-boundary clipped rows must not become circle evidence");
+    Expect(evidence.left_raw.reason == "insufficient_sampleable_support",
+           "clipped opening rows must fail before boundary growth is trusted");
+}
+
+void TestCircleRejectsUnknownScreenEdgeClippedRasterOpening() {
+    const ls2k::port::RuntimeParameters params{};
+    const std::vector<float> left_open{0.12F, 0.18F, 0.34F, 0.42F, 0.42F};
+    const std::vector<float> right_straight(5U, 0.20F);
+    const ls2k::legacy::BEVElementRasterFrame left_unknown =
+        MakeRasterWithUnknownEdgeReachRows(left_open,
+                                           right_straight,
+                                           true,
+                                           false);
+    const ls2k::legacy::CircleElementEvidenceResult left_evidence =
+        ls2k::legacy::DetectCircleElementEvidence(&left_unknown, params);
+    Expect(!left_evidence.left_raw.present && !left_evidence.right_raw.present,
+           "left unknown screen-edge prefix must not become raster circle evidence");
+    Expect(left_evidence.left_raw.reason == "insufficient_sampleable_support",
+           "left unknown screen-edge rows must be removed before opening classification");
+
+    const std::vector<float> left_straight(5U, 0.20F);
+    const std::vector<float> right_open{0.12F, 0.18F, 0.34F, 0.42F, 0.42F};
+    const ls2k::legacy::BEVElementRasterFrame right_unknown =
+        MakeRasterWithUnknownEdgeReachRows(left_straight,
+                                           right_open,
+                                           false,
+                                           true);
+    const ls2k::legacy::CircleElementEvidenceResult right_evidence =
+        ls2k::legacy::DetectCircleElementEvidence(&right_unknown, params);
+    Expect(!right_evidence.left_raw.present && !right_evidence.right_raw.present,
+           "right unknown screen-edge suffix must not become raster circle evidence");
+    Expect(right_evidence.right_raw.reason == "insufficient_sampleable_support",
+           "right unknown screen-edge rows must be removed before opening classification");
+}
+
 void TestCircleOpeningUsesNetExpansionNotStrictMonotonic() {
     const ls2k::port::RuntimeParameters params{};
     const ls2k::legacy::BEVElementRasterFrame net_open =
@@ -522,8 +603,8 @@ void TestCircleRejectsSaturatedWideWhiteRows() {
         ls2k::legacy::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
            "two-sided wide opening must stay out of raw circle evidence");
-    Expect(evidence.left_raw.reason == "both_sides_open",
-           "circle detector must report visual two-sided opening, not cross-specific wide-row suppression");
+    Expect(evidence.left_raw.reason == "insufficient_sampleable_support",
+           "sampleable-boundary saturated rows must fail before opening classification");
 }
 
 void TestCircleReportsBendForFragmentedDoubleOpening() {
@@ -653,6 +734,8 @@ int main() {
         TestCircleLeftPresentFromSparseRows();
         TestCircleRightPresentFromRaster();
         TestCircleAbsentCases();
+        TestCircleRejectsSampleableBoundaryClippedOpening();
+        TestCircleRejectsUnknownScreenEdgeClippedRasterOpening();
         TestCircleOpeningUsesNetExpansionNotStrictMonotonic();
         TestCircleRejectsTransientOpeningSpike();
         TestCircleIgnoresDetachedWhiteIslandOutsideMainBand();

@@ -5,6 +5,7 @@
 
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
+#include "legacy/steering_reference_tracking_geometry.hpp"
 #include "legacy/steering_reference_usability.hpp"
 #include "legacy/steering_yaw_controller.hpp"
 #include "runtime/control_decision.hpp"
@@ -87,16 +88,18 @@ void TestConfiguredMinimumLeadingReferenceSamplesCanChange() {
 
     params.bev_control_model.min_leading_reference_samples = 1;
     Expect(!ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 1, 0.0F), params).usable,
-           "configured minimum below interpolation floor must clamp to two samples");
-    Expect(ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 2, 0.0F), params).usable,
-           "two leading samples satisfy the interpolation floor");
+           "configured minimum below control floor must reject one sample");
+    Expect(!ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 2, 0.0F), params).usable,
+           "two real samples must remain below the control floor");
+    Expect(ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 3, 0.0F), params).usable,
+           "three real samples satisfy the control floor");
 
     params.bev_control_model.min_leading_reference_samples = -1;
     Expect(!ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 1, 0.0F), params).usable,
-           "negative configured minimum must clamp to two samples");
+           "negative configured minimum must clamp to the control floor");
     params.bev_control_model.min_leading_reference_samples = 0;
     Expect(!ls2k::legacy::EvaluateReferenceUsability(MakePath(params, 1, 0.0F), params).usable,
-           "zero configured minimum must clamp to two samples");
+           "zero configured minimum must clamp to the control floor");
     params.bev_control_model.min_leading_reference_samples =
         static_cast<int>(ls2k::port::kBevReferenceSampleCount) + 10;
     Expect(!ls2k::legacy::EvaluateReferenceUsability(
@@ -106,17 +109,23 @@ void TestConfiguredMinimumLeadingReferenceSamplesCanChange() {
            "configured minimum above sample capacity must clamp to the capacity");
 }
 
-void TestLeadingContinuityIsRequired() {
+void TestFirstUsableSegmentContinuityIsRequired() {
     const ls2k::port::RuntimeParameters params{};
     ls2k::port::BEVReferencePath path = MakePath(params, 6, 0.05F);
     path.sampled_path[0].present = false;
-    Expect(!ls2k::legacy::EvaluateReferenceUsability(path, params).usable,
-           "path with index zero missing must not be usable even if far points exist");
+    Expect(ls2k::legacy::EvaluateReferenceUsability(path, params).usable,
+           "near missing sample must not make a later continuous real segment unusable");
+    Expect(ls2k::legacy::ComputeReferenceLateralError(
+               path,
+               ls2k::legacy::EvaluateReferenceUsability(path, params),
+               params)
+               .computed,
+           "lateral error must use the first continuous real segment");
 
     path = MakePath(params, 6, 0.05F);
     path.sampled_path[1].present = false;
     Expect(!ls2k::legacy::EvaluateReferenceUsability(path, params).usable,
-           "usability must not scan past a gap in the leading segment");
+           "usability must not scan past a gap after the first real segment starts");
 }
 
 void TestSourceDoesNotAffectUsabilityOrLateralError() {
@@ -184,35 +193,65 @@ void TestGapStopsWeightedSamples() {
 
 void TestFarWeightUsesGlobalReferenceIndex() {
     ls2k::port::RuntimeParameters params{};
-    params.bev_control_model.min_leading_reference_samples = 2;
+    params.bev_control_model.min_leading_reference_samples = 3;
     params.bev_control_model.lateral_error_far_weight = 0.25;
-    ls2k::port::BEVReferencePath path = MakePath(params, 2, 0.0F);
+    ls2k::port::BEVReferencePath path = MakePath(params, 3, 0.0F);
     path.sampled_path[1].point.lateral_m = 1.0F;
 
     const auto output = ComputeLateralError(path, params);
     const float second_weight = 1.0F + (0.25F - 1.0F) / 23.0F;
-    const float expected = second_weight / (1.0F + second_weight);
-    Expect(output.computed, "two-point leading segment must produce lateral error");
+    const float third_weight = 1.0F + (0.25F - 1.0F) * 2.0F / 23.0F;
+    const float expected = second_weight / (1.0F + second_weight + third_weight);
+    Expect(output.computed, "three-point real segment must produce lateral error");
     ExpectNear(output.weighted_lateral_error_m,
                expected,
                1.0e-5F,
                "linear weighting must use the 24-point global index");
 }
 
-void TestTurnOutputTargetUsesLateralErrorGainAndUnclampedSpeedScale() {
+void TestTurnOutputTargetUsesTrackingGeometryTermsAndRawTargetLimit() {
     ls2k::port::RuntimeParameters params{};
     params.running_speed_target = 100.0;
-    params.bev_control_model.lateral_error_to_wheel_delta_gain = 180.0;
+    params.raw_turn_output_limit = 50;
+    params.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
+    params.bev_control_model.heading_error_to_wheel_delta_gain = 50.0;
+    params.bev_control_model.curvature_to_wheel_delta_gain = 2.0;
 
     ls2k::legacy::SteeringYawController controller;
     controller.Configure(params);
     ls2k::port::BEVControllerMemory memory{};
-    const auto output = controller.ComputeTurnOutputTarget(0.2F, 150.0, memory);
+    ls2k::port::ReferenceTrackingGeometry geometry{};
+    geometry.computed = true;
+    geometry.lateral_offset_m = 0.2F;
+    geometry.heading_error_rad = 0.1F;
+    geometry.curvature_m_inv = 0.01F;
+    geometry.reason = "ok";
+    const auto output = controller.ComputeTurnOutputTarget(geometry, 150.0, memory);
 
-    ExpectNear(output.turn_output_target,
+    ExpectNear(output.lateral_term,
                54.0F,
                1.0e-4F,
-               "turn-output target must apply lateral error gain and unclamped speed scale directly");
+               "lateral term must apply lateral offset gain and unclamped speed scale");
+    ExpectNear(output.heading_term,
+               7.5F,
+               1.0e-4F,
+               "heading term must apply heading gain and unclamped speed scale");
+    ExpectNear(output.curvature_term,
+               0.03F,
+               1.0e-4F,
+               "curvature term must apply curvature gain and unclamped speed scale");
+    ExpectNear(output.turn_output_candidate,
+               61.53F,
+               1.0e-4F,
+               "turn-output candidate must expose the raw geometry-term sum");
+    ExpectNear(output.turn_output_target,
+               50.0F,
+               1.0e-4F,
+               "turn-output target must clamp the geometry-term sum with the raw turn-output limit");
+    ExpectNear(memory.turn_output_target_last,
+               50.0F,
+               1.0e-4F,
+               "controller memory must store the bounded target");
     ExpectNear(output.speed_scale, 1.5F, 1.0e-6F, "speed scale must not be clamped");
 }
 
@@ -239,13 +278,15 @@ void TestReferenceControlReadinessUsesHoldSelectedNotReferenceSource() {
     const ls2k::port::RuntimeParameters params{};
     const ls2k::port::BEVReferencePath path = MakePath(params, 6, 0.0F, ls2k::port::BEVPathPointSource::kHold);
     const ls2k::port::ReferenceUsability usability = ls2k::legacy::EvaluateReferenceUsability(path, params);
-    const ls2k::port::ReferenceLateralErrorEstimate lateral_error =
-        ls2k::legacy::ComputeReferenceLateralError(path, usability, params);
+    const ls2k::port::ReferenceTrackingGeometry tracking_geometry =
+        ls2k::legacy::ComputeReferenceTrackingGeometry(path,
+                                                       usability,
+                                                       params.bev_control_model);
 
     const ls2k::port::ReferenceControlReadiness current =
-        ls2k::legacy::EvaluateReferenceControlReadiness(usability, lateral_error, false);
+        ls2k::legacy::EvaluateReferenceControlReadiness(usability, tracking_geometry, false);
     const ls2k::port::ReferenceControlReadiness held =
-        ls2k::legacy::EvaluateReferenceControlReadiness(usability, lateral_error, true);
+        ls2k::legacy::EvaluateReferenceControlReadiness(usability, tracking_geometry, true);
 
     Expect(current.ready && !current.degraded && current.reason == "ok",
            "reference-control readiness must not infer hold from point source");
@@ -255,17 +296,17 @@ void TestReferenceControlReadinessUsesHoldSelectedNotReferenceSource() {
 
 void TestReferenceControlReadinessRejectsLayerFailures() {
     ls2k::port::ReferenceUsability usability{};
-    ls2k::port::ReferenceLateralErrorEstimate lateral_error{};
+    ls2k::port::ReferenceTrackingGeometry tracking_geometry{};
 
     ls2k::port::ReferenceControlReadiness readiness =
-        ls2k::legacy::EvaluateReferenceControlReadiness(usability, lateral_error, false);
+        ls2k::legacy::EvaluateReferenceControlReadiness(usability, tracking_geometry, false);
     Expect(!readiness.ready && readiness.reason == "reference_unusable",
-           "unusable reference must stop before lateral-error readiness");
+           "unusable reference must stop before tracking-geometry readiness");
 
     usability.usable = true;
-    readiness = ls2k::legacy::EvaluateReferenceControlReadiness(usability, lateral_error, false);
-    Expect(!readiness.ready && readiness.reason == "lateral_error_uncomputed",
-           "uncomputed lateral error must stop reference-control readiness");
+    readiness = ls2k::legacy::EvaluateReferenceControlReadiness(usability, tracking_geometry, false);
+    Expect(!readiness.ready && readiness.reason == "tracking_geometry_uncomputed",
+           "uncomputed tracking geometry must stop reference-control readiness");
 }
 
 void TestSafetyGateOwnsProjectorAndLowVoltageVetoes() {
@@ -310,14 +351,14 @@ int main() {
     try {
         TestUsabilityRequiresConfiguredMinimumLeadingReferenceSamples();
         TestConfiguredMinimumLeadingReferenceSamplesCanChange();
-        TestLeadingContinuityIsRequired();
+        TestFirstUsableSegmentContinuityIsRequired();
         TestSourceDoesNotAffectUsabilityOrLateralError();
         TestStraightReferenceProducesZeroLateralError();
         TestConstantOffsetReferencePreservesOffset();
         TestNearSamplesHaveMoreWeightThanFarSamples();
         TestGapStopsWeightedSamples();
         TestFarWeightUsesGlobalReferenceIndex();
-        TestTurnOutputTargetUsesLateralErrorGainAndUnclampedSpeedScale();
+        TestTurnOutputTargetUsesTrackingGeometryTermsAndRawTargetLimit();
         TestGyroTurnUsesGateApprovedGyroValueOnly();
         TestReferenceControlReadinessUsesHoldSelectedNotReferenceSource();
         TestReferenceControlReadinessRejectsLayerFailures();

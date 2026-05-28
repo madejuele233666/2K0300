@@ -18,6 +18,7 @@ compile_test_binary \
   "${REPO_ROOT}/new/code/legacy/steering_otsu_threshold.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_single_boundary_offset.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_reference_connectivity.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_bev_element_raster.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_circle_element_evidence.cpp" \
@@ -26,7 +27,9 @@ compile_test_binary \
   "${REPO_ROOT}/new/code/legacy/steering_visual_reference_orchestration.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_usability.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_lateral_error.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_reference_tracking_geometry.cpp" \
   "${REPO_ROOT}/new/code/legacy/steering_reference_control_readiness.cpp" \
+  "${REPO_ROOT}/new/code/legacy/steering_yaw_controller.cpp" \
   "${REPO_ROOT}/new/code/runtime/steering_circle_v2_scene.cpp" \
   "${REPO_ROOT}/new/code/runtime/steering_circle_v2_reference_adapter.cpp" \
   "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_event_observer.cpp" \
@@ -103,7 +106,13 @@ run_probe_case \
   "circle_v2.dir=left" \
   "circle_v2.reference_role=none" \
   "circle_v2.reason=phase1_cue_left" \
-  "visual_reference.source=none"
+  "visual_reference.source=simple_interval_center" \
+  "tracking_geometry.computed=true" \
+  "yaw_control.turn_output_target=" \
+  "yaw_control.lateral_term=" \
+  "yaw_control.heading_term=" \
+  "yaw_control.curvature_term=" \
+  "reference_control.ready=true"
 
 non_object_element_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element.json"
 python3 - "${PARAMS_PATH}" "${non_object_element_params_path}" <<'PY'
@@ -172,6 +181,15 @@ require_token "${default_confirm_log_path}" \
 require_token "${default_confirm_log_path}" \
   "circle-2-confirmed-innertrace" \
   "visual_reference.source=circle_v2_inner"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "reference_control.ready=true"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "tracking_geometry.computed=true"
+require_token "${default_confirm_log_path}" \
+  "circle-2-confirmed-innertrace" \
+  "yaw_control.turn_output_target="
 echo "scene_overlay_probe authority-baseline circle-2-confirmed-innertrace passed"
 
 for case_name in circle-1 circle-3; do
@@ -214,10 +232,13 @@ require_token "${cross_suppresses_active_log_path}" \
   "circle_v2.dir=none"
 require_token "${cross_suppresses_active_log_path}" \
   "cross-suppresses-active-circle" \
-  "element_evidence.cross_exit.candidate.reason=line_candidate_absent"
+  "element_evidence.cross_exit.candidate.reason=included_in_arbitration"
 require_token "${cross_suppresses_active_log_path}" \
   "cross-suppresses-active-circle" \
-  "visual_reference.source=none"
+  "visual_reference.source=cross_exit"
+require_token "${cross_suppresses_active_log_path}" \
+  "cross-suppresses-active-circle" \
+  "reference_control.ready=true"
 echo "scene_overlay_probe authority-baseline cross-suppresses-active-circle passed"
 
 for case_name in bend-1 bend-2 bend-3; do

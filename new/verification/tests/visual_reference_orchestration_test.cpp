@@ -1,9 +1,12 @@
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "legacy/steering_bev_projector.hpp"
+#include "legacy/steering_reference_connectivity.hpp"
 #include "legacy/steering_visual_reference_orchestration.hpp"
 
 namespace {
@@ -47,6 +50,90 @@ ls2k::port::VisualReferenceCandidate Candidate(ls2k::port::VisualReferenceCandid
     candidate.source = source;
     candidate.reason = "unit_test_candidate";
     return candidate;
+}
+
+ls2k::port::LegacyCameraFrame MakeConnectivityFrame(std::uint8_t fill) {
+    ls2k::port::LegacyCameraFrame frame{};
+    frame.width = 10;
+    frame.height = 10;
+    frame.gray.fill(fill);
+    return frame;
+}
+
+void SetPixel(ls2k::port::LegacyCameraFrame& frame, int row, int col, std::uint8_t value) {
+    frame.gray[static_cast<std::size_t>(row) *
+                   static_cast<std::size_t>(frame.width) +
+               static_cast<std::size_t>(col)] = value;
+}
+
+ls2k::legacy::BEVProjector MakeIdentityConnectivityProjector() {
+    ls2k::port::BEVProjectorCalibration calibration{};
+    calibration.source_points = {
+        {ls2k::port::ImagePoint{0.0F, 0.0F},
+         ls2k::port::ImagePoint{0.0F, 9.0F},
+         ls2k::port::ImagePoint{9.0F, 0.0F},
+         ls2k::port::ImagePoint{9.0F, 9.0F}}};
+    calibration.target_points = {
+        {ls2k::port::BEVPoint{0.0F, 0.0F},
+         ls2k::port::BEVPoint{0.0F, 9.0F},
+         ls2k::port::BEVPoint{9.0F, 0.0F},
+         ls2k::port::BEVPoint{9.0F, 9.0F}}};
+    ls2k::legacy::BEVProjector projector{};
+    Expect(projector.Configure(calibration),
+           "identity connectivity projector must configure");
+    return projector;
+}
+
+ls2k::port::BEVReferencePath MakeConnectivityPath() {
+    ls2k::port::BEVReferencePath path{};
+    path.mode = ls2k::port::ReferenceMode::kIntervalCenter;
+    path.sampled_path[0].present = true;
+    path.sampled_path[0].point = {1.0F, 1.0F};
+    path.sampled_path[0].confidence = 1.0F;
+    path.sampled_path[0].source = ls2k::port::BEVPathPointSource::kIntervalCenter;
+    path.sampled_path[1].present = true;
+    path.sampled_path[1].point = {8.0F, 8.0F};
+    path.sampled_path[1].confidence = 1.0F;
+    path.sampled_path[1].source = ls2k::port::BEVPathPointSource::kIntervalCenter;
+    return path;
+}
+
+ls2k::port::VisualReferenceCandidate CandidateWithPath(
+    ls2k::port::VisualReferenceCandidateKind kind,
+    const ls2k::port::BEVReferencePath& path,
+    const std::string& source) {
+    ls2k::port::VisualReferenceCandidate candidate{};
+    candidate.present = true;
+    candidate.kind = kind;
+    candidate.reference_path = path;
+    candidate.confidence = 1.0F;
+    candidate.source = source;
+    candidate.reason = "connectivity_gate_test";
+    return candidate;
+}
+
+void AppendAllVisualKindsThroughConnectivityGate(
+    const ls2k::legacy::ReferenceConnectivityFrameView& frame,
+    const ls2k::port::BEVReferencePath& path,
+    std::vector<ls2k::port::VisualReferenceCandidate>& accepted) {
+    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+        frame,
+        CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kLine,
+                          path,
+                          "line"),
+        accepted);
+    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+        frame,
+        CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kCrossExit,
+                          path,
+                          "cross_exit"),
+        accepted);
+    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+        frame,
+        CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kCircleLeft,
+                          path,
+                          "circle_v2_inner"),
+        accepted);
 }
 
 void TestNoCandidatesSelectsNone() {
@@ -179,6 +266,87 @@ void TestEqualSpecialTieSelectsNone() {
     Expect(selection.candidate_count == 3, "all structurally valid candidates must be counted");
 }
 
+void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
+    ls2k::port::RuntimeParameters params{};
+    const ls2k::legacy::BEVProjector projector =
+        MakeIdentityConnectivityProjector();
+    const ls2k::port::BEVReferencePath path = MakeConnectivityPath();
+
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeConnectivityFrame(255U);
+        const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
+            frame.View(10, 10),
+            projector,
+            100,
+            params.bev_classification,
+        };
+        std::vector<ls2k::port::VisualReferenceCandidate> accepted;
+        AppendAllVisualKindsThroughConnectivityGate(connectivity_frame, path, accepted);
+        Expect(accepted.size() == 3U,
+               "connected line, cross, and circle candidates must pass the central gate");
+    }
+
+    {
+        ls2k::port::LegacyCameraFrame blocked = MakeConnectivityFrame(255U);
+        SetPixel(blocked, 0, 0, 0U);
+        const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
+            blocked.View(12, 12),
+            projector,
+            100,
+            params.bev_classification,
+        };
+        std::vector<ls2k::port::VisualReferenceCandidate> accepted;
+        AppendAllVisualKindsThroughConnectivityGate(blocked_frame, path, accepted);
+        Expect(accepted.size() == 3U,
+               "origin-disconnected candidates must be clipped before selection");
+        for (const ls2k::port::VisualReferenceCandidate& candidate : accepted) {
+            Expect(candidate.present,
+                   "origin-clipped candidate must remain visible for usability");
+            Expect(!candidate.reference_path.sampled_path[0].present,
+                   "origin block must remove the whole connected prefix");
+            Expect(candidate.reason.find("connectivity_prefix_clipped") != std::string::npos,
+                   "origin-clipped candidate must expose connectivity clipping");
+        }
+    }
+
+    ls2k::port::LegacyCameraFrame blocked = MakeConnectivityFrame(255U);
+    SetPixel(blocked, 4, 4, 0U);
+    const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
+        blocked.View(11, 11),
+        projector,
+        100,
+        params.bev_classification,
+    };
+    std::vector<ls2k::port::VisualReferenceCandidate> accepted;
+    AppendAllVisualKindsThroughConnectivityGate(blocked_frame, path, accepted);
+    Expect(accepted.size() == 3U,
+           "disconnected line, cross, and circle candidates must be clipped before selection");
+    for (const ls2k::port::VisualReferenceCandidate& candidate : accepted) {
+        Expect(candidate.present,
+               "clipped candidate must remain a visual candidate for usability to judge");
+        Expect(candidate.reference_path.sampled_path[0].present,
+               "connected prefix must keep the leading sample");
+        Expect(!candidate.reference_path.sampled_path[1].present,
+               "blocked segment must stop the connected prefix before the blocked sample");
+        Expect(candidate.reason.find("connectivity_prefix_clipped") != std::string::npos,
+               "clipped candidate must expose connectivity clipping in debug reason");
+    }
+
+    ls2k::port::VisualReferenceCandidatePathSet debug_paths{};
+    for (const ls2k::port::VisualReferenceCandidate& candidate : accepted) {
+        ls2k::port::AppendVisualReferenceCandidatePath(debug_paths, candidate);
+    }
+    Expect(debug_paths.count == 3U,
+           "clipped candidates must remain visible in public candidate-path debug output");
+
+    const ls2k::port::VisualReferenceSelection selection =
+        ls2k::legacy::SelectVisualReference(accepted);
+    Expect(selection.present,
+           "selector may select a clipped visual candidate; usability owns sample-count rejection");
+    Expect(selection.candidate_count == 3U,
+           "selector candidate count must include structurally valid clipped candidates");
+}
+
 }  // namespace
 
 int main() {
@@ -192,6 +360,7 @@ int main() {
         TestPriorityExplainsMultipleSpecialCandidates();
         TestCrossExitPriorityExceedsCircle();
         TestEqualSpecialTieSelectsNone();
+        TestCentralConnectivityGateClipsDisconnectedVisualKinds();
     } catch (const TestFailure& failure) {
         std::cerr << "visual_reference_orchestration_test failed: "
                   << failure.message << "\n";

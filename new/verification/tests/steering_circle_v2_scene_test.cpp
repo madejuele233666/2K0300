@@ -64,6 +64,15 @@ ls2k::legacy::BEVSimpleRowScan SingleIntervalRow(float forward, float left_m, fl
     return row;
 }
 
+void SetSampleableSpan(ls2k::legacy::BEVSimpleRowScan& row,
+                       float left_m,
+                       float right_m) {
+    row.sampleable_left_m = left_m;
+    row.sampleable_right_m = right_m;
+    row.sampleable_width_m = right_m - left_m;
+    row.sampleable_count = 65;
+}
+
 std::vector<ls2k::legacy::BEVSimpleRowScan> RowsFromReach(
     const std::vector<float>& left_reach_near_to_far,
     const std::vector<float>& right_reach_near_to_far) {
@@ -141,6 +150,13 @@ std::vector<ls2k::legacy::BEVSimpleRowScan> LeftEntryRowsWithoutNearSupport() {
         SingleIntervalRow(0.42F, -0.36F, 0.22F),
         SingleIntervalRow(0.48F, -0.42F, 0.22F),
     };
+}
+
+std::vector<ls2k::legacy::BEVSimpleRowScan> LeftEntryRowsWithExpansionAfterRoiStart() {
+    return RowsFromReach({0.20F, 0.20F, 0.20F, 0.20F,
+                          0.20F, 0.30F, 0.36F, 0.42F},
+                         {0.22F, 0.22F, 0.22F, 0.22F,
+                          0.22F, 0.22F, 0.22F, 0.22F});
 }
 
 std::vector<ls2k::legacy::BEVSimpleRowScan> LeftInnerTraceRows() {
@@ -452,14 +468,29 @@ void TestApproachConsumesOnlyLockedDirectionExpansion() {
     const ls2k::runtime::detail::CircleV2Events gapped_events =
         EventsFor(Frame(gapped_rows, 0.0F), prior, params);
     Expect(!gapped_events.entry_gate_reached,
-           "Approach bottom gate must not jump across missing near-row support");
+           "Approach bottom gate must require enough rows inside the configured ROI");
 
     std::vector<ls2k::legacy::BEVSimpleRowScan> far_rows =
         LeftEntryRowsWithoutNearSupport();
     const ls2k::runtime::detail::CircleV2Events far_events =
         EventsFor(Frame(far_rows, 0.0F), prior, params);
     Expect(!far_events.entry_gate_reached,
-           "Approach bottom gate must require near-row support");
+           "Approach bottom gate must not consume rows outside the configured ROI");
+
+    std::vector<ls2k::legacy::BEVSimpleRowScan> shifted_roi_rows =
+        LeftEntryRowsWithExpansionAfterRoiStart();
+    const ls2k::runtime::detail::CircleV2Events default_roi_events =
+        EventsFor(Frame(shifted_roi_rows, 0.0F), prior, params);
+    Expect(!default_roi_events.entry_gate_reached,
+           "Approach bottom gate must ignore expansion outside the configured bottom ROI");
+    params.entry_bottom_forward_min_m = 0.29F;
+    params.entry_bottom_forward_max_m = 0.50F;
+    const ls2k::runtime::detail::CircleV2Events shifted_roi_events =
+        EventsFor(Frame(shifted_roi_rows, 0.0F), prior, params);
+    Expect(shifted_roi_events.entry_gate_reached,
+           "Approach bottom gate must use the configured bottom forward ROI");
+    params.entry_bottom_forward_min_m = 0.0F;
+    params.entry_bottom_forward_max_m = 0.25F;
 
     prior.dir = ls2k::runtime::CircleDir::kRight;
     const ls2k::runtime::detail::CircleV2Events right_events =
@@ -759,6 +790,109 @@ void TestExitTraceUsesOrdinaryRoadHalfWidthFact() {
            "ExitTrace must use OrdinaryRoadModel.half_width instead of row-derived width");
 }
 
+void TestExitTraceAcceptsNonSelectedBoundaryClippedInterval() {
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+        SingleIntervalRow(0.3F, 0.20F, 0.50F),
+        SingleIntervalRow(0.4F, 0.20F, 0.50F),
+        SingleIntervalRow(0.5F, 0.20F, 0.50F),
+    };
+    for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+        SetSampleableSpan(row, 0.20F, 0.70F);
+    }
+    ls2k::runtime::CircleV2Memory prior{};
+    prior.phase = ls2k::runtime::CirclePhase::kExitTrace;
+    prior.dir = ls2k::runtime::CircleDir::kLeft;
+    ls2k::runtime::CircleV2Params params{};
+    params.exit_hold_frames = 2;
+
+    const ls2k::runtime::CircleV2StepResult result =
+        ls2k::runtime::CircleV2Scene{}.Step(
+            FrameWithCenterPath(rows, 0.0F, CenterPath(), 0.12F),
+            prior,
+            params);
+    Expect(result.reference_plan.has_value(),
+           "ExitTrace must accept an interval whose non-selected edge is clipped");
+    const float lateral =
+        result.reference_plan->reference_path.sampled_path[0].point.lateral_m;
+    Expect(std::fabs(lateral - 0.38F) < 1.0e-5F,
+           "ExitTrace must offset from the selected visible outer edge");
+}
+
+void TestExitTraceRejectsSelectedBoundaryClippedEdgePath() {
+    {
+        std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+            SingleIntervalRow(0.3F, 0.20F, 0.50F),
+            SingleIntervalRow(0.4F, 0.20F, 0.50F),
+            SingleIntervalRow(0.5F, 0.20F, 0.50F),
+        };
+        for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+            SetSampleableSpan(row, 0.00F, 0.50F);
+        }
+        ls2k::runtime::CircleV2Memory prior{};
+        prior.phase = ls2k::runtime::CirclePhase::kExitTrace;
+        prior.dir = ls2k::runtime::CircleDir::kLeft;
+        ls2k::runtime::CircleV2Params params{};
+        params.exit_hold_frames = 2;
+
+        const ls2k::runtime::CircleV2StepResult result =
+            ls2k::runtime::CircleV2Scene{}.Step(
+                FrameWithCenterPath(rows, 0.0F, CenterPath(), 0.12F),
+                prior,
+                params);
+        Expect(!result.reference_plan.has_value(),
+               "left ExitTrace must reject a clipped selected right outer edge");
+    }
+    {
+        std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+            SingleIntervalRow(0.3F, -0.50F, -0.20F),
+            SingleIntervalRow(0.4F, -0.50F, -0.20F),
+            SingleIntervalRow(0.5F, -0.50F, -0.20F),
+        };
+        for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+            SetSampleableSpan(row, -0.50F, 0.00F);
+        }
+        ls2k::runtime::CircleV2Memory prior{};
+        prior.phase = ls2k::runtime::CirclePhase::kExitTrace;
+        prior.dir = ls2k::runtime::CircleDir::kRight;
+        ls2k::runtime::CircleV2Params params{};
+        params.exit_hold_frames = 2;
+
+        const ls2k::runtime::CircleV2StepResult result =
+            ls2k::runtime::CircleV2Scene{}.Step(
+                FrameWithCenterPath(rows, 0.0F, CenterPath(), 0.12F),
+                prior,
+                params);
+        Expect(!result.reference_plan.has_value(),
+               "right ExitTrace must reject a clipped selected left outer edge");
+    }
+}
+
+void TestExitTraceIgnoresEntryBottomForwardRoi() {
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+        Row(0.3F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.4F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.5F, -0.5F, -0.4F, 0.4F, 0.5F),
+    };
+    ls2k::runtime::CircleV2Memory prior{};
+    prior.phase = ls2k::runtime::CirclePhase::kExitTrace;
+    prior.dir = ls2k::runtime::CircleDir::kLeft;
+    ls2k::runtime::CircleV2Params params{};
+    params.exit_hold_frames = 2;
+    params.entry_bottom_forward_min_m = 0.70F;
+    params.entry_bottom_forward_max_m = 0.80F;
+
+    const ls2k::runtime::CircleV2StepResult result =
+        ls2k::runtime::CircleV2Scene{}.Step(
+            FrameWithCenterPath(rows, 0.0F, CenterPath(), 0.12F),
+            prior,
+            params);
+    Expect(result.reference_plan.has_value(),
+           "entry bottom forward ROI must not limit ExitTrace edge geometry");
+    Expect(std::fabs(result.reference_plan->reference_path.sampled_path[0]
+                         .point.forward_m - 0.30F) < 1.0e-5F,
+           "ExitTrace edge path must preserve observed row forward coordinates");
+}
+
 void TestInnerTraceUsesLockedSideInnerEdgePath() {
     std::vector<ls2k::legacy::BEVSimpleRowScan> rows = LeftInnerTraceRows();
     ls2k::runtime::CircleV2Memory prior{};
@@ -839,6 +973,85 @@ void TestInnerTraceRejectsInsufficientRowGeometry() {
            "adapter must not produce a candidate from insufficient row geometry");
 }
 
+void TestInnerTraceAcceptsNonSelectedBoundaryClippedInterval() {
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+        SingleIntervalRow(0.06F, -0.50F, -0.20F),
+        SingleIntervalRow(0.12F, -0.50F, -0.20F),
+        SingleIntervalRow(0.18F, -0.50F, -0.20F),
+    };
+    for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+        SetSampleableSpan(row, -0.50F, 0.50F);
+    }
+    ls2k::runtime::CircleV2Memory prior{};
+    prior.phase = ls2k::runtime::CirclePhase::kInnerTrace;
+    prior.dir = ls2k::runtime::CircleDir::kLeft;
+    prior.clock.enter_capture_time_ms = 100;
+    ls2k::runtime::CircleV2Params params{};
+    params.exit_yaw_threshold_rad = 10.0F;
+
+    const ls2k::runtime::CircleV2StepResult result =
+        ls2k::runtime::CircleV2Scene{}.Step(
+            FrameWithCenterPath(rows, 0.0F, EntryCenterPath()),
+            prior,
+            params);
+    Expect(result.reference_plan.has_value(),
+           "InnerTrace must accept an interval whose non-selected edge is clipped");
+    Expect(std::fabs(result.reference_plan->reference_path.sampled_path[0]
+                         .point.lateral_m - (-0.20F)) < 1.0e-5F,
+           "InnerTrace must use the selected visible inner edge");
+}
+
+void TestInnerTraceRejectsSelectedBoundaryClippedEdgePath() {
+    {
+        std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+            SingleIntervalRow(0.06F, -0.50F, -0.20F),
+            SingleIntervalRow(0.12F, -0.50F, -0.20F),
+            SingleIntervalRow(0.18F, -0.50F, -0.20F),
+        };
+        for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+            SetSampleableSpan(row, -0.70F, -0.20F);
+        }
+        ls2k::runtime::CircleV2Memory prior{};
+        prior.phase = ls2k::runtime::CirclePhase::kInnerTrace;
+        prior.dir = ls2k::runtime::CircleDir::kLeft;
+        prior.clock.enter_capture_time_ms = 100;
+        ls2k::runtime::CircleV2Params params{};
+        params.exit_yaw_threshold_rad = 10.0F;
+
+        const ls2k::runtime::CircleV2StepResult result =
+            ls2k::runtime::CircleV2Scene{}.Step(
+                FrameWithCenterPath(rows, 0.0F, EntryCenterPath()),
+                prior,
+                params);
+        Expect(!result.reference_plan.has_value(),
+               "left InnerTrace must reject a clipped selected inner edge");
+    }
+    {
+        std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+            SingleIntervalRow(0.06F, 0.20F, 0.50F),
+            SingleIntervalRow(0.12F, 0.20F, 0.50F),
+            SingleIntervalRow(0.18F, 0.20F, 0.50F),
+        };
+        for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
+            SetSampleableSpan(row, 0.20F, 0.70F);
+        }
+        ls2k::runtime::CircleV2Memory prior{};
+        prior.phase = ls2k::runtime::CirclePhase::kInnerTrace;
+        prior.dir = ls2k::runtime::CircleDir::kRight;
+        prior.clock.enter_capture_time_ms = 100;
+        ls2k::runtime::CircleV2Params params{};
+        params.exit_yaw_threshold_rad = 10.0F;
+
+        const ls2k::runtime::CircleV2StepResult result =
+            ls2k::runtime::CircleV2Scene{}.Step(
+                FrameWithCenterPath(rows, 0.0F, EntryCenterPath()),
+                prior,
+                params);
+        Expect(!result.reference_plan.has_value(),
+               "right InnerTrace must reject a clipped selected inner edge");
+    }
+}
+
 void TestInnerTraceRejectsGappedRowGeometry() {
     std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
         Row(0.3F, -0.5F, -0.4F, 0.4F, 0.5F),
@@ -856,6 +1069,59 @@ void TestInnerTraceRejectsGappedRowGeometry() {
         ls2k::runtime::CircleV2Scene{}.Step(Frame(rows, 0.0F), prior, params);
     Expect(!result.reference_plan.has_value(),
            "missing middle row must break CircleV2 inner-edge path observation");
+}
+
+void TestInnerTraceIgnoresEntryBottomForwardRoi() {
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+        Row(0.10F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.18F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.30F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.36F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.42F, -0.5F, -0.4F, 0.4F, 0.5F),
+    };
+    ls2k::runtime::CircleV2Memory prior{};
+    prior.phase = ls2k::runtime::CirclePhase::kInnerTrace;
+    prior.dir = ls2k::runtime::CircleDir::kLeft;
+    prior.clock.enter_capture_time_ms = 100;
+    ls2k::runtime::CircleV2Params params{};
+    params.exit_yaw_threshold_rad = 10.0F;
+    params.entry_bottom_forward_min_m = 0.70F;
+    params.entry_bottom_forward_max_m = 0.80F;
+
+    const ls2k::runtime::CircleV2StepResult result =
+        ls2k::runtime::CircleV2Scene{}.Step(
+            FrameWithoutOrdinaryRoad(rows, 0.0F),
+            prior,
+            params);
+    Expect(result.reference_plan.has_value(),
+           "entry bottom forward ROI must not limit InnerTrace edge geometry");
+    Expect(std::fabs(result.reference_plan->reference_path.sampled_path[0]
+                         .point.forward_m - 0.10F) < 1.0e-5F,
+           "CircleV2 edge path must preserve observed row forward coordinates");
+}
+
+void TestInnerTraceDoesNotBridgeInvalidRows() {
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows{
+        Row(0.30F, -0.5F, -0.4F, 0.4F, 0.5F),
+        InvalidRow(0.36F),
+        Row(0.42F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.48F, -0.5F, -0.4F, 0.4F, 0.5F),
+        Row(0.54F, -0.5F, -0.4F, 0.4F, 0.5F),
+    };
+    ls2k::runtime::CircleV2Memory prior{};
+    prior.phase = ls2k::runtime::CirclePhase::kInnerTrace;
+    prior.dir = ls2k::runtime::CircleDir::kLeft;
+    prior.clock.enter_capture_time_ms = 100;
+    ls2k::runtime::CircleV2Params params{};
+    params.exit_yaw_threshold_rad = 10.0F;
+
+    const ls2k::runtime::CircleV2StepResult result =
+        ls2k::runtime::CircleV2Scene{}.Step(
+            FrameWithoutOrdinaryRoad(rows, 0.0F),
+            prior,
+            params);
+    Expect(!result.reference_plan.has_value(),
+           "CircleV2 edge geometry must not bridge invalid row holes");
 }
 
 void TestSceneGeometryAndAdapter() {
@@ -965,9 +1231,16 @@ int main() {
     TestReferenceHoldResetPreservesCircleV2Memory();
     TestExitTraceRejectsNonStraightOuterEdge();
     TestExitTraceUsesOrdinaryRoadHalfWidthFact();
+    TestExitTraceAcceptsNonSelectedBoundaryClippedInterval();
+    TestExitTraceRejectsSelectedBoundaryClippedEdgePath();
+    TestExitTraceIgnoresEntryBottomForwardRoi();
     TestInnerTraceUsesLockedSideInnerEdgePath();
     TestInnerTraceRejectsInsufficientRowGeometry();
+    TestInnerTraceAcceptsNonSelectedBoundaryClippedInterval();
+    TestInnerTraceRejectsSelectedBoundaryClippedEdgePath();
     TestInnerTraceRejectsGappedRowGeometry();
+    TestInnerTraceIgnoresEntryBottomForwardRoi();
+    TestInnerTraceDoesNotBridgeInvalidRows();
     TestSceneGeometryAndAdapter();
     TestRightInnerTraceInnerEdgePath();
     std::cout << "steering_circle_v2_scene_test passed\n";

@@ -393,6 +393,10 @@ struct CircleV2Params {
   int inner_trace_stall_timeout_ms = 4000;
   float inner_trace_stall_yaw_min_rad = kDefaultCircleV2InnerTraceStallYawMinRad;
   float inner_trace_path_offset_m = 0.0F;
+  float opposite_straight_confidence_min = 0.50F;
+  int entry_bottom_row_count = 4;
+  float entry_bottom_forward_min_m = 0.0F;
+  float entry_bottom_forward_max_m = 0.25F;
 };
 ```
 
@@ -402,6 +406,8 @@ struct CircleV2Params {
 
 ```text
 exit_hold_frames >= 2
+entry_bottom_row_count >= 4
+0.0 <= entry_bottom_forward_min_m <= entry_bottom_forward_max_m <= 2.0
 ```
 
 原因是 `InnerTrace -> ExitTrace` 的进入帧已经输出 `ExitTrace` reference。若允许 `exit_hold_frames = 1`，本帧结束后的 memory 会直接进入 `Idle`，外部观察会形成非兜底语义的 `InnerTrace -> Idle`，破坏主链路状态转移语义。
@@ -922,14 +928,29 @@ Phase1 circle cue:
   使用完整连续 trace 的侧向开口 + 对侧直线约束。
 
 Approach entry gate:
-  只使用图像下方 / 近端连续行。
+  只使用配置的图像下方 ROI 行。
   必须同时满足锁存 dir 侧底部开口和对侧底部边线近似直线。
-  底部行必须从近端开始连续取得，不能跨过缺失近端支撑去使用远端行。
+  BottomRows 在 entry_bottom_forward_min_m / max_m 区间内取前 N 行；不足 N 行则 gate 为 false。
   锁存侧开口 = 同侧边界 reach 沿前向持续增长，不是 locked-side reach > opposite-side reach。
   远端 Phase1 开口仍然可见时，不得直接触发 Approach -> InnerTrace。
 ```
 
-它们只能消费同一份连续边线 trace：
+入口 gate 的“下部 ROI”由参数显式限定：
+
+```text
+CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT:
+  需要消费的下部 ROI 行数，默认 4，合法范围 >= 4。
+
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M:
+  Approach entry gate 下部 ROI 的 forward_m 下限，默认 0.0m。
+
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M:
+  Approach entry gate 下部 ROI 的 forward_m 上限，默认 0.25m。
+```
+
+这些参数只定义 Approach entry gate 的 BottomRows 选择，不改变 Phase1 cue 的全局 trace 语义，不限制 InnerTrace / ExitTrace 的边线几何搜索，也不把 expansion observer 的内部增长阈值暴露为公共事实。
+
+它们只能消费同一份 road-connected 边线 trace：
 
 ```text
 road-connected interval =
@@ -966,9 +987,9 @@ right circle:
   推动 Approach -> InnerTrace。
 ```
 
-若某一帧只满足“远端左/右开口 + 全局对侧直线”的 Phase1 cue，而底部连续行仍是普通道路宽度，则 Approach 必须保持，不得进入 InnerTrace。若底部锁存侧已开口，但底部对侧边线不是近似直线，也必须保持 `Approach`。
+若某一帧只满足“远端左/右开口 + 全局对侧直线”的 Phase1 cue，而下部 ROI 行仍是普通道路宽度，则 Approach 必须保持，不得进入 InnerTrace。若底部锁存侧已开口，但底部对侧边线不是近似直线，也必须保持 `Approach`。
 
-若近端可用行数量不足、近端行之间出现明显断层、或实现必须跳过近端空洞才能凑够支撑行，则 `entry_gate_reached` 必须保持 false。这样 `Approach -> InnerTrace` 只表达“入口已经到达画面下方”，不表达“远处还看见一个环岛开口”。
+若配置的下部 ROI 内可用行数量不足，则 `entry_gate_reached` 必须保持 false。这样 `Approach -> InnerTrace` 只表达“入口已经到达配置的画面下方区域”，不表达“远处还看见一个环岛开口”。
 
 迁移后的 Phase1 helper 不再命名为 `DetectCircleElementEvidence`。推荐命名：
 
@@ -1220,6 +1241,10 @@ CIRCLE_V2_EXIT_HOLD_FRAMES
 CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS
 CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG
 CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M
+CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN
+CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M
 ```
 
 道路半宽不是 `CIRCLE_V2_*` 参数。当前活跃实现使用：
@@ -1240,6 +1265,10 @@ exit_hold_frames
 inner_trace_stall_timeout_ms
 inner_trace_stall_yaw_min_rad
 inner_trace_path_offset_m
+opposite_straight_confidence_min
+entry_bottom_row_count
+entry_bottom_forward_min_m
+entry_bottom_forward_max_m
 ```
 
 其中：
@@ -1421,6 +1450,10 @@ CIRCLE_V2_EXIT_HOLD_FRAMES
 CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS
 CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG
 CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M
+CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN
+CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M
 ```
 
 道路半宽使用 `BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M`，不作为 CircleV2 专属参数，也不从 rows 实时重算。
@@ -1445,6 +1478,18 @@ CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG:
 
 CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M:
   InnerTrace 路径从内圆边线向道路内部偏移的距离；0 表示贴内圆边线。
+
+CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN:
+  Phase1 cue 和 Approach entry gate 对侧直线的最低拟合置信度。
+
+CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT:
+  Approach entry gate 使用的下部 ROI 行数，默认 4，合法范围 >= 4。
+
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M:
+  Approach entry gate 下部 ROI 的 forward_m 下限，默认 0.0m。
+
+CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M:
+  Approach entry gate 下部 ROI 的 forward_m 上限，默认 0.25m。
 ```
 
 首选策略：
@@ -1592,8 +1637,8 @@ steering_circle_v2_event_observer_test:
   新增普通右弯反例测试：右侧有扩张，但完整左边界为弯曲 trace 时，不得输出 right circle cue。
   新增边线 trace 测试，确认 left/right trace 不按 lateral 符号过滤。
   新增 disconnected far-side artifact 测试，确认远端离散白块不会被合并进 road-connected boundary trace，也不会制造 right / left circle cue。
-  新增 Approach entry gate 测试，确认 entry gate 使用底部近端连续 ROI、锁存侧同侧增长和同 ROI 对侧直线，不使用全局远端开口或 locked/opposite reach 大小比较。
-  新增近端支撑缺失 / 底部行断层测试，确认 Approach 不跨空洞消费远端开口。
+  新增 Approach entry gate 测试，确认 entry gate 使用配置的下部 ROI、锁存侧同侧增长和同 ROI 对侧直线，不使用全局远端开口或 locked/opposite reach 大小比较。
+  新增下部 ROI 行数不足测试，确认 Approach 不消费 ROI 外远端开口。
   新增 per-prior-phase event gating 测试。
   新增 directed yaw 测试，覆盖本项目 yaw 约定下的左环岛负向、右环岛正向和反向回摆不累计。
 

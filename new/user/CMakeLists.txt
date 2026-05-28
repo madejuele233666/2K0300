@@ -85,6 +85,7 @@ set(NEW_SRCS
     ../code/legacy/steering_otsu_threshold.cpp
     ../code/legacy/steering_bev_projector.cpp
     ../code/legacy/steering_single_boundary_offset.cpp
+    ../code/legacy/steering_reference_connectivity.cpp
     ../code/legacy/steering_bev_simple_perception.cpp
     ../code/legacy/steering_bev_element_raster.cpp
     ../code/legacy/steering_circle_element_evidence.cpp
@@ -94,6 +95,7 @@ set(NEW_SRCS
     ../code/legacy/steering_visual_reference_orchestration.cpp
     ../code/legacy/steering_reference_usability.cpp
     ../code/legacy/steering_reference_lateral_error.cpp
+    ../code/legacy/steering_reference_tracking_geometry.cpp
     ../code/legacy/steering_reference_control_readiness.cpp
     ../code/runtime/startup.cpp
     ../code/runtime/camera_frame_store.cpp
@@ -184,6 +186,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../verification/tests/bev_simple_perception_test.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_single_boundary_offset.cpp
+        ../code/legacy/steering_reference_connectivity.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_bev_element_raster.cpp
         ../code/legacy/steering_circle_element_evidence.cpp
@@ -205,6 +208,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../verification/tests/reference_usability_lateral_error_test.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/legacy/steering_reference_lateral_error.cpp
+        ../code/legacy/steering_reference_tracking_geometry.cpp
         ../code/legacy/steering_reference_control_readiness.cpp
         ../code/port/perf_counter.cpp
         ../code/legacy/steering_yaw_controller.cpp
@@ -217,8 +221,24 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     )
 
     add_executable(
+        reference_tracking_geometry_test
+        ../verification/tests/reference_tracking_geometry_test.cpp
+        ../code/legacy/steering_reference_usability.cpp
+        ../code/legacy/steering_reference_tracking_geometry.cpp
+    )
+    target_link_libraries(
+        reference_tracking_geometry_test
+        pthread
+        m
+    )
+
+    add_executable(
         visual_reference_orchestration_test
         ../verification/tests/visual_reference_orchestration_test.cpp
+        ../code/legacy/steering_bev_projector.cpp
+        ../code/legacy/steering_single_boundary_offset.cpp
+        ../code/legacy/steering_reference_connectivity.cpp
+        ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_visual_reference_orchestration.cpp
     )
     target_link_libraries(
@@ -254,6 +274,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../verification/tests/visual_element_evidence_test.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_single_boundary_offset.cpp
+        ../code/legacy/steering_reference_connectivity.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_bev_element_raster.cpp
         ../code/legacy/steering_circle_element_evidence.cpp
@@ -350,6 +371,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_otsu_threshold.cpp
         ../code/legacy/steering_bev_projector.cpp
         ../code/legacy/steering_single_boundary_offset.cpp
+        ../code/legacy/steering_reference_connectivity.cpp
         ../code/legacy/steering_bev_simple_perception.cpp
         ../code/legacy/steering_bev_element_raster.cpp
         ../code/legacy/steering_circle_element_evidence.cpp
@@ -358,7 +380,9 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
         ../code/legacy/steering_visual_reference_orchestration.cpp
         ../code/legacy/steering_reference_usability.cpp
         ../code/legacy/steering_reference_lateral_error.cpp
+        ../code/legacy/steering_reference_tracking_geometry.cpp
         ../code/legacy/steering_reference_control_readiness.cpp
+        ../code/legacy/steering_yaw_controller.cpp
         ../code/runtime/steering_circle_v2_scene.cpp
         ../code/runtime/steering_circle_v2_reference_adapter.cpp
         ../code/runtime/detail/steering_circle_v2_event_observer.cpp

@@ -68,7 +68,7 @@ Idle -> Approach -> InnerTrace -> ExitTrace -> Idle
 - **AND** the third frame's `next_memory.phase` SHALL become `Idle`
 
 ### Requirement: Circle V2 Events Are Phase-Gated
-`CircleV2EventObserver` SHALL translate visual and motion facts into transition events, and `CircleV2Reducer` SHALL read only those events. Phase1 circle cue and Approach entry gate SHALL derive from the same Circle scene internal locked-side expansion observation, but SHALL NOT reuse the same boolean condition. Phase1 circle cue SHALL use full-trace side opening and opposite-boundary constraints. Approach entry gate SHALL use only a bottom / near-row contiguous ROI, and SHALL require locked-direction same-side boundary growth plus a straight bottom opposite boundary in that same ROI. Approach entry gate SHALL NOT compare the locked-side reach against the opposite-side reach as its opening condition. The event observer SHALL gate event production by prior phase:
+`CircleV2EventObserver` SHALL translate visual and motion facts into transition events, and `CircleV2Reducer` SHALL read only those events. Phase1 circle cue and Approach entry gate SHALL derive from the same Circle scene internal locked-side expansion observation, but SHALL NOT reuse the same boolean condition. Phase1 circle cue SHALL use full-trace side opening and opposite-boundary constraints. Approach entry gate SHALL use only the configured entry-bottom forward ROI, and SHALL require locked-direction same-side boundary growth plus a straight bottom opposite boundary in that same ROI. Approach entry gate SHALL NOT compare the locked-side reach against the opposite-side reach as its opening condition. The event observer SHALL gate event production by prior phase:
 
 - `Idle`: only `detected_dir`
 - `Approach`: only locked-direction `entry_gate_reached`
@@ -99,10 +99,10 @@ Idle -> Approach -> InnerTrace -> ExitTrace -> Idle
 
 #### Scenario: Approach consumes only locked-direction expansion
 - **WHEN** prior phase is `Approach` and locked direction is `left`
-- **THEN** only left-side same-boundary growth inside the bottom contiguous ROI with a straight right bottom boundary SHALL be allowed to set `entry_gate_reached`
+- **THEN** only left-side same-boundary growth inside the configured entry-bottom ROI with a straight right bottom boundary SHALL be allowed to set `entry_gate_reached`
 - **AND** right-side expansion SHALL NOT move the FSM to `InnerTrace`
 - **WHEN** locked direction is `right`
-- **THEN** only right-side same-boundary growth inside the bottom contiguous ROI with a straight left bottom boundary SHALL be allowed to set `entry_gate_reached`
+- **THEN** only right-side same-boundary growth inside the configured entry-bottom ROI with a straight left bottom boundary SHALL be allowed to set `entry_gate_reached`
 
 #### Scenario: Approach requires bottom opposite straightness
 - **WHEN** prior phase is `Approach`
@@ -118,9 +118,9 @@ Idle -> Approach -> InnerTrace -> ExitTrace -> Idle
 - **THEN** `entry_gate_reached` SHALL be false
 - **AND** the FSM SHALL remain in `Approach`
 
-#### Scenario: Approach bottom ROI does not jump across missing near support
+#### Scenario: Approach bottom ROI must provide enough rows
 - **WHEN** prior phase is `Approach`
-- **AND** the locked side has apparent expansion only after skipping missing or non-contiguous near rows
+- **AND** the configured entry-bottom ROI contains fewer than `CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` observable rows
 - **THEN** `entry_gate_reached` SHALL be false
 - **AND** the FSM SHALL remain in `Approach`
 
@@ -149,6 +149,8 @@ Runtime Circle V2 single-boundary reference construction SHALL reuse the neutral
 `InnerTrace` SHALL NOT use the V3 fixed-slope `P_est` boundary override, patched ordinary row intervals, or ordinary path-builder row override to create the active circle candidate. `ExitTrace` SHALL keep deriving its reference from the locked direction's opposite straight edge, offset by road half width toward the locked direction.
 
 Runtime Circle V2 reference construction SHALL emit a `CircleV2ReferencePlan` only when the role-specific geometry forms a finite leading-contiguous path segment. Single-sample, gapped, or otherwise structurally incomplete observations SHALL be treated as unavailable geometry rather than adapted into circle visual-reference candidates.
+
+CircleV2 geometry observation SHALL scan role-specific edge rows independently of the Approach entry-bottom ROI. Missing or invalid rows inside an already-started edge segment SHALL stop that segment rather than being bridged by later rows. Edge path samples SHALL preserve the observed row's `forward_m`.
 
 #### Scenario: InnerTrace uses inner edge for left circle
 - **WHEN** current-frame reference context is `InnerTrace` and direction is `left`
@@ -240,7 +242,7 @@ CircleV2Scene MUST NOT read cross detector internals, cross evidence internals, 
 - **AND** this SHALL NOT require cross evidence to enter visual-reference arbitration
 
 ### Requirement: Circle V2 Lifecycle And Parameters Are Explicit
-The runtime SHALL expose `CIRCLE_V2_ENABLED`, `CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG`, `CIRCLE_V2_EXIT_HOLD_FRAMES`, `CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS`, `CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG`, and `CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M`. `CircleV2Params` SHALL contain the exit yaw threshold, exit hold frames, InnerTrace stall fallback parameters, and the InnerTrace path offset. The yaw threshold SHALL NOT provide a dangerous zero business default.
+The runtime SHALL expose `CIRCLE_V2_ENABLED`, `CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG`, `CIRCLE_V2_EXIT_HOLD_FRAMES`, `CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS`, `CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG`, `CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M`, `CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT`, `CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M`, and `CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M`. `CircleV2Params` SHALL contain the exit yaw threshold, exit hold frames, InnerTrace stall fallback parameters, InnerTrace path offset, and Approach entry-bottom ROI. The yaw threshold SHALL NOT provide a dangerous zero business default.
 
 The retired V3 fixed-slope entry guide parameters SHALL NOT remain in the active CircleV2 runtime parameter surface unless a future active change reintroduces that behavior.
 
@@ -265,6 +267,14 @@ The retired V3 fixed-slope entry guide parameters SHALL NOT remain in the active
 - **WHEN** runtime parameters are loaded
 - **THEN** `CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M` SHALL default to `0.0`
 - **AND** `CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M` SHALL be accepted only as a finite value in `[0, 2]`
+- **AND** invalid values SHALL follow the existing runtime parameter parse-failure fallback behavior
+
+#### Scenario: Entry-bottom forward ROI is parsed and validated
+- **WHEN** runtime parameters are loaded
+- **THEN** `CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M` SHALL default to `0.0`
+- **AND** `CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M` SHALL default to `0.25`
+- **AND** both values SHALL be accepted only as finite values in `[0, 2]`
+- **AND** the max value SHALL be greater than or equal to the min value
 - **AND** invalid values SHALL follow the existing runtime parameter parse-failure fallback behavior
 
 #### Scenario: Retired fixed-slope parameters are inactive
