@@ -75,8 +75,8 @@ struct CameraSourceParameters {
  */
 struct RuntimeParameters {
     // 运动控制参数
-    double running_speed_target = 300.0;  ///< 目标行驶速度（PWM，0~5000）
-    double yaw_rate_pid_p = 3.0;          ///< 偏航角速率PID比例增益
+    double running_speed_target = 100.0;  ///< 目标行驶速度（PWM，0~5000）
+    double yaw_rate_pid_p = 0.0;          ///< 偏航角速率PID比例增益
     double yaw_rate_pid_i = 0.0;          ///< 偏航角速率PID积分增益
     double yaw_rate_pid_d = 0.0;          ///< 偏航角速率PID微分增益
     int exp_light = 65;                   ///< 相机曝光值

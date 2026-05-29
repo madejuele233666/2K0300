@@ -515,6 +515,9 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.lateral_step_m);
     header << ",\"REFERENCE_LATERAL_JUMP_GATE_M\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.reference_lateral_jump_gate_m);
+    header << ",\"BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M\":";
+    AppendJsonNumber(header,
+                     snapshot.param_snapshot.bev_geometry.boundary_trace_max_adjacent_distance_m);
     header << ",\"NOMINAL_ROAD_HALF_WIDTH_M\":";
     AppendJsonNumber(header, snapshot.param_snapshot.bev_geometry.nominal_road_half_width_m);
     header << ",\"SPARSE_ROW_COUNT\":"

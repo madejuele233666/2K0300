@@ -13,7 +13,9 @@
 #include <vector>
 
 #include "port/perf_counter.hpp"
+#include "legacy/steering_bev_boundary_trace_clip.hpp"
 #include "legacy/steering_bev_interval_edges.hpp"
+#include "legacy/steering_reference_connectivity.hpp"
 #include "legacy/steering_single_boundary_offset.hpp"
 
 namespace ls2k::legacy {
@@ -408,72 +410,235 @@ float ReferenceMaxJump(const port::RuntimeParameters& params) {
     return params.bev_geometry.reference_lateral_jump_gate_m;
 }
 
+BEVBoundaryTraceClipOptions BoundaryTraceClipOptionsFromParams(
+    const port::RuntimeParameters& params) {
+    return BEVBoundaryTraceClipOptions{
+        params.bev_geometry.boundary_trace_max_adjacent_distance_m};
+}
+
 BEVIntervalEdgeVisibilityOptions ReferenceEdgeVisibilityOptions() {
     BEVIntervalEdgeVisibilityOptions options{};
     options.treat_unknown_sampleable_edge_as_boundary = true;
     return options;
 }
 
-bool IntervalSupportsMidpointCandidate(
-    const BEVSimpleRowScan& row,
-    const BEVSimpleWhiteInterval& interval,
-    const BEVIntervalEdgeVisibilityOptions& options) {
-    const BEVIntervalEdgeVisibility visibility =
-        EvaluateIntervalEdgeVisibility(row, interval, options);
-    return visibility.low_visible && visibility.high_visible;
+float EdgeLateral(const BEVSimpleWhiteInterval& interval, SingleEdgeKind kind) {
+    return kind == SingleEdgeKind::kLow ? interval.left_m : interval.right_m;
 }
 
-bool IsSingleEdgeInterval(const BEVSimpleRowScan& row,
-                          const BEVSimpleWhiteInterval& interval,
-                          SingleEdgeKind kind,
-                          const BEVIntervalEdgeVisibilityOptions& options) {
+bool EdgeVisible(const BEVSimpleRowScan& row,
+                 const BEVSimpleWhiteInterval& interval,
+                 SingleEdgeKind kind,
+                 const BEVIntervalEdgeVisibilityOptions& options) {
     const BEVIntervalEdgeVisibility visibility =
         EvaluateIntervalEdgeVisibility(row, interval, options);
+    return kind == SingleEdgeKind::kLow ? visibility.low_visible
+                                        : visibility.high_visible;
+}
+
+port::BEVPoint EdgePoint(const BEVSimpleRowScan& row,
+                         const BEVSimpleWhiteInterval& interval,
+                         SingleEdgeKind kind) {
+    return port::BEVPoint{row.forward_m, EdgeLateral(interval, kind)};
+}
+
+bool SameBoundaryTracePoint(const BEVBoundaryTracePoint& point,
+                            std::size_t row_index,
+                            const port::BEVPoint& edge_point) {
+    return point.row_index == row_index &&
+           point.point.forward_m == edge_point.forward_m &&
+           point.point.lateral_m == edge_point.lateral_m;
+}
+
+std::vector<BEVBoundaryTracePoint> BuildBoundaryTraceForEdge(
+    const std::vector<BEVSimpleRowScan>& rows,
+    SingleEdgeKind kind,
+    const BEVIntervalEdgeVisibilityOptions& options,
+    std::size_t current_row_index,
+    std::size_t current_interval_index,
+    float anchor_lateral_m) {
+    std::vector<BEVBoundaryTracePoint> trace;
+    const std::size_t count =
+        std::min(rows.size(), static_cast<std::size_t>(port::kBevReferenceSampleCount));
+    trace.reserve(count);
+    for (std::size_t row_index = 0U; row_index < count; ++row_index) {
+        const BEVSimpleRowScan& row = rows[row_index];
+        if (!row.valid) {
+            continue;
+        }
+        const BEVSimpleWhiteInterval* selected = nullptr;
+        float best_cost = 0.0F;
+        for (std::size_t interval_index = 0U;
+             interval_index < row.intervals.size();
+             ++interval_index) {
+            const BEVSimpleWhiteInterval& interval = row.intervals[interval_index];
+            if (!EdgeVisible(row, interval, kind, options)) {
+                continue;
+            }
+            if (row_index == current_row_index &&
+                interval_index == current_interval_index) {
+                selected = &interval;
+                break;
+            }
+            const float cost =
+                std::fabs(EdgeLateral(interval, kind) - anchor_lateral_m);
+            if (selected == nullptr || cost < best_cost) {
+                selected = &interval;
+                best_cost = cost;
+            }
+        }
+        if (selected != nullptr) {
+            trace.push_back(BEVBoundaryTracePoint{
+                row_index,
+                EdgePoint(row, *selected, kind),
+            });
+        }
+    }
+    return trace;
+}
+
+struct BoundarySupport {
+    bool current_kept = false;
+    bool has_neighbor = false;
+    port::BEVPoint neighbor{};
+};
+
+BoundarySupport FindBoundarySupport(
+    const std::vector<BEVSimpleRowScan>& rows,
+    SingleEdgeKind kind,
+    const BEVIntervalEdgeVisibilityOptions& visibility_options,
+    const BEVBoundaryTraceClipOptions& clip_options,
+    std::size_t row_index,
+    std::size_t interval_index) {
+    BoundarySupport support{};
+    if (row_index >= rows.size() ||
+        interval_index >= rows[row_index].intervals.size()) {
+        return support;
+    }
+    const BEVSimpleRowScan& row = rows[row_index];
+    const BEVSimpleWhiteInterval& interval = row.intervals[interval_index];
+    if (!EdgeVisible(row, interval, kind, visibility_options)) {
+        return support;
+    }
+    const port::BEVPoint current = EdgePoint(row, interval, kind);
+    const std::vector<BEVBoundaryTracePoint> raw_trace =
+        BuildBoundaryTraceForEdge(rows,
+                                  kind,
+                                  visibility_options,
+                                  row_index,
+                                  interval_index,
+                                  current.lateral_m);
+    const std::vector<BEVBoundaryTracePoint> clipped_trace =
+        ClipBoundaryTraceOutliers(raw_trace, clip_options);
+
+    std::size_t best_row_gap = 0U;
+    float best_lateral_gap = 0.0F;
+    for (const BEVBoundaryTracePoint& point : clipped_trace) {
+        if (SameBoundaryTracePoint(point, row_index, current)) {
+            support.current_kept = true;
+            continue;
+        }
+        if (point.row_index <= row_index) {
+            continue;
+        }
+        const std::size_t row_gap = point.row_index - row_index;
+        const float lateral_gap = std::fabs(point.point.lateral_m - current.lateral_m);
+        if (!support.has_neighbor ||
+            row_gap < best_row_gap ||
+            (row_gap == best_row_gap && lateral_gap < best_lateral_gap)) {
+            support.has_neighbor = true;
+            support.neighbor = point.point;
+            best_row_gap = row_gap;
+            best_lateral_gap = lateral_gap;
+        }
+    }
+    if (!support.current_kept) {
+        support.has_neighbor = false;
+    }
+    return support;
+}
+
+BEVIntervalEdgeVisibility EvaluateContinuityFilteredVisibility(
+    const std::vector<BEVSimpleRowScan>& rows,
+    const port::RuntimeParameters& params,
+    const BEVIntervalEdgeVisibilityOptions& visibility_options,
+    std::size_t row_index,
+    std::size_t interval_index) {
+    BEVIntervalEdgeVisibility visibility{};
+    const BEVBoundaryTraceClipOptions clip_options =
+        BoundaryTraceClipOptionsFromParams(params);
+    const BoundarySupport low_support =
+        FindBoundarySupport(rows,
+                            SingleEdgeKind::kLow,
+                            visibility_options,
+                            clip_options,
+                            row_index,
+                            interval_index);
+    visibility.low_visible = low_support.current_kept;
+    const BoundarySupport high_support =
+        FindBoundarySupport(rows,
+                            SingleEdgeKind::kHigh,
+                            visibility_options,
+                            clip_options,
+                            row_index,
+                            interval_index);
+    visibility.high_visible = high_support.current_kept;
+    return visibility;
+}
+
+bool IntervalSupportsMidpointCandidate(
+    const std::vector<BEVSimpleRowScan>& rows,
+    const port::RuntimeParameters& params,
+    const ReferenceConnectivityFrameView* connectivity_frame,
+    const BEVIntervalEdgeVisibilityOptions& options,
+    std::size_t row_index,
+    std::size_t interval_index) {
+    if (row_index >= rows.size() ||
+        interval_index >= rows[row_index].intervals.size()) {
+        return false;
+    }
+    const BEVSimpleRowScan& row = rows[row_index];
+    const BEVSimpleWhiteInterval& interval = row.intervals[interval_index];
+    const BEVIntervalEdgeVisibility visibility =
+        EvaluateContinuityFilteredVisibility(rows,
+                                             params,
+                                             options,
+                                             row_index,
+                                             interval_index);
+    if (!visibility.low_visible || !visibility.high_visible) {
+        return false;
+    }
+    if (connectivity_frame == nullptr) {
+        return true;
+    }
+    return BEVSegmentHasNoBlackPixels(
+        *connectivity_frame,
+        port::BEVPoint{row.forward_m, interval.left_m},
+        port::BEVPoint{row.forward_m, interval.right_m});
+}
+
+bool IsSingleEdgeInterval(
+    const std::vector<BEVSimpleRowScan>& rows,
+    const port::RuntimeParameters& params,
+    const BEVIntervalEdgeVisibilityOptions& options,
+    std::size_t row_index,
+    std::size_t interval_index,
+    SingleEdgeKind kind) {
+    const BEVIntervalEdgeVisibility visibility =
+        EvaluateContinuityFilteredVisibility(rows,
+                                             params,
+                                             options,
+                                             row_index,
+                                             interval_index);
     if (kind == SingleEdgeKind::kLow) {
         return visibility.low_visible && !visibility.high_visible;
     }
     return !visibility.low_visible && visibility.high_visible;
 }
 
-float EdgeLateral(const BEVSimpleWhiteInterval& interval, SingleEdgeKind kind) {
-    return kind == SingleEdgeKind::kLow ? interval.left_m : interval.right_m;
-}
-
 float SignedNormalOffset(const port::RuntimeParameters& params, SingleEdgeKind kind) {
     const float nominal = params.bev_geometry.nominal_road_half_width_m;
     return kind == SingleEdgeKind::kLow ? nominal : -nominal;
-}
-
-const BEVSimpleWhiteInterval* FindNearestSingleEdgeNeighbor(
-    const std::vector<BEVSimpleRowScan>& rows,
-    SingleEdgeKind kind,
-    const BEVIntervalEdgeVisibilityOptions& options,
-    std::size_t row_index,
-    float edge_lateral,
-    float max_jump_m) {
-    if (row_index >= rows.size()) {
-        return nullptr;
-    }
-    const BEVSimpleRowScan& row = rows[row_index];
-    if (!row.valid) {
-        return nullptr;
-    }
-    const BEVSimpleWhiteInterval* best = nullptr;
-    float best_cost = 0.0F;
-    for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-        if (!IsSingleEdgeInterval(row, interval, kind, options)) {
-            continue;
-        }
-        const float cost = std::fabs(EdgeLateral(interval, kind) - edge_lateral);
-        if (cost > max_jump_m) {
-            continue;
-        }
-        if (best == nullptr || cost < best_cost) {
-            best = &interval;
-            best_cost = cost;
-        }
-    }
-    return best;
 }
 
 void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
@@ -483,44 +648,38 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
                              CenterCandidateRows& candidate_rows) {
     const std::size_t count =
         std::min(rows.size(), static_cast<std::size_t>(port::kBevReferenceSampleCount));
-    const float max_jump = ReferenceMaxJump(params);
+    const BEVBoundaryTraceClipOptions clip_options =
+        BoundaryTraceClipOptionsFromParams(params);
     for (std::size_t row_index = 0; row_index < count; ++row_index) {
         const BEVSimpleRowScan& row = rows[row_index];
         if (!row.valid) {
             continue;
         }
-        for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-            if (!IsSingleEdgeInterval(row, interval, kind, options)) {
+        for (std::size_t interval_index = 0U;
+             interval_index < row.intervals.size();
+             ++interval_index) {
+            const BEVSimpleWhiteInterval& interval = row.intervals[interval_index];
+            if (!IsSingleEdgeInterval(rows,
+                                      params,
+                                      options,
+                                      row_index,
+                                      interval_index,
+                                      kind)) {
                 continue;
             }
-            const float edge_lateral = EdgeLateral(interval, kind);
-            const BEVSimpleWhiteInterval* next =
-                row_index + 1U < count
-                    ? FindNearestSingleEdgeNeighbor(rows,
-                                                    kind,
-                                                    options,
-                                                    row_index + 1U,
-                                                    edge_lateral,
-                                                    max_jump)
-                    : nullptr;
-            const BEVSimpleWhiteInterval* previous =
-                row_index > 0U
-                    ? FindNearestSingleEdgeNeighbor(rows,
-                                                    kind,
-                                                    options,
-                                                    row_index - 1U,
-                                                    edge_lateral,
-                                                    max_jump)
-                    : nullptr;
-            const BEVSimpleWhiteInterval* neighbor = next != nullptr ? next : previous;
-            if (neighbor == nullptr) {
+            const BoundarySupport support =
+                FindBoundarySupport(rows,
+                                    kind,
+                                    options,
+                                    clip_options,
+                                    row_index,
+                                    interval_index);
+            if (!support.current_kept || !support.has_neighbor) {
                 continue;
             }
-            const std::size_t neighbor_index = next != nullptr ? row_index + 1U : row_index - 1U;
             std::vector<port::BEVPoint> boundary_trace{
-                port::BEVPoint{row.forward_m, edge_lateral},
-                port::BEVPoint{rows[neighbor_index].forward_m,
-                               EdgeLateral(*neighbor, kind)},
+                EdgePoint(row, interval, kind),
+                support.neighbor,
             };
             std::vector<float> target_forward_samples{row.forward_m};
             const std::vector<port::BEVPoint> center_points =
@@ -539,7 +698,8 @@ void AddSingleEdgeCandidates(const std::vector<BEVSimpleRowScan>& rows,
 
 CenterCandidateRows BuildOrdinaryCenterCandidates(
     const std::vector<BEVSimpleRowScan>& rows,
-    const port::RuntimeParameters& params) {
+    const port::RuntimeParameters& params,
+    const ReferenceConnectivityFrameView* connectivity_frame) {
     CenterCandidateRows candidate_rows{};
     const std::size_t count =
         std::min(rows.size(), static_cast<std::size_t>(port::kBevReferenceSampleCount));
@@ -550,8 +710,16 @@ CenterCandidateRows BuildOrdinaryCenterCandidates(
         if (!row.valid) {
             continue;
         }
-        for (const BEVSimpleWhiteInterval& interval : row.intervals) {
-            if (!IntervalSupportsMidpointCandidate(row, interval, options)) {
+        for (std::size_t interval_index = 0U;
+             interval_index < row.intervals.size();
+             ++interval_index) {
+            const BEVSimpleWhiteInterval& interval = row.intervals[interval_index];
+            if (!IntervalSupportsMidpointCandidate(rows,
+                                                   params,
+                                                   connectivity_frame,
+                                                   options,
+                                                   row_index,
+                                                   interval_index)) {
                 continue;
             }
             candidate_rows[row_index].push_back(
@@ -601,11 +769,12 @@ const CenterCandidate* ChooseCenterCandidate(const std::vector<CenterCandidate>&
 // 不跨缺口重连后续远端点。参考路径按真实点顺序紧凑输出，forward_m 保留原始行距离。
 port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
-    const port::RuntimeParameters& params) {
+    const port::RuntimeParameters& params,
+    const ReferenceConnectivityFrameView* connectivity_frame) {
     port::BEVReferencePath reference{};
     InitializeReferencePath(reference, params, port::ReferenceMode::kNone);
     const CenterCandidateRows candidate_rows =
-        BuildOrdinaryCenterCandidates(rows, params);
+        BuildOrdinaryCenterCandidates(rows, params, connectivity_frame);
     bool have_previous = false;
     float previous_lateral = 0.0F;
     bool segment_started = false;
@@ -643,8 +812,9 @@ port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
 }
 
 port::BEVReferencePath BuildReferencePath(const std::vector<BEVSimpleRowScan>& rows,
-                                          const port::RuntimeParameters& params) {
-    return ExtractStrictLeadingReferenceSegment(rows, params);
+                                          const port::RuntimeParameters& params,
+                                          const ReferenceConnectivityFrameView* connectivity_frame) {
+    return ExtractStrictLeadingReferenceSegment(rows, params, connectivity_frame);
 }
 
 port::ReferenceHoldState MakeReferenceHoldState(const port::BEVReferencePath& current_visual_reference,
@@ -842,7 +1012,13 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
     }
     {
         LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleBuildReference);
-        result.reference_path = BuildReferencePath(result.rows, params);
+        const ReferenceConnectivityFrameView connectivity_frame{
+            frame,
+            projector,
+            threshold,
+            params.bev_classification,
+        };
+        result.reference_path = BuildReferencePath(result.rows, params, &connectivity_frame);
     }
     result.reference_mode = ToString(result.reference_path.mode);
     result.reference_source =

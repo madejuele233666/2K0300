@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import select
 import socket
 import sys
 import threading
@@ -210,6 +211,33 @@ class AssistantJsonListener:
                         pass
                     connection.settimeout(0.2)
                     continue
+
+                assert self._server is not None
+                readable, _, _ = select.select([self._server], [], [], 0)
+                if readable:
+                    try:
+                        next_connection, address = self._server.accept()
+                    except (TimeoutError, OSError):
+                        next_connection = None
+                    if next_connection is not None:
+                        self._log(
+                            "[control] replacing stale assistant connection with "
+                            f"{address[0]}:{address[1]}"
+                        )
+                        try:
+                            connection.close()
+                        except OSError:
+                            pass
+                        connection = next_connection
+                        self._summary["connection_address"] = f"{address[0]}:{address[1]}"
+                        self._start_monotonic_ms = now_monotonic_ms()
+                        self._rx_buffer.clear()
+                        try:
+                            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        except OSError:
+                            pass
+                        connection.settimeout(0.2)
+                        continue
 
                 try:
                     chunk = connection.recv(4096)
@@ -497,6 +525,37 @@ class SteeringMediaListener:
                     connection.settimeout(0.2)
                     rx_buffer = bytearray()
                     continue
+
+                assert self._server is not None
+                readable, _, _ = select.select([self._server], [], [], 0)
+                if readable:
+                    try:
+                        next_connection, address = self._server.accept()
+                    except (TimeoutError, OSError):
+                        next_connection = None
+                    if next_connection is not None:
+                        self._log(
+                            "[media] replacing stale steering media connection with "
+                            f"{address[0]}:{address[1]}"
+                        )
+                        try:
+                            connection.close()
+                        except OSError:
+                            pass
+                        connection = next_connection
+                        self._summary["connection_address"] = f"{address[0]}:{address[1]}"
+                        rx_buffer = bytearray()
+                        self._summary["partial_buffer_bytes"] = 0
+                        try:
+                            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        except OSError:
+                            pass
+                        try:
+                            connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SOCKET_BUFFER_BYTES)
+                        except OSError:
+                            pass
+                        connection.settimeout(0.2)
+                        continue
 
                 try:
                     chunk = connection.recv(65536)

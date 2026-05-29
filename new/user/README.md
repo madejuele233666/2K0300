@@ -4,7 +4,7 @@
 
 参数说明与调参攻略见 [`../config/default_params.md`](../config/default_params.md)。
 
-实时图像显示系统说明见 [`STEERING_LIVE_VIEWER_README.md`](STEERING_LIVE_VIEWER_README.md)。
+实时图像显示系统短版说明见 [`STEERING_LIVE_VIEWER_BRIEF.md`](STEERING_LIVE_VIEWER_BRIEF.md)，完整说明见 [`STEERING_LIVE_VIEWER_README.md`](STEERING_LIVE_VIEWER_README.md)。
 
 ## 常用命令
 

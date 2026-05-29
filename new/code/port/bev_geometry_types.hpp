@@ -69,39 +69,41 @@ struct BEVProjectorCalibration {
  * @brief BEV几何参数
  *
  * 定义参考路径的前向采样网格和横向搜索范围。
- * forward_samples_m 数组定义了从车头到最远探测距离的24个前向采样位置。
+ * forward_samples_m 数组定义了 BEV 投影后的车辆坐标系前向采样位置。
+ * 消费方直接按米制 forward_m 使用这些值，不需要再额外做 BEV 转换。
  * sparse_row_count 只控制启用前缀长度，不重新分布采样行。
  */
 struct BEVGeometryParameters {
     std::array<float, kBevReferenceSampleCount> forward_samples_m{  ///< 24个前向采样位置（米），从近到远
-        {0.061000F,
-         0.123565F,
-         0.186130F,
-         0.248696F,
-         0.311261F,
-         0.373826F,
-         0.436391F,
-         0.498957F,
-         0.561522F,
-         0.624087F,
-         0.686652F,
-         0.749217F,
-         0.811783F,
-         0.874348F,
-         0.936913F,
-         0.999478F,
-         1.062043F,
-         1.124609F,
-         1.187174F,
-         1.249739F,
-         1.312304F,
-         1.374870F,
-         1.437435F,
-         1.500000F}};
+        {0.150000F,
+         0.195652F,
+         0.241304F,
+         0.286957F,
+         0.332609F,
+         0.378261F,
+         0.423913F,
+         0.469565F,
+         0.515217F,
+         0.560870F,
+         0.606522F,
+         0.652174F,
+         0.697826F,
+         0.743478F,
+         0.789130F,
+         0.834783F,
+         0.880435F,
+         0.926087F,
+         0.971739F,
+         1.017391F,
+         1.063043F,
+         1.108696F,
+         1.154348F,
+         1.200000F}};
     int sparse_row_count = static_cast<int>(kBevReferenceSampleCount);  ///< 启用原始前向采样行的前 N 行
     float search_lateral_limit_m = 1.60F;  ///< 横向搜索范围限制（米）
     float lateral_step_m = 0.02F;          ///< 横向搜索步长（米）
     float reference_lateral_jump_gate_m = 1000.0F;  ///< 参考路径横向跳变门限（米），默认失效化
+    float boundary_trace_max_adjacent_distance_m = 0.15F;  ///< 边界 trace 相邻保留点最大距离（米）
     float nominal_road_half_width_m = 0.21F;  ///< 普通道路模型使用的名义半路宽（米）
 };
 
@@ -125,10 +127,10 @@ struct BEVClassificationParameters {
  */
 struct BEVControlModelParameters {
     double lateral_error_far_weight = 0.0;  ///< 远端横向误差权重
-    double lateral_offset_to_wheel_delta_gain = 600.0;  ///< 横向位置项到轮速差值的增益系数
-    double heading_error_to_wheel_delta_gain = 0.0;  ///< 航向误差项到轮速差值的增益系数
+    double lateral_offset_to_wheel_delta_gain = 100.0;  ///< 横向位置项到轮速差值的增益系数
+    double heading_error_to_wheel_delta_gain = 10.0;  ///< 航向误差项到轮速差值的增益系数
     double curvature_to_wheel_delta_gain = 0.0;  ///< nominal speed下曲率前馈项到轮速差值的增益系数
-    double lateral_error_to_wheel_delta_gain = 600.0;  ///< 旧参数名兼容别名，映射到 lateral offset gain
+    double lateral_error_to_wheel_delta_gain = 100.0;  ///< 旧参数名兼容别名，映射到 lateral offset gain
     int min_leading_reference_samples = 3;  ///< 最小前导参考采样点数量
     int tracking_fit_min_samples = 3;       ///< 跟踪几何拟合最小采样点数量
 };

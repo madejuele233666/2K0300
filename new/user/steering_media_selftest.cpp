@@ -404,6 +404,7 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
     config.param_snapshot.bev_geometry.sparse_row_count = 12;
     config.param_snapshot.bev_geometry.reference_lateral_jump_gate_m = 1000.0F;
+    config.param_snapshot.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
     config.param_snapshot.bev_classification.white_confidence_min = 0.60F;
 
     std::vector<std::uint8_t> encoded;
@@ -451,6 +452,8 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include sparse row count");
     Require(Contains(header_json, "\"REFERENCE_LATERAL_JUMP_GATE_M\":1000"),
             "config snapshot must include V5 reference lateral jump gate");
+    Require(Contains(header_json, "\"BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M\":0.449999988079"),
+            "config snapshot must include boundary trace distance");
     Require(Contains(header_json, "\"BEV_CLASSIFICATION\""),
             "config snapshot must include BEV classification group");
     Require(Contains(header_json, "\"WHITE_CONFIDENCE_MIN\":0.600000023842"),
@@ -924,6 +927,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose BEV projector settings");
     Require(Contains(header_json, "\"BEV_CONTROL_MODEL\""),
             "service config snapshot must expose BEV control settings");
+    Require(Contains(header_json, "\"BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M\":0.449999988079"),
+            "service config snapshot must expose boundary trace distance");
     Require(Contains(header_json, "\"BEV_ELEMENT\""),
             "service config snapshot must expose BEV element settings");
     Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),

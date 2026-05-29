@@ -106,6 +106,10 @@ debug、overlay、media、assistant telemetry 只能序列化事实，不能参�
 - `OutsideFrame` / `ProjectionFailed` 不得变成 edge、opening、元素或路径证据。
 - 分类只基于中心像素亮度与阈值，输出 white / black / unknown / invalid。
 - 图像边缘、扫描边界、FOV 边界都不能冒充 observed boundary 或元素事实。
+- sparse BEV 横线内的两侧边点，只有在同一横线的 BEV 采样序列中无 black 隔断时，才能被认为是同一条道路的两边。
+- row 内连通性只判断 BEV 横向采样事实：中间出现 black 即不连通；图像外、不可采样或投影失败区域不被当作 black。
+- row 间边界连续性只使用 BEV metric 距离；`BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M` 的单位是 BEV 米制距离，不是原图像素距离。
+- 不增加“原图和 BEV 是否匹配”的业务防御判断。原图只提供采样值；BEV row facts 和 BEV metric 几何是 runtime 视觉判断的事实面。
 
 ### Reference
 

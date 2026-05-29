@@ -88,8 +88,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
-| `RUNNING_SPEED_TARGET` | `300.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
-| `YAW_RATE_PID.P` | `3.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 reference tracking geometry 前馈/反馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 BEV control model 的三项 gain。 |
+| `RUNNING_SPEED_TARGET` | `100.0` | motion supervisor / yaw speed scale | 运行轮速目标单位，不是 m/s。增大后车速更高，yaw target 也会按 speed scale 变化。看 `effective_speed_target`、左右 `*_speed_target`、encoder measured。先用低值确认闭环再上调。 |
+| `YAW_RATE_PID.P` | `0.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 reference tracking geometry 前馈/反馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 BEV control model 的三项 gain。 |
 | `YAW_RATE_PID.I` | `0.0` | gyro feedback | gyro 反馈积分。当前默认不用。只有长期同向 gyro 偏差且 P/D 不能解决时小幅增加；积分过大会拖尾。 |
 | `YAW_RATE_PID.D` | `0.0` | gyro feedback | 抑制 gyro 反馈误差变化。抖动和过冲明显时增加；过大时转向变钝。 |
 | `LEFT_WHEEL_PID.P` | `84.0` | 左轮速度 PID | 左轮速度误差主增益。左轮跟随慢增大；PWM 抖或超调减小。看 `left_speed_target`、`left_measured_speed`、`left_pwm_command`。 |
@@ -192,41 +192,48 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 
 | 参数 | 当前 JSON 值 | 作用与调参方法 |
 | --- | --- | --- |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_0` | `0.061` | reference path 第 0 层，最近端控制事实。index 0 没有 interval 时当前视觉 reference invalid。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_1` | `0.123565` | 第 1 层。用于 leading 连续段和插值。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_2` | `0.18613` | 第 2 层。默认 `MIN_LEADING_REFERENCE_SAMPLES=3` 时，这是最小 usable 远端。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_3` | `0.248696` | 第 3 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_4` | `0.311261` | 第 4 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_5` | `0.373826` | 第 5 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_6` | `0.436391` | 第 6 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_7` | `0.498957` | 第 7 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_8` | `0.561522` | 第 8 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_9` | `0.624087` | 第 9 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_10` | `0.686652` | 第 10 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_11` | `0.749217` | 第 11 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_12` | `0.811783` | 第 12 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_13` | `0.874348` | 第 13 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_14` | `0.936913` | 第 14 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_15` | `0.999478` | 第 15 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_16` | `1.062043` | 第 16 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_17` | `1.124609` | 第 17 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_18` | `1.187174` | 第 18 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_19` | `1.249739` | 第 19 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_20` | `1.312304` | 第 20 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_21` | `1.37487` | 第 21 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_22` | `1.437435` | 第 22 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_23` | `1.5` | 第 23 层，最远端视觉事实；当前算法不会为了远端点跨 gap 补点。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_0` | `0.15` | reference path 第 0 层，0..1.5m 前向范围的 10% 位置。index 0 没有 interval 时当前视觉 reference invalid。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_1` | `0.195652` | 第 1 层。用于 leading 连续段和插值。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_2` | `0.241304` | 第 2 层。默认 `MIN_LEADING_REFERENCE_SAMPLES=3` 时，这是最小 usable 远端。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_3` | `0.286957` | 第 3 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_4` | `0.332609` | 第 4 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_5` | `0.378261` | 第 5 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_6` | `0.423913` | 第 6 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_7` | `0.469565` | 第 7 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_8` | `0.515217` | 第 8 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_9` | `0.56087` | 第 9 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_10` | `0.606522` | 第 10 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_11` | `0.652174` | 第 11 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_12` | `0.697826` | 第 12 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_13` | `0.743478` | 第 13 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_14` | `0.78913` | 第 14 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_15` | `0.834783` | 第 15 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_16` | `0.880435` | 第 16 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_17` | `0.926087` | 第 17 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_18` | `0.971739` | 第 18 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_19` | `1.017391` | 第 19 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_20` | `1.063043` | 第 20 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_21` | `1.108696` | 第 21 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_22` | `1.154348` | 第 22 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_23` | `1.2` | 第 23 层，0..1.5m 前向范围的 80% 位置；当前算法不会为了远端点跨 gap 补点。 |
 | `BEV_GEOMETRY.SPARSE_ROW_COUNT` | `24` | 启用原 24 个 `FORWARD_SAMPLE_*` 的前 N 行。设为 `12` 表示只扫描并输出 `FORWARD_SAMPLE_0..11`，不是把 12 行重新均匀分布到 0.061..1.5m。 |
 | `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` | `1.6` | BEV 后横向扫描半宽。漏掉真实白线时可增大；噪声 interval 变多时减小。它不是原图有效 span 裁剪。 |
 | `BEV_GEOMETRY.LATERAL_STEP_M` | `0.02` | BEV 横向采样步长。减小会更精细但更耗时、更易拾取细碎噪声；增大会更稳但白点量化更粗。 |
-| `BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M` | `1000.0` | 参考路径相邻点横向跳变旧门限。默认极大，正常 BEV 范围内等同禁用；路径是否跨黑由 V5 连通性 gate 判断。 |
+| `BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M` | `1000.0` | 参考路径相邻点横向跳变旧门限。默认极大，正常 BEV 范围内等同禁用；路径是否跨黑由连通性 gate 判断。 |
+| `BEV_GEOMETRY.BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M` | `0.15` | 普通路径候选生成前，边界 trace 相邻保留点的 BEV 平面最大距离。只用于原始边界点连续性裁剪，不从半路宽或采样步长推导。 |
 | `BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M` | `0.21` | 普通道路模型的稳定半路宽事实。CircleV2 ExitTrace 通过 `OrdinaryRoadModel.half_width` 消费该值，不再从每帧 rows 宽度实时重算。 |
 
-`FORWARD_SAMPLE_*` 必须单调递增。改采样分布会影响 LUT identity、leading range、lateral-error 权重含义和 steering media snapshot；不要只改某一个点来修局部画面。
+`FORWARD_SAMPLE_*` 必须单调递增。当前 24 点按 0..1.5m 前向范围的 10%..80% 等距分布，即 0.15..1.20m。这些参数已经是 BEV 投影后的车辆坐标系米制 `forward_m`，消费方直接把它们作为 BEV 行位置使用，不需要再额外做一次 BEV 转换。改采样分布会影响 LUT identity、leading range、lateral-error 权重含义和 steering media snapshot；不要只改某一个点来修局部画面。
 
 `SPARSE_ROW_COUNT` 是活跃前缀长度，合法范围为 `1..24`。它改变性能和最大前视距离，但不改变任何已定义采样行的物理位置；参数变化会让 sparse LUT 与 hold geometry identity 失效并重建。
 
-`REFERENCE_LATERAL_JUMP_GATE_M` 是旧横向跳变拒绝门的显式参数，合法范围为 `0..1000`。默认 `1000.0` 表示在正常 BEV 横向范围内不再拒绝路径；V5 使用当前灰度帧连通性 gate 判断路径段是否跨黑。
+`REFERENCE_LATERAL_JUMP_GATE_M` 是旧横向跳变拒绝门的显式参数，合法范围为 `0..1000`。默认 `1000.0` 表示在正常 BEV 横向范围内不再拒绝路径；路径是否跨黑由连通性 gate 判断，不用该旧门限替代边线或 row 内连通性语义。
+
+同一条 sparse BEV 横线内，两个边点只有通过统一 BEV 段连通性 helper 检查后，才能被认为是同一条道路的两边。中间出现图像内 black 即不连通；图像外、不可采样或投影失败部分不认为是 black。这个 row 内连通性与原有边界 trace 连续性叠加使用，避免把被黑区隔开的两段白色区域拼成同一道路。
+
+`BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M` 是边界连续性裁剪的唯一距离来源，合法值为有限正数。它的距离定义在 BEV 图/BEV 车辆坐标系内，单位是米，计算对象是 `(forward_m,lateral_m)` 点之间的 BEV metric 距离；它不是原图像素距离，也不参与原图投影关系防御。ordinary candidate 生成只读取该参数并传给 boundary trace helper；不从 `NOMINAL_ROAD_HALF_WIDTH_M`、`LATERAL_STEP_M` 或图像量化误差现场构造距离，也不额外加入量化容差。
+
+原图到 BEV 的关系只用于采样事实：原图提供灰度值，BEV row facts 和 BEV metric 几何负责路径判断。不要新增“原图和 BEV 是否匹配”的业务防御判断；连通性只关心经过的图像内像素是否为 black，画面外部分不算 black。
 
 ## 10. BEV Classification 与 hold
 
@@ -248,8 +255,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | legacy lateral-error debug | 旧 weighted lateral error 对照字段的远端权重。V6 主控不再使用 weighted future lateral average 作为唯一输入。 |
-| `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` | `600` | turn-output target | `tracking_geometry.lateral_offset_m` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
-| `BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN` | `0` | turn-output target | `tracking_geometry.heading_error_rad` 到左右轮速半差目标的反馈增益。第一版默认 `0`，保留参数面便于后续启用 heading feedback。 |
+| `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` | `100` | turn-output target | `tracking_geometry.lateral_offset_m` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
+| `BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN` | `10` | turn-output target | `tracking_geometry.heading_error_rad` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
 | `BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN` | `0` | turn-output target | `tracking_geometry.curvature_m_inv` 到左右轮速半差目标的曲率前馈增益，语义与 lateral/heading gain 一样是在 `RUNNING_SPEED_TARGET` 下的 nominal gain；运行时再统一乘 `speed_scale`。第一版默认 `0`，调参时结合 `yaw_control.curvature_term` 查看贡献。 |
 | `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 第一个连续真实 reference 点段的最小数量。近端丢线本身不使路径不可用，但真实连续点少于该值仍不可用。低于 3 时按 3 处理。 |
 | `BEV_CONTROL_MODEL.TRACKING_FIT_MIN_SAMPLES` | `3` | reference tracking geometry | 二次拟合 `tracking_geometry` 所需的最小 leading usable 样本数。合法范围 `[3, 24]`。 |

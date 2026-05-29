@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "legacy/steering_bev_projector.hpp"
+#include "legacy/steering_bev_boundary_trace_clip.hpp"
 #include "legacy/steering_bev_element_raster.hpp"
 #include "legacy/steering_bev_interval_edges.hpp"
 #include "legacy/steering_bev_simple_perception.hpp"
@@ -229,6 +230,50 @@ void TestSingleBoundaryOffsetHelperGeometry() {
     }
 }
 
+void TestBoundaryTraceClipHelperRule() {
+    using ls2k::legacy::BEVBoundaryTraceClipOptions;
+    using ls2k::legacy::BEVBoundaryTracePoint;
+    using ls2k::legacy::ClipBoundaryTraceOutliers;
+
+    {
+        const std::vector<BEVBoundaryTracePoint> raw{
+            {0U, {0.0F, 0.0F}},
+            {1U, {0.1F, 0.1F}},
+            {2U, {0.2F, 0.2F}},
+        };
+        const std::vector<BEVBoundaryTracePoint> clipped =
+            ClipBoundaryTraceOutliers(raw, BEVBoundaryTraceClipOptions{0.2F});
+        Expect(clipped.size() == 3U, "continuous boundary trace must keep all points");
+    }
+    {
+        const std::vector<BEVBoundaryTracePoint> raw{
+            {0U, {0.0F, 0.0F}},
+            {1U, {0.0F, 1.0F}},
+            {2U, {0.1F, 0.1F}},
+        };
+        const std::vector<BEVBoundaryTracePoint> clipped =
+            ClipBoundaryTraceOutliers(raw, BEVBoundaryTraceClipOptions{0.2F});
+        Expect(clipped.size() == 2U,
+               "single outlier must be deleted without truncating later trace");
+        Expect(clipped[0].row_index == 0U && clipped[1].row_index == 2U,
+               "later point must be evaluated against the last kept point");
+    }
+    {
+        const std::vector<BEVBoundaryTracePoint> raw{
+            {0U, {0.0F, 0.0F}},
+            {1U, {0.0F, 1.0F}},
+            {2U, {0.0F, 1.1F}},
+            {3U, {0.0F, 0.2F}},
+        };
+        const std::vector<BEVBoundaryTracePoint> clipped =
+            ClipBoundaryTraceOutliers(raw, BEVBoundaryTraceClipOptions{0.2F});
+        Expect(clipped.size() == 2U,
+               "consecutive outliers must not replace the last kept point");
+        Expect(clipped[0].row_index == 0U && clipped[1].row_index == 3U,
+               "helper must preserve original order of kept points");
+    }
+}
+
 void TestBevClassificationAndRowIntervals() {
     ls2k::port::RuntimeParameters params{};
     ls2k::legacy::BEVProjector projector = MakeProjector(params);
@@ -393,6 +438,30 @@ void TestReferenceConnectivityHelper() {
                    ConnectivityView(frame.View(4, 4), projector, params),
                    diagonal),
                "unknown pixel must not block V5 black-only connectivity");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 4, 4, 0U);
+        const ls2k::port::BEVReferencePath crossing =
+            MakeReferencePath({{4.0F, -5.0F}, {4.0F, 14.0F}});
+        Expect(!ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(5, 5), projector, params),
+                   crossing),
+               "image-internal black pixel must block even when segment endpoints are outside");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 4, 4, 0U);
+        const ls2k::port::BEVReferencePath outside =
+            MakeReferencePath({{-5.0F, -5.0F}, {-5.0F, 14.0F}});
+        Expect(ls2k::legacy::ReferencePathHasNoBlackSegments(
+                   ConnectivityView(frame.View(5, 5), projector, params),
+                   outside),
+               "black pixels must not block a segment whose visible part never enters the frame");
     }
     {
         ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
@@ -598,7 +667,7 @@ void TestOrdinaryReferenceInterpretsLostBoundaries() {
     for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
         row.intervals.clear();
     }
-    for (std::size_t index = 0; index < 3U; ++index) {
+    for (std::size_t index = 0; index < 4U; ++index) {
         AddSyntheticInterval(rows[index], -0.21F, 1.0F);
     }
     const ls2k::port::BEVReferencePath low_edge =
@@ -612,7 +681,7 @@ void TestOrdinaryReferenceInterpretsLostBoundaries() {
     for (ls2k::legacy::BEVSimpleRowScan& row : rows) {
         row.intervals.clear();
     }
-    for (std::size_t index = 0; index < 3U; ++index) {
+    for (std::size_t index = 0; index < 4U; ++index) {
         AddSyntheticInterval(rows[index], -1.0F, 0.21F);
     }
     const ls2k::port::BEVReferencePath high_edge =
@@ -638,6 +707,169 @@ void TestOrdinaryReferenceInterpretsLostBoundaries() {
            "two real points after a leading lost row must remain unusable");
 }
 
+void TestSparseRowMidpointUsesSharedConnectivityHelper() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 2.0F;
+    const ls2k::legacy::BEVProjector projector =
+        MakeIdentityConnectivityProjector();
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(3U);
+    for (float forward : std::array<float, 3U>{1.0F, 2.0F, 3.0F}) {
+        rows.push_back(SyntheticRow(forward, 0.0F, 9.0F));
+        AddSyntheticInterval(rows.back(), 1.0F, 8.0F);
+    }
+
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        const ls2k::port::LegacyCameraFrameView frame_view = frame.View(10, 10);
+        const ls2k::legacy::ReferenceConnectivityFrameView connectivity =
+            ConnectivityView(frame_view, projector, params);
+        const ls2k::port::BEVReferencePath reference =
+            ls2k::legacy::BuildReferencePath(rows, params, &connectivity);
+        Expect(CountPresentPathPoints(reference,
+                                      ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+               "connected same-row edge points must remain eligible midpoint candidates");
+    }
+    {
+        ls2k::port::LegacyCameraFrame frame = MakeFrame(255U);
+        frame.width = 10;
+        frame.height = 10;
+        SetPixel(frame, 1, 4, 0U);
+        SetPixel(frame, 2, 4, 0U);
+        SetPixel(frame, 3, 4, 0U);
+        const ls2k::port::LegacyCameraFrameView frame_view = frame.View(11, 11);
+        const ls2k::legacy::ReferenceConnectivityFrameView connectivity =
+            ConnectivityView(frame_view, projector, params);
+        const ls2k::port::BEVReferencePath reference =
+            ls2k::legacy::BuildReferencePath(rows, params, &connectivity);
+        Expect(CountPresentPathPoints(reference,
+                                      ls2k::port::BEVPathPointSource::kIntervalCenter) == 0,
+               "same-row edge points separated by black must not form one road interval");
+    }
+}
+
+void TestBoundaryContinuityRejectsDiscontinuousSingleEdge() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
+    }
+
+    AddSyntheticInterval(rows[0], -0.21F, 1.0F);
+    AddSyntheticInterval(rows[1], 0.80F, 1.0F);
+    AddSyntheticInterval(rows[2], 0.80F, 1.0F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 0,
+           "discontinuous single-edge trace must be rejected before offset");
+}
+
+void TestBoundaryContinuityUsesFartherSupportAfterOutlier() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
+    }
+
+    AddSyntheticInterval(rows[0], -0.21F, 1.0F);
+    AddSyntheticInterval(rows[1], 0.80F, 1.0F);
+    AddSyntheticInterval(rows[2], -0.22F, 1.0F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 1,
+           "farther kept same-side edge may support the first row after deleting one outlier");
+    const float support_slope =
+        (-0.22F - -0.21F) /
+        (params.bev_geometry.forward_samples_m[2] -
+         params.bev_geometry.forward_samples_m[0]);
+    const float expected_lateral =
+        -0.21F +
+        params.bev_geometry.nominal_road_half_width_m *
+            std::sqrt(1.0F + support_slope * support_slope);
+    ExpectNear(reference.sampled_path[0].point.lateral_m,
+               expected_lateral,
+               1.0e-5F,
+               "single-edge offset must use the farther kept boundary support");
+}
+
+void TestBoundaryContinuityRequiresFutureSupportForSingleEdge() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
+    }
+
+    AddSyntheticInterval(rows[0], -0.21F, 1.0F);
+    AddSyntheticInterval(rows[1], -0.21F, 1.0F);
+    AddSyntheticInterval(rows[2], 0.80F, 1.0F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 1,
+           "single-edge row must not use only a previous kept edge as offset support");
+}
+
+void TestBoundaryContinuityDegradesOneClippedSide() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.nominal_road_half_width_m = 0.21F;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.5F, 1.5F));
+    }
+
+    AddSyntheticInterval(rows[0], -0.21F, 0.21F);
+    AddSyntheticInterval(rows[1], -0.21F, 0.90F);
+    AddSyntheticInterval(rows[2], -0.21F, 0.90F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
+           "one clipped side must degrade to existing single-edge semantics");
+    ExpectNear(reference.sampled_path[1].point.lateral_m,
+               0.0F,
+               0.005F,
+               "row with clipped high edge must use low-edge offset, not raw midpoint");
+}
+
+void TestBoundaryContinuityRemovesRowWhenBothSidesClip() {
+    ls2k::port::RuntimeParameters params{};
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
+    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    rows.reserve(ls2k::port::kBevReferenceSampleCount);
+    for (float forward : params.bev_geometry.forward_samples_m) {
+        rows.push_back(SyntheticRow(forward, -1.5F, 1.5F));
+    }
+
+    AddSyntheticInterval(rows[0], -0.20F, 0.20F);
+    AddSyntheticInterval(rows[1], 0.60F, 1.00F);
+    AddSyntheticInterval(rows[2], -0.20F, 0.20F);
+
+    const ls2k::port::BEVReferencePath reference =
+        ls2k::legacy::BuildReferencePath(rows, params);
+    Expect(CountPresentPathPoints(reference,
+                                  ls2k::port::BEVPathPointSource::kIntervalCenter) == 1,
+           "row with both edge facts clipped must create no current-frame candidate");
+}
+
 void TestSingleEdgeOffsetMayLeaveSampleableSpan() {
     ls2k::port::RuntimeParameters params{};
     params.bev_geometry.nominal_road_half_width_m = 0.21F;
@@ -648,7 +880,7 @@ void TestSingleEdgeOffsetMayLeaveSampleableSpan() {
         rows.push_back(SyntheticRow(forward, -1.0F, 1.0F));
     }
 
-    for (std::size_t index = 0; index < 3U; ++index) {
+    for (std::size_t index = 0; index < 4U; ++index) {
         AddSyntheticInterval(rows[index], -1.0F, -0.90F);
     }
     const ls2k::port::BEVReferencePath reference =
@@ -709,7 +941,7 @@ void TestUnknownSampleablePrefixEntersSingleEdgeOffset() {
         rows.push_back(SyntheticRow(forward, -1.30F, 1.24F));
     }
 
-    for (std::size_t index = 0; index < 3U; ++index) {
+    for (std::size_t index = 0; index < 4U; ++index) {
         rows[index].sampleable_left_unknown_run = true;
         rows[index].sampleable_left_unknown_run_right_m = -1.24F;
         AddSyntheticInterval(rows[index], -1.22F, -1.00F);
@@ -738,6 +970,7 @@ void TestOrdinaryReferenceSelectsAfterCandidateInterpretation() {
         AddSyntheticInterval(rows[index], -0.21F, 1.0F);
         AddSyntheticInterval(rows[index], 0.60F, 0.80F);
     }
+    AddSyntheticInterval(rows[3], -0.21F, 1.0F);
     const ls2k::port::BEVReferencePath reference =
         ls2k::legacy::BuildReferencePath(rows, params);
     Expect(CountPresentPathPoints(reference,
@@ -766,6 +999,7 @@ void TestOrdinaryReferenceSelectsAfterCandidateInterpretation() {
 void TestDefaultReferenceJumpGateDoesNotRejectLargeAdjacentChange() {
     ls2k::port::RuntimeParameters params{};
     params.bev_geometry.lateral_step_m = 0.02F;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 1.0F;
     Expect(params.bev_geometry.reference_lateral_jump_gate_m > 10.0F,
            "default reference jump gate must be disabled for normal BEV ranges");
     std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
@@ -781,7 +1015,7 @@ void TestDefaultReferenceJumpGateDoesNotRejectLargeAdjacentChange() {
         ls2k::legacy::BuildReferencePath(rows, params);
     Expect(CountPresentPathPoints(reference,
                                   ls2k::port::BEVPathPointSource::kIntervalCenter) == 3,
-           "disabled reference jump gate must not reject normal large adjacent lateral change");
+           "disabled reference jump gate must not reject a boundary-continuous large adjacent change");
 }
 
 void TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange() {
@@ -867,6 +1101,7 @@ void TestSparseRowCountUsesOriginalForwardSamplePrefix() {
 int main() {
     try {
         TestSingleBoundaryOffsetHelperGeometry();
+        TestBoundaryTraceClipHelperRule();
         TestBevClassificationAndRowIntervals();
         TestUnknownBandUsesCenterBrightnessOnly();
         TestElementRasterClassificationAndCoordinates();
@@ -876,6 +1111,12 @@ int main() {
         TestHoldIsExplicitNonVisualSource();
         TestReferencePathStartsAtFirstContinuousSegmentAndStopsAtFirstGap();
         TestOrdinaryReferenceInterpretsLostBoundaries();
+        TestSparseRowMidpointUsesSharedConnectivityHelper();
+        TestBoundaryContinuityRejectsDiscontinuousSingleEdge();
+        TestBoundaryContinuityUsesFartherSupportAfterOutlier();
+        TestBoundaryContinuityRequiresFutureSupportForSingleEdge();
+        TestBoundaryContinuityDegradesOneClippedSide();
+        TestBoundaryContinuityRemovesRowWhenBothSidesClip();
         TestSingleEdgeOffsetMayLeaveSampleableSpan();
         TestUnknownSampleableEdgeCountsAsBoundaryForVisibility();
         TestUnknownSampleablePrefixEntersSingleEdgeOffset();

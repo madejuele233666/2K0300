@@ -79,7 +79,8 @@ int main() {
                       "  \"BEV_GEOMETRY\": {"
                       "\"NOMINAL_ROAD_HALF_WIDTH_M\": 0.33,"
                       "\"SPARSE_ROW_COUNT\": 12,"
-                      "\"REFERENCE_LATERAL_JUMP_GATE_M\": 0.42},\n"
+                      "\"REFERENCE_LATERAL_JUMP_GATE_M\": 0.42,"
+                      "\"BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M\": 0.37},\n"
                       "  \"BEV_CONTROL_MODEL\": {"
                       "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\": 321,"
                       "\"HEADING_ERROR_TO_WHEEL_DELTA_GAIN\": 45,"
@@ -117,6 +118,9 @@ int main() {
         Expect(std::abs(enabled.bev_geometry.reference_lateral_jump_gate_m -
                         0.42F) < 1.0e-6F,
                "BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M should parse");
+        Expect(std::abs(enabled.bev_geometry.boundary_trace_max_adjacent_distance_m -
+                        0.37F) < 1.0e-6F,
+               "BEV_GEOMETRY.BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M should parse");
         Expect(std::abs(enabled.bev_control_model.lateral_offset_to_wheel_delta_gain -
                         321.0) < 1.0e-6,
                "BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN should parse");
@@ -219,6 +223,9 @@ int main() {
         Expect(std::abs(absent.bev_geometry.reference_lateral_jump_gate_m -
                         1000.0F) < 1.0e-6F,
                "missing BEV_GEOMETRY should keep reference jump gate disabled");
+        Expect(std::abs(absent.bev_geometry.boundary_trace_max_adjacent_distance_m -
+                        0.45F) < 1.0e-6F,
+               "missing BEV_GEOMETRY should keep boundary trace distance default");
         const ls2k::port::RuntimeParameters builtin_defaults{};
         Expect(std::abs(absent.bev_control_model.lateral_offset_to_wheel_delta_gain -
                         builtin_defaults.bev_control_model.lateral_offset_to_wheel_delta_gain) < 1.0e-6,
@@ -283,6 +290,27 @@ int main() {
                "reference jump gate fallback should keep disabled default");
         Expect(malformed_reference_jump_diagnostics.SawCode("params.parse"),
                "negative reference jump gate should emit params.parse");
+
+        const std::string malformed_boundary_trace_path =
+            base + "_malformed_boundary_trace.json";
+        WriteText(malformed_boundary_trace_path,
+                  MinimalRuntimeParametersJson(
+                      "  \"BEV_GEOMETRY\": {"
+                      "\"BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M\": 0}"));
+        CaptureDiagnostics malformed_boundary_trace_diagnostics{};
+        const ls2k::port::RuntimeParameters malformed_boundary_trace =
+            LoadFixture(malformed_boundary_trace_path,
+                        malformed_boundary_trace_diagnostics);
+        Expect(malformed_boundary_trace.loaded_from_defaults,
+               "zero boundary trace distance should fall back to defaults");
+        Expect(malformed_boundary_trace.parse_failure,
+               "zero boundary trace distance should set parse_failure");
+        Expect(std::abs(malformed_boundary_trace.bev_geometry
+                            .boundary_trace_max_adjacent_distance_m -
+                        0.45F) < 1.0e-6F,
+               "boundary trace distance fallback should keep default");
+        Expect(malformed_boundary_trace_diagnostics.SawCode("params.parse"),
+               "zero boundary trace distance should emit params.parse");
 
         const std::string malformed_v2_yaw_path = base + "_malformed_v2_yaw.json";
         WriteText(malformed_v2_yaw_path,

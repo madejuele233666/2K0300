@@ -13,6 +13,8 @@
 
 namespace ls2k::legacy {
 
+struct ReferenceConnectivityFrameView;
+
 /// 简单BEV像素分类枚举（二值化后的分类结果）
 enum class BEVSimplePixelClass {
     kInvalid,   ///< 无效
@@ -149,11 +151,13 @@ bool EnsureBEVSampleProjectionLut(BEVSampleProjectionLut& lut,
 /// @return 提取的参考路径
 port::BEVReferencePath ExtractStrictLeadingReferenceSegment(
     const std::vector<BEVSimpleRowScan>& rows,
-    const port::RuntimeParameters& params);
+    const port::RuntimeParameters& params,
+    const ReferenceConnectivityFrameView* connectivity_frame = nullptr);
 
 /// 从行扫描结果构建完整的参考路径（目前委托给ExtractStrictLeadingReferenceSegment）
 port::BEVReferencePath BuildReferencePath(const std::vector<BEVSimpleRowScan>& rows,
-                                          const port::RuntimeParameters& params);
+                                          const port::RuntimeParameters& params,
+                                          const ReferenceConnectivityFrameView* connectivity_frame = nullptr);
 
 /// 从当前视觉参考路径创建保持状态（用于视觉丢失时保持最后参考）
 /// @param current_visual_reference 当前视觉参考路径

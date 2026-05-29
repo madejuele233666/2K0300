@@ -216,6 +216,13 @@ int main(int argc, char** argv) {
                       0.0,
                       1000.0,
                       "BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M");
+        ExpectNear(params.bev_geometry.boundary_trace_max_adjacent_distance_m,
+                   NumberField(geometry, "BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M"),
+                   "BEV_GEOMETRY.BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M");
+        ExpectInRange(params.bev_geometry.boundary_trace_max_adjacent_distance_m,
+                      1.0e-6,
+                      1000.0,
+                      "BEV_GEOMETRY.BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M");
         ExpectNear(params.bev_geometry.nominal_road_half_width_m,
                    NumberField(geometry, "NOMINAL_ROAD_HALF_WIDTH_M"),
                    "BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M");

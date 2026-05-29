@@ -4,6 +4,7 @@ The current BEV reference/control contract is no longer described by the old rac
 
 Use these active documents instead:
 
+- `new/docs/path-evaluation-boundary-continuity-v7.zh-CN.md`: V7 path-evaluation discussion record for clipping discontinuous raw boundary points before single-boundary offset / double-edge midpoint candidate generation.
 - Root `README.md`: rules for extending the current simple BEV reference pipeline.
 - `new/docs/visual-element-sparse-circle-v4.zh-CN.md`: V4 ordinary-reference lost-boundary fix contract; handles single-side lost line with nominal half-width and delegates double-side loss to existing hold continuity.
 - `new/docs/visual-element-sparse-circle-v4-single-boundary-helper.zh-CN.md`: V4 appendix for the reusable single-boundary signed-normal-offset helper shared by ordinary lost-line repair and single-boundary scene path generation.

@@ -14,15 +14,6 @@ struct ConnectedPrefix {
     bool blocked_by_black = false;
 };
 
-bool ImagePointInsideFrame(const port::LegacyCameraFrameView& frame,
-                           const port::ImagePoint& point) {
-    return frame.Valid() &&
-           point.row_px >= 0.0F &&
-           point.col_px >= 0.0F &&
-           point.row_px <= static_cast<float>(frame.height - 1) &&
-           point.col_px <= static_cast<float>(frame.width - 1);
-}
-
 bool PixelIsBlack(const ReferenceConnectivityFrameView& frame, int row, int col) {
     if (row < 0 || col < 0 ||
         row >= frame.gray_frame.height ||
@@ -40,6 +31,56 @@ bool PixelIsBlack(const ReferenceConnectivityFrameView& frame, int row, int col)
 
 int PixelIndexFromCenteredCoordinate(float value, int limit) {
     return std::clamp(static_cast<int>(std::floor(value + 0.5F)), 0, limit - 1);
+}
+
+bool ClipRange(float p, float q, float& t0, float& t1) {
+    if (p == 0.0F) {
+        return q >= 0.0F;
+    }
+    const float ratio = q / p;
+    if (p < 0.0F) {
+        if (ratio > t1) {
+            return false;
+        }
+        if (ratio > t0) {
+            t0 = ratio;
+        }
+        return true;
+    }
+    if (ratio < t0) {
+        return false;
+    }
+    if (ratio < t1) {
+        t1 = ratio;
+    }
+    return true;
+}
+
+bool ClipImageSegmentToFrame(const port::LegacyCameraFrameView& frame,
+                             const port::ImagePoint& a,
+                             const port::ImagePoint& b,
+                             port::ImagePoint& clipped_a,
+                             port::ImagePoint& clipped_b) {
+    if (!frame.Valid()) {
+        return false;
+    }
+    const float max_col = static_cast<float>(frame.width - 1);
+    const float max_row = static_cast<float>(frame.height - 1);
+    const float dx = b.col_px - a.col_px;
+    const float dy = b.row_px - a.row_px;
+    float t0 = 0.0F;
+    float t1 = 1.0F;
+    if (!ClipRange(-dx, a.col_px, t0, t1) ||
+        !ClipRange(dx, max_col - a.col_px, t0, t1) ||
+        !ClipRange(-dy, a.row_px, t0, t1) ||
+        !ClipRange(dy, max_row - a.row_px, t0, t1)) {
+        return false;
+    }
+    clipped_a.col_px = a.col_px + t0 * dx;
+    clipped_a.row_px = a.row_px + t0 * dy;
+    clipped_b.col_px = a.col_px + t1 * dx;
+    clipped_b.row_px = a.row_px + t1 * dy;
+    return true;
 }
 
 bool ImageSegmentHasNoBlack(const ReferenceConnectivityFrameView& frame,
@@ -112,22 +153,6 @@ bool ImageSegmentHasNoBlack(const ReferenceConnectivityFrameView& frame,
     }
 }
 
-bool SegmentHasNoBlackBetweenPoints(const ReferenceConnectivityFrameView& frame,
-                                    const port::BEVPoint& a,
-                                    const port::BEVPoint& b) {
-    port::ImagePoint image_a{};
-    port::ImagePoint image_b{};
-    if (!frame.projector.ProjectVehicleToImage(a, image_a) ||
-        !frame.projector.ProjectVehicleToImage(b, image_b)) {
-        return true;
-    }
-    if (!ImagePointInsideFrame(frame.gray_frame, image_a) ||
-        !ImagePointInsideFrame(frame.gray_frame, image_b)) {
-        return true;
-    }
-    return ImageSegmentHasNoBlack(frame, image_a, image_b);
-}
-
 ConnectedPrefix FindConnectedLeadingPrefix(const ReferenceConnectivityFrameView& frame,
                                            const port::BEVReferencePath& path) {
     bool have_previous = true;
@@ -140,7 +165,7 @@ ConnectedPrefix FindConnectedLeadingPrefix(const ReferenceConnectivityFrameView&
             break;
         }
         if (have_previous &&
-            !SegmentHasNoBlackBetweenPoints(frame, previous, sample.point)) {
+            !BEVSegmentHasNoBlackPixels(frame, previous, sample.point)) {
             prefix.blocked_by_black = true;
             return prefix;
         }
@@ -167,6 +192,23 @@ port::VisualReferenceCandidate ClipCandidateToPrefix(
 }
 
 }  // namespace
+
+bool BEVSegmentHasNoBlackPixels(const ReferenceConnectivityFrameView& frame,
+                                const port::BEVPoint& a,
+                                const port::BEVPoint& b) {
+    port::ImagePoint image_a{};
+    port::ImagePoint image_b{};
+    if (!frame.projector.ProjectVehicleToImage(a, image_a) ||
+        !frame.projector.ProjectVehicleToImage(b, image_b)) {
+        return true;
+    }
+    port::ImagePoint clipped_a{};
+    port::ImagePoint clipped_b{};
+    if (!ClipImageSegmentToFrame(frame.gray_frame, image_a, image_b, clipped_a, clipped_b)) {
+        return true;
+    }
+    return ImageSegmentHasNoBlack(frame, clipped_a, clipped_b);
+}
 
 bool ReferencePathHasNoBlackSegments(const ReferenceConnectivityFrameView& frame,
                                      const port::BEVReferencePath& path) {

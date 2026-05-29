@@ -18,6 +18,10 @@ struct ReferenceConnectivityFrameView {
     const port::BEVClassificationParameters& classification;
 };
 
+bool BEVSegmentHasNoBlackPixels(const ReferenceConnectivityFrameView& frame,
+                                const port::BEVPoint& a,
+                                const port::BEVPoint& b);
+
 bool ReferencePathHasNoBlackSegments(const ReferenceConnectivityFrameView& frame,
                                      const port::BEVReferencePath& path);
 
