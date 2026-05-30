@@ -50,6 +50,18 @@ ls2k::port::BEVReferencePath MakePolynomialPath(
     return path;
 }
 
+ls2k::port::BEVReferencePath MakeLeftBendWithRightOriginExtrapolation(
+    const ls2k::port::RuntimeParameters& params) {
+    const float anchor_forward_m = params.bev_geometry.forward_samples_m[0];
+    const float origin_slope = params.bev_geometry.lateral_step_m / anchor_forward_m;
+    const float quadratic = -origin_slope / anchor_forward_m;
+    return MakePolynomialPath(params,
+                              static_cast<int>(ls2k::port::kBevReferenceSampleCount),
+                              quadratic,
+                              origin_slope,
+                              -params.bev_geometry.lateral_step_m);
+}
+
 ls2k::port::ReferenceTrackingGeometry Compute(
     const ls2k::port::BEVReferencePath& path,
     const ls2k::port::RuntimeParameters& params) {
@@ -70,13 +82,17 @@ void TestStraightReferenceProducesZeroCurvature() {
     Expect(output.sample_count == 8, "tracking geometry must report used sample count");
 }
 
-void TestOffsetStraightReferencePreservesOffsetAndHeading() {
+void TestOffsetStraightReferenceUsesFirstObservedLateralAndHeading() {
     const ls2k::port::RuntimeParameters params{};
     constexpr float kOffset = 0.18F;
     constexpr float kSlope = 0.20F;
-    const auto output = Compute(MakePolynomialPath(params, 8, 0.0F, kSlope, kOffset), params);
+    const ls2k::port::BEVReferencePath path = MakePolynomialPath(params, 8, 0.0F, kSlope, kOffset);
+    const auto output = Compute(path, params);
     Expect(output.computed, "offset line must produce tracking geometry");
-    ExpectNear(output.lateral_offset_m, kOffset, 1.0e-4F, "line intercept becomes lateral offset");
+    ExpectNear(output.lateral_offset_m,
+               path.sampled_path[0].point.lateral_m,
+               1.0e-4F,
+               "first observed line sample becomes lateral offset");
     ExpectNear(output.heading_error_rad, std::atan(kSlope), 1.0e-4F, "line slope becomes heading error");
     ExpectNear(output.curvature_m_inv, 0.0F, 1.0e-3F, "line curvature remains near zero");
 }
@@ -86,12 +102,27 @@ void TestCurvedReferenceSeparatesCurvature() {
     constexpr float kA = 0.50F;
     constexpr float kB = 0.10F;
     constexpr float kC = -0.04F;
-    const auto output = Compute(MakePolynomialPath(params, 10, kA, kB, kC), params);
+    const ls2k::port::BEVReferencePath path = MakePolynomialPath(params, 10, kA, kB, kC);
+    const auto output = Compute(path, params);
     const float expected_curvature = (2.0F * kA) / std::pow(1.0F + kB * kB, 1.5F);
     Expect(output.computed, "quadratic path must produce tracking geometry");
-    ExpectNear(output.lateral_offset_m, kC, 1.0e-4F, "quadratic intercept becomes lateral offset");
-    ExpectNear(output.heading_error_rad, std::atan(kB), 1.0e-4F, "quadratic slope at origin becomes heading");
+    ExpectNear(output.lateral_offset_m,
+               path.sampled_path[0].point.lateral_m,
+               1.0e-4F,
+               "first observed quadratic sample becomes lateral offset");
+    Expect(output.heading_error_rad > std::atan(kB),
+           "curved heading must be evaluated at the first observed reference sample");
     ExpectNear(output.curvature_m_inv, expected_curvature, 1.0e-3F, "quadratic coefficient becomes curvature");
+}
+
+void TestLeftBendUsesObservedLateralOffsetAndHeading() {
+    const ls2k::port::RuntimeParameters params{};
+    const ls2k::port::BEVReferencePath path =
+        MakeLeftBendWithRightOriginExtrapolation(params);
+    const auto output = Compute(path, params);
+    Expect(output.computed, "left bend must produce tracking geometry");
+    Expect(output.lateral_offset_m < 0.0F, "left bend lateral offset must remain left-signed");
+    Expect(output.heading_error_rad < 0.0F, "left bend heading must remain left-signed");
 }
 
 void TestInsufficientSamplesFailClosed() {
@@ -123,8 +154,9 @@ void TestDegenerateFitFailsClosed() {
 int main() {
     try {
         TestStraightReferenceProducesZeroCurvature();
-        TestOffsetStraightReferencePreservesOffsetAndHeading();
+        TestOffsetStraightReferenceUsesFirstObservedLateralAndHeading();
         TestCurvedReferenceSeparatesCurvature();
+        TestLeftBendUsesObservedLateralOffsetAndHeading();
         TestInsufficientSamplesFailClosed();
         TestDegenerateFitFailsClosed();
     } catch (const TestFailure& failure) {

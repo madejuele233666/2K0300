@@ -107,6 +107,7 @@ port::ReferenceTrackingGeometry ComputeReferenceTrackingGeometry(
     float sum_y = 0.0F;
     float sum_xy = 0.0F;
     float sum_x2y = 0.0F;
+    float evaluation_forward_m = 0.0F;
     std::size_t used_count = 0;
 
     for (std::size_t index = 0; index < bounded_count; ++index) {
@@ -116,6 +117,9 @@ port::ReferenceTrackingGeometry ComputeReferenceTrackingGeometry(
         }
         const float x = sample.point.forward_m;
         const float y = sample.point.lateral_m;
+        if (used_count == 0U) {
+            evaluation_forward_m = x;
+        }
         const float x2 = x * x;
         const float x3 = x2 * x;
         const float x4 = x2 * x2;
@@ -147,15 +151,19 @@ port::ReferenceTrackingGeometry ComputeReferenceTrackingGeometry(
     const float c = coeff[0];
     const float b = coeff[1];
     const float a = coeff[2];
-    const float heading_error_rad = std::atan(b);
+    const float evaluation_forward_m2 = evaluation_forward_m * evaluation_forward_m;
+    const float lateral_offset_m =
+        a * evaluation_forward_m2 + b * evaluation_forward_m + c;
+    const float heading_error_rad = std::atan(b + 2.0F * a * evaluation_forward_m);
     const float curvature_m_inv = (2.0F * a) / std::pow(1.0F + b * b, 1.5F);
-    if (!std::isfinite(c) || !std::isfinite(heading_error_rad) || !std::isfinite(curvature_m_inv)) {
+    if (!std::isfinite(lateral_offset_m) || !std::isfinite(heading_error_rad) ||
+        !std::isfinite(curvature_m_inv)) {
         return UncomputedOutput("tracking_geometry_nonfinite");
     }
 
     port::ReferenceTrackingGeometry output{};
     output.computed = true;
-    output.lateral_offset_m = c;
+    output.lateral_offset_m = lateral_offset_m;
     output.heading_error_rad = heading_error_rad;
     output.curvature_m_inv = curvature_m_inv;
     output.sample_count = used_count;

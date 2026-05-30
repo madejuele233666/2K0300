@@ -127,10 +127,10 @@ struct BEVClassificationParameters {
  */
 struct BEVControlModelParameters {
     double lateral_error_far_weight = 0.0;  ///< 远端横向误差权重
-    double lateral_offset_to_wheel_delta_gain = 100.0;  ///< 横向位置项到轮速差值的增益系数
-    double heading_error_to_wheel_delta_gain = 10.0;  ///< 航向误差项到轮速差值的增益系数
-    double curvature_to_wheel_delta_gain = 0.0;  ///< nominal speed下曲率前馈项到轮速差值的增益系数
-    double lateral_error_to_wheel_delta_gain = 100.0;  ///< 旧参数名兼容别名，映射到 lateral offset gain
+    double lateral_offset_to_wheel_delta_gain = 500.0;  ///< 横向位置项到轮速差值的增益系数
+    double heading_error_to_wheel_delta_gain = 140.0;  ///< 航向误差项到轮速差值的增益系数
+    double curvature_to_wheel_delta_gain = 60.0;  ///< nominal speed下曲率前馈项到轮速差值的增益系数
+    double lateral_error_to_wheel_delta_gain = 500.0;  ///< 旧参数名兼容别名，映射到 lateral offset gain
     int min_leading_reference_samples = 3;  ///< 最小前导参考采样点数量
     int tracking_fit_min_samples = 3;       ///< 跟踪几何拟合最小采样点数量
 };
