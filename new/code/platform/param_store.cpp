@@ -676,7 +676,7 @@ bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
 /**
  * 解析硬件配置文件中单个子系统的配置块（包含 mode 和 hook 字段）。
  * @param root JSON 根节点
- * @param key 子系统键名（如 "camera"、"motor" 等）
+ * @param key 子系统键名（如 "camera"、"actuator" 等）
  * @param out_profile 输出参数，解析后的子系统配置
  * @return true 表示解析成功
  */
@@ -1189,7 +1189,7 @@ public:
 
     /**
      * 从 JSON 文件加载硬件配置。
-     * 按顺序解析 camera/imu/encoder/motor/timer/persistence/display 共 7 个子系统配置块。
+     * 按顺序解析 camera/imu/encoder/actuator/timer/persistence/display 共 7 个子系统配置块。
      * 任何子系统解析失败都将导致整体加载失败（fail-closed 策略）。
      * @param path JSON 硬件配置文件路径
      * @param out 输出参数，加载后的完整硬件配置
@@ -1240,10 +1240,10 @@ public:
                               port::NowMs()});
             return false;
         }
-        if (!ParseProfileBlock(root, "motor", parsed.motor)) {
+        if (!ParseProfileBlock(root, "actuator", parsed.actuator)) {
             diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
-                              "profile.parse.motor",
-                              ProfileBlockError("motor"),
+                              "profile.parse.actuator",
+                              ProfileBlockError("actuator"),
                               port::NowMs()});
             return false;
         }

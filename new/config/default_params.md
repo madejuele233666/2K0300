@@ -92,7 +92,7 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `YAW_RATE_PID.P` | `0.0` | gyro feedback | gyro yaw-rate 对 turn-output 的反馈修正增益。它不承担 reference tracking geometry 前馈/反馈幅度；摆动或 raw turn 频繁反向时先看它，单纯欠转先看 BEV control model 的三项 gain。 |
 | `YAW_RATE_PID.I` | `0.0` | gyro feedback | gyro 反馈积分。当前默认不用。只有长期同向 gyro 偏差且 P/D 不能解决时小幅增加；积分过大会拖尾。 |
 | `YAW_RATE_PID.D` | `0.0` | gyro feedback | 抑制 gyro 反馈误差变化。抖动和过冲明显时增加；过大时转向变钝。 |
-| `LEFT_WHEEL_PID.P` | `84.0` | 左轮速度 PID | 左轮速度误差主增益。左轮跟随慢增大；PWM 抖或超调减小。看 `left_speed_target`、`left_measured_speed`、`left_pwm_command`。 |
+| `LEFT_WHEEL_PID.P` | `84.0` | 左轮速度 PID | 左轮速度误差主增益。左轮跟随慢增大；PWM 抖或超调减小。看 `left_speed_target`、`left_measured_speed`、`left_drive_pwm_command`。 |
 | `LEFT_WHEEL_PID.I` | `2.4` | 左轮速度 PID | 左轮长期误差积分。稳态低于目标时增大；起步后拖尾或积累过冲时减小。 |
 | `LEFT_WHEEL_PID.D` | `0.75` | 左轮速度 PID | 左轮速度变化阻尼。速度抖动可增大；响应迟钝可减小。 |
 | `LEFT_WHEEL_PID.INTEGRAL_LIMIT` | `5000.0` | 左轮速度 PID | 左轮积分上限。积分饱和导致恢复慢时减小；长期负载跟不上且 I 有效时可增大。 |
@@ -173,57 +173,57 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 调参方法与证据 |
 | --- | --- | --- |
 | `BEV_PROJECTOR.VALID` | `1` | 投影是否可用。置 `0` 会让 perception health 失败，只用于 fail-safe 验证。 |
-| `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_true_bev_long_straight_v6` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
-| `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-long-straight-20260506` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
+| `BEV_PROJECTOR.PROJECTOR_ID` | `bev_projector_square_aspect_20260531T043107Z` | 标定版本名。只改标识，不改变几何；更新标定时同步改。 |
+| `BEV_PROJECTOR.PROJECTOR_HASH` | `bev-projector-square-aspect-frame-3096-20260531T043107Z` | 标定版本 hash/说明。只用于身份和 LUT 重建判断。 |
 | `BEV_PROJECTOR.DEBUG_GRID_WIDTH` | `160` | dense debug BEV 图宽度，只影响调试图，不是 runtime sparse/raster authority。runtime 元素 raster 看 `BEV_ELEMENT_RASTER.WIDTH`。 |
 | `BEV_PROJECTOR.DEBUG_GRID_HEIGHT` | `128` | dense debug BEV 图高度，只影响调试图。runtime 元素 raster 高度按 metric aspect 派生。 |
-| `BEV_PROJECTOR.SOURCE_ROW_0` / `SOURCE_COL_0` | `220.0` / `19.0` | 近端左标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `220.0` / `300.0` | 近端右标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `68.0` / `121.0` | 远端左标定点在原图中的像素位置。 |
-| `BEV_PROJECTOR.SOURCE_ROW_3` / `SOURCE_COL_3` | `68.0` / `204.0` | 远端右标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_0` / `SOURCE_COL_0` | `222.0` / `33.5` | 近端左标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_1` / `SOURCE_COL_1` | `222.0` / `298.5` | 近端右标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_2` / `SOURCE_COL_2` | `81.0` / `116.0` | 远端左标定点在原图中的像素位置。 |
+| `BEV_PROJECTOR.SOURCE_ROW_3` / `SOURCE_COL_3` | `81.0` / `217.0` | 远端右标定点在原图中的像素位置。 |
 | `BEV_PROJECTOR.TARGET_FORWARD_0` / `TARGET_LATERAL_0` | `0.061` / `-0.21` | 近端左标定点对应的车辆坐标。 |
 | `BEV_PROJECTOR.TARGET_FORWARD_1` / `TARGET_LATERAL_1` | `0.061` / `0.21` | 近端右标定点对应的车辆坐标。 |
-| `BEV_PROJECTOR.TARGET_FORWARD_2` / `TARGET_LATERAL_2` | `0.61` / `-0.21` | 远端左标定点对应的车辆坐标。 |
-| `BEV_PROJECTOR.TARGET_FORWARD_3` / `TARGET_LATERAL_3` | `0.61` / `0.21` | 远端右标定点对应的车辆坐标。 |
+| `BEV_PROJECTOR.TARGET_FORWARD_2` / `TARGET_LATERAL_2` | `0.6006` / `-0.21` | 远端左标定点对应的车辆坐标。 |
+| `BEV_PROJECTOR.TARGET_FORWARD_3` / `TARGET_LATERAL_3` | `0.6006` / `0.21` | 远端右标定点对应的车辆坐标。 |
 
-调 `SOURCE_*` 或 `TARGET_*` 时必须重新生成 dense debug BEV、分类图、row intervals 和白点 overlay。不要通过 lateral-error 或 PID 参数掩盖标定错误。
+摄像头角度变化后优先使用 `new/user/calibrate_bev_projector_from_live.py` 在直道居中静态帧上做多行边界拟合；脚本默认只输出建议和 overlay，显式 `--write-params` 才写回 `BEV_PROJECTOR.SOURCE_*`。当前 `TARGET_FORWARD_2/3` 额外按 live gray8 frame 3096 中的标准白色正方形做纵横比校正：该方块在当前 BEV 下高/宽约 `1.017`，因此保持近端 `0.061m` 不变，将远端 forward 从 `0.61m` 缩到 `0.6006m`。调 `SOURCE_*` 或 `TARGET_*` 时必须重新生成 dense debug BEV、分类图、row intervals 和白点 overlay。不要通过 lateral-error 或 PID 参数掩盖标定错误。
 
 ## 9. BEV Geometry 行扫描
 
 | 参数 | 当前 JSON 值 | 作用与调参方法 |
 | --- | --- | --- |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_0` | `0.15` | reference path 第 0 层，0..1.5m 前向范围的 10% 位置。index 0 没有 interval 时当前视觉 reference invalid。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_1` | `0.195652` | 第 1 层。用于 leading 连续段和插值。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_2` | `0.241304` | 第 2 层。默认 `MIN_LEADING_REFERENCE_SAMPLES=3` 时，这是最小 usable 远端。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_3` | `0.286957` | 第 3 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_4` | `0.332609` | 第 4 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_5` | `0.378261` | 第 5 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_6` | `0.423913` | 第 6 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_7` | `0.469565` | 第 7 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_8` | `0.515217` | 第 8 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_9` | `0.56087` | 第 9 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_10` | `0.606522` | 第 10 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_11` | `0.652174` | 第 11 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_12` | `0.697826` | 第 12 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_13` | `0.743478` | 第 13 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_14` | `0.78913` | 第 14 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_15` | `0.834783` | 第 15 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_16` | `0.880435` | 第 16 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_17` | `0.926087` | 第 17 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_18` | `0.971739` | 第 18 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_19` | `1.017391` | 第 19 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_20` | `1.063043` | 第 20 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_21` | `1.108696` | 第 21 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_22` | `1.154348` | 第 22 层。 |
-| `BEV_GEOMETRY.FORWARD_SAMPLE_23` | `1.2` | 第 23 层，0..1.5m 前向范围的 80% 位置；当前算法不会为了远端点跨 gap 补点。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_0` | `0.1` | reference path 第 0 层。index 0 没有 interval 时当前视觉 reference invalid。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_1` | `0.165217` | 第 1 层。用于 leading 连续段和插值。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_2` | `0.230435` | 第 2 层。默认 `MIN_LEADING_REFERENCE_SAMPLES=3` 时，这是最小 usable 远端。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_3` | `0.295652` | 第 3 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_4` | `0.36087` | 第 4 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_5` | `0.426087` | 第 5 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_6` | `0.491304` | 第 6 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_7` | `0.556522` | 第 7 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_8` | `0.621739` | 第 8 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_9` | `0.686957` | 第 9 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_10` | `0.752174` | 第 10 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_11` | `0.817391` | 第 11 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_12` | `0.882609` | 第 12 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_13` | `0.947826` | 第 13 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_14` | `1.013043` | 第 14 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_15` | `1.078261` | 第 15 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_16` | `1.143478` | 第 16 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_17` | `1.208696` | 第 17 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_18` | `1.273913` | 第 18 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_19` | `1.33913` | 第 19 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_20` | `1.404348` | 第 20 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_21` | `1.469565` | 第 21 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_22` | `1.534783` | 第 22 层。 |
+| `BEV_GEOMETRY.FORWARD_SAMPLE_23` | `1.6` | 第 23 层；当前算法不会为了远端点跨 gap 补点。 |
 | `BEV_GEOMETRY.SPARSE_ROW_COUNT` | `24` | 启用原 24 个 `FORWARD_SAMPLE_*` 的前 N 行。设为 `12` 表示只扫描并输出 `FORWARD_SAMPLE_0..11`，不是把 12 行重新均匀分布到 0.061..1.5m。 |
 | `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` | `1.6` | BEV 后横向扫描半宽。漏掉真实白线时可增大；噪声 interval 变多时减小。它不是原图有效 span 裁剪。 |
 | `BEV_GEOMETRY.LATERAL_STEP_M` | `0.02` | BEV 横向采样步长。减小会更精细但更耗时、更易拾取细碎噪声；增大会更稳但白点量化更粗。 |
 | `BEV_GEOMETRY.REFERENCE_LATERAL_JUMP_GATE_M` | `1000.0` | 参考路径相邻点横向跳变旧门限。默认极大，正常 BEV 范围内等同禁用；路径是否跨黑由连通性 gate 判断。 |
 | `BEV_GEOMETRY.BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M` | `0.15` | 普通路径候选生成前，边界 trace 相邻保留点的 BEV 平面最大距离。只用于原始边界点连续性裁剪，不从半路宽或采样步长推导。 |
-| `BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M` | `0.21` | 普通道路模型的稳定半路宽事实。CircleV2 ExitTrace 通过 `OrdinaryRoadModel.half_width` 消费该值，不再从每帧 rows 宽度实时重算。 |
+| `BEV_GEOMETRY.NOMINAL_ROAD_HALF_WIDTH_M` | `0.19` | 普通道路模型的稳定半路宽事实。CircleV2 ExitTrace 通过 `OrdinaryRoadModel.half_width` 消费该值，不再从每帧 rows 宽度实时重算。 |
 
-`FORWARD_SAMPLE_*` 必须单调递增。当前 24 点按 0..1.5m 前向范围的 10%..80% 等距分布，即 0.15..1.20m。这些参数已经是 BEV 投影后的车辆坐标系米制 `forward_m`，消费方直接把它们作为 BEV 行位置使用，不需要再额外做一次 BEV 转换。改采样分布会影响 LUT identity、leading range、lateral-error 权重含义和 steering media snapshot；不要只改某一个点来修局部画面。
+`FORWARD_SAMPLE_*` 必须单调递增。当前 24 点按 0.1..1.6m 均匀分布，步长约 0.065217m。这些参数已经是 BEV 投影后的车辆坐标系米制 `forward_m`，消费方直接把它们作为 BEV 行位置使用，不需要再额外做一次 BEV 转换。改采样分布会影响 LUT identity、leading range、lateral-error 权重含义和 steering media snapshot；不要只改某一个点来修局部画面。
 
 `SPARSE_ROW_COUNT` 是活跃前缀长度，合法范围为 `1..24`。它改变性能和最大前视距离，但不改变任何已定义采样行的物理位置；参数变化会让 sparse LUT 与 hold geometry identity 失效并重建。
 
@@ -255,9 +255,9 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | 参数 | 当前 JSON 值 | 作用层 | 调参方法与证据 |
 | --- | ---: | --- | --- |
 | `BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT` | `0.0` | legacy lateral-error debug | 旧 weighted lateral error 对照字段的远端权重。V6 主控不再使用 weighted future lateral average 作为唯一输入。 |
-| `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` | `500` | turn-output target | `tracking_geometry.lateral_offset_m` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
+| `BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN` | `600` | turn-output target | `tracking_geometry.lateral_offset_m` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
 | `BEV_CONTROL_MODEL.HEADING_ERROR_TO_WHEEL_DELTA_GAIN` | `140` | turn-output target | `tracking_geometry.heading_error_rad` 到左右轮速半差目标的反馈增益。合法范围 `[0, 1000]`，越界参数按解析失败处理。 |
-| `BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN` | `60` | turn-output target | `tracking_geometry.curvature_m_inv` 到左右轮速半差目标的曲率前馈增益，语义与 lateral/heading gain 一样是在 `RUNNING_SPEED_TARGET` 下的 nominal gain；运行时再统一乘 `speed_scale`。调参时结合 `yaw_control.curvature_term` 查看贡献。 |
+| `BEV_CONTROL_MODEL.CURVATURE_TO_WHEEL_DELTA_GAIN` | `100` | turn-output target | `tracking_geometry.curvature_m_inv` 到左右轮速半差目标的曲率前馈增益，语义与 lateral/heading gain 一样是在 `RUNNING_SPEED_TARGET` 下的 nominal gain；运行时再统一乘 `speed_scale`。调参时结合 `yaw_control.curvature_term` 查看贡献。 |
 | `BEV_CONTROL_MODEL.MIN_LEADING_REFERENCE_SAMPLES` | `3` | reference usability | 第一个连续真实 reference 点段的最小数量。近端丢线本身不使路径不可用，但真实连续点少于该值仍不可用。低于 3 时按 3 处理。 |
 | `BEV_CONTROL_MODEL.TRACKING_FIT_MIN_SAMPLES` | `3` | reference tracking geometry | 二次拟合 `tracking_geometry` 所需的最小 leading usable 样本数。合法范围 `[3, 24]`。 |
 

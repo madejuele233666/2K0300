@@ -105,10 +105,13 @@ The accepted first-release telemetry frames SHALL identify at minimum:
 - `right_speed_target`
 - `left_measured_speed`
 - `right_measured_speed`
-- `left_pwm_command`
-- `right_pwm_command`
+- `left_drive_pwm_command`
+- `right_drive_pwm_command`
+- `left_brushless_pwm_command`
+- `right_brushless_pwm_command`
 - `raw_turn_output`
 - `applied_turn_output`
+- `actuator_apply_outcome`
 
 For first-release telemetry, `target_speed_override_value` and `effective_speed_target` SHALL use the same encoding rules defined above for `state` frames.
 

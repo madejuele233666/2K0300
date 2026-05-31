@@ -17,6 +17,10 @@ inline constexpr char kRightMotorPwmPath[] = "/dev/zf_device_pwm_motor_2";
 inline constexpr char kLeftMotorGpioPath[] = "/dev/zf_driver_gpio_motor_1";
 // 右电机方向 GPIO 控制字符设备路径
 inline constexpr char kRightMotorGpioPath[] = "/dev/zf_driver_gpio_motor_2";
+// 左无刷电调 PWM 控制字符设备路径（P828）
+inline constexpr char kBrushlessEsc1PwmPath[] = "/dev/zf_device_pwm_esc_1";
+// 右无刷电调 PWM 控制字符设备路径（P829）
+inline constexpr char kBrushlessEsc2PwmPath[] = "/dev/zf_device_pwm_esc_2";
 // 电池电压 ADC 输入 sysfs 路径
 inline constexpr char kBatteryAdcPath[] = "/sys/bus/iio/devices/iio:device0/in_voltage7_raw";
 

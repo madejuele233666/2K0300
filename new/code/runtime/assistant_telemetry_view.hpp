@@ -62,9 +62,6 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     telemetry.yaw_control.lateral_term = snapshot.steering.yaw_control.lateral_term;
     telemetry.yaw_control.heading_term = snapshot.steering.yaw_control.heading_term;
     telemetry.yaw_control.curvature_term = snapshot.steering.yaw_control.curvature_term;
-    telemetry.actuator.raw_turn_output = snapshot.steering.actuator.raw_turn_output;
-    telemetry.actuator.applied_turn_output =
-        snapshot.steering.actuator.applied_turn_output;
     telemetry.tuning_mode_enabled = snapshot.tuning_mode_enabled;
     telemetry.turn_suppressed = snapshot.turn_suppressed;
     telemetry.target_speed_override_enabled = snapshot.target_speed_override_enabled;
@@ -74,8 +71,13 @@ inline platform::AssistantTelemetryView BuildAssistantTelemetryView(
     telemetry.right_speed_target = snapshot.right_speed_target;
     telemetry.left_measured_speed = snapshot.left_measured_speed;
     telemetry.right_measured_speed = snapshot.right_measured_speed;
-    telemetry.left_pwm_command = snapshot.left_pwm_command;
-    telemetry.right_pwm_command = snapshot.right_pwm_command;
+    telemetry.raw_turn_output = snapshot.raw_turn_output;
+    telemetry.applied_turn_output = snapshot.applied_turn_output;
+    telemetry.left_drive_pwm_command = snapshot.left_drive_pwm_command;
+    telemetry.right_drive_pwm_command = snapshot.right_drive_pwm_command;
+    telemetry.left_brushless_pwm_command = snapshot.left_brushless_pwm_command;
+    telemetry.right_brushless_pwm_command = snapshot.right_brushless_pwm_command;
+    telemetry.actuator_apply_outcome = ToString(snapshot.apply_outcome);
     return telemetry;
 }
 

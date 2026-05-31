@@ -14,6 +14,7 @@ c++ -std=c++17 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -pthrea
   -I"${OPENCV_ROOT}/include/opencv4" \
   "${REPO_ROOT}/new/verification/tests/assistant_telemetry_selftest.cpp" \
   "${REPO_ROOT}/new/code/platform/assistant_protocol.cpp" \
+  "${REPO_ROOT}/new/code/runtime/control_decision.cpp" \
   "${REPO_ROOT}/new/code/runtime/motion_supervisor.cpp" \
   -Wl,--gc-sections \
   -o "${OUT_BIN}"

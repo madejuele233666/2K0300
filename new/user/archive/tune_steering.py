@@ -81,10 +81,13 @@ class StreamingCsvRecorder:
         "right_speed_target",
         "left_measured_speed",
         "right_measured_speed",
-        "left_pwm_command",
-        "right_pwm_command",
-        "actuator.raw_turn_output",
-        "actuator.applied_turn_output",
+        "left_drive_pwm_command",
+        "right_drive_pwm_command",
+        "left_brushless_pwm_command",
+        "right_brushless_pwm_command",
+        "raw_turn_output",
+        "applied_turn_output",
+        "actuator_apply_outcome",
         "perception_health.projector_ok",
         "perception_health.reason",
         "reference.mode",
@@ -336,10 +339,13 @@ class PassiveAssistantListener:
             "right_speed_target": frame.get("right_speed_target", ""),
             "left_measured_speed": frame.get("left_measured_speed", ""),
             "right_measured_speed": frame.get("right_measured_speed", ""),
-            "left_pwm_command": frame.get("left_pwm_command", ""),
-            "right_pwm_command": frame.get("right_pwm_command", ""),
-            "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
-            "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
+            "left_drive_pwm_command": frame.get("left_drive_pwm_command", ""),
+            "right_drive_pwm_command": frame.get("right_drive_pwm_command", ""),
+            "left_brushless_pwm_command": frame.get("left_brushless_pwm_command", ""),
+            "right_brushless_pwm_command": frame.get("right_brushless_pwm_command", ""),
+            "raw_turn_output": frame.get("raw_turn_output", ""),
+            "applied_turn_output": frame.get("applied_turn_output", ""),
+            "actuator_apply_outcome": frame.get("actuator_apply_outcome", ""),
             "perception_health.projector_ok": nested(frame, "perception_health", "projector_ok"),
             "perception_health.reason": nested(frame, "perception_health", "reason"),
             "reference.mode": nested(frame, "reference", "mode"),
@@ -399,8 +405,9 @@ class PassiveAssistantListener:
                     f"turn_output_target={nested(frame, 'yaw_control', 'turn_output_target')} "
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
-                    f"raw_turn={nested(frame, 'actuator', 'raw_turn_output')} "
-                    f"applied_turn={nested(frame, 'actuator', 'applied_turn_output')}"
+                    f"raw_turn={frame.get('raw_turn_output')} "
+                    f"applied_turn={frame.get('applied_turn_output')} "
+                    f"apply_outcome={frame.get('actuator_apply_outcome')}"
                 )
             return
 
@@ -526,8 +533,9 @@ class BoardSteeringLogCapture:
                             f"gate={nested(snapshot, 'safety_gate', 'reason')} "
                             f"lateral_error={nested(snapshot, 'lateral_error', 'weighted_lateral_error_m')} "
                             f"turn_output_target={nested(snapshot, 'yaw_control', 'turn_output_target')} "
-                            f"raw_turn={nested(snapshot, 'actuator', 'raw_turn_output')} "
-                            f"applied_turn={nested(snapshot, 'actuator', 'applied_turn_output')}"
+                            f"raw_turn={snapshot.get('raw_turn_output')} "
+                            f"applied_turn={snapshot.get('applied_turn_output')} "
+                            f"apply_outcome={snapshot.get('actuator_apply_outcome')}"
                         )
         except OSError as error:
             if not self._stop.is_set():
@@ -681,8 +689,9 @@ def build_steering_media_alignment(output_dir: Path, board_summary: Dict[str, An
                 "lateral_error.weighted_sample_count": nested(matched, "lateral_error", "weighted_sample_count"),
                 "lateral_error.weight_sum": nested(matched, "lateral_error", "weight_sum"),
                 "yaw_control.turn_output_target": nested(matched, "yaw_control", "turn_output_target"),
-                "actuator.raw_turn_output": nested(matched, "actuator", "raw_turn_output"),
-                "actuator.applied_turn_output": nested(matched, "actuator", "applied_turn_output"),
+                "raw_turn_output": matched.get("raw_turn_output", ""),
+                "applied_turn_output": matched.get("applied_turn_output", ""),
+                "actuator_apply_outcome": matched.get("actuator_apply_outcome", ""),
             }
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
 

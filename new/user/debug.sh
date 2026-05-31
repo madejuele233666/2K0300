@@ -84,7 +84,7 @@ SMOKE_REMOTE_LOG="${LS2K_REMOTE_SMOKE_LOG:-${BOARD_PATH}/new_runtime_smoke.log}"
 SMOKE_REMOTE_PARAMS="${LS2K_REMOTE_SMOKE_PARAMS_PATH:-${BOARD_PATH}/default_params.smoke.json}"
 SMOKE_REMOTE_PROFILE="${LS2K_REMOTE_SMOKE_PROFILE_PATH:-${BOARD_PATH}/hardware_profile.smoke.json}"
 SMOKE_MAX_FRAMES="${SMOKE_MAX_FRAMES:-400}"
-SMOKE_ENABLE_MOTOR="${SMOKE_ENABLE_MOTOR:-0}"
+SMOKE_ENABLE_ACTUATOR="${SMOKE_ENABLE_ACTUATOR:-0}"
 SMOKE_AUTO_START="${SMOKE_AUTO_START:-1}"
 SMOKE_AUTO_START_DELAY_MS="${SMOKE_AUTO_START_DELAY_MS:-200}"
 SMOKE_AUTO_STOP_AFTER_MS="${SMOKE_AUTO_STOP_AFTER_MS:-0}"
@@ -1659,7 +1659,7 @@ Behavior:
 
 Common env overrides:
   VERIFY_LOG_PATH=/abs/path/to/runtime-smoke.log
-  SMOKE_ENABLE_MOTOR=0|1
+  SMOKE_ENABLE_ACTUATOR=0|1
   SMOKE_MAX_FRAMES=400
   SMOKE_AUTO_START=1
   SMOKE_AUTO_START_DELAY_MS=200
@@ -1680,7 +1680,7 @@ smoke_write_header() {
         echo "binary=${BOARD_BIN}"
         echo "params_source=${PARAMS_PATH}"
         echo "profile_source=${PROFILE_PATH}"
-        echo "smoke_enable_motor=${SMOKE_ENABLE_MOTOR}"
+        echo "smoke_enable_actuator=${SMOKE_ENABLE_ACTUATOR}"
         echo "true_vendor_root=${TRUE_VENDOR_ROOT}"
         echo "harness_context_begin"
         echo "LS2K_AUTO_START=${SMOKE_AUTO_START}"
@@ -1700,12 +1700,12 @@ prepare_smoke_profile() {
     local source_path="$1"
     local target_path="$2"
 
-    if [[ "${SMOKE_ENABLE_MOTOR}" == "1" ]]; then
+    if [[ "${SMOKE_ENABLE_ACTUATOR}" == "1" ]]; then
         cp "${source_path}" "${target_path}"
         return 0
     fi
 
-    sed '/"motor": {/,/},/s/"mode": "[^"]*"/"mode": "disabled"/; /"motor": {/,/},/s/"hook": "[^"]*"/"hook": "smoke-motor-disabled"/' \
+    sed '/"actuator": {/,/},/s/"mode": "[^"]*"/"mode": "disabled"/; /"actuator": {/,/},/s/"hook": "[^"]*"/"hook": "smoke-actuator-disabled"/' \
         "${source_path}" > "${target_path}"
 }
 
@@ -1714,7 +1714,7 @@ smoke_runtime_env() {
     local profile_path="$2"
     local prefix=""
 
-    if [[ "${SMOKE_ENABLE_MOTOR}" != "1" ]]; then
+    if [[ "${SMOKE_ENABLE_ACTUATOR}" != "1" ]]; then
         prefix="LS2K_ALLOW_DEGRADED_STARTUP=1 "
     fi
 

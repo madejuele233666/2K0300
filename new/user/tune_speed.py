@@ -121,10 +121,13 @@ class CsvRecorder:
         "right_speed_target",
         "left_measured_speed",
         "right_measured_speed",
-        "left_pwm_command",
-        "right_pwm_command",
-        "actuator.raw_turn_output",
-        "actuator.applied_turn_output",
+        "left_drive_pwm_command",
+        "right_drive_pwm_command",
+        "left_brushless_pwm_command",
+        "right_brushless_pwm_command",
+        "raw_turn_output",
+        "applied_turn_output",
+        "actuator_apply_outcome",
         "perception_health.projector_ok",
         "perception_health.reason",
         "reference.mode",
@@ -399,10 +402,13 @@ class AssistantSession:
             "right_speed_target": frame.get("right_speed_target", ""),
             "left_measured_speed": frame.get("left_measured_speed", ""),
             "right_measured_speed": frame.get("right_measured_speed", ""),
-            "left_pwm_command": frame.get("left_pwm_command", ""),
-            "right_pwm_command": frame.get("right_pwm_command", ""),
-            "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
-            "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
+            "left_drive_pwm_command": frame.get("left_drive_pwm_command", ""),
+            "right_drive_pwm_command": frame.get("right_drive_pwm_command", ""),
+            "left_brushless_pwm_command": frame.get("left_brushless_pwm_command", ""),
+            "right_brushless_pwm_command": frame.get("right_brushless_pwm_command", ""),
+            "raw_turn_output": frame.get("raw_turn_output", ""),
+            "applied_turn_output": frame.get("applied_turn_output", ""),
+            "actuator_apply_outcome": frame.get("actuator_apply_outcome", ""),
             "perception_health.projector_ok": nested(frame, "perception_health", "projector_ok"),
             "perception_health.reason": nested(frame, "perception_health", "reason"),
             "reference.mode": nested(frame, "reference", "mode"),
@@ -470,8 +476,9 @@ class AssistantSession:
                     f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
                     f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"override={frame.get('target_speed_override_value')!r} "
-                    f"raw_turn={nested(frame, 'actuator', 'raw_turn_output')} "
-                    f"applied_turn={nested(frame, 'actuator', 'applied_turn_output')}"
+                    f"raw_turn={frame.get('raw_turn_output')} "
+                    f"applied_turn={frame.get('applied_turn_output')} "
+                    f"apply_outcome={frame.get('actuator_apply_outcome')}"
                 )
             return
 
@@ -749,8 +756,9 @@ def build_alignment_bundle(
                 "lateral_error.weighted_sample_count": nearest.get("lateral_error.weighted_sample_count", ""),
                 "lateral_error.weight_sum": nearest.get("lateral_error.weight_sum", ""),
                 "yaw_control.turn_output_target": nearest.get("yaw_control.turn_output_target", ""),
-                "actuator.raw_turn_output": nearest.get("actuator.raw_turn_output", ""),
-                "actuator.applied_turn_output": nearest.get("actuator.applied_turn_output", ""),
+                "raw_turn_output": nearest.get("raw_turn_output", ""),
+                "applied_turn_output": nearest.get("applied_turn_output", ""),
+                "actuator_apply_outcome": nearest.get("actuator_apply_outcome", ""),
             }
             alignment_records.append(record)
             file.write(json.dumps(record, ensure_ascii=False) + "\n")

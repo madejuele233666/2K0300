@@ -22,7 +22,7 @@ enum class ControlVetoReason {
 /// 控制施加结果枚举 —— 描述控制命令的施加状态
 enum class ControlApplyOutcome {
     kNotRequested,              ///< 未请求施加
-    kSuppressedByProfile,       ///< 被电机配置抑制（诊断模式）
+    kSuppressedByProfile,       ///< 被执行器配置抑制（诊断模式）
     kHeldDisarmedApplied,       ///< 保持未就绪状态施加
     kEmergencyStopApplied,      ///< 紧急停止已施加
     kZeroCommandApplied,        ///< 零命令已施加
@@ -71,8 +71,10 @@ struct ControlCycleObservation {
     bool motion_reset_ready = false;            ///< 故障恢复是否就绪
     bool requested_nonzero_output = false;      ///< 是否请求了非零输出
     ControlApplyOutcome apply_outcome = ControlApplyOutcome::kNotRequested;  ///< 施加结果
-    int applied_left_pwm = 0;                   ///< 应用后的左轮 PWM
-    int applied_right_pwm = 0;                  ///< 应用后的右轮 PWM
+    int applied_left_drive_pwm = 0;             ///< 应用后的左驱动 PWM
+    int applied_right_drive_pwm = 0;            ///< 应用后的右驱动 PWM
+    int applied_left_brushless_pwm = 0;         ///< 应用后的左无刷电调 PWM
+    int applied_right_brushless_pwm = 0;        ///< 应用后的右无刷电调 PWM
     bool actuators_armed = false;               ///< 执行器是否已就绪
     bool arming_transition = false;             ///< 是否发生了就绪状态转换
 };

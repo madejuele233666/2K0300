@@ -327,7 +327,14 @@ std::string BuildSteeringSnapshotJson(const SteeringMediaSnapshotView& snapshot)
     AppendJsonNumber(stream, snapshot.yaw_control.curvature_term);
     stream << "}";
     stream << ",\"actuator\":{\"raw_turn_output\":" << snapshot.actuator.raw_turn_output;
-    stream << ",\"applied_turn_output\":" << snapshot.actuator.applied_turn_output << "}";
+    stream << ",\"applied_turn_output\":" << snapshot.actuator.applied_turn_output;
+    stream << ",\"left_drive_pwm_command\":" << snapshot.actuator.left_drive_pwm_command;
+    stream << ",\"right_drive_pwm_command\":" << snapshot.actuator.right_drive_pwm_command;
+    stream << ",\"left_brushless_pwm_command\":" << snapshot.actuator.left_brushless_pwm_command;
+    stream << ",\"right_brushless_pwm_command\":" << snapshot.actuator.right_brushless_pwm_command;
+    stream << ",\"apply_outcome\":";
+    AppendJsonString(stream, snapshot.actuator.apply_outcome);
+    stream << "}";
     stream << ",\"threshold\":" << snapshot.threshold;
     stream << "}";
     return stream.str();

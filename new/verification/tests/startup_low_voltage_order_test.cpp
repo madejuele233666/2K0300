@@ -65,7 +65,7 @@ private:
     bool ready_ = false;
 };
 
-class FakeMotorAdapter final : public ls2k::port::IMotorAdapter {
+class FakeActuatorAdapter final : public ls2k::port::IActuatorAdapter {
 public:
     bool Initialize(const ls2k::port::HardwareProfile&, ls2k::port::DiagnosticSink&) override {
         ready_ = true;
@@ -155,7 +155,7 @@ ls2k::port::HardwareProfile DirectProfile() {
     profile.camera = {ls2k::port::SubsystemMode::kDirectMatch, "fake-camera"};
     profile.imu = {ls2k::port::SubsystemMode::kDirectMatch, "fake-imu"};
     profile.encoder = {ls2k::port::SubsystemMode::kDirectMatch, "fake-encoder"};
-    profile.motor = {ls2k::port::SubsystemMode::kDirectMatch, "fake-motor"};
+    profile.actuator = {ls2k::port::SubsystemMode::kDirectMatch, "fake-actuator"};
     profile.timer = {ls2k::port::SubsystemMode::kDirectMatch, "fake-timer"};
     profile.persistence = {ls2k::port::SubsystemMode::kDirectMatch, "fake-persistence"};
     return profile;
@@ -173,7 +173,7 @@ int main() {
         platform.camera = std::make_unique<FakeCameraAdapter>();
         platform.imu = std::make_unique<FakeImuAdapter>();
         platform.encoder = std::make_unique<FakeEncoderAdapter>();
-        platform.motor = std::make_unique<FakeMotorAdapter>();
+        platform.actuator = std::make_unique<FakeActuatorAdapter>();
         platform.timer = std::make_unique<FakeTimerAdapter>();
         platform.power = std::move(power);
         platform.params = std::make_unique<FakeParamStore>();

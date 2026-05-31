@@ -202,14 +202,18 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
         return false;
     }
 
-    const int left_pwm = ReadIntEnv("LS2K_BENCH_PWM_LEFT", 0);
-    const int right_pwm = ReadIntEnv("LS2K_BENCH_PWM_RIGHT", left_pwm);
+    const int left_drive_pwm = ReadIntEnv("LS2K_BENCH_DRIVE_LEFT_PWM", 0);
+    const int right_drive_pwm = ReadIntEnv("LS2K_BENCH_DRIVE_RIGHT_PWM", left_drive_pwm);
+    const int left_brushless_pwm = ReadIntEnv("LS2K_BENCH_LEFT_BRUSHLESS_PWM", 0);
+    const int right_brushless_pwm = ReadIntEnv("LS2K_BENCH_RIGHT_BRUSHLESS_PWM", left_brushless_pwm);
     const int settle_ms = ReadIntEnv("LS2K_BENCH_SETTLE_MS", 80);
 
     diagnostics.Emit({ls2k::port::DiagnosticLevel::kWarning,
                       "bench.pwm.start",
-                      "running bench PWM pulse test with logical_left=" + std::to_string(left_pwm) +
-                          " logical_right=" + std::to_string(right_pwm) +
+                      "running bench PWM pulse test with left_drive=" + std::to_string(left_drive_pwm) +
+                          " right_drive=" + std::to_string(right_drive_pwm) +
+                          " left_brushless=" + std::to_string(left_brushless_pwm) +
+                          " right_brushless=" + std::to_string(right_brushless_pwm) +
                           " pulse_ms=" + std::to_string(pulse_ms),
                       ls2k::port::NowMs()});
 
@@ -238,14 +242,20 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(0, settle_ms)));
     const ls2k::port::EncoderDelta before = platform.encoder->ReadDelta(diagnostics);
 
-    const ls2k::port::ActuatorCommand pulse = {left_pwm, right_pwm, false};
-    const bool apply_ok = platform.motor->Apply(pulse, diagnostics);
+    const ls2k::port::ActuatorCommand pulse = {
+        left_drive_pwm,
+        right_drive_pwm,
+        left_brushless_pwm,
+        right_brushless_pwm,
+        false,
+    };
+    const bool apply_ok = platform.actuator->Apply(pulse, diagnostics);
     const int first_slice_ms = std::max(1, pulse_ms / 2);
     const int second_slice_ms = std::max(0, pulse_ms - first_slice_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(first_slice_ms));
     const ls2k::port::EncoderDelta during = platform.encoder->ReadDelta(diagnostics);
     std::this_thread::sleep_for(std::chrono::milliseconds(second_slice_ms));
-    platform.motor->Disable(diagnostics);
+    platform.actuator->Disable(diagnostics);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(0, settle_ms)));
     const ls2k::port::EncoderDelta after_first = platform.encoder->ReadDelta(diagnostics);
@@ -254,6 +264,10 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
 
     std::ostringstream summary;
     summary << "bench PWM pulse apply_ok=" << (apply_ok ? "true" : "false")
+            << " command_left_drive=" << left_drive_pwm
+            << " command_right_drive=" << right_drive_pwm
+            << " command_left_brushless=" << left_brushless_pwm
+            << " command_right_brushless=" << right_brushless_pwm
             << " before_valid=" << (before.valid ? "true" : "false")
             << " before_left=" << before.left
             << " before_right=" << before.right
@@ -320,7 +334,7 @@ int main() {
     diagnostics.Info("profile.imu", std::string(ls2k::port::ToString(profile.imu.mode)) + ":" + profile.imu.hook);
     diagnostics.Info("profile.encoder",
                      std::string(ls2k::port::ToString(profile.encoder.mode)) + ":" + profile.encoder.hook);
-    diagnostics.Info("profile.motor", std::string(ls2k::port::ToString(profile.motor.mode)) + ":" + profile.motor.hook);
+    diagnostics.Info("profile.actuator", std::string(ls2k::port::ToString(profile.actuator.mode)) + ":" + profile.actuator.hook);
     diagnostics.Info("profile.timer", std::string(ls2k::port::ToString(profile.timer.mode)) + ":" + profile.timer.hook);
 
     if (!ls2k::runtime::RunStartup(profile, params, platform, runtime_state, diagnostics)) {

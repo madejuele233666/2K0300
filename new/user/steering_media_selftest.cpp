@@ -243,6 +243,12 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.yaw_control.curvature_term = -0.07;
     snapshot.steering.actuator.raw_turn_output = -17;
     snapshot.steering.actuator.applied_turn_output = -15;
+    snapshot.steering.actuator.left_drive_pwm_command = 101;
+    snapshot.steering.actuator.right_drive_pwm_command = 102;
+    snapshot.steering.actuator.left_brushless_pwm_command = 501;
+    snapshot.steering.actuator.right_brushless_pwm_command = 502;
+    snapshot.steering.actuator.apply_outcome =
+        ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
     snapshot.steering_internal.valid = true;
     snapshot.steering_internal.frame_id = 7;
     snapshot.steering_internal.capture_time_ms = 88;
@@ -339,6 +345,16 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
             "steering snapshot must expose raw turn command");
     Require(Contains(message, "actuator.applied_turn_output=-15"),
             "steering snapshot must expose applied turn command");
+    Require(Contains(message, "actuator.left_drive_pwm_command=101"),
+            "steering snapshot must expose left drive PWM command");
+    Require(Contains(message, "actuator.right_drive_pwm_command=102"),
+            "steering snapshot must expose right drive PWM command");
+    Require(Contains(message, "actuator.left_brushless_pwm_command=501"),
+            "steering snapshot must expose left brushless PWM command");
+    Require(Contains(message, "actuator.right_brushless_pwm_command=502"),
+            "steering snapshot must expose right brushless PWM command");
+    Require(Contains(message, "actuator.apply_outcome=drive_command_applied"),
+            "steering snapshot must expose actuator apply outcome");
     Require(!Contains(message, "near_lateral_error"),
             "steering snapshot must not expose removed near/far control fields");
     Require(!Contains(message, std::string("cross_") + "band_present"),
@@ -810,6 +826,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.control_period_ms = 5;
     params.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
     params.bev_control_model.lateral_error_far_weight = 0.25;
+    params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
     service.Start(params, diagnostics);
 
     ls2k::runtime::RuntimeState state{};
@@ -889,6 +906,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.yaw_control.lateral_term = -0.12;
         state.control_debug_snapshot.steering.yaw_control.heading_term = 0.01;
         state.control_debug_snapshot.steering.yaw_control.curvature_term = -0.09;
+        state.control_debug_snapshot.steering.actuator.left_drive_pwm_command = 101;
+        state.control_debug_snapshot.steering.actuator.right_drive_pwm_command = 102;
+        state.control_debug_snapshot.steering.actuator.left_brushless_pwm_command = 501;
+        state.control_debug_snapshot.steering.actuator.right_brushless_pwm_command = 502;
+        state.control_debug_snapshot.steering.actuator.apply_outcome =
+            ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
         ls2k::port::CameraRawFrameMetadata metadata{};
         metadata.source = "service_v4l2";
         metadata.v4l2_sequence = 88;
@@ -1046,6 +1069,16 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "image frame must include heading yaw term");
     Require(Contains(header_json, "\"curvature_term\":-0.09"),
             "image frame must include curvature yaw term");
+    Require(Contains(header_json, "\"left_drive_pwm_command\":101"),
+            "image frame must include left drive PWM command");
+    Require(Contains(header_json, "\"right_drive_pwm_command\":102"),
+            "image frame must include right drive PWM command");
+    Require(Contains(header_json, "\"left_brushless_pwm_command\":501"),
+            "image frame must include left brushless PWM command");
+    Require(Contains(header_json, "\"right_brushless_pwm_command\":502"),
+            "image frame must include right brushless PWM command");
+    Require(Contains(header_json, "\"apply_outcome\":\"drive_command_applied\""),
+            "image frame must include actuator apply outcome");
     Require(Contains(header_json, "\"reference\":{\"mode\":\"interval_center\",\"source\":\"simple_interval_center\"}"),
             "image frame must include nested reference facts");
     Require(!Contains(header_json, "\"reference_mode\""),

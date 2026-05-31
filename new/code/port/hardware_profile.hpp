@@ -47,7 +47,7 @@ struct HardwareProfile {
     SubsystemProfile camera{};       ///< 相机子系统配置
     SubsystemProfile imu{};          ///< IMU子系统配置
     SubsystemProfile encoder{};      ///< 编码器子系统配置
-    SubsystemProfile motor{};        ///< 电机子系统配置
+    SubsystemProfile actuator{};     ///< 执行器子系统配置
     SubsystemProfile timer{};        ///< 定时器子系统配置
     SubsystemProfile persistence{};  ///< 持久化存储子系统配置
     SubsystemProfile display{SubsystemMode::kDisabled, "phase1-deferred"};  ///< 显示子系统

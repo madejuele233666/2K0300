@@ -291,7 +291,12 @@ class SteeringMediaListener:
                 f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
                 f"turn_output_target={nested(steering, 'yaw_control', 'turn_output_target')} "
                 f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
-                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
+                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')} "
+                f"left_drive_pwm={nested(steering, 'actuator', 'left_drive_pwm_command')} "
+                f"right_drive_pwm={nested(steering, 'actuator', 'right_drive_pwm_command')} "
+                f"left_brushless_pwm={nested(steering, 'actuator', 'left_brushless_pwm_command')} "
+                f"right_brushless_pwm={nested(steering, 'actuator', 'right_brushless_pwm_command')} "
+                f"apply_outcome={nested(steering, 'actuator', 'apply_outcome')}"
             )
 
     def _expected_payload_bytes(self, header: Dict[str, Any], width: int, height: int) -> int:

@@ -129,12 +129,6 @@ struct AssistantYawControlView {
     double curvature_term = 0.0;      ///< 曲率前馈项
 };
 
-/// @brief 执行器视图
-struct AssistantActuatorView {
-    int raw_turn_output = 0;       ///< 原始转向输出值
-    int applied_turn_output = 0;   ///< 实际施加的转向输出值
-};
-
 /// @brief 视觉元素证据视图类型别名
 using AssistantElementEvidenceView = port::VisualElementEvidenceFrame;
 
@@ -155,7 +149,6 @@ struct AssistantTelemetryView {
     AssistantSafetyGateView safety_gate{};               ///< 安全门视图
     AssistantDegradedView degraded{};                    ///< 降级模式视图
     AssistantYawControlView yaw_control{};               ///< 偏航控制视图
-    AssistantActuatorView actuator{};                    ///< 执行器视图
     bool tuning_mode_enabled = false;             ///< 调优模式是否启用
     bool turn_suppressed = false;                 ///< 转向是否抑制
     bool target_speed_override_enabled = false;   ///< 目标速度覆盖是否启用
@@ -165,8 +158,13 @@ struct AssistantTelemetryView {
     double right_speed_target = 0.0;              ///< 右轮速度目标（m/s）
     double left_measured_speed = 0.0;             ///< 左轮实测速度（m/s）
     double right_measured_speed = 0.0;            ///< 右轮实测速度（m/s）
-    int left_pwm_command = 0;                     ///< 左轮 PWM 指令值
-    int right_pwm_command = 0;                    ///< 右轮 PWM 指令值
+    int raw_turn_output = 0;                      ///< 原始转向输出值
+    int applied_turn_output = 0;                  ///< 实际施加的转向输出值
+    int left_drive_pwm_command = 0;               ///< 左驱动 PWM 指令值
+    int right_drive_pwm_command = 0;              ///< 右驱动 PWM 指令值
+    int left_brushless_pwm_command = 0;           ///< 左无刷电调 PWM 指令值
+    int right_brushless_pwm_command = 0;          ///< 右无刷电调 PWM 指令值
+    std::string actuator_apply_outcome = "not_requested";  ///< 统一执行器施加结果
 };
 
 /// @brief 解码一行 JSON 格式的助手入站消息

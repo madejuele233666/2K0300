@@ -190,6 +190,11 @@ platform::SteeringMediaSnapshotView SteeringMediaService::BuildSnapshotView(
     view.yaw_control.curvature_term = snapshot.yaw_control.curvature_term;
     view.actuator.raw_turn_output = snapshot.actuator.raw_turn_output;
     view.actuator.applied_turn_output = snapshot.actuator.applied_turn_output;
+    view.actuator.left_drive_pwm_command = snapshot.actuator.left_drive_pwm_command;
+    view.actuator.right_drive_pwm_command = snapshot.actuator.right_drive_pwm_command;
+    view.actuator.left_brushless_pwm_command = snapshot.actuator.left_brushless_pwm_command;
+    view.actuator.right_brushless_pwm_command = snapshot.actuator.right_brushless_pwm_command;
+    view.actuator.apply_outcome = ToString(snapshot.actuator.apply_outcome);
     return view;
 }
 

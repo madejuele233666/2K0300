@@ -103,7 +103,7 @@ private:
 /// @brief 创建平台适配器组合包
 ///
 /// 根据硬件描述文件和诊断输出构造所有平台适配器实例（相机、IMU、
-/// 编码器、电机、电源、参数存储、定时器），打包为 PlatformBundle 返回。
+/// 编码器、执行器、电源、参数存储、定时器），打包为 PlatformBundle 返回。
 /// @param profile 硬件描述文件（当前未使用，由各适配器独立解析）
 /// @param diagnostics 诊断输出接口
 /// @return 平台适配器组合包
@@ -112,7 +112,7 @@ port::PlatformBundle CreatePlatformBundle(const port::HardwareProfile&, port::Di
     bundle.camera = MakeCameraAdapter();
     bundle.imu = MakeImuAdapter();
     bundle.encoder = MakeEncoderAdapter();
-    bundle.motor = MakeMotorAdapter();
+    bundle.actuator = MakeActuatorAdapter();
     bundle.power = MakePowerMonitorAdapter();
     bundle.params = MakeParamStore();
     bundle.timer = std::make_unique<TimerAdapter>();

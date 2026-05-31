@@ -105,10 +105,15 @@ struct YawControlDebugView {
     double curvature_term = 0.0;      ///< 曲率前馈项
 };
 
-/// 转向执行器调试视图 —— 描述原始和应用后的转向输出
+/// 转向执行器调试视图 —— 描述转向输出和统一执行器命令
 struct SteeringActuatorDebugView {
     int raw_turn_output = 0;      ///< 原始转向输出（未经过限制）
     int applied_turn_output = 0;  ///< 实际应用的转向输出
+    int left_drive_pwm_command = 0;       ///< 左驱动 PWM 命令
+    int right_drive_pwm_command = 0;      ///< 右驱动 PWM 命令
+    int left_brushless_pwm_command = 0;   ///< 左无刷电调 PWM 命令
+    int right_brushless_pwm_command = 0;  ///< 右无刷电调 PWM 命令
+    ControlApplyOutcome apply_outcome = ControlApplyOutcome::kNotRequested;  ///< 统一执行器施加结果
 };
 
 /// 转向公开快照 —— 只包含 reference/control 最小分层合同，用于媒体服务和遥测
@@ -168,8 +173,11 @@ struct ControlDebugSnapshot {
     double right_measured_speed = 0.0;           ///< 右轮实测速度
     int raw_turn_output = 0;                     ///< 原始转向输出
     int applied_turn_output = 0;                 ///< 应用后的转向输出
-    int left_pwm_command = 0;                    ///< 左轮 PWM 命令
-    int right_pwm_command = 0;                   ///< 右轮 PWM 命令
+    int left_drive_pwm_command = 0;              ///< 左驱动 PWM 命令
+    int right_drive_pwm_command = 0;             ///< 右驱动 PWM 命令
+    int left_brushless_pwm_command = 0;          ///< 左无刷电调 PWM 命令
+    int right_brushless_pwm_command = 0;         ///< 右无刷电调 PWM 命令
+    ControlApplyOutcome apply_outcome = ControlApplyOutcome::kNotRequested;  ///< 统一执行器施加结果
     bool emergency_stop = true;                  ///< 紧急停止是否激活
     SteeringDebugSnapshot steering{};            ///< 转向公开快照
     SteeringInternalDebugSnapshot steering_internal{};  ///< 转向内部诊断

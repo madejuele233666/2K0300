@@ -1138,7 +1138,8 @@ function handleEnvelope(buffer, transport) {
     fields.turn.textContent = `${nested(steering, ["yaw_control", "turn_output_target"])} / ${nested(steering, ["actuator", "applied_turn_output"])}`;
     fields.actuator.textContent =
       `raw=${nested(steering, ["actuator", "raw_turn_output"])} / ` +
-      `applied=${nested(steering, ["actuator", "applied_turn_output"])}`;
+      `applied=${nested(steering, ["actuator", "applied_turn_output"])} / ` +
+      `${nested(steering, ["actuator", "apply_outcome"])}`;
     fields.threshold.textContent = String(steering.threshold ?? "-");
     fields.cameraSource.textContent =
       `${camera.source ?? "-"} / ${camera.width ?? "-"}x${camera.height ?? "-"} / stride=${camera.stride ?? "-"}`;

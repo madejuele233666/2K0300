@@ -166,6 +166,7 @@ struct ControlDebugSnapshotInputs {
     const port::PerceptionResult& perception;                    ///< 感知结果
     const port::EncoderDelta& encoder;                           ///< 编码器差值
     const port::ActuatorCommand& command;                        ///< 执行器命令
+    ControlApplyOutcome apply_outcome = ControlApplyOutcome::kNotRequested;  ///< 统一执行器施加结果
     const ControlGateDecision& gate;                             ///< 门控决策
     const MotionDecision& final_motion;                          ///< 最终运动决策
     const RuntimeTuningSnapshot& tuning_snapshot;                ///< 运行时调参快照
@@ -255,8 +256,11 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
     debug_snapshot.right_measured_speed = static_cast<double>(inputs.encoder.right);
     debug_snapshot.raw_turn_output = inputs.raw_turn_output;
     debug_snapshot.applied_turn_output = inputs.applied_turn_output;
-    debug_snapshot.left_pwm_command = inputs.command.left_pwm;
-    debug_snapshot.right_pwm_command = inputs.command.right_pwm;
+    debug_snapshot.left_drive_pwm_command = inputs.command.left_drive_pwm;
+    debug_snapshot.right_drive_pwm_command = inputs.command.right_drive_pwm;
+    debug_snapshot.left_brushless_pwm_command = inputs.command.left_brushless_pwm;
+    debug_snapshot.right_brushless_pwm_command = inputs.command.right_brushless_pwm;
+    debug_snapshot.apply_outcome = inputs.apply_outcome;
     debug_snapshot.emergency_stop = inputs.command.emergency_stop;
     debug_snapshot.steering.valid = inputs.steering_terms_valid;
     debug_snapshot.steering.frame_id = perception.frame_id;
@@ -341,6 +345,11 @@ ControlDebugSnapshot BuildControlDebugSnapshot(const ControlDebugSnapshotInputs&
         inputs.turn_output_target_result.curvature_term;
     debug_snapshot.steering.actuator.raw_turn_output = inputs.raw_turn_output;
     debug_snapshot.steering.actuator.applied_turn_output = inputs.applied_turn_output;
+    debug_snapshot.steering.actuator.left_drive_pwm_command = inputs.command.left_drive_pwm;
+    debug_snapshot.steering.actuator.right_drive_pwm_command = inputs.command.right_drive_pwm;
+    debug_snapshot.steering.actuator.left_brushless_pwm_command = inputs.command.left_brushless_pwm;
+    debug_snapshot.steering.actuator.right_brushless_pwm_command = inputs.command.right_brushless_pwm;
+    debug_snapshot.steering.actuator.apply_outcome = inputs.apply_outcome;
 
     debug_snapshot.steering_internal.valid = inputs.steering_terms_valid;
     debug_snapshot.steering_internal.frame_id = perception.frame_id;
@@ -369,10 +378,16 @@ port::ActuatorCommand ApplyPwmStepLimit(const port::ActuatorCommand& previous,
     if (command.emergency_stop || pwm_step_limit <= 0) {
         return command;
     }
-    command.left_pwm =
-        std::clamp(command.left_pwm, previous.left_pwm - pwm_step_limit, previous.left_pwm + pwm_step_limit);
-    command.right_pwm =
-        std::clamp(command.right_pwm, previous.right_pwm - pwm_step_limit, previous.right_pwm + pwm_step_limit);
+    command.left_drive_pwm =
+        std::clamp(command.left_drive_pwm, previous.left_drive_pwm - pwm_step_limit, previous.left_drive_pwm + pwm_step_limit);
+    command.right_drive_pwm =
+        std::clamp(command.right_drive_pwm, previous.right_drive_pwm - pwm_step_limit, previous.right_drive_pwm + pwm_step_limit);
+    command.left_brushless_pwm = std::clamp(command.left_brushless_pwm,
+                                            previous.left_brushless_pwm - pwm_step_limit,
+                                            previous.left_brushless_pwm + pwm_step_limit);
+    command.right_brushless_pwm = std::clamp(command.right_brushless_pwm,
+                                             previous.right_brushless_pwm - pwm_step_limit,
+                                             previous.right_brushless_pwm + pwm_step_limit);
     return command;
 }
 
@@ -396,8 +411,8 @@ port::ActuatorCommand ApplyPwmFloor(port::ActuatorCommand command, int pwm_limit
     if (command.emergency_stop) {
         return command;
     }
-    command.left_pwm = ApplySinglePwmFloor(command.left_pwm, pwm_limit, pwm_floor);
-    command.right_pwm = ApplySinglePwmFloor(command.right_pwm, pwm_limit, pwm_floor);
+    command.left_drive_pwm = ApplySinglePwmFloor(command.left_drive_pwm, pwm_limit, pwm_floor);
+    command.right_drive_pwm = ApplySinglePwmFloor(command.right_drive_pwm, pwm_limit, pwm_floor);
     return command;
 }
 
@@ -424,10 +439,10 @@ port::ActuatorCommand ApplyProhibitReverse(const port::ActuatorCommand& previous
     if (command.emergency_stop || !prohibit_reverse_pwm) {
         return command;
     }
-    command.left_pwm =
-        ApplySingleProhibitReverse(previous_command.left_pwm, command.left_pwm, wheel_targets.left, pwm_step_limit);
-    command.right_pwm =
-        ApplySingleProhibitReverse(previous_command.right_pwm, command.right_pwm, wheel_targets.right, pwm_step_limit);
+    command.left_drive_pwm =
+        ApplySingleProhibitReverse(previous_command.left_drive_pwm, command.left_drive_pwm, wheel_targets.left, pwm_step_limit);
+    command.right_drive_pwm =
+        ApplySingleProhibitReverse(previous_command.right_drive_pwm, command.right_drive_pwm, wheel_targets.right, pwm_step_limit);
     return command;
 }
 
@@ -535,7 +550,7 @@ void EmitObservationDiagnostics(port::DiagnosticSink& diagnostics,
             port::EmitRateLimited(diagnostics,
                                   {port::DiagnosticLevel::kWarning,
                                    "control.apply.suppressed",
-                                   "drive command suppressed because the active motor profile is diagnostics-only",
+                                   "drive command suppressed because the active actuator profile is diagnostics-only",
                                    now_ms},
                                   1000);
             break;
@@ -552,14 +567,19 @@ void EmitObservationDiagnostics(port::DiagnosticSink& diagnostics,
             port::EmitRateLimited(diagnostics,
                                   {port::DiagnosticLevel::kInfo,
                                    "control.apply.drive",
-                                   "drive command applied to motor adapter",
+                                   "drive command applied to actuator adapter",
                                    now_ms},
                                   1000);
             port::EmitRateLimited(diagnostics,
                                   {port::DiagnosticLevel::kInfo,
                                    "control.apply.command",
-                                   "logical drive command left_pwm=" + std::to_string(current.applied_left_pwm) +
-                                       " right_pwm=" + std::to_string(current.applied_right_pwm),
+                                   "actuator command left_drive_pwm=" +
+                                       std::to_string(current.applied_left_drive_pwm) +
+                                       " right_drive_pwm=" + std::to_string(current.applied_right_drive_pwm) +
+                                       " left_brushless_pwm=" +
+                                       std::to_string(current.applied_left_brushless_pwm) +
+                                       " right_brushless_pwm=" +
+                                       std::to_string(current.applied_right_brushless_pwm),
                                    now_ms},
                                   1000);
             break;
@@ -575,7 +595,7 @@ void EmitObservationDiagnostics(port::DiagnosticSink& diagnostics,
             port::EmitRateLimited(diagnostics,
                                   {port::DiagnosticLevel::kFailSafe,
                                    "control.apply.failed",
-                                   "motor adapter rejected the current control command",
+                                   "actuator adapter rejected the current control command",
                                    now_ms},
                                   1000);
             break;
@@ -626,27 +646,27 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
                            port::NowMs()});
         return false;
     }
-    if (!platform_.motor) {
+    if (!platform_.actuator) {
         diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                           "control.motor.not_ready",
-                           "control loop refused to start because motor adapter is missing",
+                           "control.actuator.not_ready",
+                           "control loop refused to start because actuator adapter is missing",
                            port::NowMs()});
         return false;
     }
 
-    const bool degraded_motor_disabled = state_.degraded_startup &&
-                                         profile_.motor.mode == port::SubsystemMode::kDisabled;
-    if (!platform_.motor->Ready() && !degraded_motor_disabled) {
+    const bool degraded_actuator_disabled = state_.degraded_startup &&
+                                            profile_.actuator.mode == port::SubsystemMode::kDisabled;
+    if (!platform_.actuator->Ready() && !degraded_actuator_disabled) {
         diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                           "control.motor.not_ready",
-                           "control loop refused to arm because motor adapter is not ready",
+                           "control.actuator.not_ready",
+                           "control loop refused to arm because actuator adapter is not ready",
                            port::NowMs()});
         return false;
     }
-    if (degraded_motor_disabled) {
+    if (degraded_actuator_disabled) {
         diagnostics_.Emit({port::DiagnosticLevel::kWarning,
-                           "control.start.degraded.motor_disabled",
-                           "degraded startup keeps control loop running with motor disabled; actuators stay disarmed",
+                           "control.start.degraded.actuator_disabled",
+                           "degraded startup keeps control loop running with actuator disabled; actuators stay disarmed",
                            port::NowMs()});
     }
 
@@ -690,24 +710,24 @@ bool ControlLoop::Start(const port::RuntimeParameters& params) {
 
     state_.timer_started = true;
     const bool low_voltage_block = state_.low_voltage_emergency.load();
-    const bool motor_hook_block = profile_.motor.mode == port::SubsystemMode::kAdaptationHook;
-    const bool motor_disabled_block = profile_.motor.mode == port::SubsystemMode::kDisabled;
+    const bool actuator_hook_block = profile_.actuator.mode == port::SubsystemMode::kAdaptationHook;
+    const bool actuator_disabled_block = profile_.actuator.mode == port::SubsystemMode::kDisabled;
     if (low_voltage_block) {
         diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
                            "control.arm.low_voltage",
                            "low-voltage emergency active; actuators stay disarmed until cleared",
                            port::NowMs()});
     }
-    if (motor_hook_block) {
+    if (actuator_hook_block) {
         diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                           "control.arm.motor_hook",
-                           "motor adaptation hook has no phase-1 implementation; actuators stay disarmed",
+                           "control.arm.actuator_hook",
+                           "actuator adaptation hook has no implementation; actuators stay disarmed",
                            port::NowMs()});
     }
-    if (motor_disabled_block) {
+    if (actuator_disabled_block) {
         diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                           "control.arm.motor_disabled",
-                           "motor profile is disabled; control loop stays diagnostics-only with actuators disarmed",
+                           "control.arm.actuator_disabled",
+                           "actuator profile is disabled; control loop stays diagnostics-only with actuators disarmed",
                            port::NowMs()});
     }
     diagnostics_.Emit({port::DiagnosticLevel::kInfo,
@@ -724,8 +744,8 @@ void ControlLoop::Stop() {
     }
     running_ = false;
     platform_.timer->Stop(diagnostics_);
-    if (platform_.motor) {
-        platform_.motor->Disable(diagnostics_);
+    if (platform_.actuator) {
+        platform_.actuator->Disable(diagnostics_);
     }
     ResetDisarmedControlState();
 }
@@ -741,8 +761,8 @@ void ControlLoop::HandleTimerFailure() {
                        "control.timer.runtime_failure",
                        "control timer stopped unexpectedly; runtime entered FAIL_SAFE_LATCHED and will shut down",
                        now_ms});
-    if (platform_.motor) {
-        platform_.motor->Disable(diagnostics_);
+    if (platform_.actuator) {
+        platform_.actuator->Disable(diagnostics_);
     }
     LatchTimerFailureState(now_ms);
     state_.exit_requested.store(true);
@@ -888,11 +908,11 @@ void ControlLoop::Tick() {
         command = {};
     } else if (motion.hold_disarmed || !motion.allow_drive) {
         hold_disarmed = true;
-        command = {0, 0, false};
+        command = {0, 0, 0, 0, false};
     } else if (motion.state.phase == MotionPhase::kStopping) {
-        // STOPPING owns the actuator ramp-down directly so real motor output converges
+        // STOPPING owns the actuator ramp-down directly so real output converges
         // to zero even if the legacy speed controller still carries residual integral state.
-        command = ApplyPwmStepLimit(previous_command, {0, 0, false}, motion.pwm_step_limit);
+        command = ApplyPwmStepLimit(previous_command, {0, 0, 0, 0, false}, motion.pwm_step_limit);
     } else {
         const double constrained_speed_target = motion.effective_speed_target;
         turn_output_target_result =
@@ -911,9 +931,15 @@ void ControlLoop::Tick() {
             applied_turn_output = 0;
         }
         wheel_targets = wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output);
-        const int left_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
-        const int right_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
-        command = motor_logic_.Compose(left_pwm, right_pwm, false, params_.pwm_limit);
+        const int left_drive_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
+        const int right_drive_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
+        command = actuator_command_builder_.Compose(left_drive_pwm,
+                                                    right_drive_pwm,
+                                                    0,
+                                                    0,
+                                                    false,
+                                                    params_.pwm_limit,
+                                                    1000);
         if (motion.state.phase == MotionPhase::kSpinup || motion.state.phase == MotionPhase::kStopping) {
             command = ApplyPwmStepLimit(previous_command, command, motion.pwm_step_limit);
         }
@@ -926,14 +952,16 @@ void ControlLoop::Tick() {
             params_.prohibit_reverse_pwm_step_limit);
     }
     // --- 第 5 阶段：执行器施加 + 诊断输出 ---
-    const bool diagnostics_only_motor =
-        profile_.motor.mode == port::SubsystemMode::kAdaptationHook ||
-        profile_.motor.mode == port::SubsystemMode::kDisabled;
+    const bool diagnostics_only_actuator =
+        profile_.actuator.mode == port::SubsystemMode::kAdaptationHook ||
+        profile_.actuator.mode == port::SubsystemMode::kDisabled;
     const bool current_requested_command_zero =
-        !command.emergency_stop && command.left_pwm == 0 && command.right_pwm == 0;
+        !command.emergency_stop && command.left_drive_pwm == 0 && command.right_drive_pwm == 0 &&
+        command.left_brushless_pwm == 0 && command.right_brushless_pwm == 0;
     const bool current_effective_command_zero =
-        diagnostics_only_motor || hold_disarmed ||
-        (!command.emergency_stop && command.left_pwm == 0 && command.right_pwm == 0);
+        diagnostics_only_actuator || hold_disarmed ||
+        (!command.emergency_stop && command.left_drive_pwm == 0 && command.right_drive_pwm == 0 &&
+         command.left_brushless_pwm == 0 && command.right_brushless_pwm == 0);
 
     MotionDecision final_motion = motion;
     if (motion.state.phase == MotionPhase::kStopping) {
@@ -944,9 +972,9 @@ void ControlLoop::Tick() {
         stop_completion_inputs.shaped_command_zero = current_effective_command_zero;
         final_motion = motion_supervisor_.Evaluate(stop_completion_inputs);
         if (final_motion.reset_controllers && !motion.reset_controllers) {
-        ResetControllerState(yaw_controller_,
-                             left_wheel_pid_,
-                             right_wheel_pid_,
+            ResetControllerState(yaw_controller_,
+                                 left_wheel_pid_,
+                                 right_wheel_pid_,
                                  steering_control_memory_,
                                  state_);
         }
@@ -956,15 +984,15 @@ void ControlLoop::Tick() {
         BuildSnapshotWheelTargets(final_motion, applied_turn_output, wheel_target_mixer_);
 
     bool apply_ok = true;
-    if (diagnostics_only_motor || hold_disarmed) {
-        platform_.motor->Disable(diagnostics_);
+    if (diagnostics_only_actuator || hold_disarmed) {
+        platform_.actuator->Disable(diagnostics_);
     } else {
         LS2K_PERF_SCOPE(port::PerfStage::kControlApply);
-        apply_ok = platform_.motor->Apply(command, diagnostics_);
+        apply_ok = platform_.actuator->Apply(command, diagnostics_);
     }
 
     ControlCycleObservation observation = ObserveControlCycle(
-        {gate, command, final_motion.state.phase, apply_ok, diagnostics_only_motor, hold_disarmed, previous_observation.actuators_armed});
+        {gate, command, final_motion.state.phase, apply_ok, diagnostics_only_actuator, hold_disarmed, previous_observation.actuators_armed});
     observation.motion_reset_ready = final_motion.reset_ready;
     EmitObservationDiagnostics(diagnostics_, previous_observation, observation, now_ms);
 
@@ -972,6 +1000,7 @@ void ControlLoop::Tick() {
         BuildControlDebugSnapshot({perception,
                                    encoder,
                                    command,
+                                   observation.apply_outcome,
                                    gate,
                                    final_motion,
                                    tuning_snapshot,
@@ -992,7 +1021,7 @@ void ControlLoop::Tick() {
         if (final_motion.consume_reset_request) {
             state_.motion_intent.reset_fault_requested = false;
         }
-        state_.last_command = (apply_ok && !diagnostics_only_motor && !hold_disarmed && !command.emergency_stop)
+        state_.last_command = (apply_ok && !diagnostics_only_actuator && !hold_disarmed && !command.emergency_stop)
                                   ? command
                                   : port::ActuatorCommand{};
         state_.control_observation = observation;

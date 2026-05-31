@@ -60,7 +60,7 @@ set(NEW_SRCS
     ../code/platform/camera_adapter.cpp
     ../code/platform/imu_adapter.cpp
     ../code/platform/encoder_adapter.cpp
-    ../code/platform/motor_adapter.cpp
+    ../code/platform/actuator_adapter.cpp
     ../code/platform/power_adapter.cpp
     ../code/platform/param_store.cpp
     ../code/platform/hardware_profile.cpp
@@ -79,7 +79,7 @@ set(NEW_SRCS
     ../code/platform/true_ls2k0300/assistant_bridge.cpp
     ../code/platform/true_ls2k0300/steering_media_bridge.cpp
     ../code/legacy/steering_yaw_controller.cpp
-    ../code/legacy/motor_logic.cpp
+    ../code/legacy/actuator_command_builder.cpp
     ../code/legacy/wheel_target_mixer.cpp
     ../code/legacy/wheel_pid.cpp
     ../code/legacy/steering_otsu_threshold.cpp

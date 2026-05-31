@@ -427,8 +427,6 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     stream << ",\"curvature_term\":";
     AppendJsonNumber(stream, telemetry.yaw_control.curvature_term);
     stream << "}";
-    stream << ",\"actuator\":{\"raw_turn_output\":" << telemetry.actuator.raw_turn_output;
-    stream << ",\"applied_turn_output\":" << telemetry.actuator.applied_turn_output << "}";
     stream << ",\"tuning_mode_enabled\":";
     AppendJsonBool(stream, telemetry.tuning_mode_enabled);
     stream << ",\"turn_suppressed\":";
@@ -451,8 +449,14 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     AppendJsonNumber(stream, telemetry.left_measured_speed);
     stream << ",\"right_measured_speed\":";
     AppendJsonNumber(stream, telemetry.right_measured_speed);
-    stream << ",\"left_pwm_command\":" << telemetry.left_pwm_command;
-    stream << ",\"right_pwm_command\":" << telemetry.right_pwm_command;
+    stream << ",\"raw_turn_output\":" << telemetry.raw_turn_output;
+    stream << ",\"applied_turn_output\":" << telemetry.applied_turn_output;
+    stream << ",\"left_drive_pwm_command\":" << telemetry.left_drive_pwm_command;
+    stream << ",\"right_drive_pwm_command\":" << telemetry.right_drive_pwm_command;
+    stream << ",\"left_brushless_pwm_command\":" << telemetry.left_brushless_pwm_command;
+    stream << ",\"right_brushless_pwm_command\":" << telemetry.right_brushless_pwm_command;
+    stream << ",\"actuator_apply_outcome\":";
+    AppendJsonString(stream, telemetry.actuator_apply_outcome);
     stream << '}';
     return stream.str();
 }

@@ -4,7 +4,7 @@
 #include <atomic>
 #include <cstdint>
 
-#include "legacy/motor_logic.hpp"
+#include "legacy/actuator_command_builder.hpp"
 #include "legacy/steering_yaw_controller.hpp"
 #include "legacy/wheel_pid.hpp"
 #include "legacy/wheel_target_mixer.hpp"
@@ -33,7 +33,7 @@ public:
     /// @param params  运行时参数
     /// @return        是否成功启动
     bool Start(const port::RuntimeParameters& params);
-    /// 停止控制循环：停止定时器、禁用电机、复位状态
+    /// 停止控制循环：停止定时器、禁用执行器、复位状态
     void Stop();
 
 private:
@@ -54,7 +54,7 @@ private:
     std::atomic<bool> running_{false};                   ///< 循环是否正在运行
 
     legacy::SteeringYawController yaw_controller_{};     ///< 偏航控制器
-    legacy::LegacyMotorLogic motor_logic_{};             ///< 电机逻辑组合器
+    legacy::ActuatorCommandBuilder actuator_command_builder_{};  ///< 执行器命令构造器
     legacy::WheelTargetMixer wheel_target_mixer_{};      ///< 轮速目标混合器
     legacy::WheelPidController left_wheel_pid_{};        ///< 左轮 PID 控制器
     legacy::WheelPidController right_wheel_pid_{};       ///< 右轮 PID 控制器

@@ -108,6 +108,20 @@ BridgeStatus ApplyMotorCommand(int left_pwm, int right_pwm);
 // @return 桥接状态
 BridgeStatus DisableMotorOutput();
 
+// 初始化无刷电调 PWM 设备 —— 探测 ESC PWM 路径并写入安全态
+// @return 桥接状态
+BridgeStatus InitializeBrushlessEsc();
+
+// 施加左右无刷电调 PWM 命令
+// @param left_brushless_pwm 左无刷电调 duty，P828，0=关闭，500~1000=0%~100% 油门区间
+// @param right_brushless_pwm 右无刷电调 duty，P829，0=关闭，500~1000=0%~100% 油门区间
+// @return 桥接状态，任一路失败时回滚禁用全部 ESC 输出
+BridgeStatus ApplyBrushlessEscCommand(int left_brushless_pwm, int right_brushless_pwm);
+
+// 禁用无刷电调输出 —— 将 ESC PWM 置零
+// @return 桥接状态
+BridgeStatus DisableBrushlessEscOutput();
+
 // 从指定 sysfs 路径读取电池 ADC 原始电压值
 // @param adc_path ADC 设备 sysfs 路径
 // @return ADC 原始读取结果

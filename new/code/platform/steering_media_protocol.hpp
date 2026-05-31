@@ -195,13 +195,23 @@ struct SteeringMediaYawControlView {
 };
 
 /**
- * 执行器视图 —— 描述原始和应用后的转向输出值。
+ * 执行器视图 —— 描述转向输出值和统一执行器命令。
  */
 struct SteeringMediaActuatorView {
     /** 原始（未限幅的）转向输出值 */
     int raw_turn_output = 0;
     /** 经过限幅和安全处理后的实际应用转向输出值 */
     int applied_turn_output = 0;
+    /** 左驱动 PWM 命令 */
+    int left_drive_pwm_command = 0;
+    /** 右驱动 PWM 命令 */
+    int right_drive_pwm_command = 0;
+    /** 左无刷电调 PWM 命令 */
+    int left_brushless_pwm_command = 0;
+    /** 右无刷电调 PWM 命令 */
+    int right_brushless_pwm_command = 0;
+    /** 统一执行器施加结果 */
+    std::string apply_outcome = "not_requested";
 };
 
 /**

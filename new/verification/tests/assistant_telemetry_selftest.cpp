@@ -92,6 +92,9 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.yaw_control.curvature_term = 0.10;
     snapshot.steering.actuator.raw_turn_output = 12;
     snapshot.steering.actuator.applied_turn_output = 10;
+    snapshot.raw_turn_output = 12;
+    snapshot.applied_turn_output = 10;
+    snapshot.apply_outcome = ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
     snapshot.tuning_mode_enabled = true;
     snapshot.turn_suppressed = false;
     snapshot.effective_speed_target = 1.2;
@@ -99,8 +102,10 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.right_speed_target = 1.3;
     snapshot.left_measured_speed = 1.0;
     snapshot.right_measured_speed = 1.25;
-    snapshot.left_pwm_command = 120;
-    snapshot.right_pwm_command = 130;
+    snapshot.left_drive_pwm_command = 120;
+    snapshot.right_drive_pwm_command = 130;
+    snapshot.left_brushless_pwm_command = 500;
+    snapshot.right_brushless_pwm_command = 600;
     return snapshot;
 }
 
@@ -141,6 +146,20 @@ void TestSnapshotFactsMapToAssistantView() {
            "tracking geometry sample count must be copied");
     Expect(telemetry.yaw_control.curvature_term > 0.09,
            "yaw curvature term must be copied");
+    Expect(telemetry.left_drive_pwm_command == 120,
+           "left drive PWM command must be copied");
+    Expect(telemetry.right_drive_pwm_command == 130,
+           "right drive PWM command must be copied");
+    Expect(telemetry.left_brushless_pwm_command == 500,
+           "left brushless PWM command must be copied");
+    Expect(telemetry.right_brushless_pwm_command == 600,
+           "right brushless PWM command must be copied");
+    Expect(telemetry.raw_turn_output == 12,
+           "raw turn output must be copied");
+    Expect(telemetry.applied_turn_output == 10,
+           "applied turn output must be copied");
+    Expect(telemetry.actuator_apply_outcome == "drive_command_applied",
+           "actuator apply outcome must be copied");
 }
 
 void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
@@ -189,6 +208,28 @@ void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
            "assistant telemetry must include heading yaw term");
     Expect(Contains(json, "\"curvature_term\":0.1"),
            "assistant telemetry must include curvature yaw term");
+    Expect(Contains(json, "\"raw_turn_output\":12"),
+           "assistant telemetry must include top-level raw turn output");
+    Expect(Contains(json, "\"applied_turn_output\":10"),
+           "assistant telemetry must include top-level applied turn output");
+    Expect(Contains(json, "\"left_drive_pwm_command\":120"),
+           "assistant telemetry must include left drive PWM command");
+    Expect(Contains(json, "\"right_drive_pwm_command\":130"),
+           "assistant telemetry must include right drive PWM command");
+    Expect(Contains(json, "\"left_brushless_pwm_command\":500"),
+           "assistant telemetry must include left brushless PWM command");
+    Expect(Contains(json, "\"right_brushless_pwm_command\":600"),
+           "assistant telemetry must include right brushless PWM command");
+    Expect(Contains(json, "\"actuator_apply_outcome\":\"drive_command_applied\""),
+           "assistant telemetry must include actuator apply outcome");
+    Expect(!Contains(json, "\"actuator\":"),
+           "assistant telemetry must not emit a second nested actuator standard");
+    Expect(!Contains(json, "\"brushless_pwm_command\""),
+           "assistant telemetry must not emit single brushless PWM key");
+    Expect(!Contains(json, "\"left_pwm_command\""),
+           "assistant telemetry must not emit old left PWM key");
+    Expect(!Contains(json, "\"right_pwm_command\""),
+           "assistant telemetry must not emit old right PWM key");
 }
 
 }  // namespace

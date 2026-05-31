@@ -88,7 +88,7 @@ bool RequireDirectMatch(const char* subsystem,
     return false;
 }
 
-/// 校验硬件配置契约：检查 persistence、timer 必须启用，camera/imu/encoder/motor 必须为 DirectMatch
+/// 校验硬件配置契约：检查 persistence、timer 必须启用，camera/imu/encoder/actuator 必须为 DirectMatch
 /// @param profile          硬件配置文件
 /// @param degraded_startup 是否降级启动
 /// @param diagnostics      诊断输出接口
@@ -135,7 +135,7 @@ bool ValidateProfileContracts(const port::HardwareProfile& profile,
     return RequireDirectMatch("camera", profile.camera, degraded_startup, diagnostics) &&
            RequireDirectMatch("imu", profile.imu, degraded_startup, diagnostics) &&
            RequireDirectMatch("encoder", profile.encoder, degraded_startup, diagnostics) &&
-           RequireDirectMatch("motor", profile.motor, degraded_startup, diagnostics);
+           RequireDirectMatch("actuator", profile.actuator, degraded_startup, diagnostics);
 }
 
 /// 启动时检查低电压：初始化电源监控、采样电压、设置紧急标志
@@ -195,7 +195,7 @@ bool RunStartup(const port::HardwareProfile& profile,
                 port::PlatformBundle& platform,
                 RuntimeState& state,
                 port::DiagnosticSink& diagnostics) {
-    if (!platform.params || !platform.camera || !platform.imu || !platform.encoder || !platform.motor ||
+    if (!platform.params || !platform.camera || !platform.imu || !platform.encoder || !platform.actuator ||
         !platform.timer || !platform.power) {
         diagnostics.Emit({port::DiagnosticLevel::kError,
                           "startup.bundle.missing",
@@ -264,14 +264,14 @@ bool RunStartup(const port::HardwareProfile& profile,
         return false;
     }
 
-    if (!platform.motor->Initialize(profile, diagnostics)) {
+    if (!platform.actuator->Initialize(profile, diagnostics)) {
         diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
-                          "startup.motor.init",
-                          "motor adapter initialization failed",
+                          "startup.actuator.init",
+                          "actuator adapter initialization failed",
                           port::NowMs()});
         return false;
     }
-    if (!RequireReady("motor", profile.motor, platform.motor->Ready(), degraded_startup, diagnostics)) {
+    if (!RequireReady("actuator", profile.actuator, platform.actuator->Ready(), degraded_startup, diagnostics)) {
         return false;
     }
 

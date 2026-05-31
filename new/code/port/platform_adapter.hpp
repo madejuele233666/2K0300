@@ -2,7 +2,7 @@
  * @file platform_adapter.hpp
  * @brief 平台适配器抽象接口定义
  *
- * 定义所有硬件子系统的抽象接口（相机、IMU、编码器、电机、定时器、电源监控、参数存储）。
+ * 定义所有硬件子系统的抽象接口（相机、IMU、编码器、执行器、定时器、电源监控、参数存储）。
  * 每个适配器接口提供了初始化、运行操作和关闭等生命周期方法。
  * PlatformBundle 结构体将各适配器的 unique_ptr 聚合在一起，方便统一管理和传递。
  *
@@ -87,23 +87,23 @@ public:
 };
 
 /**
- * @class IMotorAdapter
- * @brief 电机适配器抽象接口
+ * @class IActuatorAdapter
+ * @brief 执行器适配器抽象接口
  *
- * 负责PWM控制命令的发送和电机的安全关闭。
+ * 负责统一执行器PWM控制命令的发送和安全关闭。
  */
-class IMotorAdapter {
+class IActuatorAdapter {
 public:
-    virtual ~IMotorAdapter() = default;
-    /** @brief 初始化电机硬件 */
+    virtual ~IActuatorAdapter() = default;
+    /** @brief 初始化执行器硬件 */
     virtual bool Initialize(const HardwareProfile& profile, DiagnosticSink& diagnostics) = 0;
     /** @brief 执行执行器指令（设置PWM） */
     virtual bool Apply(const ActuatorCommand& command, DiagnosticSink& diagnostics) = 0;
-    /** @brief 禁用电机输出 */
+    /** @brief 禁用执行器输出 */
     virtual void Disable(DiagnosticSink& diagnostics) = 0;
-    /** @brief 关闭电机硬件 */
+    /** @brief 关闭执行器硬件 */
     virtual void Shutdown(DiagnosticSink& diagnostics) = 0;
-    /** @brief 检查电机是否就绪 */
+    /** @brief 检查执行器是否就绪 */
     virtual bool Ready() const = 0;
 };
 
@@ -187,7 +187,7 @@ struct PlatformBundle {
     std::unique_ptr<ICameraAdapter> camera;          ///< 相机适配器
     std::unique_ptr<IImuAdapter> imu;                ///< IMU适配器
     std::unique_ptr<IEncoderAdapter> encoder;        ///< 编码器适配器
-    std::unique_ptr<IMotorAdapter> motor;            ///< 电机适配器
+    std::unique_ptr<IActuatorAdapter> actuator;      ///< 执行器适配器
     std::unique_ptr<ITimerAdapter> timer;            ///< 定时器适配器
     std::unique_ptr<IPowerMonitorAdapter> power;     ///< 电源监控适配器
     std::unique_ptr<IParamStore> params;             ///< 参数存储适配器

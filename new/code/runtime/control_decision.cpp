@@ -51,7 +51,9 @@ ControlGateDecision EvaluateControlGate(const ControlGateInputs& inputs) {
 /// @param command  执行器命令
 /// @return         是否是非零驱动命令
 bool IsNonZeroDriveCommand(const port::ActuatorCommand& command) {
-    return !command.emergency_stop && (command.left_pwm != 0 || command.right_pwm != 0);
+    return !command.emergency_stop &&
+           (command.left_drive_pwm != 0 || command.right_drive_pwm != 0 ||
+            command.left_brushless_pwm != 0 || command.right_brushless_pwm != 0);
 }
 
 /// 观察控制周期：分析 gate 状态、命令施加结果、运动阶段和 arming 转换
@@ -64,8 +66,10 @@ ControlCycleObservation ObserveControlCycle(const ControlCycleInputs& inputs) {
     observation.motion_phase = inputs.motion_phase;
     observation.hold_disarmed = inputs.hold_disarmed;
     observation.requested_nonzero_output = IsNonZeroDriveCommand(inputs.command);
-    observation.applied_left_pwm = inputs.command.left_pwm;
-    observation.applied_right_pwm = inputs.command.right_pwm;
+    observation.applied_left_drive_pwm = inputs.command.left_drive_pwm;
+    observation.applied_right_drive_pwm = inputs.command.right_drive_pwm;
+    observation.applied_left_brushless_pwm = inputs.command.left_brushless_pwm;
+    observation.applied_right_brushless_pwm = inputs.command.right_brushless_pwm;
 
     if (inputs.apply_suppressed_by_profile) {
         observation.apply_outcome = ControlApplyOutcome::kSuppressedByProfile;

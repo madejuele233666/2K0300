@@ -1,5 +1,8 @@
 # `new/user` 调试入口
 
+完整工作规范与板端/steering evidence 工作流见
+[`../../docs/WORKFLOW.md`](../../docs/WORKFLOW.md)。本文只作为具体命令参考。
+
 统一调试脚本是 `debug.sh`。它把原来的构建上传、助手开关、板端进程控制、运行冒烟合并成一个入口。
 
 参数说明与调参攻略见 [`../config/default_params.md`](../config/default_params.md)。
@@ -48,7 +51,7 @@ CONFIRM_POWERED_START=1 ./start_with_upload.sh drive
 
 `debug.sh` 会在 `BOARD_IP` 未显式设置时自动从 Windows 热点邻居里寻找可 SSH 的板端；热点网段 `192.168.137.x` 默认使用 Windows OpenSSH/SCP，绕开 WSL 原生路由走错网卡的问题。需要强制指定时仍可用 `BOARD_IP=<ip>`，需要强制后端时可用 `LS2K_REMOTE_BACKEND=auto|native|windows`。
 
-正常 profile 的启动默认不发车。`./debug.sh remote start normal`、`./debug.sh remote restart normal`、`./start_with_upload.sh` 和 `./start_with_params_upload.sh` 都应先用于 no-motion 检查：运行时可以初始化 camera / IMU / encoder / motor / timer，但不会自动请求 motion start。
+正常 profile 的启动默认不发车。`./debug.sh remote start normal`、`./debug.sh remote restart normal`、`./start_with_upload.sh` 和 `./start_with_params_upload.sh` 都应先用于 no-motion 检查：运行时可以初始化 camera / IMU / encoder / actuator / timer，但不会自动请求 motion start。
 
 如果确实要使用 harness 的自动发车能力，必须同时满足两个条件：
 
@@ -113,11 +116,21 @@ CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 ./debug.sh steering host-capture --live-web --live-host 127.0.0.1 --live-port 8765 --duration-s 20
 ```
 
-一键脚本默认监听 `127.0.0.1:8765`、长时采集 86400 秒并尝试打开浏览器，适合启动一次后覆盖多轮发车；在 Windows host-capture backend 下会自动检测写给板端连接的 `advertise_host`，本地 listener 默认绑定 `0.0.0.0`，避免热点关闭或网段变化后继续绑定旧 `192.168.137.1` 导致 `WinError 10049`。脚本会自动选择 control/media 端口、写回 `default_params.json` 并上传参数；可用 `--no-auto-ports` 或 `--no-upload-params` 禁用，也可用 `--advertise-host` / `--capture-bind-host` 显式覆盖连接地址和本地绑定地址。长时 viewer 默认 `--media-record-mode none`，只保留 live/summary，不把每帧 320x240 raw 写盘；默认 `--display-mode bev`，网页显示按真实 `BEV_PROJECTOR`/`BEV_GEOMETRY` 变换后的 BEV 图像，需要原始相机图像时使用 `--display-mode raw`。需要取证时使用 `--media-record-mode all`。需要高帧率 320x240 时使用 `--high-fps-320x240`，等价于 `steering_media_downsample=1`、`steering_media_publish_interval_ms=20`、`steering_media_gray_bits=2` 且保持 snapshot-aligned；近距离需要更清晰实时画面时追加 `--media-gray-bits 4`，需要原始 gray8 时显式加 `--media-gray-bits 8`。`--duration-s`、`--live-host`、`--live-port` 可覆盖默认值，其他 `host_capture.py` 参数放在 `--` 后透传。
+一键脚本默认监听 `127.0.0.1:8765`、长时采集 86400 秒并尝试打开浏览器，适合启动一次后覆盖多轮发车；在 Windows host-capture backend 下会自动检测写给板端连接的 `advertise_host`，本地 listener 默认绑定 `0.0.0.0`，避免热点关闭或网段变化后继续绑定旧 `192.168.137.1` 导致 `WinError 10049`。脚本会自动选择 control/media 端口、写回 `default_params.json` 并上传参数；可用 `--no-auto-ports` 或 `--no-upload-params` 禁用，也可用 `--advertise-host` / `--capture-bind-host` 显式覆盖连接地址和本地绑定地址。长时 viewer 默认 `--media-record-mode none`，只保留 live/summary，不把每帧 320x240 raw 写盘；默认 `--display-mode bev`，网页显示按真实 `BEV_PROJECTOR`/`BEV_GEOMETRY` 变换后的 BEV 图像，需要原始相机图像时使用 `--display-mode raw`。需要取证时使用 `--media-record-mode all`。需要高帧率 320x240 时使用 `--high-fps-320x240`，等价于 `steering_media_downsample=1`、`steering_media_publish_interval_ms=20`、`steering_media_gray_bits=2` 且保持 snapshot-aligned；近距离需要更清晰画面时追加 `--media-gray-bits 4`，需要原始 gray8 时显式加 `--media-gray-bits 8`。`--duration-s`、`--live-host`、`--live-port` 可覆盖默认值，其他 `host_capture.py` 参数放在 `--` 后透传。
 
 `--live-web` 只在主机侧增加 HTTP/WebSocket viewer；板端仍然只连接既有 steering media TCP 端口并发送 accepted envelope。浏览器端输入不会变成 assistant 命令。实时显示与 evidence 写盘由 `--media-record-mode` 解耦：`all` 写 raw+metadata，`metadata` 只写 frame metadata，`none` 只更新 live hub 和 summary。
 
 网页 BEV 显示只读消费真实 `config_snapshot` 里的 `BEV_PROJECTOR`/`BEV_GEOMETRY` 和每帧 gray payload，按 `STEERING_LIVE_VIEWER_README.md` 中记录的单应矩阵算法反投影采样；每帧 media header 同步携带 `steering_snapshot.visual_reference.path_candidates` 里的板端候选路径事实，网页直接把这些事实点绘制到 canvas 上，不在侧栏显示候选摘要，也不复刻板端候选路径算法。CircleV2 的独立几何中间点如果没有出现在发送端合同中，网页不推断、不绘制。
+
+摄像头角度变化后，先让车在直道中心静止，并保持 live viewer 收到图像，再用多点拟合工具生成 `BEV_PROJECTOR` 建议：
+
+```bash
+python3 calibrate_bev_projector_from_live.py
+python3 calibrate_bev_projector_from_live.py --write-params
+./start_with_params_upload.sh no-motion
+```
+
+该工具只消费 viewer 的 `/config.bin` 和 `/latest.bin`，按当前帧多条横线检测道路左右边界并鲁棒拟合源图梯形；默认只保存 `calibration_result.json` 和 `calibration_overlay.png`，不写参数。写入后仍要以 no-motion 观察 `tracking_geometry`、`eligibility` 和网页 BEV 图像，不用控制增益掩盖错误标定。
 
 新的 `host-capture` evidence bundle 包含：
 
@@ -137,7 +150,7 @@ CONFIRM_POWERED_START=1 ./debug.sh steering drive --drive-s 10
 - `steering_media_alignment.jsonl`
 - `summary.json`
 
-`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开分组转向合同：`perception_health.*`、`element_evidence.cross_exit.*`、`reference.{mode,source}`、`eligibility.*`、`lateral_error.*`、`reference_control.*`、`safety_gate.*`、`degraded.*`、`yaw_control.turn_output_target`、`actuator.{raw_turn_output,applied_turn_output}`。旧的 near/far 误差派生字段和旧扁平 reference/control 字段已经从协议中移除。
+`board_steering_snapshot.jsonl` 与 steering media header 现已共同公开分组转向合同：`perception_health.*`、`element_evidence.cross_exit.*`、`reference.{mode,source}`、`eligibility.*`、`lateral_error.*`、`reference_control.*`、`safety_gate.*`、`degraded.*`、`yaw_control.turn_output_target`、`actuator.{raw_turn_output,applied_turn_output,apply_outcome}`。旧的 near/far 误差派生字段和旧扁平 reference/control 字段已经从协议中移除。
 
 如果 steering media 已启用，`tuning` 会额外写出一组 sibling evidence：
 
@@ -178,14 +191,14 @@ accepted control/media wiring 的冻结键集合是：
 
 ```bash
 VERIFY_LOG_PATH=../verification/runtime-smoke.log \
-SMOKE_ENABLE_MOTOR=0 \
+SMOKE_ENABLE_ACTUATOR=0 \
 SMOKE_AUTO_START=1 \
 SMOKE_AUTO_START_DELAY_MS=200 \
 SMOKE_MAX_FRAMES=80 \
 ./debug.sh smoke run
 ```
 
-只跑本地兼容架构冒烟时：
+只跑本地 smoke 架构冒烟时：
 
 ```bash
 ./debug.sh smoke local

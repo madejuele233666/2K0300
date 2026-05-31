@@ -45,6 +45,9 @@ WritableDevice g_left_gpio{kLeftMotorGpioPath, -1};
 WritableDevice g_right_gpio{kRightMotorGpioPath, -1};
 bool g_use_persistent_fd = false;
 
+constexpr int kBrushlessEscDutyMin = 0;
+constexpr int kBrushlessEscDutyMax = 1000;
+
 // 供应商方向约定与逻辑方向相反，取负
 int NormalizeLogicalDutyToVendorDirection(int logical_duty) {
     return -logical_duty;
@@ -205,6 +208,27 @@ BridgeStatus ProbeMotorPath(const char* path) {
     return status;
 }
 
+BridgeStatus ProbeBrushlessEscPath(const char* path) {
+    BridgeStatus status{};
+    if (!OpenWritable(path)) {
+        status.detail = std::string("brushless ESC PWM resource unavailable: ") + path;
+        return status;
+    }
+    status.ok = true;
+    status.detail = path;
+    return status;
+}
+
+BridgeStatus WriteBrushlessEscDuty(const char* path, int requested_duty) {
+    const int clamped =
+        std::clamp(requested_duty, kBrushlessEscDutyMin, kBrushlessEscDutyMax);
+    const uint16_t duty = static_cast<uint16_t>(clamped);
+    if (!WriteBinary(path, duty)) {
+        return {false, std::string("brushless ESC PWM write failed: ") + path};
+    }
+    return {true, std::string("brushless ESC PWM duty applied: ") + path};
+}
+
 }  // namespace
 
 // 初始化电机 —— 探测 PWM/GPIO 路径可写性
@@ -259,6 +283,55 @@ BridgeStatus DisableMotorOutput() {
     g_left_motor_state.last_pwm_zero = true;
     g_right_motor_state.last_pwm_zero = true;
     return {true, "motor outputs disabled"};
+}
+
+BridgeStatus InitializeBrushlessEsc() {
+    for (const char* path : {kBrushlessEsc1PwmPath, kBrushlessEsc2PwmPath}) {
+        const BridgeStatus probe = ProbeBrushlessEscPath(path);
+        if (!probe.ok) {
+            return probe;
+        }
+    }
+    return DisableBrushlessEscOutput();
+}
+
+BridgeStatus ApplyBrushlessEscCommand(int left_brushless_pwm, int right_brushless_pwm) {
+    const BridgeStatus left = WriteBrushlessEscDuty(kBrushlessEsc1PwmPath, left_brushless_pwm);
+    if (!left.ok) {
+        const BridgeStatus rollback = DisableBrushlessEscOutput();
+        if (!rollback.ok) {
+            return {false, left.detail + "; rollback failed: " + rollback.detail};
+        }
+        return left;
+    }
+
+    const BridgeStatus right = WriteBrushlessEscDuty(kBrushlessEsc2PwmPath, right_brushless_pwm);
+    if (!right.ok) {
+        const BridgeStatus rollback = DisableBrushlessEscOutput();
+        if (!rollback.ok) {
+            return {false, right.detail + "; rollback failed: " + rollback.detail};
+        }
+        return right;
+    }
+
+    return {true, "brushless ESC command applied"};
+}
+
+BridgeStatus DisableBrushlessEscOutput() {
+    const uint16_t zero = 0;
+    const bool left_ok = WriteBinary(kBrushlessEsc1PwmPath, zero);
+    const bool right_ok = WriteBinary(kBrushlessEsc2PwmPath, zero);
+    if (!left_ok || !right_ok) {
+        std::string detail = "brushless ESC PWM disable failed:";
+        if (!left_ok) {
+            detail += std::string(" left=") + kBrushlessEsc1PwmPath;
+        }
+        if (!right_ok) {
+            detail += std::string(" right=") + kBrushlessEsc2PwmPath;
+        }
+        return {false, detail};
+    }
+    return {true, "brushless ESC outputs disabled"};
 }
 
 }  // namespace ls2k::platform::true_ls2k0300

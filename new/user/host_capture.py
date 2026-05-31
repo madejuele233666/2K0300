@@ -88,8 +88,13 @@ class AssistantJsonListener:
         "safety_gate.reason",
         "lateral_error.weighted_lateral_error_m",
         "yaw_control.turn_output_target",
-        "actuator.raw_turn_output",
-        "actuator.applied_turn_output",
+        "raw_turn_output",
+        "applied_turn_output",
+        "left_drive_pwm_command",
+        "right_drive_pwm_command",
+        "left_brushless_pwm_command",
+        "right_brushless_pwm_command",
+        "actuator_apply_outcome",
         "raw_json",
     ]
 
@@ -330,8 +335,13 @@ class AssistantJsonListener:
                 frame, "lateral_error", "weighted_lateral_error_m"
             ),
             "yaw_control.turn_output_target": nested(frame, "yaw_control", "turn_output_target"),
-            "actuator.raw_turn_output": nested(frame, "actuator", "raw_turn_output"),
-            "actuator.applied_turn_output": nested(frame, "actuator", "applied_turn_output"),
+            "raw_turn_output": frame.get("raw_turn_output", ""),
+            "applied_turn_output": frame.get("applied_turn_output", ""),
+            "left_drive_pwm_command": frame.get("left_drive_pwm_command", ""),
+            "right_drive_pwm_command": frame.get("right_drive_pwm_command", ""),
+            "left_brushless_pwm_command": frame.get("left_brushless_pwm_command", ""),
+            "right_brushless_pwm_command": frame.get("right_brushless_pwm_command", ""),
+            "actuator_apply_outcome": frame.get("actuator_apply_outcome", ""),
             "raw_json": line,
         }
         assert self._csv_writer is not None
@@ -362,8 +372,9 @@ class AssistantJsonListener:
                     f"gate={nested(frame, 'safety_gate', 'reason')} "
                     f"lateral_error={nested(frame, 'lateral_error', 'weighted_lateral_error_m')} "
                     f"turn_output_target={nested(frame, 'yaw_control', 'turn_output_target')} "
-                    f"raw_turn={nested(frame, 'actuator', 'raw_turn_output')} "
-                    f"applied_turn={nested(frame, 'actuator', 'applied_turn_output')}"
+                    f"raw_turn={frame.get('raw_turn_output')} "
+                    f"applied_turn={frame.get('applied_turn_output')} "
+                    f"apply_outcome={frame.get('actuator_apply_outcome')}"
                 )
             return
         self._summary["unknown_frames"] = int(self._summary["unknown_frames"]) + 1
@@ -700,7 +711,8 @@ class SteeringMediaListener:
                 f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
                 f"turn_output_target={nested(steering, 'yaw_control', 'turn_output_target')} "
                 f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
-                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')}"
+                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')} "
+                f"apply_outcome={nested(steering, 'actuator', 'apply_outcome')}"
             )
 
     def _record_image_frame(

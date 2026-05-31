@@ -70,8 +70,11 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
             << " right_measured=" << snapshot.right_measured_speed
             << " raw_turn=" << snapshot.raw_turn_output
             << " applied_turn=" << snapshot.applied_turn_output
-            << " left_pwm=" << snapshot.left_pwm_command
-            << " right_pwm=" << snapshot.right_pwm_command
+            << " left_drive_pwm=" << snapshot.left_drive_pwm_command
+            << " right_drive_pwm=" << snapshot.right_drive_pwm_command
+            << " left_brushless_pwm=" << snapshot.left_brushless_pwm_command
+            << " right_brushless_pwm=" << snapshot.right_brushless_pwm_command
+            << " actuator_apply_outcome=" << ToString(snapshot.apply_outcome)
             << " emergency_stop=" << (snapshot.emergency_stop ? "true" : "false");
     diagnostics.Emit({snapshot.veto_active ? port::DiagnosticLevel::kWarning : port::DiagnosticLevel::kInfo,
                       "control.snapshot",
@@ -255,7 +258,17 @@ void ControlDebugReporter::MaybeEmit(const ControlDebugSnapshot& snapshot, port:
                      << snapshot.steering.yaw_control.curvature_term
                      << " threshold=" << snapshot.steering.threshold
                      << " actuator.raw_turn_output=" << snapshot.steering.actuator.raw_turn_output
-                     << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output;
+                     << " actuator.applied_turn_output=" << snapshot.steering.actuator.applied_turn_output
+                     << " actuator.left_drive_pwm_command="
+                     << snapshot.steering.actuator.left_drive_pwm_command
+                     << " actuator.right_drive_pwm_command="
+                     << snapshot.steering.actuator.right_drive_pwm_command
+                     << " actuator.left_brushless_pwm_command="
+                     << snapshot.steering.actuator.left_brushless_pwm_command
+                     << " actuator.right_brushless_pwm_command="
+                     << snapshot.steering.actuator.right_brushless_pwm_command
+                     << " actuator.apply_outcome="
+                     << ToString(snapshot.steering.actuator.apply_outcome);
     const std::size_t candidate_path_count =
         std::min(snapshot.steering.visual_reference.candidate_paths.count,
                  snapshot.steering.visual_reference.candidate_paths.entries.size());
