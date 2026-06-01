@@ -149,16 +149,22 @@ int ClampTurnOutput(float turn_output, double turn_limit_scale, int pwm_limit) {
     return static_cast<int>(std::round(std::clamp(turn_output, -turn_limit, turn_limit)));
 }
 
+legacy::WheelTargetMixerParameters BuildWheelTargetMixerParameters(
+    const port::RuntimeParameters& params) {
+    return {params.wheel_turn_accel_delta_scale, params.wheel_turn_decel_delta_scale};
+}
+
 // 构建快照轮速目标（停止/禁止行驶时返回零值）
 legacy::WheelSpeedTargets BuildSnapshotWheelTargets(const MotionDecision& decision,
                                                     int applied_turn_output,
-                                                    const legacy::WheelTargetMixer& mixer) {
+                                                    const legacy::WheelTargetMixer& mixer,
+                                                    const legacy::WheelTargetMixerParameters& mixer_params) {
     if (decision.require_emergency_stop || decision.hold_disarmed || !decision.allow_drive) {
         return {};
     }
 
     const int snapshot_turn_output = decision.state.phase == MotionPhase::kStopping ? 0 : applied_turn_output;
-    return mixer.Compute(decision.effective_speed_target, snapshot_turn_output);
+    return mixer.Compute(decision.effective_speed_target, snapshot_turn_output, mixer_params);
 }
 
 /// 控制调试快照构建输入结构 —— 聚合所有用于构建快照的数据源
@@ -930,7 +936,9 @@ void ControlLoop::Tick() {
         if (tuning_snapshot.tuning_mode_enabled && tuning_snapshot.turn_suppressed) {
             applied_turn_output = 0;
         }
-        wheel_targets = wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output);
+        const legacy::WheelTargetMixerParameters mixer_params = BuildWheelTargetMixerParameters(params_);
+        wheel_targets =
+            wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output, mixer_params);
         const int left_drive_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
         const int right_drive_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
         const int brushless_pwm =
@@ -983,7 +991,10 @@ void ControlLoop::Tick() {
     }
     EmitMotionDiagnostics(diagnostics_, final_motion, gate, motion_reset_ready_reported_, now_ms);
     const legacy::WheelSpeedTargets snapshot_wheel_targets =
-        BuildSnapshotWheelTargets(final_motion, applied_turn_output, wheel_target_mixer_);
+        BuildSnapshotWheelTargets(final_motion,
+                                  applied_turn_output,
+                                  wheel_target_mixer_,
+                                  BuildWheelTargetMixerParameters(params_));
 
     bool apply_ok = true;
     if (diagnostics_only_actuator || hold_disarmed) {

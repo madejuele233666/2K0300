@@ -112,19 +112,19 @@ struct VisualElementEvidenceFrame {
 struct BEVElementParameters {
     // 十字路口出口检测参数
     bool cross_exit_takeover_enabled = true;   ///< 是否启用十字路口出口接管
-    float cross_wide_row_white_ratio_min = 0.95F;  ///< 十字路口宽行白色比例最小值
+    float cross_wide_row_white_ratio_min = 0.93F;  ///< 十字路口宽行白色比例最小值
 
     // Circle V2 场景状态机参数
     bool circle_v2_enabled = true;                  ///< 是否注册 CircleV2Scene
-    float circle_v2_exit_yaw_threshold_deg = 330.0F; ///< B->C 出环角度阈值（度）
-    int circle_v2_exit_hold_frames = 60;             ///< C 状态保持帧数
-    int circle_v2_inner_trace_stall_timeout_ms = 4000; ///< InnerTrace 无明显 yaw 积分退回 Idle 超时
-    float circle_v2_inner_trace_stall_yaw_min_deg = 16.5F; ///< InnerTrace 超时退回 Idle 的最小明显 yaw 积分
-    float circle_v2_inner_trace_path_offset_m = 0.1F; ///< InnerTrace 从内圆边线向道路内部偏移的距离
-    float circle_v2_opposite_straight_confidence_min = 0.50F; ///< CircleV2 对侧直线最低拟合置信度
-    int circle_v2_entry_bottom_row_count = 4; ///< Approach entry gate 使用的下部 ROI 行数
-    float circle_v2_entry_bottom_forward_min_m = 0.0F; ///< Approach entry gate 下部 ROI 前向下限
-    float circle_v2_entry_bottom_forward_max_m = 0.25F; ///< Approach entry gate 下部 ROI 前向上限
+    float circle_v2_exit_yaw_threshold_deg = 400.0F; ///< B->C 出环角度阈值（度）
+    int circle_v2_exit_hold_frames = 120;             ///< C 状态保持帧数
+    int circle_v2_inner_trace_stall_timeout_ms = 2000; ///< InnerTrace 无明显 yaw 积分退回 Idle 超时
+    float circle_v2_inner_trace_stall_yaw_min_deg = 60.0F; ///< InnerTrace 超时退回 Idle 的最小明显 yaw 积分
+    float circle_v2_inner_trace_path_offset_m = 0.0F; ///< InnerTrace 从内圆边线向道路内部偏移的距离
+    float circle_v2_opposite_straight_confidence_min = 0.70F; ///< CircleV2 对侧直线最低拟合置信度
+    int circle_v2_entry_bottom_row_count = 10; ///< Approach entry gate 使用的下部 ROI 行数
+    float circle_v2_entry_bottom_forward_min_m = 0.1F; ///< Approach entry gate 下部 ROI 前向下限
+    float circle_v2_entry_bottom_forward_max_m = 0.35F; ///< Approach entry gate 下部 ROI 前向上限
 };
 
 }  // namespace ls2k::port

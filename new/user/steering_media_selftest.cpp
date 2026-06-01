@@ -408,14 +408,13 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     config.param_snapshot.control_period_ms = 5;
     config.param_snapshot.low_voltage_raw_threshold = 400;
     config.param_snapshot.raw_turn_output_limit = 8000;
+    config.param_snapshot.wheel_turn_accel_delta_scale = 1.25;
+    config.param_snapshot.wheel_turn_decel_delta_scale = 0.75;
     config.param_snapshot.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
     config.param_snapshot.bev_control_model.heading_error_to_wheel_delta_gain = 12.0;
     config.param_snapshot.bev_control_model.curvature_to_wheel_delta_gain = 34.0;
-    config.param_snapshot.bev_control_model.lateral_error_far_weight = 0.25;
     config.param_snapshot.bev_control_model.tracking_fit_min_samples = 5;
     config.param_snapshot.bev_element.cross_exit_takeover_enabled = false;
-    config.param_snapshot.bev_element_raster.enabled = true;
-    config.param_snapshot.bev_element_raster.width = 320;
     config.param_snapshot.bev_projector.projector_hash = "unit-test-projector-hash";
     config.param_snapshot.bev_geometry.search_lateral_limit_m = 0.72F;
     config.param_snapshot.bev_geometry.sparse_row_count = 12;
@@ -444,14 +443,18 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include low-voltage raw threshold");
     Require(Contains(header_json, "\"raw_turn_output_limit\":8000"),
             "config snapshot must include raw turn output limit");
+    Require(Contains(header_json, "\"wheel_turn_accel_delta_scale\":1.25"),
+            "config snapshot must include accel-side turn delta scale");
+    Require(Contains(header_json, "\"wheel_turn_decel_delta_scale\":0.75"),
+            "config snapshot must include decel-side turn delta scale");
     Require(Contains(header_json, "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":180"),
             "config snapshot must include lateral-offset-to-wheel-delta gain");
     Require(Contains(header_json, "\"HEADING_ERROR_TO_WHEEL_DELTA_GAIN\":12"),
             "config snapshot must include heading-error-to-wheel-delta gain");
     Require(Contains(header_json, "\"CURVATURE_TO_WHEEL_DELTA_GAIN\":34"),
             "config snapshot must include curvature-to-wheel-delta gain");
-    Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
-            "config snapshot must include lateral-error far weight");
+    Require(!Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\""),
+            "config snapshot must not include legacy lateral-error debug weight");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
             "config snapshot must not include removed mixer gain");
     Require(!Contains(header_json, std::string("pid_turn_") + "camera"),
@@ -490,23 +493,23 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must include BEV element group");
     Require(Contains(header_json, "\"CROSS_EXIT_TAKEOVER_ENABLED\":false"),
             "config snapshot must include default-off cross-exit takeover");
-    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
+    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.930000007153"),
             "config snapshot must include cross wide-row white-ratio threshold");
     Require(Contains(header_json, "\"CIRCLE_V2_ENABLED\":true"),
             "config snapshot must include CircleV2 enablement");
-    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":330"),
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":400"),
             "config snapshot must include CircleV2 exit yaw threshold");
-    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":60"),
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":120"),
             "config snapshot must include CircleV2 exit hold frames");
     Require(Contains(header_json, "\"CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M\":0"),
             "config snapshot must include CircleV2 inner path offset");
-    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
+    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.699999988079"),
             "config snapshot must include CircleV2 opposite-straight confidence threshold");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":4"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":10"),
             "config snapshot must include CircleV2 entry bottom row count");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0.10000000149"),
             "config snapshot must include CircleV2 entry bottom forward min");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.25"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.34999999404"),
             "config snapshot must include CircleV2 entry bottom forward max");
     Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
             "config snapshot must not include legacy circle entry parameters");
@@ -518,10 +521,8 @@ void TestConfigEnvelopeIsMinimalBevContract() {
             "config snapshot must not include legacy circle opposite-side parameters");
     Require(!Contains(header_json, "\"CIRCLE_PRESENT_"),
             "config snapshot must not include legacy circle confidence parameters");
-    Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
-            "config snapshot must include BEV element raster group");
-    Require(Contains(header_json, "\"WIDTH\":320"),
-            "config snapshot must include BEV element raster width");
+    Require(!Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
+            "config snapshot must not include probe-only BEV element raster settings");
     Require(!Contains(header_json, std::string("CURVATURE_TO_") + "W_" + "TARGET_GAIN"),
             "config snapshot must not include removed legacy angular target gain key");
     Require(!Contains(header_json, std::string("\"BEV_") + "TOPOLOGY"),
@@ -825,7 +826,6 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     params.running_speed_target = 100.0;
     params.control_period_ms = 5;
     params.bev_control_model.lateral_offset_to_wheel_delta_gain = 180.0;
-    params.bev_control_model.lateral_error_far_weight = 0.25;
     params.bev_geometry.boundary_trace_max_adjacent_distance_m = 0.45F;
     service.Start(params, diagnostics);
 
@@ -954,23 +954,23 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must expose boundary trace distance");
     Require(Contains(header_json, "\"BEV_ELEMENT\""),
             "service config snapshot must expose BEV element settings");
-    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.949999988079"),
+    Require(Contains(header_json, "\"CROSS_WIDE_ROW_WHITE_RATIO_MIN\":0.930000007153"),
             "service config snapshot must expose cross white-ratio settings");
     Require(Contains(header_json, "\"CIRCLE_V2_ENABLED\":true"),
             "service config snapshot must expose CircleV2 enablement");
-    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":330"),
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG\":400"),
             "service config snapshot must expose CircleV2 yaw threshold");
-    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":60"),
+    Require(Contains(header_json, "\"CIRCLE_V2_EXIT_HOLD_FRAMES\":120"),
             "service config snapshot must expose CircleV2 hold frames");
     Require(Contains(header_json, "\"CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M\":0"),
             "service config snapshot must expose CircleV2 inner path offset");
-    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.5"),
+    Require(Contains(header_json, "\"CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN\":0.699999988079"),
             "service config snapshot must expose CircleV2 opposite-straight confidence threshold");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":4"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT\":10"),
             "service config snapshot must expose CircleV2 entry bottom row count");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M\":0.10000000149"),
             "service config snapshot must expose CircleV2 entry bottom forward min");
-    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.25"),
+    Require(Contains(header_json, "\"CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M\":0.34999999404"),
             "service config snapshot must expose CircleV2 entry bottom forward max");
     Require(!Contains(header_json, "\"CIRCLE_ENTRY_"),
             "service config snapshot must not expose legacy circle entry settings");
@@ -978,12 +978,12 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
             "service config snapshot must not expose legacy circle evidence settings");
     Require(!Contains(header_json, "\"CIRCLE_OPEN"),
             "service config snapshot must not expose legacy circle opening settings");
-    Require(Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
-            "service config snapshot must expose BEV element raster settings");
+    Require(!Contains(header_json, "\"BEV_ELEMENT_RASTER\""),
+            "service config snapshot must not expose probe-only BEV element raster settings");
     Require(Contains(header_json, "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":180"),
             "service config snapshot must expose lateral-offset-to-wheel-delta gain");
-    Require(Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\":0.25"),
-            "service config snapshot must expose lateral-error far weight");
+    Require(!Contains(header_json, "\"LATERAL_ERROR_FAR_WEIGHT\""),
+            "service config snapshot must not expose legacy lateral-error debug weight");
     Require(!Contains(header_json, "\"turn_output_to_wheel_delta_gain\""),
             "service config snapshot must not expose removed mixer gain");
     Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),

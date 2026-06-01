@@ -241,6 +241,22 @@ void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value
     }
 }
 
+void ReadOptionalNonNegativeFiniteNumber(const cv::FileNode& root,
+                                         const char* key,
+                                         double& value,
+                                         bool& malformed) {
+    const cv::FileNode node = root[key];
+    if (node.empty()) {
+        return;
+    }
+    double parsed = value;
+    if (!ReadNumberNode(node, parsed) || !std::isfinite(parsed) || parsed < 0.0) {
+        malformed = true;
+        return;
+    }
+    value = parsed;
+}
+
 /**
  * 读取可选整数参数。
  * @param root JSON 根节点
@@ -577,8 +593,7 @@ bool IsFiniteInRange(double value, double min_value, double max_value) {
  * @return true 表示所有参数均通过合法性校验
  */
 bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
-    return IsFiniteInRange(params.lateral_error_far_weight, 0.0, 1.0) &&
-           IsFiniteInRange(params.lateral_offset_to_wheel_delta_gain, 0.0, 1000.0) &&
+    return IsFiniteInRange(params.lateral_offset_to_wheel_delta_gain, 0.0, 1000.0) &&
            IsFiniteInRange(params.heading_error_to_wheel_delta_gain, 0.0, 1000.0) &&
            IsFiniteInRange(params.curvature_to_wheel_delta_gain, 0.0, 1000.0) &&
            params.tracking_fit_min_samples >= 3 &&
@@ -778,6 +793,14 @@ public:
         ReadOptionalInt(root, "perception_stale_ms", parsed.perception_stale_ms, optional_malformed);
         ReadOptionalInt(root, "pwm_limit", parsed.pwm_limit, optional_malformed);
         ReadOptionalInt(root, "raw_turn_output_limit", parsed.raw_turn_output_limit, optional_malformed);
+        ReadOptionalNonNegativeFiniteNumber(root,
+                                            "wheel_turn_accel_delta_scale",
+                                            parsed.wheel_turn_accel_delta_scale,
+                                            optional_malformed);
+        ReadOptionalNonNegativeFiniteNumber(root,
+                                            "wheel_turn_decel_delta_scale",
+                                            parsed.wheel_turn_decel_delta_scale,
+                                            optional_malformed);
         ReadOptionalInt(root, "pwm_floor", parsed.pwm_floor, optional_malformed);
         ReadOptionalBool(root, "prohibit_reverse_pwm", parsed.prohibit_reverse_pwm, optional_malformed);
         ReadOptionalInt(root,
@@ -854,8 +877,6 @@ public:
                         "low_voltage_sample_interval_ms",
                         parsed.low_voltage_sample_interval_ms,
                         optional_malformed);
-        ReadOptionalInt(root, "camera_frame_width", parsed.camera_frame_width, optional_malformed);
-        ReadOptionalInt(root, "camera_frame_height", parsed.camera_frame_height, optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "YAW_RATE_PID",
                                  "P",
@@ -973,21 +994,9 @@ public:
         // --- BEV 控制模型参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
-                                 "LATERAL_ERROR_FAR_WEIGHT",
-                                 parsed.bev_control_model.lateral_error_far_weight,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
-                                 parsed.bev_control_model.lateral_offset_to_wheel_delta_gain,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
                                  "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN",
                                  parsed.bev_control_model.lateral_offset_to_wheel_delta_gain,
                                  optional_malformed);
-        parsed.bev_control_model.lateral_error_to_wheel_delta_gain =
-            parsed.bev_control_model.lateral_offset_to_wheel_delta_gain;
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",
                                  "HEADING_ERROR_TO_WHEEL_DELTA_GAIN",
@@ -1072,19 +1081,6 @@ public:
                                  parsed.bev_element.circle_v2_entry_bottom_forward_max_m,
                                  optional_malformed);
         if (!ValidateBEVElement(parsed.bev_element)) {
-            optional_malformed = true;
-        }
-        ReadOptionalNestedBool(root,
-                               "BEV_ELEMENT_RASTER",
-                               "ENABLED",
-                               parsed.bev_element_raster.enabled,
-                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_ELEMENT_RASTER",
-                              "WIDTH",
-                              parsed.bev_element_raster.width,
-                              optional_malformed);
-        if (parsed.bev_element_raster.width < 2) {
             optional_malformed = true;
         }
         ReadOptionalNestedBool(root,

@@ -118,6 +118,12 @@ int main(int argc, char** argv) {
         ExpectInt(params.perception_stale_ms, NumberField(json, "perception_stale_ms"), "perception_stale_ms");
         ExpectInt(params.pwm_limit, NumberField(json, "pwm_limit"), "pwm_limit");
         ExpectInt(params.raw_turn_output_limit, NumberField(json, "raw_turn_output_limit"), "raw_turn_output_limit");
+        ExpectNear(params.wheel_turn_accel_delta_scale,
+                   NumberField(json, "wheel_turn_accel_delta_scale"),
+                   "wheel_turn_accel_delta_scale");
+        ExpectNear(params.wheel_turn_decel_delta_scale,
+                   NumberField(json, "wheel_turn_decel_delta_scale"),
+                   "wheel_turn_decel_delta_scale");
         ExpectInt(params.pwm_floor, NumberField(json, "pwm_floor"), "pwm_floor");
         ExpectBool(params.prohibit_reverse_pwm, NumberField(json, "prohibit_reverse_pwm"), "prohibit_reverse_pwm");
         ExpectInt(params.prohibit_reverse_pwm_step_limit,
@@ -162,8 +168,10 @@ int main(int argc, char** argv) {
         ExpectInt(params.low_voltage_sample_interval_ms,
                   NumberField(json, "low_voltage_sample_interval_ms"),
                   "low_voltage_sample_interval_ms");
-        ExpectInt(params.camera_frame_width, NumberField(json, "camera_frame_width"), "camera_frame_width");
-        ExpectInt(params.camera_frame_height, NumberField(json, "camera_frame_height"), "camera_frame_height");
+        Expect(json.find("\"camera_frame_width\"") == std::string::npos,
+               "default_params.json must not retain camera_frame_width shadow geometry");
+        Expect(json.find("\"camera_frame_height\"") == std::string::npos,
+               "default_params.json must not retain camera_frame_height shadow geometry");
 
         const std::string assistant_tcp = ObjectBody(json, "assistant_tcp");
         Expect(params.assistant_tcp.host == StringField(assistant_tcp, "host"), "assistant_tcp.host mismatch");
@@ -249,13 +257,10 @@ int main(int argc, char** argv) {
                   "BEV_CLASSIFICATION.HOLD_LAST_MAX_CYCLES");
 
         const std::string control_model = ObjectBody(json, "BEV_CONTROL_MODEL");
-        ExpectNear(params.bev_control_model.lateral_error_far_weight,
-                   NumberField(control_model, "LATERAL_ERROR_FAR_WEIGHT"),
-                   "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
-        ExpectInRange(params.bev_control_model.lateral_error_far_weight,
-                      0.0,
-                      1.0,
-                      "BEV_CONTROL_MODEL.LATERAL_ERROR_FAR_WEIGHT");
+        Expect(control_model.find("\"LATERAL_ERROR_FAR_WEIGHT\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain legacy lateral-error debug weight");
+        Expect(control_model.find("\"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN\"") == std::string::npos,
+               "BEV_CONTROL_MODEL must not retain lateral-error gain alias");
         ExpectNear(params.bev_control_model.lateral_offset_to_wheel_delta_gain,
                    NumberField(control_model, "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN"),
                    "BEV_CONTROL_MODEL.LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN");
@@ -388,13 +393,8 @@ int main(int argc, char** argv) {
         Expect(element.find("\"CIRCLE_PRESENT_") == std::string::npos,
                "BEV_ELEMENT must not retain legacy circle confidence keys");
 
-        const std::string element_raster = ObjectBody(json, "BEV_ELEMENT_RASTER");
-        ExpectBool(params.bev_element_raster.enabled,
-                   NumberField(element_raster, "ENABLED"),
-                   "BEV_ELEMENT_RASTER.ENABLED");
-        ExpectInt(params.bev_element_raster.width,
-                  NumberField(element_raster, "WIDTH"),
-                  "BEV_ELEMENT_RASTER.WIDTH");
+        Expect(json.find("\"BEV_ELEMENT_RASTER\"") == std::string::npos,
+               "default_params.json must not retain runtime BEV_ELEMENT_RASTER");
 
         std::cout << "runtime_parameter_defaults_test passed\n";
         return 0;

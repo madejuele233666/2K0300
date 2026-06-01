@@ -12,7 +12,6 @@
 
 #include <string>
 
-#include "port/bev_element_raster_types.hpp"
 #include "port/bev_geometry_types.hpp"
 #include "port/visual_element_evidence_types.hpp"
 
@@ -28,7 +27,7 @@ struct WheelPidParameters {
     double p = 84.0;             ///< 比例增益
     double i = 2.4;             ///< 积分增益
     double d = 0.75;            ///< 微分增益
-    double integral_limit = 5000.0;  ///< 积分项限幅
+    double integral_limit = 100.0;  ///< 积分项限幅
     double measurement_filter_alpha = 0.4;  ///< 测量值低通滤波系数（0~1，越小越平滑）
 };
 
@@ -75,7 +74,7 @@ struct CameraSourceParameters {
  */
 struct RuntimeParameters {
     // 运动控制参数
-    double running_speed_target = 400.0;  ///< 目标行驶速度（PWM，0~5000）
+    double running_speed_target = 500.0;  ///< 目标行驶速度（PWM，0~5000）
     double yaw_rate_pid_p = 0.0;          ///< 偏航角速率PID比例增益
     double yaw_rate_pid_i = 0.0;          ///< 偏航角速率PID积分增益
     double yaw_rate_pid_d = 0.0;          ///< 偏航角速率PID微分增益
@@ -91,11 +90,13 @@ struct RuntimeParameters {
     // 电机PWM限制
     int pwm_limit = 5000;                 ///< PWM最大绝对值
     int raw_turn_output_limit = 20000;    ///< 原始转向输出限幅
+    double wheel_turn_accel_delta_scale = 1.0;  ///< 差速加速侧 turn delta 缩放
+    double wheel_turn_decel_delta_scale = 1.0;  ///< 差速减速侧 turn delta 缩放
     int pwm_floor = 0;                    ///< PWM最低有效值（低于此值电机不转）
     bool prohibit_reverse_pwm = false;    ///< 是否禁止反转PWM
     int prohibit_reverse_pwm_step_limit = 1000;  ///< 禁止反转时的阶梯限制
     bool brushless_debug_fixed_pwm_enabled = true;  ///< 是否启用无刷电调固定 PWM 调试输出
-    int brushless_debug_fixed_pwm = 600;   ///< 无刷电调固定 PWM 调试输出值（0~1000）
+    int brushless_debug_fixed_pwm = 1000;   ///< 无刷电调固定 PWM 调试输出值（0~1000）
 
     // 运动状态机参数
     int motion_unveto_confirm_cycles = 3;   ///< 解除封锁需要的确认周期数
@@ -108,7 +109,7 @@ struct RuntimeParameters {
 
     // 左右轮独立PID
     WheelPidParameters left_wheel_pid{};    ///< 左轮PID参数
-    WheelPidParameters right_wheel_pid{96.0, 2.2, 0.2, 5000.0, 0.4};  ///< 右轮PID参数
+    WheelPidParameters right_wheel_pid{96.0, 2.2, 0.2, 100.0, 0.4};  ///< 右轮PID参数
 
     // 调试与通信
     int control_snapshot_emit_interval_ms = 100;  ///< 控制快照输出间隔（毫秒）
@@ -123,17 +124,12 @@ struct RuntimeParameters {
     bool steering_media_publish_disarmed = true;   ///< 媒体发布是否处于未就绪状态
     int low_voltage_sample_interval_ms = 1000;     ///< 低电压采样间隔（毫秒）
 
-    // 相机参数
-    int camera_frame_width = 320;          ///< 相机帧宽度
-    int camera_frame_height = 240;         ///< 相机帧高度
-
     // BEV参数
     BEVProjectorCalibration bev_projector{};             ///< BEV投影器标定参数
     BEVGeometryParameters bev_geometry{};                 ///< BEV几何参数
     BEVClassificationParameters bev_classification{};     ///< BEV分类参数
     BEVControlModelParameters bev_control_model{};        ///< BEV控制模型参数
     BEVElementParameters bev_element{};                   ///< BEV元素检测参数
-    BEVElementRasterParameters bev_element_raster{};      ///< BEV元素栅格参数
     ReferenceTimeAlignmentParameters reference_time_alignment{};  ///< 参考时间对齐参数
     CameraSourceParameters camera_source{};                       ///< 相机源参数
 

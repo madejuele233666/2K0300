@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "port/bev_geometry_types.hpp"
-#include "port/bev_element_raster_types.hpp"
 #include "port/camera_frame_types.hpp"
 #include "port/perception_result.hpp"
 #include "port/visual_element_evidence_types.hpp"
@@ -48,6 +47,10 @@ struct SteeringMediaParamSnapshotView {
     int low_voltage_raw_threshold = 0;
     /** 原始转向输出限幅值 */
     int raw_turn_output_limit = 0;
+    /** 差速加速侧 turn delta 缩放 */
+    double wheel_turn_accel_delta_scale = 1.0;
+    /** 差速减速侧 turn delta 缩放 */
+    double wheel_turn_decel_delta_scale = 1.0;
     /** BEV 投影校准参数 */
     port::BEVProjectorCalibration bev_projector{};
     /** BEV 几何配置参数 */
@@ -58,8 +61,6 @@ struct SteeringMediaParamSnapshotView {
     port::BEVControlModelParameters bev_control_model{};
     /** BEV 元素检测参数（含圆形/路口退出） */
     port::BEVElementParameters bev_element{};
-    /** BEV 元素栅格化参数 */
-    port::BEVElementRasterParameters bev_element_raster{};
 };
 
 /**

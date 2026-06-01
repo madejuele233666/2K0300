@@ -74,6 +74,51 @@ void TestTurnBeyondHalfSpeedStillChangesBothTargets() {
     ExpectNear(targets.right, 50.0, "beyond half-speed turn right target");
 }
 
+void TestPositiveTurnUsesAccelLeftAndDecelRightScales() {
+    ls2k::legacy::WheelTargetMixer mixer;
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(140.0, 20, {2.0, 0.5});
+
+    ExpectNear(targets.left, 180.0, "positive turn scaled accel-side left target");
+    ExpectNear(targets.right, 130.0, "positive turn scaled decel-side right target");
+}
+
+void TestNegativeTurnUsesAccelRightAndDecelLeftScales() {
+    ls2k::legacy::WheelTargetMixer mixer;
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(140.0, -20, {2.0, 0.5});
+
+    ExpectNear(targets.left, 130.0, "negative turn scaled decel-side left target");
+    ExpectNear(targets.right, 180.0, "negative turn scaled accel-side right target");
+}
+
+void TestZeroDecelScaleOnlyChangesAccelSide() {
+    ls2k::legacy::WheelTargetMixer mixer;
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(140.0, 20, {1.5, 0.0});
+
+    ExpectNear(targets.left, 170.0, "zero decel scale positive turn left target");
+    ExpectNear(targets.right, 140.0, "zero decel scale positive turn right target");
+}
+
+void TestZeroAccelScaleOnlyChangesDecelSide() {
+    ls2k::legacy::WheelTargetMixer mixer;
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(140.0, -20, {0.0, 1.5});
+
+    ExpectNear(targets.left, 110.0, "zero accel scale negative turn left target");
+    ExpectNear(targets.right, 140.0, "zero accel scale negative turn right target");
+}
+
+void TestScaledDecelStillClampsNegativeWheelSpeed() {
+    ls2k::legacy::WheelTargetMixer mixer;
+    const ls2k::legacy::WheelSpeedTargets targets =
+        mixer.Compute(50.0, 40, {2.0, 2.0});
+
+    ExpectNear(targets.left, 130.0, "scaled large turn left target");
+    ExpectNear(targets.right, 0.0, "scaled large turn right target");
+}
+
 }  // namespace
 
 int main() {
@@ -84,6 +129,11 @@ int main() {
         TestZeroTurnOutputKeepsBothWheelsAtBaseTarget();
         TestLargeTurnOnlyClampsNegativeWheelSpeed();
         TestTurnBeyondHalfSpeedStillChangesBothTargets();
+        TestPositiveTurnUsesAccelLeftAndDecelRightScales();
+        TestNegativeTurnUsesAccelRightAndDecelLeftScales();
+        TestZeroDecelScaleOnlyChangesAccelSide();
+        TestZeroAccelScaleOnlyChangesDecelSide();
+        TestScaledDecelStillClampsNegativeWheelSpeed();
     } catch (const std::exception& error) {
         std::cerr << "wheel_target_mixer_test failed: " << error.what() << "\n";
         return EXIT_FAILURE;

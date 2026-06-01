@@ -488,6 +488,10 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     header << ",\"low_voltage_raw_threshold\":"
            << snapshot.param_snapshot.low_voltage_raw_threshold;
     header << ",\"raw_turn_output_limit\":" << snapshot.param_snapshot.raw_turn_output_limit;
+    header << ",\"wheel_turn_accel_delta_scale\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.wheel_turn_accel_delta_scale);
+    header << ",\"wheel_turn_decel_delta_scale\":";
+    AppendJsonNumber(header, snapshot.param_snapshot.wheel_turn_decel_delta_scale);
     header << ",\"BEV_PROJECTOR\":{";
     header << "\"VALID\":";
     AppendJsonBool(header, snapshot.param_snapshot.bev_projector.valid);
@@ -539,9 +543,7 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
            << snapshot.param_snapshot.bev_classification.hold_last_max_cycles;
     header << "}";
     header << ",\"BEV_CONTROL_MODEL\":{";
-    header << "\"LATERAL_ERROR_FAR_WEIGHT\":";
-    AppendJsonNumber(header, snapshot.param_snapshot.bev_control_model.lateral_error_far_weight);
-    header << ",\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":";
+    header << "\"LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN\":";
     AppendJsonNumber(header,
                      snapshot.param_snapshot.bev_control_model.lateral_offset_to_wheel_delta_gain);
     header << ",\"HEADING_ERROR_TO_WHEEL_DELTA_GAIN\":";
@@ -590,11 +592,6 @@ bool EncodeSteeringMediaConfigSnapshot(const SteeringMediaConfigSnapshot& snapsh
     AppendJsonNumber(header,
                      snapshot.param_snapshot.bev_element
                          .circle_v2_entry_bottom_forward_max_m);
-    header << "}";
-    header << ",\"BEV_ELEMENT_RASTER\":{";
-    header << "\"ENABLED\":";
-    AppendJsonBool(header, snapshot.param_snapshot.bev_element_raster.enabled);
-    header << ",\"WIDTH\":" << snapshot.param_snapshot.bev_element_raster.width;
     header << "}";
     header << "}}";
     return EncodeEnvelope(header.str(), nullptr, 0, encoded, error);

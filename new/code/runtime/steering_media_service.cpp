@@ -132,12 +132,13 @@ platform::SteeringMediaConfigSnapshot SteeringMediaService::BuildConfigSnapshot(
     snapshot.param_snapshot.low_voltage_sample_interval_ms = params_.low_voltage_sample_interval_ms;
     snapshot.param_snapshot.low_voltage_raw_threshold = params_.low_voltage_raw_threshold;
     snapshot.param_snapshot.raw_turn_output_limit = params_.raw_turn_output_limit;
+    snapshot.param_snapshot.wheel_turn_accel_delta_scale = params_.wheel_turn_accel_delta_scale;
+    snapshot.param_snapshot.wheel_turn_decel_delta_scale = params_.wheel_turn_decel_delta_scale;
     snapshot.param_snapshot.bev_projector = params_.bev_projector;
     snapshot.param_snapshot.bev_geometry = params_.bev_geometry;
     snapshot.param_snapshot.bev_classification = params_.bev_classification;
     snapshot.param_snapshot.bev_control_model = params_.bev_control_model;
     snapshot.param_snapshot.bev_element = params_.bev_element;
-    snapshot.param_snapshot.bev_element_raster = params_.bev_element_raster;
     return snapshot;
 }
 
