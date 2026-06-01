@@ -68,7 +68,6 @@ private:
 
     bool configured_ = false;                       ///< 是否已完成配置
     bool enabled_ = false;                          ///< 辅助功能是否启用
-    bool periodic_publish_armed_ = false;           ///< 周期性遥测是否已就绪（收到首次命令后启用）
     uint64_t last_telemetry_publish_ms_ = 0;        ///< 上次遥测发布时间戳
     uint64_t last_telemetry_cycle_ = 0;             ///< 上次遥测对应的控制周期计数
     int telemetry_interval_ms_ = 40;                ///< 遥测发布间隔（ms）

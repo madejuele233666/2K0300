@@ -141,6 +141,8 @@ rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 | `pwm_floor` | `0` | actuator shaping | 非零 PWM 的最小地板。低速克服静摩擦可小幅上调；过高会让轻微控制也变成突跳。 |
 | `prohibit_reverse_pwm` | `0` | actuator safety | 禁止输出反向 PWM。需要禁止反向时显式开启；关闭会扩大硬件风险。 |
 | `prohibit_reverse_pwm_step_limit` | `1000` | actuator safety | 反转保护/输出变化步进限制。反向突变风险高时减小；输出响应太慢且无反向风险时增大。 |
+| `brushless_debug_fixed_pwm_enabled` | `1` | actuator debug | 启用后，正常可驱动周期把左右无刷电调命令固定为 `brushless_debug_fixed_pwm`；关闭后左右无刷电调命令为 `0`。 |
+| `brushless_debug_fixed_pwm` | `600` | actuator debug | 无刷电调固定调试 PWM，合法范围 `[0, 1000]`。该值只进入统一 `ActuatorCommand` 的左右无刷字段，不在 adapter/bridge 内隐藏生成。 |
 | `motion_unveto_confirm_cycles` | `3` | motion supervisor | safety gate 解除后需要连续干净周期数。误解除风险高时增大；恢复太慢时减小。 |
 | `motion_spinup_ms` | `800` | motion supervisor | 起步速度爬升时间。起步打滑或冲击大时增大；起步太慢时减小。 |
 | `motion_turn_limit_spinup` | `1.0` | motion supervisor | 起步阶段转向限幅比例。起步时转向过猛减小；起步弯道跟不上增大。 |
@@ -278,7 +280,7 @@ Circle V2 架构见 `new/docs/visual-element-sparse-circle-v2.zh-CN.md`。运行
 | `BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG` | `16.5` | CircleV2 B stall fallback | InnerTrace 超时兜底的“明显 yaw 积分”阈值。超时后 directed yaw 小于该值才退回 Idle。合法值 `0..720`。 |
 | `BEV_ELEMENT.CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M` | `0.1` | CircleV2 B path | InnerTrace 路径从内圆边线向道路内部偏移的距离。`0.0` 表示贴内圆边线；正值左环岛向右偏、右环岛向左偏。合法值 `0..2`。 |
 | `BEV_ELEMENT.CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN` | `0.5` | CircleV2 observer | CircleV2 Phase1 cue 和 Approach entry gate 使用“对侧直线”时的最低拟合置信度。`0.0` 等价旧行为；合法值 `0..1`。 |
-| `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` | `4` | CircleV2 Approach gate | Approach entry gate 使用的下部 ROI 行数。它只定义“下部开口”的 ROI 行数，不改变 Phase1 cue 的全局 trace 语义。合法值 `4..24`。 |
+| `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` | `3` | CircleV2 Approach gate | Approach entry gate 使用的下部 ROI 行数。它只定义“下部开口”的 ROI 行数，不改变 Phase1 cue 的全局 trace 语义。合法值 `1..24`。 |
 | `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M` | `0.0` | CircleV2 Approach gate | Approach entry gate 下部 ROI 的前向下限。只限制“下部开口”观察，不限制 InnerTrace/ExitTrace 边线几何搜索。合法值 `0..2` 且不大于 max。 |
 | `BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M` | `0.25` | CircleV2 Approach gate | Approach entry gate 下部 ROI 的前向上限。BottomRows 在该区间内取前 `CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT` 行；不足行数则 entry gate 为 false。合法值 `0..2` 且不小于 min。 |
 | `BEV_ELEMENT_RASTER.ENABLED` | `0` | optional full BEV element raster | full 元素 raster 开关。V2 下不再控制 circle/cross runtime recognition；保留给 debug、legacy、roadblock、ML 或未来 full-raster 消费者。关闭时 full raster 不采样、不产出 sampleable cells，sparse line/cross/circle cue 仍走 row facts。 |

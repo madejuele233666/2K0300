@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "legacy/steering_bev_pixel_classifier.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "port/bev_reference_types.hpp"
 #include "port/camera_frame_types.hpp"
@@ -14,14 +15,6 @@
 namespace ls2k::legacy {
 
 struct ReferenceConnectivityFrameView;
-
-/// 简单BEV像素分类枚举（二值化后的分类结果）
-enum class BEVSimplePixelClass {
-    kInvalid,   ///< 无效
-    kUnknown,   ///< 不确定（在决策带内）
-    kBlack,     ///< 黑色（路面）
-    kWhite,     ///< 白色（车道线等标记）
-};
 
 /// 稠密BEV图像（用于调试，包含每个像素的灰度和分类）
 struct BEVSimpleImage {
@@ -114,15 +107,6 @@ const char* ToString(port::ReferenceMode mode);
 /// 将BEV路径点来源枚举转换为可读字符串
 const char* ToString(port::BEVPathPointSource source);
 
-/// 对单个像素进行黑白分类，包括置信度判断
-/// @param gray 像素灰度值
-/// @param threshold 二值化阈值
-/// @param classification 分类参数（置信度阈值决策带）
-/// @return 分类结果
-BEVSimplePixelClass ClassifyBevPixel(std::uint8_t gray,
-                                     int threshold,
-                                     const port::BEVClassificationParameters& classification);
-
 /// 在原始帧上进行双线性插值采样
 /// @param frame 原始相机帧
 /// @param row_px 采样行坐标（像素浮点）
@@ -181,24 +165,24 @@ port::ReferenceContinuityResult BuildReferenceHoldCandidate(const port::Referenc
 
 /// 构建稠密BEV调试图像（全分辨率投影，仅用于调试/可视化）
 /// @param frame 原始相机帧
-/// @param threshold 二值化阈值
+/// @param classification_model 当前帧灰度分类模型
 /// @param params 运行时参数
 /// @param projector BEV投影器
 /// @return 稠密BEV图像
 BEVSimpleImage BuildDebugDenseBevImage(const port::LegacyCameraFrameView& frame,
-                                       int threshold,
+                                       const BEVPixelClassificationModel& classification_model,
                                        const port::RuntimeParameters& params,
                                        const BEVProjector& projector);
 
 /// 运行完整的BEV简单感知管线
 /// @param frame 原始相机帧
-/// @param threshold 二值化阈值
+/// @param classification_model 当前帧灰度分类模型
 /// @param params 运行时参数
 /// @param projector BEV投影器
 /// @param lut 可选的外部查找表指针（为nullptr时自动创建临时表）
 /// @return 感知结果（行扫描、参考路径等）
 BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameView& frame,
-                                                 int threshold,
+                                                 const BEVPixelClassificationModel& classification_model,
                                                  const port::RuntimeParameters& params,
                                                  const BEVProjector& projector,
                                                  BEVSampleProjectionLut* lut);

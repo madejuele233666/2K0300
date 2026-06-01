@@ -25,8 +25,9 @@ bool PixelIsBlack(const ReferenceConnectivityFrameView& frame, int row, int col)
             static_cast<std::size_t>(frame.gray_frame.stride) +
         static_cast<std::size_t>(col);
     return ClassifyBevPixel(frame.gray_frame.gray[index],
-                            frame.threshold,
-                            frame.classification) == BEVSimplePixelClass::kBlack;
+                            frame.classification_model,
+                            frame.classification) ==
+           BEVSimplePixelClass::kBlack;
 }
 
 int PixelIndexFromCenteredCoordinate(float value, int limit) {
@@ -156,7 +157,7 @@ bool ImageSegmentHasNoBlack(const ReferenceConnectivityFrameView& frame,
 ConnectedPrefix FindConnectedLeadingPrefix(const ReferenceConnectivityFrameView& frame,
                                            const port::BEVReferencePath& path) {
     bool have_previous = true;
-    port::BEVPoint previous{0.0F, 0.0F};  // Vehicle-origin connectivity anchor.
+    port::BEVPoint previous{0.0F, 0.0F};
     ConnectedPrefix prefix{};
     for (const port::BEVPathSample& sample : path.sampled_path) {
         if (!sample.present ||

@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "legacy/steering_bev_pixel_classifier.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "port/bev_reference_types.hpp"
 #include "port/camera_frame_types.hpp"
@@ -14,7 +15,7 @@ namespace ls2k::legacy {
 struct ReferenceConnectivityFrameView {
     const port::LegacyCameraFrameView& gray_frame;
     const BEVProjector& projector;
-    int threshold = 0;
+    BEVPixelClassificationModel classification_model{};
     const port::BEVClassificationParameters& classification;
 };
 

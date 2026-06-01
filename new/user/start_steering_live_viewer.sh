@@ -14,6 +14,7 @@ live_advertise_host="${LS2K_LIVE_ADVERTISE_HOST:-}"
 capture_bind_host="${LS2K_LIVE_CAPTURE_BIND_HOST:-}"
 media_record_mode="${LS2K_LIVE_MEDIA_RECORD_MODE:-none}"
 display_mode="${LS2K_LIVE_DISPLAY_MODE:-bev}"
+view_mode="${LS2K_LIVE_VIEW_MODE:-camera}"
 media_interval_ms="${LS2K_LIVE_MEDIA_INTERVAL_MS:-}"
 media_downsample="${LS2K_LIVE_MEDIA_DOWNSAMPLE:-}"
 media_gray_bits="${LS2K_LIVE_MEDIA_GRAY_BITS:-}"
@@ -45,6 +46,9 @@ Options:
   --media-record-mode <m>  Host evidence mode for media frames: none, metadata, or all.
                            Default: LS2K_LIVE_MEDIA_RECORD_MODE or none.
   --display-mode <raw|bev> Initial viewer image mode. Default: LS2K_LIVE_DISPLAY_MODE or bev.
+  --view-mode <camera|waveform>
+                           Initial viewer surface. camera shows image frames; waveform shows motor target/actual speed.
+                           Default: LS2K_LIVE_VIEW_MODE or camera.
   --media-interval-ms <ms> Override steering_media_publish_interval_ms before upload.
   --media-downsample <n>   Override steering_media_downsample before upload.
   --media-gray-bits <1|2|4|8>
@@ -158,6 +162,15 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         --display-mode=*)
             display_mode="${1#*=}"
+            shift
+            ;;
+        --view-mode)
+            require_value "$1" "${2:-}"
+            view_mode="$2"
+            shift 2
+            ;;
+        --view-mode=*)
+            view_mode="${1#*=}"
             shift
             ;;
         --media-interval-ms)
@@ -552,6 +565,7 @@ run_capture_attempt() {
         --live-port "${live_port}"
         --duration-s "${duration_s}"
         --live-display-mode "${display_mode}"
+        --live-view-mode "${view_mode}"
         "${capture_args[@]}"
         --listen-host "${capture_bind_host}"
         --listen-port "${attempt_control_port}"
@@ -576,6 +590,7 @@ echo "[live] viewer_url=${viewer_url}"
 echo "[live] duration_s=${duration_s}"
 echo "[live] media_record_mode=${media_record_mode}"
 echo "[live] display_mode=${display_mode}"
+echo "[live] view_mode=${view_mode}"
 echo "[live] host_capture_backend=${host_capture_backend}"
 if [[ -n "${media_interval_ms}" || -n "${media_downsample}" || -n "${media_gray_bits}" || -n "${media_latest_frame}" ]]; then
     echo "[live] media_param_override interval_ms=${media_interval_ms:-keep} downsample=${media_downsample:-keep} gray_bits=${media_gray_bits:-keep} latest_frame=${media_latest_frame:-keep}"
@@ -624,6 +639,7 @@ final_capture_args=(
     --live-port "${live_port}"
     --duration-s "${duration_s}"
     --live-display-mode "${display_mode}"
+    --live-view-mode "${view_mode}"
     "${capture_args[@]}"
 )
 if [[ "${has_capture_listen_host}" -eq 0 ]]; then

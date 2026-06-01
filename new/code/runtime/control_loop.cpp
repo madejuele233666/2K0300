@@ -933,10 +933,12 @@ void ControlLoop::Tick() {
         wheel_targets = wheel_target_mixer_.Compute(constrained_speed_target, applied_turn_output);
         const int left_drive_pwm = left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
         const int right_drive_pwm = right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
+        const int brushless_pwm =
+            params_.brushless_debug_fixed_pwm_enabled ? params_.brushless_debug_fixed_pwm : 0;
         command = actuator_command_builder_.Compose(left_drive_pwm,
                                                     right_drive_pwm,
-                                                    0,
-                                                    0,
+                                                    brushless_pwm,
+                                                    brushless_pwm,
                                                     false,
                                                     params_.pwm_limit,
                                                     1000);

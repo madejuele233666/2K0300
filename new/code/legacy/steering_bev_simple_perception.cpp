@@ -166,35 +166,6 @@ bool SampleFrameBilinear(const port::LegacyCameraFrameView& frame,
 
 namespace {
 
-// 根据 Otsu 阈值计算黑白分类的置信度带宽。
-// 当阈值接近 0 或 255 时，画面本身接近饱和，靠近阈值的像素更容易受噪声影响。
-// 因此这里保留较宽的不确定区间，让低 margin 像素落入 unknown，而不是过早成为 black/white 事实。
-float DecisionBandForThreshold(float threshold) {
-    const float nearest_saturation =
-        std::min(std::max(1.0F, threshold), std::max(1.0F, 255.0F - threshold));
-    return std::clamp(nearest_saturation * 0.5F, 32.0F, 72.0F);
-}
-
-}  // namespace
-
-BEVSimplePixelClass ClassifyBevPixel(std::uint8_t gray,
-                                     int threshold,
-                                     const port::BEVClassificationParameters& classification) {
-    const float threshold_f = static_cast<float>(std::clamp(threshold, 0, 255));
-    const float margin = std::abs(static_cast<float>(gray) - threshold_f);
-    const float confidence = std::clamp(margin / DecisionBandForThreshold(threshold_f), 0.0F, 1.0F);
-    if (confidence < classification.unknown_confidence_min) {
-        return BEVSimplePixelClass::kUnknown;
-    }
-    if (gray > threshold) {
-        return confidence >= classification.white_confidence_min ? BEVSimplePixelClass::kWhite
-                                                                 : BEVSimplePixelClass::kUnknown;
-    }
-    return BEVSimplePixelClass::kBlack;
-}
-
-namespace {
-
 port::BEVPoint PixelToBevPoint(int x,
                                int y,
                                int width,
@@ -215,7 +186,7 @@ port::BEVPoint PixelToBevPoint(int x,
 // runtime 参考线提取仍然使用后面的稀疏行扫描，不从这个 debug 图反向读取事实。
 // 这保持了“显示辅助”和“控制事实”的边界，避免 debug 数据影响实际寻线。
 BEVSimpleImage BuildDebugDenseBevImage(const port::LegacyCameraFrameView& frame,
-                                       int threshold,
+                                       const BEVPixelClassificationModel& classification_model,
                                        const port::RuntimeParameters& params,
                                        const BEVProjector& projector) {
     BEVSimpleImage image{};
@@ -250,7 +221,8 @@ BEVSimpleImage BuildDebugDenseBevImage(const port::LegacyCameraFrameView& frame,
             }
             const std::size_t index = static_cast<std::size_t>(y * width + x);
             image.gray[index] = gray;
-            image.classes[index] = ClassifyBevPixel(gray, threshold, params.bev_classification);
+            image.classes[index] =
+                ClassifyBevPixel(gray, classification_model, params.bev_classification);
         }
     }
 
@@ -263,7 +235,7 @@ namespace {
 // 这些 row facts 同时服务基础 line reference 和 element evidence，是当前视觉事实的公共输入。
 // 这里不做 cross/circle 的语义判断，只描述这一行本身看到了什么。
 BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
-                               int threshold,
+                               const BEVPixelClassificationModel& classification_model,
                                const port::RuntimeParameters& params,
                                const BEVSampleProjectionLut& lut,
                                std::size_t row_index) {
@@ -294,7 +266,8 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
             if (entry.state == BEVSampleProjectionState::kSampleable) {
                 std::uint8_t gray = 0;
                 if (SampleFrameBilinear(frame, entry.image_row_px, entry.image_col_px, gray)) {
-                    pixel_class = ClassifyBevPixel(gray, threshold, params.bev_classification);
+                    pixel_class =
+                        ClassifyBevPixel(gray, classification_model, params.bev_classification);
                     lateral = LateralAtIndex(lateral_index,
                                              lut.lateral_limit_m,
                                              lut.lateral_step_m);
@@ -381,14 +354,14 @@ BEVSimpleRowScan ScanSparseRow(const port::LegacyCameraFrameView& frame,
 }
 
 std::vector<BEVSimpleRowScan> ScanSparseRows(const port::LegacyCameraFrameView& frame,
-                                             int threshold,
+                                             const BEVPixelClassificationModel& classification_model,
                                              const port::RuntimeParameters& params,
                                              const BEVSampleProjectionLut& lut) {
     std::vector<BEVSimpleRowScan> rows;
     const std::size_t active_sparse_rows = ActiveSparseRowCount(params);
     rows.reserve(active_sparse_rows);
     for (std::size_t index = 0; index < active_sparse_rows; ++index) {
-        rows.push_back(ScanSparseRow(frame, threshold, params, lut, index));
+        rows.push_back(ScanSparseRow(frame, classification_model, params, lut, index));
     }
     return rows;
 }
@@ -991,12 +964,12 @@ const char* ToString(port::BEVPathPointSource source) {
 }
 
 BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameView& frame,
-                                                 int threshold,
+                                                 const BEVPixelClassificationModel& classification_model,
                                                  const port::RuntimeParameters& params,
                                                  const BEVProjector& projector,
                                                  BEVSampleProjectionLut* lut) {
     BEVSimplePerceptionResult result{};
-    result.threshold = threshold;
+    result.threshold = classification_model.threshold;
     BEVSampleProjectionLut local_lut{};
     BEVSampleProjectionLut& active_lut = lut == nullptr ? local_lut : *lut;
     {
@@ -1008,14 +981,14 @@ BEVSimplePerceptionResult RunBEVSimplePerception(const port::LegacyCameraFrameVi
 
     {
         LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleScanRows);
-        result.rows = ScanSparseRows(frame, threshold, params, active_lut);
+        result.rows = ScanSparseRows(frame, classification_model, params, active_lut);
     }
     {
         LS2K_PERF_SCOPE(port::PerfStage::kBevSimpleBuildReference);
         const ReferenceConnectivityFrameView connectivity_frame{
             frame,
             projector,
-            threshold,
+            classification_model,
             params.bev_classification,
         };
         result.reference_path = BuildReferencePath(result.rows, params, &connectivity_frame);

@@ -593,11 +593,6 @@ bool ValidateBEVGeometry(const port::BEVGeometryParameters& params) {
            params.sparse_row_count <= static_cast<int>(port::kBevReferenceSampleCount);
 }
 
-/**
- * 校验 BEV 元素参数（含 cross 和 Circle V2 参数）是否在合理范围内。
- * @param params BEV 元素参数结构体
- * @return true 表示所有参数均通过合法性校验
- */
 bool ValidateBEVElement(const port::BEVElementParameters& params) {
     return IsFiniteInRange(params.cross_wide_row_white_ratio_min, 0.0, 1.0) &&
            IsFiniteInRange(params.circle_v2_exit_yaw_threshold_deg, 1.0, 720.0) &&
@@ -606,7 +601,7 @@ bool ValidateBEVElement(const port::BEVElementParameters& params) {
            IsFiniteInRange(params.circle_v2_inner_trace_stall_yaw_min_deg, 0.0, 720.0) &&
            IsFiniteInRange(params.circle_v2_inner_trace_path_offset_m, 0.0, 2.0) &&
            IsFiniteInRange(params.circle_v2_opposite_straight_confidence_min, 0.0, 1.0) &&
-           params.circle_v2_entry_bottom_row_count >= 4 &&
+           params.circle_v2_entry_bottom_row_count >= 1 &&
            params.circle_v2_entry_bottom_row_count <=
                static_cast<int>(port::kBevReferenceSampleCount) &&
            IsFiniteInRange(params.circle_v2_entry_bottom_forward_min_m, 0.0, 2.0) &&
@@ -789,6 +784,17 @@ public:
                         "prohibit_reverse_pwm_step_limit",
                         parsed.prohibit_reverse_pwm_step_limit,
                         optional_malformed);
+        ReadOptionalBool(root,
+                         "brushless_debug_fixed_pwm_enabled",
+                         parsed.brushless_debug_fixed_pwm_enabled,
+                         optional_malformed);
+        ReadOptionalInt(root,
+                        "brushless_debug_fixed_pwm",
+                        parsed.brushless_debug_fixed_pwm,
+                        optional_malformed);
+        if (parsed.brushless_debug_fixed_pwm < 0 || parsed.brushless_debug_fixed_pwm > 1000) {
+            optional_malformed = true;
+        }
         ReadOptionalInt(root,
                         "motion_unveto_confirm_cycles",
                         parsed.motion_unveto_confirm_cycles,
@@ -961,6 +967,9 @@ public:
                               "HOLD_LAST_MAX_CYCLES",
                               parsed.bev_classification.hold_last_max_cycles,
                               optional_malformed);
+        if (!port::IsValidBEVClassificationParameters(parsed.bev_classification)) {
+            optional_malformed = true;
+        }
         // --- BEV 控制模型参数 ---
         ReadOptionalNestedNumber(root,
                                  "BEV_CONTROL_MODEL",

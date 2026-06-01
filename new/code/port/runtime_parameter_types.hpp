@@ -94,6 +94,8 @@ struct RuntimeParameters {
     int pwm_floor = 0;                    ///< PWM最低有效值（低于此值电机不转）
     bool prohibit_reverse_pwm = false;    ///< 是否禁止反转PWM
     int prohibit_reverse_pwm_step_limit = 1000;  ///< 禁止反转时的阶梯限制
+    bool brushless_debug_fixed_pwm_enabled = true;  ///< 是否启用无刷电调固定 PWM 调试输出
+    int brushless_debug_fixed_pwm = 600;   ///< 无刷电调固定 PWM 调试输出值（0~1000）
 
     // 运动状态机参数
     int motion_unveto_confirm_cycles = 3;   ///< 解除封锁需要的确认周期数

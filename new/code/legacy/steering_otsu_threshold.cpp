@@ -1,20 +1,74 @@
 #include "legacy/steering_otsu_threshold.hpp"
 
+#include <algorithm>
 #include <array>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace ls2k::legacy {
+namespace {
+
+int HistogramWeight(const std::array<int, 256>& hist,
+                    int begin,
+                    int end_exclusive) {
+    int weight = 0;
+    for (int value = begin; value < end_exclusive; ++value) {
+        weight += hist[value];
+    }
+    return weight;
+}
+
+float HistogramQuantile(const std::array<int, 256>& hist,
+                        int begin,
+                        int end_exclusive,
+                        int numerator,
+                        int denominator,
+                        int weight) {
+    if (weight <= 0 || denominator <= 0) {
+        return 0.0F;
+    }
+    const int rank =
+        1 + (((weight - 1) * numerator + denominator / 2) / denominator);
+    int seen = 0;
+    for (int value = begin; value < end_exclusive; ++value) {
+        seen += hist[value];
+        if (seen >= rank) {
+            return static_cast<float>(value);
+        }
+    }
+    return static_cast<float>(std::max(begin, end_exclusive - 1));
+}
+
+OtsuThresholdResult BuildThresholdResult(const std::array<int, 256>& hist,
+                                         int threshold) {
+    OtsuThresholdResult result{};
+    result.threshold = threshold;
+
+    const int black_weight = HistogramWeight(hist, 0, threshold + 1);
+    const int white_weight = HistogramWeight(hist, threshold + 1, 256);
+    if (black_weight <= 0 || white_weight <= 0) {
+        return result;
+    }
+
+    result.valid = true;
+    result.black_upper_decile_gray =
+        HistogramQuantile(hist, 0, threshold + 1, 9, 10, black_weight);
+    result.white_lower_decile_gray =
+        HistogramQuantile(hist, threshold + 1, 256, 1, 10, white_weight);
+    return result;
+}
+
+}  // namespace
 
 /// ComputeOtsuThreshold 实现
 /// 使用Otsu算法（最大类间方差法）自动计算图像二值化阈值
 /// 1. 以2为步长采样计算灰度直方图（减少计算量）
 /// 2. 遍历所有可能的阈值，计算类间方差
 /// 3. 返回使类间方差最大的阈值
-int ComputeOtsuThreshold(const port::LegacyCameraFrameView& frame) {
+OtsuThresholdResult ComputeOtsuThresholdResult(const port::LegacyCameraFrameView& frame) {
     std::array<int, 256> hist{};
     if (!frame.Valid()) {
-        return 0;
+        return {};
     }
 
     int samples = 0;
@@ -28,7 +82,7 @@ int ComputeOtsuThreshold(const port::LegacyCameraFrameView& frame) {
         }
     }
     if (samples == 0) {
-        return 0;
+        return {};
     }
 
     double sum = 0.0;
@@ -60,7 +114,11 @@ int ComputeOtsuThreshold(const port::LegacyCameraFrameView& frame) {
             threshold = value;
         }
     }
-    return threshold;
+    return BuildThresholdResult(hist, threshold);
+}
+
+int ComputeOtsuThreshold(const port::LegacyCameraFrameView& frame) {
+    return ComputeOtsuThresholdResult(frame).threshold;
 }
 
 }  // namespace ls2k::legacy

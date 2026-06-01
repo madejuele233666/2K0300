@@ -714,6 +714,15 @@ remote_upload_params() {
     require_local_file "${PARAMS_PATH}" "params file"
     log_info "uploading params to ${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
     run_scp "${PARAMS_PATH}" "${BOARD_USER}@${BOARD_IP}:${REMOTE_PARAMS}"
+    local local_hash
+    local remote_hash
+    local_hash="$(sha256sum "${PARAMS_PATH}" | awk '{print $1}')"
+    remote_hash="$(run_ssh "sha256sum '${REMOTE_PARAMS}' | awk '{print \$1}'" | tr -d '\r')"
+    if [[ "${remote_hash}" != "${local_hash}" ]]; then
+        log_error "params hash mismatch after upload: local=${local_hash} remote=${remote_hash:-missing}"
+        return 1
+    fi
+    log_info "params hash verified: ${local_hash}"
     log_info "params upload complete"
 }
 

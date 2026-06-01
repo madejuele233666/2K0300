@@ -123,6 +123,12 @@ int main(int argc, char** argv) {
         ExpectInt(params.prohibit_reverse_pwm_step_limit,
                   NumberField(json, "prohibit_reverse_pwm_step_limit"),
                   "prohibit_reverse_pwm_step_limit");
+        ExpectBool(params.brushless_debug_fixed_pwm_enabled,
+                   NumberField(json, "brushless_debug_fixed_pwm_enabled"),
+                   "brushless_debug_fixed_pwm_enabled");
+        ExpectInt(params.brushless_debug_fixed_pwm,
+                  NumberField(json, "brushless_debug_fixed_pwm"),
+                  "brushless_debug_fixed_pwm");
         ExpectInt(params.motion_unveto_confirm_cycles,
                   NumberField(json, "motion_unveto_confirm_cycles"),
                   "motion_unveto_confirm_cycles");
@@ -347,8 +353,8 @@ int main(int argc, char** argv) {
         ExpectInt(params.bev_element.circle_v2_entry_bottom_row_count,
                   NumberField(element, "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT"),
                   "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT");
-        Expect(params.bev_element.circle_v2_entry_bottom_row_count >= 4,
-               "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT must be >= 4");
+        Expect(params.bev_element.circle_v2_entry_bottom_row_count >= 1,
+               "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT must be >= 1");
         Expect(params.bev_element.circle_v2_entry_bottom_row_count <=
                    static_cast<int>(ls2k::port::kBevReferenceSampleCount),
                "BEV_ELEMENT.CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT must fit sparse samples");

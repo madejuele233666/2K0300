@@ -15,7 +15,7 @@ constexpr float kRatioDenominatorFloor = 1.0e-4F;
 constexpr std::size_t kOpeningSustainRows = 2U;
 
 struct ExpansionParams {
-    int min_support_rows = 4;
+    int min_support_rows = 1;
     int min_sampleable_per_row = 16;
     float center_sample_forward_gap_max_m = 0.10F;
     float open_expansion_min_m = 0.05F;

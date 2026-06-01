@@ -21,6 +21,13 @@ void Expect(bool condition, const std::string& message) {
     }
 }
 
+ls2k::legacy::BEVPixelClassificationModel TestClassificationModel(int threshold = 100) {
+    ls2k::legacy::BEVPixelClassificationModel model{};
+    model.valid = ls2k::legacy::ValidGrayThreshold(threshold);
+    model.threshold = threshold;
+    return model;
+}
+
 ls2k::port::BEVReferencePath MakePath(int present_count) {
     ls2k::port::BEVReferencePath path{};
     path.mode = present_count > 0 ? ls2k::port::ReferenceMode::kIntervalCenter
@@ -277,7 +284,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
         const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
             frame.View(10, 10),
             projector,
-            100,
+            TestClassificationModel(),
             params.bev_classification,
         };
         std::vector<ls2k::port::VisualReferenceCandidate> accepted;
@@ -292,7 +299,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
         const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
             blocked.View(12, 12),
             projector,
-            100,
+            TestClassificationModel(),
             params.bev_classification,
         };
         std::vector<ls2k::port::VisualReferenceCandidate> accepted;
@@ -301,11 +308,11 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
                "origin-disconnected candidates must be clipped before selection");
         for (const ls2k::port::VisualReferenceCandidate& candidate : accepted) {
             Expect(candidate.present,
-                   "origin-clipped candidate must remain visible for usability");
+                   "clipped candidate must remain a visual candidate for usability to judge");
             Expect(!candidate.reference_path.sampled_path[0].present,
-                   "origin block must remove the whole connected prefix");
+                   "origin block must remove the first visual reference sample");
             Expect(candidate.reason.find("connectivity_prefix_clipped") != std::string::npos,
-                   "origin-clipped candidate must expose connectivity clipping");
+                   "clipped candidate must expose connectivity clipping in debug reason");
         }
     }
 
@@ -314,7 +321,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
     const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
         blocked.View(11, 11),
         projector,
-        100,
+        TestClassificationModel(),
         params.bev_classification,
     };
     std::vector<ls2k::port::VisualReferenceCandidate> accepted;

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "legacy/steering_bev_pixel_classifier.hpp"
 #include "legacy/steering_bev_projector.hpp"
 #include "port/bev_element_raster_types.hpp"
 #include "port/camera_frame_types.hpp"
@@ -69,12 +70,12 @@ class BEVElementRasterBuilder {
 public:
     /// 根据当前帧构建BEV元素栅格
     /// @param frame 原始相机帧视图
-    /// @param threshold 二值化阈值
+    /// @param classification_model 当前帧灰度分类模型
     /// @param params 运行时参数
     /// @param projector BEV投影器
     /// @return 构建完成的栅格帧（内部缓存，每次调用会复用）
     const BEVElementRasterFrame& Build(const port::LegacyCameraFrameView& frame,
-                                       int threshold,
+                                       const BEVPixelClassificationModel& classification_model,
                                        const port::RuntimeParameters& params,
                                        const BEVProjector& projector);
 
@@ -104,13 +105,13 @@ bool EnsureBEVElementRasterLut(BEVElementRasterLut& lut,
 
 /// 一次性构建BEV元素栅格（不缓存查找表，但可传入外部lut实现缓存）
 /// @param frame 原始相机帧视图
-/// @param threshold 二值化阈值
+/// @param classification_model 当前帧灰度分类模型
 /// @param params 运行时参数
 /// @param projector BEV投影器
 /// @param lut 可选的外部查找表指针（为nullptr时自动创建临时表）
 /// @return 构建完成的栅格帧
 BEVElementRasterFrame BuildBEVElementRaster(const port::LegacyCameraFrameView& frame,
-                                            int threshold,
+                                            const BEVPixelClassificationModel& classification_model,
                                             const port::RuntimeParameters& params,
                                             const BEVProjector& projector,
                                             BEVElementRasterLut* lut);

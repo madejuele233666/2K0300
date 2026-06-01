@@ -13,6 +13,7 @@
 #define LS2K_PORT_BEV_GEOMETRY_TYPES_HPP
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <string>
 
@@ -116,8 +117,18 @@ struct BEVGeometryParameters {
 struct BEVClassificationParameters {
     float white_confidence_min = 0.55F;  ///< 白色元素的最小置信度阈值
     float unknown_confidence_min = 0.25F;  ///< 无法确定类别的置信度阈值
-    int hold_last_max_cycles = 32;  ///< 最近一次识别结果的最大保持周期数
+    int hold_last_max_cycles = 32;  ///< 最近一次识别结果的最大保持周期数；0 表示禁用 hold
 };
+
+inline bool IsValidBEVClassificationParameters(
+    const BEVClassificationParameters& params) {
+    return std::isfinite(params.unknown_confidence_min) &&
+           std::isfinite(params.white_confidence_min) &&
+           params.unknown_confidence_min > 0.0F &&
+           params.white_confidence_min >= params.unknown_confidence_min &&
+           params.white_confidence_min <= 1.0F &&
+           params.hold_last_max_cycles >= 0;
+}
 
 /**
  * @struct BEVControlModelParameters

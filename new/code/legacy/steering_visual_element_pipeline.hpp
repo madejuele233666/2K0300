@@ -18,7 +18,7 @@ struct VisualElementPipelineInput {
     const std::vector<BEVSimpleRowScan>* sparse_rows = nullptr;  ///< 稀疏行扫描结果指针（可为nullptr）
     const port::LegacyCameraFrameView* frame = nullptr;          ///< 当前灰度帧（Phase2 ROI按需采样）
     const BEVProjector* projector = nullptr;                     ///< BEV投影器（Phase2 ROI按需采样）
-    int threshold = 0;                                            ///< 当前帧Otsu阈值（Phase2 ROI按需采样）
+    BEVPixelClassificationModel classification_model{};          ///< 当前帧灰度分类模型（Phase2 ROI按需采样）
     port::VisualReferenceCandidate line_candidate{};             ///< 车道线参考候选
 };
 

@@ -70,6 +70,13 @@ ls2k::legacy::BEVProjector MakeProjector(const ls2k::port::RuntimeParameters& pa
     return projector;
 }
 
+ls2k::legacy::BEVPixelClassificationModel TestClassificationModel(int threshold = 100) {
+    ls2k::legacy::BEVPixelClassificationModel model{};
+    model.valid = ls2k::legacy::ValidGrayThreshold(threshold);
+    model.threshold = threshold;
+    return model;
+}
+
 ls2k::legacy::BEVProjector MakeIdentityConnectivityProjector() {
     ls2k::port::BEVProjectorCalibration calibration{};
     calibration.source_points = {
@@ -108,7 +115,7 @@ ls2k::legacy::ReferenceConnectivityFrameView ConnectivityView(
     const ls2k::port::LegacyCameraFrameView& frame,
     const ls2k::legacy::BEVProjector& projector,
     const ls2k::port::RuntimeParameters& params) {
-    return {frame, projector, 100, params.bev_classification};
+    return {frame, projector, TestClassificationModel(), params.bev_classification};
 }
 
 void DrawVehicleStripe(ls2k::port::LegacyCameraFrame& frame,
@@ -282,9 +289,9 @@ void TestBevClassificationAndRowIntervals() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult result =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
     const ls2k::legacy::BEVSimpleImage debug_bev =
-        ls2k::legacy::BuildDebugDenseBevImage(frame.View(1, 1), 100, params, projector);
+        ls2k::legacy::BuildDebugDenseBevImage(frame.View(1, 1), TestClassificationModel(), params, projector);
 
     Expect(debug_bev.valid, "debug API must generate a BEV image");
     Expect(CountClass(debug_bev, ls2k::legacy::BEVSimplePixelClass::kWhite) > 0,
@@ -321,15 +328,84 @@ void TestUnknownBandUsesCenterBrightnessOnly() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult result =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
     const ls2k::legacy::BEVSimpleImage debug_bev =
-        ls2k::legacy::BuildDebugDenseBevImage(frame.View(1, 1), 100, params, projector);
+        ls2k::legacy::BuildDebugDenseBevImage(frame.View(1, 1), TestClassificationModel(), params, projector);
 
     Expect(debug_bev.valid, "uniform frame must still produce a debug BEV image");
     Expect(CountClass(debug_bev, ls2k::legacy::BEVSimplePixelClass::kUnknown) > 0,
            "near-threshold BEV pixels must classify as unknown");
     Expect(!ls2k::legacy::EvaluateReferenceUsability(result.reference_path, params).usable,
            "unknown pixels must not be promoted into white interval reference points");
+}
+
+void TestAdaptiveBandComesFromOtsuClassDeciles() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::OtsuThresholdResult otsu{};
+    otsu.valid = true;
+    otsu.threshold = 112;
+    otsu.black_upper_decile_gray = 98.0F;
+    otsu.white_lower_decile_gray = 135.0F;
+
+    const ls2k::legacy::BEVPixelClassificationModel model =
+        ls2k::legacy::MakeBEVPixelClassificationModel(otsu,
+                                                      params.bev_classification);
+
+    Expect(model.valid, "valid Otsu result must produce a valid classification model");
+    ExpectNear(model.black_decision_band,
+               56.0F,
+               1.0e-3F,
+               "black-side decision band must place the unknown cutoff at the black upper decile");
+    ExpectNear(model.white_decision_band,
+               41.81818F,
+               1.0e-3F,
+               "white-side decision band must place the white cutoff at the white lower decile");
+    Expect(ls2k::legacy::ClassifyBevPixel(135U,
+                                          model,
+                                          params.bev_classification) ==
+               ls2k::legacy::BEVSimplePixelClass::kWhite,
+           "white lower-decile anchor must keep real low-end white facts");
+    Expect(ls2k::legacy::ClassifyBevPixel(123U,
+                                          model,
+                                          params.bev_classification) ==
+               ls2k::legacy::BEVSimplePixelClass::kUnknown,
+           "gray values close to the Otsu threshold must remain unknown");
+}
+
+void TestInvalidClassificationModelDoesNotClampThreshold() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::BEVPixelClassificationModel model{};
+    model.valid = true;
+    model.threshold = 300;
+
+    Expect(ls2k::legacy::ClassifyBevPixel(255U,
+                                          model,
+                                          params.bev_classification) ==
+               ls2k::legacy::BEVSimplePixelClass::kInvalid,
+           "out-of-range threshold must not be clamped into a valid classifier");
+}
+
+void TestInvalidClassificationModelRejectsDecisionBand() {
+    ls2k::port::RuntimeParameters params{};
+    ls2k::legacy::BEVPixelClassificationModel model{};
+    model.valid = true;
+    model.threshold = 100;
+    model.black_decision_band = 0.0F;
+    model.white_decision_band = 32.0F;
+
+    Expect(ls2k::legacy::ClassifyBevPixel(80U,
+                                          model,
+                                          params.bev_classification) ==
+               ls2k::legacy::BEVSimplePixelClass::kInvalid,
+           "nonpositive black-side band must invalidate the classification model");
+
+    model.black_decision_band = 32.0F;
+    model.white_decision_band = -1.0F;
+    Expect(ls2k::legacy::ClassifyBevPixel(120U,
+                                          model,
+                                          params.bev_classification) ==
+               ls2k::legacy::BEVSimplePixelClass::kInvalid,
+           "nonpositive white-side band must invalidate the classification model");
 }
 
 void TestElementRasterClassificationAndCoordinates() {
@@ -341,13 +417,13 @@ void TestElementRasterClassificationAndCoordinates() {
 
     ls2k::legacy::BEVElementRasterLut lut{};
     const ls2k::legacy::BEVElementRasterFrame default_disabled =
-        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
     Expect(!default_disabled.valid, "default-disabled element raster must be unavailable");
     Expect(default_disabled.classes.empty(), "default-disabled element raster must expose no cells");
 
     params.bev_element_raster.enabled = true;
     const ls2k::legacy::BEVElementRasterFrame raster =
-        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
 
     Expect(raster.valid, "enabled element raster must build from a valid projector and frame");
     Expect(raster.width == params.bev_element_raster.width,
@@ -368,7 +444,7 @@ void TestElementRasterClassificationAndCoordinates() {
 
     params.bev_element_raster.enabled = false;
     const ls2k::legacy::BEVElementRasterFrame disabled =
-        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::BuildBEVElementRaster(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
     Expect(!disabled.valid, "disabled element raster must be unavailable");
     Expect(disabled.classes.empty(), "disabled element raster must expose no cells");
 }
@@ -512,7 +588,7 @@ void TestBevGeometryControlsWideImageScan() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult result =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
 
     bool saw_wide_right_interval = false;
     for (const ls2k::legacy::BEVSimpleRowScan& row : result.rows) {
@@ -532,7 +608,7 @@ void TestHoldIsExplicitNonVisualSource() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult first =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(1, 1), TestClassificationModel(), params, projector, &lut);
     const ls2k::port::ReferenceUsability first_usability =
         ls2k::legacy::EvaluateReferenceUsability(first.reference_path, params);
     Expect(first_usability.usable, "first frame must produce usable visual facts");
@@ -541,7 +617,7 @@ void TestHoldIsExplicitNonVisualSource() {
 
     ls2k::port::LegacyCameraFrame blank = MakeFrame(0U);
     const ls2k::legacy::BEVSimplePerceptionResult blank_facts =
-        ls2k::legacy::RunBEVSimplePerception(blank.View(2, 2), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(blank.View(2, 2), TestClassificationModel(), params, projector, &lut);
     const ls2k::port::ReferenceUsability blank_usability =
         ls2k::legacy::EvaluateReferenceUsability(blank_facts.reference_path, params);
     Expect(!blank_usability.usable, "blank current frame must be selected only if hold is unavailable");
@@ -1026,9 +1102,9 @@ void TestProjectionLutMatchesUncachedSparseScanAndRebuildsOnIdentityChange() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult cached =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(7, 7), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(7, 7), TestClassificationModel(), params, projector, &lut);
     const ls2k::legacy::BEVSimplePerceptionResult uncached =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(7, 7), 100, params, projector, nullptr);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(7, 7), TestClassificationModel(), params, projector, nullptr);
 
     Expect(lut.valid, "sparse projection LUT must be built for a valid frame/projector identity");
     Expect(lut.entries.size() ==
@@ -1076,7 +1152,7 @@ void TestSparseRowCountUsesOriginalForwardSamplePrefix() {
 
     ls2k::legacy::BEVSampleProjectionLut lut{};
     const ls2k::legacy::BEVSimplePerceptionResult result =
-        ls2k::legacy::RunBEVSimplePerception(frame.View(9, 9), 100, params, projector, &lut);
+        ls2k::legacy::RunBEVSimplePerception(frame.View(9, 9), TestClassificationModel(), params, projector, &lut);
 
     Expect(result.rows.size() == 12U,
            "SPARSE_ROW_COUNT=12 must scan exactly the first 12 sparse rows");
@@ -1104,6 +1180,9 @@ int main() {
         TestBoundaryTraceClipHelperRule();
         TestBevClassificationAndRowIntervals();
         TestUnknownBandUsesCenterBrightnessOnly();
+        TestAdaptiveBandComesFromOtsuClassDeciles();
+        TestInvalidClassificationModelDoesNotClampThreshold();
+        TestInvalidClassificationModelRejectsDecisionBand();
         TestElementRasterClassificationAndCoordinates();
         TestElementRasterSegmentTouchesBlack();
         TestReferenceConnectivityHelper();

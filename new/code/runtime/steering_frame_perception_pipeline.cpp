@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 
+#include "legacy/steering_bev_pixel_classifier.hpp"
 #include "legacy/steering_otsu_threshold.hpp"
 #include "legacy/steering_reference_control_readiness.hpp"
 #include "legacy/steering_reference_lateral_error.hpp"
@@ -174,7 +175,8 @@ CircleV2Params BuildCircleV2Params(const port::RuntimeParameters& params) {
     CircleV2Params circle_params{};
     circle_params.exit_yaw_threshold_rad =
         params.bev_element.circle_v2_exit_yaw_threshold_deg * kPi / 180.0F;
-    circle_params.exit_hold_frames = std::max(2, params.bev_element.circle_v2_exit_hold_frames);
+    circle_params.exit_hold_frames =
+        std::max(2, params.bev_element.circle_v2_exit_hold_frames);
     circle_params.inner_trace_stall_timeout_ms =
         std::max(1, params.bev_element.circle_v2_inner_trace_stall_timeout_ms);
     circle_params.inner_trace_stall_yaw_min_rad =
@@ -247,11 +249,15 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
     const port::CameraCapture& capture,
     const port::RuntimeParameters& params,
     const MotionHistory& motion_history) {
-    int threshold = 0;
+    legacy::OtsuThresholdResult otsu_result{};
     {
         LS2K_PERF_SCOPE(port::PerfStage::kPerceptionOtsu);
-        threshold = legacy::ComputeOtsuThreshold(capture.view);
+        otsu_result = legacy::ComputeOtsuThresholdResult(capture.view);
     }
+    const legacy::BEVPixelClassificationModel classification_model =
+        legacy::MakeBEVPixelClassificationModel(otsu_result,
+                                                params.bev_classification);
+    const int threshold = classification_model.threshold;
 
     port::ReferenceContinuityResult continuity{};
     port::ReferenceUsability selected_usability{};
@@ -272,7 +278,11 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
         {
             LS2K_PERF_SCOPE(port::PerfStage::kBevSimple);
             current_facts =
-                legacy::RunBEVSimplePerception(capture.view, threshold, params, projector_, &sample_lut_);
+                legacy::RunBEVSimplePerception(capture.view,
+                                               classification_model,
+                                               params,
+                                               projector_,
+                                               &sample_lut_);
         }
         port::VisualReferenceCandidate line_candidate{};
         {
@@ -286,7 +296,7 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
         element_input.sparse_rows = &current_facts.rows;
         element_input.frame = &capture.view;
         element_input.projector = &projector_;
-        element_input.threshold = threshold;
+        element_input.classification_model = classification_model;
         element_input.line_candidate = line_candidate;
         legacy::VisualElementPipelineResult element_result{};
         {
@@ -340,7 +350,7 @@ port::PerceptionResult SteeringFramePerceptionPipeline::ProcessFrame(
             const legacy::ReferenceConnectivityFrameView connectivity_frame{
                 capture.view,
                 projector_,
-                threshold,
+                classification_model,
                 params.bev_classification,
             };
             std::vector<port::VisualReferenceCandidate> candidates;

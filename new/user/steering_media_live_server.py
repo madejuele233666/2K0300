@@ -13,7 +13,8 @@ import socket
 import socketserver
 import struct
 import threading
-from typing import Any, Dict, Optional, Tuple
+from collections import deque
+from typing import Any, Deque, Dict, Optional, Tuple
 
 WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -42,8 +43,17 @@ def _encode_ws_frame(payload: bytes, *, opcode: int = 0x2) -> bytes:
     return bytes([first, 127]) + struct.pack("!Q", length) + payload
 
 
-def _viewer_html(display_mode: str = "bev") -> bytes:
+def _number_or_none(value: Any) -> Optional[float]:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _viewer_html(display_mode: str = "bev", view_mode: str = "camera") -> bytes:
     normalized_display_mode = "raw" if display_mode == "raw" else "bev"
+    normalized_view_mode = "waveform" if view_mode == "waveform" else "camera"
     html = b"""<!doctype html>
 <html lang="en">
 <head>
@@ -185,6 +195,32 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
       font-variant-numeric: tabular-nums;
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
     }
+    .view-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: var(--surface-strong);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+    }
+    .view-switch a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .view-switch a.active {
+      background: var(--surface-blue);
+      color: var(--accent);
+    }
     .status-dot {
       width: 8px;
       height: 8px;
@@ -261,6 +297,117 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
       background: var(--canvas-bg);
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
     }
+    .waveform-panel {
+      display: none;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--surface-strong);
+      position: relative;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px) saturate(1.35);
+      -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    }
+    .waveform-panel::before {
+      content: "";
+      display: block;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan), var(--ok), var(--warn));
+    }
+    .wheel-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 12px;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(0, 122, 255, 0.10), transparent 36%),
+        radial-gradient(circle at 82% 0%, rgba(255, 45, 85, 0.09), transparent 34%),
+        var(--surface);
+    }
+    .wheel-panel {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: var(--shadow-soft);
+    }
+    .wheel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .wheel-label,
+    .wheel-range,
+    .wheel-subvalue {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .wheel-title {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 19px;
+      line-height: 1.15;
+      font-weight: 720;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .wheel-range {
+      flex: 0 0 auto;
+      margin-top: 2px;
+      padding: 5px 7px;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+    .wheel-canvas {
+      width: 100%;
+      height: min(54vh, 540px);
+      min-height: 340px;
+      image-rendering: auto;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+        var(--canvas-bg);
+    }
+    .wheel-legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      border-top: 1px solid var(--hairline);
+      background: var(--hairline);
+    }
+    .legend-item {
+      min-width: 0;
+      padding: 9px 11px;
+      background: var(--surface-strong);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .legend-item::before {
+      content: "";
+      display: inline-block;
+      width: 18px;
+      height: 3px;
+      margin-right: 7px;
+      vertical-align: middle;
+      border-radius: 999px;
+      background: currentColor;
+    }
+    .legend-left-target { color: var(--blue); }
+    .legend-left-measured { color: var(--ok); }
+    .legend-right-target { color: var(--warn); }
+    .legend-right-measured { color: var(--pink); }
     .control-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -285,6 +432,13 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
     .metric-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      min-width: 0;
+      align-self: start;
+    }
+    .speed-grid {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
       min-width: 0;
       align-self: start;
@@ -321,6 +475,51 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
     .metric-card:nth-child(2) .metric-value { color: var(--cyan); }
     .metric-card:nth-child(3) .metric-value { color: var(--warn); }
     .metric-card:nth-child(4) .metric-value { color: var(--purple); }
+    .speed-grid .metric-card:nth-child(1)::before { background: var(--blue); }
+    .speed-grid .metric-card:nth-child(2)::before { background: var(--warn); }
+    .speed-grid .metric-card:nth-child(1) .metric-value { color: var(--blue); }
+    .speed-grid .metric-card:nth-child(2) .metric-value { color: var(--warn); }
+    .speed-card .metric-value {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      font-size: 20px;
+      line-height: 1.05;
+    }
+    .metric-divider {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    #leftTarget { color: var(--blue); }
+    #leftMeasured { color: var(--ok); }
+    #rightTarget { color: var(--warn); }
+    #rightMeasured { color: var(--pink); }
+    .speed-card .metric-subvalue {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    body[data-view-mode="waveform"] main {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-view-mode="waveform"] .workspace {
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+    }
+    body[data-view-mode="waveform"] .viewer-panel,
+    body[data-view-mode="waveform"] .metric-grid,
+    body[data-view-mode="waveform"] aside {
+      display: none;
+    }
+    body[data-view-mode="waveform"] .waveform-panel {
+      display: block;
+    }
+    body[data-view-mode="waveform"] .speed-grid {
+      display: grid;
+    }
     h2 {
       color: var(--muted);
       font-size: 11px;
@@ -431,6 +630,8 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
       .viewer-caption,
       .control-strip,
       .metric-grid,
+      .speed-grid,
+      .wheel-grid,
       aside {
         grid-template-columns: 1fr;
       }
@@ -452,6 +653,12 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
         --surface-purple: rgba(191, 90, 242, 0.16);
         --surface-red: rgba(255, 69, 58, 0.16);
       }
+      .wheel-panel {
+        background: rgba(28, 28, 30, 0.72);
+      }
+      .wheel-range {
+        background: rgba(255, 255, 255, 0.08);
+      }
       .topbar {
         background:
           linear-gradient(90deg, rgba(44, 44, 46, 0.88), rgba(28, 28, 30, 0.74)),
@@ -460,7 +667,7 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
     }
   </style>
 </head>
-<body>
+<body data-view-mode="__LS2K_VIEW_MODE__">
 <main>
   <section class="workspace">
     <header class="topbar">
@@ -470,6 +677,10 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
         <h1>Steering Media</h1>
       </div>
       <div class="connection">
+        <nav class="view-switch" aria-label="View mode">
+          <a id="cameraViewLink" href="?view=camera">Camera</a>
+          <a id="waveformViewLink" href="?view=waveform">Waveform</a>
+        </nav>
         <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="status">connecting</span></span>
         <span class="status-pill" id="displayMode">BEV</span>
       </div>
@@ -488,11 +699,62 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
       </div>
       <canvas id="frame"></canvas>
     </section>
+    <section class="waveform-panel">
+      <div class="viewer-caption">
+        <div><span>Stream</span><strong id="speedStream">-</strong></div>
+        <div><span>Samples</span><strong id="speedSamples">-</strong></div>
+        <div><span>Window</span><strong id="speedWindow">-</strong></div>
+      </div>
+      <div class="wheel-grid">
+        <article class="wheel-panel">
+          <div class="wheel-header">
+            <div>
+              <span class="wheel-label">Left wheel</span>
+              <strong class="wheel-title" id="leftWheelNow">-</strong>
+              <span class="wheel-subvalue">actual / target</span>
+            </div>
+            <span class="wheel-range" id="leftWheelRange">-</span>
+          </div>
+          <canvas class="wheel-canvas" id="leftWaveform"></canvas>
+          <div class="wheel-legend">
+            <span class="legend-item legend-left-target">Target</span>
+            <span class="legend-item legend-left-measured">Actual</span>
+          </div>
+        </article>
+        <article class="wheel-panel">
+          <div class="wheel-header">
+            <div>
+              <span class="wheel-label">Right wheel</span>
+              <strong class="wheel-title" id="rightWheelNow">-</strong>
+              <span class="wheel-subvalue">actual / target</span>
+            </div>
+            <span class="wheel-range" id="rightWheelRange">-</span>
+          </div>
+          <canvas class="wheel-canvas" id="rightWaveform"></canvas>
+          <div class="wheel-legend">
+            <span class="legend-item legend-right-target">Target</span>
+            <span class="legend-item legend-right-measured">Actual</span>
+          </div>
+        </article>
+      </div>
+    </section>
     <section class="metric-grid">
       <article class="metric-card"><span class="metric-label">Display FPS</span><strong class="metric-value" id="displayFps">-</strong></article>
       <article class="metric-card"><span class="metric-label">Times</span><strong class="metric-value" id="latency">-</strong></article>
       <article class="metric-card"><span class="metric-label">Motion</span><strong class="metric-value" id="motionFsm">-</strong></article>
       <article class="metric-card"><span class="metric-label">Turn</span><strong class="metric-value" id="turn">-</strong></article>
+    </section>
+    <section class="speed-grid">
+      <article class="metric-card speed-card">
+        <span class="metric-label">Left Wheel</span>
+        <strong class="metric-value"><span id="leftMeasured">-</span><span class="metric-divider">/</span><span id="leftTarget">-</span></strong>
+        <span class="metric-subvalue">actual / target</span>
+      </article>
+      <article class="metric-card speed-card">
+        <span class="metric-label">Right Wheel</span>
+        <strong class="metric-value"><span id="rightMeasured">-</span><span class="metric-divider">/</span><span id="rightTarget">-</span></strong>
+        <span class="metric-subvalue">actual / target</span>
+      </article>
     </section>
   </section>
   <aside>
@@ -542,7 +804,42 @@ def _viewer_html(display_mode: str = "bev") -> bytes:
 <script>
 const canvas = document.getElementById("frame");
 const ctx = canvas.getContext("2d");
+const wheelCharts = [
+  {
+    name: "left",
+    canvas: document.getElementById("leftWaveform"),
+    targetKey: "left_speed_target",
+    measuredKey: "left_measured_speed",
+    targetColor: "#0a84ff",
+    measuredColor: "#30d158",
+    rangeFieldId: "leftWheelRange",
+    nowFieldId: "leftWheelNow",
+  },
+  {
+    name: "right",
+    canvas: document.getElementById("rightWaveform"),
+    targetKey: "right_speed_target",
+    measuredKey: "right_measured_speed",
+    targetColor: "#ff9f0a",
+    measuredColor: "#ff375f",
+    rangeFieldId: "rightWheelRange",
+    nowFieldId: "rightWheelNow",
+  },
+];
+for (const chart of wheelCharts) {
+  chart.ctx = chart.canvas.getContext("2d");
+  chart.rangeField = document.getElementById(chart.rangeFieldId);
+  chart.nowField = document.getElementById(chart.nowFieldId);
+}
 const statusDot = document.getElementById("statusDot");
+const defaultViewMode = "__LS2K_VIEW_MODE__";
+const requestedViewMode = new URLSearchParams(location.search).get("view");
+const viewMode = requestedViewMode === "waveform" || requestedViewMode === "camera"
+  ? requestedViewMode
+  : defaultViewMode;
+document.body.dataset.viewMode = viewMode;
+document.getElementById("cameraViewLink").classList.toggle("active", viewMode === "camera");
+document.getElementById("waveformViewLink").classList.toggle("active", viewMode === "waveform");
 const fields = {
   status: document.getElementById("status"),
   transportSummary: document.getElementById("transportSummary"),
@@ -573,10 +870,21 @@ const fields = {
   cameraTiming: document.getElementById("cameraTiming"),
   buffers: document.getElementById("buffers"),
   pixelStats: document.getElementById("pixelStats"),
+  speedStream: document.getElementById("speedStream"),
+  speedSamples: document.getElementById("speedSamples"),
+  speedWindow: document.getElementById("speedWindow"),
+  leftTarget: document.getElementById("leftTarget"),
+  leftMeasured: document.getElementById("leftMeasured"),
+  rightTarget: document.getElementById("rightTarget"),
+  rightMeasured: document.getElementById("rightMeasured"),
+  leftWheelNow: document.getElementById("leftWheelNow"),
+  rightWheelNow: document.getElementById("rightWheelNow"),
+  leftWheelRange: document.getElementById("leftWheelRange"),
+  rightWheelRange: document.getElementById("rightWheelRange"),
 };
 function updateStatusTone() {
   const status = fields.status.textContent || "";
-  if (status === "websocket" || status === "connected" || status === "polling" || status === "configured" || status === "config") {
+  if (status === "websocket" || status === "connected" || status === "polling" || status === "configured" || status === "config" || status === "speed") {
     document.body.dataset.statusTone = "ok";
   } else if (status === "error") {
     document.body.dataset.statusTone = "error";
@@ -1039,6 +1347,10 @@ const websocketStaleMs = 1000;
 const telemetryUpdateMs = 100;
 const configFetchRetryMs = 1000;
 const initialDisplayMode = "__LS2K_DISPLAY_MODE__";
+const speedPollDelayMs = 100;
+const speedWindowMs = 60000;
+let latestSpeedSequence = 0;
+let speedSeries = [];
 function handleEnvelope(buffer, transport) {
   const bytes = new Uint8Array(buffer);
   if (bytes.length < 8) return;
@@ -1155,6 +1467,222 @@ function handleEnvelope(buffer, transport) {
       `min=${pixelStats.min} / max=${pixelStats.max} / mean=${formatNumber(pixelStats.mean, 1)}`;
   }
 }
+function speedValue(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function formatSpeed(value) {
+  return value == null ? "-" : value.toFixed(Math.abs(value) >= 100 ? 0 : 1);
+}
+function speedElapsedMs(sample) {
+  const elapsed = speedValue(sample.elapsed_ms);
+  if (elapsed != null) return elapsed;
+  const host = speedValue(sample.host_received_monotonic_ms);
+  return host == null ? 0 : host;
+}
+function resizeWaveformCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const width = Math.max(320, Math.floor(rect.width * ratio));
+  const height = Math.max(260, Math.floor(rect.height * ratio));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  return { ratio, width, height };
+}
+function visibleSpeedWindow() {
+  const latestElapsed = speedSeries.length ? speedElapsedMs(speedSeries[speedSeries.length - 1]) : 0;
+  const startElapsed = Math.max(0, latestElapsed - speedWindowMs);
+  const visible = speedSeries.filter((sample) => speedElapsedMs(sample) >= startElapsed);
+  speedSeries = visible;
+  return {
+    visible,
+    latestElapsed,
+    startElapsed,
+    duration: Math.max(1, latestElapsed - startElapsed),
+  };
+}
+function drawWheelWaveform(chart, windowInfo) {
+  const size = resizeWaveformCanvas(chart.canvas);
+  const ctx2 = chart.ctx;
+  const width = size.width;
+  const height = size.height;
+  const ratio = size.ratio;
+  ctx2.clearRect(0, 0, width, height);
+  const bg = ctx2.createLinearGradient(0, 0, 0, height);
+  bg.addColorStop(0, "#101014");
+  bg.addColorStop(0.52, "#07070a");
+  bg.addColorStop(1, "#030305");
+  ctx2.fillStyle = bg;
+  ctx2.fillRect(0, 0, width, height);
+
+  const padLeft = 58 * ratio;
+  const padRight = 22 * ratio;
+  const padTop = 22 * ratio;
+  const padBottom = 42 * ratio;
+  const plotWidth = Math.max(1, width - padLeft - padRight);
+  const plotHeight = Math.max(1, height - padTop - padBottom);
+  const { visible, startElapsed, duration } = windowInfo;
+  const values = [];
+  for (const sample of visible) {
+    const target = speedValue(sample[chart.targetKey]);
+    const measured = speedValue(sample[chart.measuredKey]);
+    if (target != null) values.push(target);
+    if (measured != null) values.push(measured);
+  }
+
+  ctx2.save();
+  ctx2.strokeStyle = "rgba(255, 255, 255, 0.10)";
+  ctx2.lineWidth = Math.max(1, ratio);
+  ctx2.font = `${11 * ratio}px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif`;
+  ctx2.fillStyle = "rgba(255, 255, 255, 0.62)";
+  for (let i = 0; i <= 4; i++) {
+    const x = padLeft + (plotWidth * i) / 4;
+    ctx2.beginPath();
+    ctx2.moveTo(x, padTop);
+    ctx2.lineTo(x, padTop + plotHeight);
+    ctx2.stroke();
+  }
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + (plotHeight * i) / 4;
+    ctx2.beginPath();
+    ctx2.moveTo(padLeft, y);
+    ctx2.lineTo(padLeft + plotWidth, y);
+    ctx2.stroke();
+  }
+  if (!visible.length || !values.length) {
+    ctx2.fillStyle = "rgba(255, 255, 255, 0.68)";
+    ctx2.font = `${16 * ratio}px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif`;
+    ctx2.fillText("Waiting for motor speed telemetry", padLeft, padTop + 36 * ratio);
+    chart.rangeField.textContent = "-";
+    chart.nowField.textContent = "-";
+    ctx2.restore();
+    return;
+  }
+
+  let minValue = Math.min(...values);
+  let maxValue = Math.max(...values);
+  if (Math.abs(maxValue - minValue) < 1.0e-6) {
+    minValue -= 1;
+    maxValue += 1;
+  }
+  const padValue = Math.max(1, (maxValue - minValue) * 0.12);
+  minValue -= padValue;
+  maxValue += padValue;
+  const xFor = (sample) => padLeft + ((speedElapsedMs(sample) - startElapsed) / duration) * plotWidth;
+  const yFor = (value) => padTop + ((maxValue - value) / Math.max(1.0e-6, maxValue - minValue)) * plotHeight;
+  const zeroY = yFor(0);
+  if (zeroY >= padTop && zeroY <= padTop + plotHeight) {
+    ctx2.save();
+    ctx2.setLineDash([4 * ratio, 5 * ratio]);
+    ctx2.strokeStyle = "rgba(255, 255, 255, 0.16)";
+    ctx2.beginPath();
+    ctx2.moveTo(padLeft, zeroY);
+    ctx2.lineTo(padLeft + plotWidth, zeroY);
+    ctx2.stroke();
+    ctx2.restore();
+  }
+
+  ctx2.fillStyle = "rgba(255, 255, 255, 0.62)";
+  ctx2.fillText(formatSpeed(maxValue), 8 * ratio, padTop + 5 * ratio);
+  ctx2.fillText(formatSpeed(minValue), 8 * ratio, padTop + plotHeight);
+  ctx2.fillText(`${Math.round(Math.min(speedWindowMs, duration) / 1000)}s`, padLeft + plotWidth - 24 * ratio, padTop + plotHeight + 28 * ratio);
+
+  const drawSeries = (key, color, lineWidth) => {
+    ctx2.beginPath();
+    let open = false;
+    let latestPoint = null;
+    for (const sample of visible) {
+      const value = speedValue(sample[key]);
+      if (value == null) {
+        open = false;
+        continue;
+      }
+      const x = xFor(sample);
+      const y = yFor(value);
+      latestPoint = { x, y };
+      if (!open) {
+        ctx2.moveTo(x, y);
+        open = true;
+      } else {
+        ctx2.lineTo(x, y);
+      }
+    }
+    ctx2.strokeStyle = color;
+    ctx2.lineWidth = lineWidth * ratio;
+    ctx2.lineJoin = "round";
+    ctx2.lineCap = "round";
+    ctx2.stroke();
+    if (latestPoint) {
+      ctx2.beginPath();
+      ctx2.fillStyle = color;
+      ctx2.arc(latestPoint.x, latestPoint.y, 3.4 * ratio, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+  };
+  drawSeries(chart.targetKey, chart.targetColor, 2.0);
+  drawSeries(chart.measuredKey, chart.measuredColor, 2.6);
+
+  const latest = visible[visible.length - 1];
+  const latestTarget = speedValue(latest[chart.targetKey]);
+  const latestMeasured = speedValue(latest[chart.measuredKey]);
+  chart.rangeField.textContent = `${formatSpeed(minValue)}..${formatSpeed(maxValue)}`;
+  chart.nowField.textContent = `${formatSpeed(latestMeasured)} / ${formatSpeed(latestTarget)}`;
+  ctx2.restore();
+}
+function drawWaveform() {
+  const windowInfo = visibleSpeedWindow();
+  for (const chart of wheelCharts) {
+    drawWheelWaveform(chart, windowInfo);
+  }
+}
+function appendSpeedSamples(samples, sequence) {
+  if (!Array.isArray(samples) || !samples.length) return;
+  latestSpeedSequence = Math.max(latestSpeedSequence, sequence || 0);
+  for (const sample of samples) {
+    speedSeries.push(sample);
+  }
+  if (speedSeries.length > 5000) {
+    speedSeries = speedSeries.slice(speedSeries.length - 5000);
+  }
+  const latest = speedSeries[speedSeries.length - 1];
+  fields.status.textContent = "speed";
+  fields.displayMode.textContent = "Waveform";
+  fields.speedStream.textContent = `${latest.motion_phase ?? "-"} / seq=${latestSpeedSequence}`;
+  fields.speedSamples.textContent = String(speedSeries.length);
+  fields.speedWindow.textContent = `${Math.round(speedWindowMs / 1000)}s / speed units`;
+  fields.leftTarget.textContent = formatSpeed(speedValue(latest.left_speed_target));
+  fields.leftMeasured.textContent = formatSpeed(speedValue(latest.left_measured_speed));
+  fields.rightTarget.textContent = formatSpeed(speedValue(latest.right_speed_target));
+  fields.rightMeasured.textContent = formatSpeed(speedValue(latest.right_measured_speed));
+  fields.transportSummary.textContent = `speed / seq=${latestSpeedSequence}`;
+  fields.referenceSummary.textContent =
+    `L ${formatSpeed(speedValue(latest.left_measured_speed))}/${formatSpeed(speedValue(latest.left_speed_target))}`;
+  fields.safetySummary.textContent =
+    `R ${formatSpeed(speedValue(latest.right_measured_speed))}/${formatSpeed(speedValue(latest.right_speed_target))}`;
+  fields.cameraSummary.textContent = `${speedSeries.length} samples`;
+  drawWaveform();
+}
+async function pollSpeed() {
+  try {
+    const response = await fetch(`/speed.json?seq=${latestSpeedSequence}`, { cache: "no-store" });
+    if (response.status === 204) {
+      if (!speedSeries.length) {
+        fields.status.textContent = "waiting";
+        fields.displayMode.textContent = "Waveform";
+        drawWaveform();
+      }
+      return;
+    }
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const payload = await response.json();
+    appendSpeedSamples(payload.samples || [], payload.sequence || 0);
+  } catch (error) {
+    fields.status.textContent = speedSeries.length ? "speed" : "waiting";
+  } finally {
+    setTimeout(pollSpeed, speedPollDelayMs);
+  }
+}
 async function fetchConfig() {
   const nowMs = performance.now();
   if (configFetchInFlight || nowMs - lastConfigFetchMs < configFetchRetryMs) return;
@@ -1209,14 +1737,25 @@ function connect() {
     handleEnvelope(event.data, "websocket");
   };
 }
-fetchConfig();
-connect();
-pollLatest();
+if (viewMode === "waveform") {
+  fields.status.textContent = "waiting";
+  fields.displayMode.textContent = "Waveform";
+  drawWaveform();
+  pollSpeed();
+  window.addEventListener("resize", drawWaveform);
+} else {
+  fetchConfig();
+  connect();
+  pollLatest();
+}
 </script>
 </body>
 </html>
 """
-    return html.replace(b"__LS2K_DISPLAY_MODE__", normalized_display_mode.encode("ascii"))
+    return (
+        html.replace(b"__LS2K_DISPLAY_MODE__", normalized_display_mode.encode("ascii"))
+        .replace(b"__LS2K_VIEW_MODE__", normalized_view_mode.encode("ascii"))
+    )
 
 
 class LiveFrameHub:
@@ -1300,17 +1839,85 @@ class LiveFrameHub:
             return dict(self._summary)
 
 
+class SpeedTelemetryHub:
+    def __init__(self, max_samples: int = 5000) -> None:
+        self._lock = threading.Lock()
+        self._sequence = 0
+        self._samples: Deque[Dict[str, Any]] = deque(maxlen=max(1, max_samples))
+        self._first_receive_ms: Optional[int] = None
+        self._summary: Dict[str, Any] = {
+            "enabled": True,
+            "samples_published": 0,
+            "last_sequence": 0,
+            "last_motion_phase": None,
+            "last_host_received_monotonic_ms": None,
+            "last_left_speed_target": None,
+            "last_left_measured_speed": None,
+            "last_right_speed_target": None,
+            "last_right_measured_speed": None,
+        }
+
+    def publish(self, frame: Dict[str, Any], receive_monotonic_ms: int) -> None:
+        if frame.get("type") != "telemetry":
+            return
+        left_target = _number_or_none(frame.get("left_speed_target"))
+        left_measured = _number_or_none(frame.get("left_measured_speed"))
+        right_target = _number_or_none(frame.get("right_speed_target"))
+        right_measured = _number_or_none(frame.get("right_measured_speed"))
+        if all(value is None for value in (left_target, left_measured, right_target, right_measured)):
+            return
+        with self._lock:
+            if self._first_receive_ms is None:
+                self._first_receive_ms = receive_monotonic_ms
+            self._sequence += 1
+            sample = {
+                "sequence": self._sequence,
+                "host_received_monotonic_ms": receive_monotonic_ms,
+                "elapsed_ms": receive_monotonic_ms - self._first_receive_ms,
+                "motion_phase": frame.get("motion_phase"),
+                "effective_speed_target": _number_or_none(frame.get("effective_speed_target")),
+                "left_speed_target": left_target,
+                "left_measured_speed": left_measured,
+                "right_speed_target": right_target,
+                "right_measured_speed": right_measured,
+            }
+            self._samples.append(sample)
+            self._summary["samples_published"] = int(self._summary["samples_published"]) + 1
+            self._summary["last_sequence"] = self._sequence
+            self._summary["last_motion_phase"] = sample["motion_phase"]
+            self._summary["last_host_received_monotonic_ms"] = receive_monotonic_ms
+            self._summary["last_left_speed_target"] = left_target
+            self._summary["last_left_measured_speed"] = left_measured
+            self._summary["last_right_speed_target"] = right_target
+            self._summary["last_right_measured_speed"] = right_measured
+
+    def latest_since(self, sequence: int) -> Dict[str, Any]:
+        with self._lock:
+            samples = [sample for sample in self._samples if int(sample["sequence"]) > sequence]
+            return {
+                "type": "speed_telemetry",
+                "sequence": self._sequence,
+                "samples": samples,
+            }
+
+    def summary(self) -> Dict[str, Any]:
+        with self._lock:
+            return dict(self._summary)
+
+
 class _ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
 
 class SteeringMediaLiveServer:
-    def __init__(self, host: str, port: int, display_mode: str = "bev") -> None:
+    def __init__(self, host: str, port: int, display_mode: str = "bev", view_mode: str = "camera") -> None:
         self._host = host
         self._port = port
         self._display_mode = "raw" if display_mode == "raw" else "bev"
+        self._view_mode = "waveform" if view_mode == "waveform" else "camera"
         self._hub = LiveFrameHub()
+        self._speed_hub = SpeedTelemetryHub()
         self._server: Optional[_ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
@@ -1336,15 +1943,16 @@ class SteeringMediaLiveServer:
                 return
 
             def do_GET(self) -> None:
-                if self.path in ("/", "/index.html"):
-                    body = _viewer_html(outer._display_mode)
+                path = self.path.split("?", 1)[0]
+                if path in ("/", "/index.html"):
+                    body = _viewer_html(outer._display_mode, outer._view_mode)
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html; charset=utf-8")
                     self.send_header("Content-Length", str(len(body)))
                     self.end_headers()
                     self.wfile.write(body)
                     return
-                if self.path == "/status.json":
+                if path == "/status.json":
                     body = _json_bytes(outer.summary())
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
@@ -1352,7 +1960,24 @@ class SteeringMediaLiveServer:
                     self.end_headers()
                     self.wfile.write(body)
                     return
-                if self.path == "/config.bin":
+                if path == "/speed.json":
+                    match = re.search(r"(?:[?&])seq=(\d+)", self.path)
+                    client_sequence = int(match.group(1)) if match else 0
+                    payload = outer._speed_hub.latest_since(client_sequence)
+                    if not payload["samples"]:
+                        self.send_response(204)
+                        self.send_header("Cache-Control", "no-store")
+                        self.end_headers()
+                        return
+                    body = _json_bytes(payload)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+                if path == "/config.bin":
                     message = outer._hub.latest_config()
                     if message is None:
                         self.send_response(204)
@@ -1366,7 +1991,7 @@ class SteeringMediaLiveServer:
                     self.end_headers()
                     self.wfile.write(message)
                     return
-                if self.path.startswith("/latest.bin"):
+                if path == "/latest.bin":
                     match = re.search(r"(?:[?&])seq=(\d+)", self.path)
                     client_sequence = int(match.group(1)) if match else 0
                     _, message = outer._hub.latest_since(client_sequence)
@@ -1382,7 +2007,7 @@ class SteeringMediaLiveServer:
                     self.end_headers()
                     self.wfile.write(message)
                     return
-                if self.path == "/ws":
+                if path == "/ws":
                     self._handle_websocket()
                     return
                 self.send_error(404)
@@ -1460,8 +2085,13 @@ class SteeringMediaLiveServer:
     def publish(self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int) -> None:
         self._hub.publish(header, payload, receive_monotonic_ms)
 
+    def publish_speed_telemetry(self, frame: Dict[str, Any], receive_monotonic_ms: int) -> None:
+        self._speed_hub.publish(frame, receive_monotonic_ms)
+
     def summary(self) -> Dict[str, Any]:
         summary = self._hub.summary()
         summary["url"] = self.url
         summary["display_mode"] = self._display_mode
+        summary["view_mode"] = self._view_mode
+        summary["speed"] = self._speed_hub.summary()
         return summary

@@ -96,7 +96,6 @@ std::string DescribeCommand(const platform::AssistantCommand& command) {
 void AssistantService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.assistant_enabled;
-    periodic_publish_armed_ = false;
     ResetDeferredMotionIntent();
     // Keep telemetry slower than the control loop. Images and media diagnostics use steering media.
     telemetry_interval_ms_ = 200;
@@ -187,14 +186,10 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
     const uint64_t now_ms = port::NowMs();
     const platform::AssistantPollResult poll_result = link_.Poll(diagnostics);
     if (poll_result.became_ready) {
-        // Delay periodic telemetry on a fresh connection until the host sends
-        // a command. This shrinks the unstable connect-then-command window.
-        periodic_publish_armed_ = false;
         pending_feedback_.clear();
         ResetDeferredMotionIntent();
     }
     if (poll_result.connection_lost) {
-        periodic_publish_armed_ = false;
         pending_feedback_.clear();
         ResetDeferredMotionIntent();
         RuntimeTuningEvent disconnect_event{};
@@ -243,7 +238,7 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
     const bool telemetry_phase_allowed =
         snapshot.motion_phase == MotionPhase::kRunning ||
         snapshot.motion_phase == MotionPhase::kStopping;
-    if (periodic_publish_armed_ && telemetry_phase_allowed && snapshot.valid &&
+    if (telemetry_phase_allowed && snapshot.valid &&
         snapshot.cycle_count != last_telemetry_cycle_ &&
         (last_telemetry_publish_ms_ == 0 ||
          now_ms - last_telemetry_publish_ms_ >= static_cast<uint64_t>(telemetry_interval_ms_))) {
@@ -378,7 +373,6 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                                   command.target_speed_value,
                                                   now_ms + static_cast<uint64_t>(command.ttl_ms),
                                                   command.seq);
-                    periodic_publish_armed_ = true;
                 }
                 break;
             case platform::AssistantCommandType::kStart:

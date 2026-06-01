@@ -88,6 +88,11 @@ class AssistantJsonListener:
         "safety_gate.reason",
         "lateral_error.weighted_lateral_error_m",
         "yaw_control.turn_output_target",
+        "effective_speed_target",
+        "left_speed_target",
+        "right_speed_target",
+        "left_measured_speed",
+        "right_measured_speed",
         "raw_turn_output",
         "applied_turn_output",
         "left_drive_pwm_command",
@@ -106,6 +111,7 @@ class AssistantJsonListener:
         *,
         accept_timeout_s: float = 8.0,
         log_fn: Optional[Callable[[str], None]] = None,
+        live_server: Optional[SteeringMediaLiveServer] = None,
     ) -> None:
         self._listen_host = listen_host
         self._listen_port = listen_port
@@ -114,6 +120,7 @@ class AssistantJsonListener:
         self._jsonl_path = output_dir / "assistant_control.jsonl"
         self._accept_timeout_s = max(0.1, accept_timeout_s)
         self._log = log_fn or (lambda message: None)
+        self._live_server = live_server
         self._server: Optional[socket.socket] = None
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
@@ -135,6 +142,7 @@ class AssistantJsonListener:
             "telemetry_frames": 0,
             "unknown_frames": 0,
             "json_frames": 0,
+            "live_speed_publish_errors": 0,
             "receiver_error": None,
             "first_host_receive_monotonic_ms": None,
             "last_host_receive_monotonic_ms": None,
@@ -335,6 +343,11 @@ class AssistantJsonListener:
                 frame, "lateral_error", "weighted_lateral_error_m"
             ),
             "yaw_control.turn_output_target": nested(frame, "yaw_control", "turn_output_target"),
+            "effective_speed_target": frame.get("effective_speed_target", ""),
+            "left_speed_target": frame.get("left_speed_target", ""),
+            "right_speed_target": frame.get("right_speed_target", ""),
+            "left_measured_speed": frame.get("left_measured_speed", ""),
+            "right_measured_speed": frame.get("right_measured_speed", ""),
             "raw_turn_output": frame.get("raw_turn_output", ""),
             "applied_turn_output": frame.get("applied_turn_output", ""),
             "left_drive_pwm_command": frame.get("left_drive_pwm_command", ""),
@@ -360,6 +373,7 @@ class AssistantJsonListener:
             self._log(f"[control] state event={frame.get('event')} reason={frame.get('reason') or '-'} phase={frame.get('motion_phase')}")
             return
         if frame_type == "telemetry":
+            self._publish_live_speed(frame, receive_monotonic_ms)
             self._summary["telemetry_frames"] = int(self._summary["telemetry_frames"]) + 1
             telemetry_frames = int(self._summary["telemetry_frames"])
             if telemetry_frames % 25 == 0:
@@ -372,6 +386,8 @@ class AssistantJsonListener:
                     f"gate={nested(frame, 'safety_gate', 'reason')} "
                     f"lateral_error={nested(frame, 'lateral_error', 'weighted_lateral_error_m')} "
                     f"turn_output_target={nested(frame, 'yaw_control', 'turn_output_target')} "
+                    f"left={frame.get('left_measured_speed')}/{frame.get('left_speed_target')} "
+                    f"right={frame.get('right_measured_speed')}/{frame.get('right_speed_target')} "
                     f"raw_turn={frame.get('raw_turn_output')} "
                     f"applied_turn={frame.get('applied_turn_output')} "
                     f"apply_outcome={frame.get('actuator_apply_outcome')}"
@@ -385,6 +401,15 @@ class AssistantJsonListener:
             self._csv_file.flush()
         if self._jsonl_file is not None:
             self._jsonl_file.flush()
+
+    def _publish_live_speed(self, frame: Dict[str, Any], receive_monotonic_ms: int) -> None:
+        if self._live_server is None:
+            return
+        try:
+            self._live_server.publish_speed_telemetry(frame, receive_monotonic_ms)
+        except Exception as error:
+            self._summary["live_speed_publish_errors"] = int(self._summary["live_speed_publish_errors"]) + 1
+            self._log(f"[live] speed publish error: {error}")
 
 
 class SteeringMediaListener:
@@ -887,6 +912,12 @@ def parse_args() -> argparse.Namespace:
         help="initial live viewer image mode: bev shows the BEV-warped image, raw shows the camera frame",
     )
     parser.add_argument(
+        "--live-view-mode",
+        choices=("camera", "waveform"),
+        default="camera",
+        help="initial live viewer surface: camera shows steering media, waveform shows motor speed telemetry",
+    )
+    parser.add_argument(
         "--media-record-mode",
         choices=MEDIA_RECORD_MODES,
         default="all",
@@ -909,20 +940,19 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     log(f"[capture] output_dir={output_dir}")
 
-    assistant_listener = AssistantJsonListener(
-        args.listen_host,
-        args.listen_port,
-        output_dir,
-        accept_timeout_s=args.assistant_accept_timeout_s,
-        log_fn=log,
-    )
+    assistant_listener: Optional[AssistantJsonListener] = None
     media_listener: Optional[SteeringMediaListener] = None
     live_server: Optional[SteeringMediaLiveServer] = None
     started = False
     interrupted = False
     try:
         if args.live_web:
-            live_server = SteeringMediaLiveServer(args.live_host, args.live_port, args.live_display_mode)
+            live_server = SteeringMediaLiveServer(
+                args.live_host,
+                args.live_port,
+                args.live_display_mode,
+                args.live_view_mode,
+            )
             try:
                 live_server.start()
             except OSError as error:
@@ -932,6 +962,14 @@ def main() -> int:
                 )
                 return 1
             log(f"[live] viewer_url={live_server.url}")
+        assistant_listener = AssistantJsonListener(
+            args.listen_host,
+            args.listen_port,
+            output_dir,
+            accept_timeout_s=args.assistant_accept_timeout_s,
+            log_fn=log,
+            live_server=live_server,
+        )
         assistant_listener.start()
         if args.media_listen_port is not None:
             media_listener = SteeringMediaListener(
@@ -962,7 +1000,11 @@ def main() -> int:
         interrupted = True
         log("[capture] interrupted, closing listeners")
     finally:
-        assistant_summary = assistant_listener.close() if started else {"receiver_error": "assistant listener failed to start"}
+        assistant_summary = (
+            assistant_listener.close()
+            if started and assistant_listener is not None
+            else {"receiver_error": "assistant listener failed to start"}
+        )
         media_summary = media_listener.close() if media_listener is not None else None
         live_summary = live_server.close() if live_server is not None else None
 

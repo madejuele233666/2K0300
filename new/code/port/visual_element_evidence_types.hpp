@@ -117,7 +117,7 @@ struct BEVElementParameters {
     // Circle V2 场景状态机参数
     bool circle_v2_enabled = true;                  ///< 是否注册 CircleV2Scene
     float circle_v2_exit_yaw_threshold_deg = 330.0F; ///< B->C 出环角度阈值（度）
-    int circle_v2_exit_hold_frames = 60;            ///< C 状态保持帧数，最小为 2
+    int circle_v2_exit_hold_frames = 60;             ///< C 状态保持帧数
     int circle_v2_inner_trace_stall_timeout_ms = 4000; ///< InnerTrace 无明显 yaw 积分退回 Idle 超时
     float circle_v2_inner_trace_stall_yaw_min_deg = 16.5F; ///< InnerTrace 超时退回 Idle 的最小明显 yaw 积分
     float circle_v2_inner_trace_path_offset_m = 0.1F; ///< InnerTrace 从内圆边线向道路内部偏移的距离

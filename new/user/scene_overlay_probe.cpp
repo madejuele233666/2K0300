@@ -55,6 +55,7 @@ struct ProbePipelineResult {
     ls2k::port::SteeringPerceptionMemory next_memory{};
     bool memory_update_valid = false;
     int threshold = 0;
+    ls2k::legacy::BEVPixelClassificationModel classification_model{};
 };
 
 const char* BoolToken(bool value) {
@@ -83,6 +84,27 @@ bool HasLeadingCenterPath(const ls2k::port::BEVReferencePath& path) {
     return false;
 }
 
+bool ProbeFiniteInClosedRange(float value, float min_value, float max_value) {
+    return std::isfinite(value) && value >= min_value && value <= max_value;
+}
+
+bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& params) {
+    return ProbeFiniteInClosedRange(params.cross_wide_row_white_ratio_min, 0.0F, 1.0F) &&
+           ProbeFiniteInClosedRange(params.circle_v2_exit_yaw_threshold_deg, 1.0F, 720.0F) &&
+           params.circle_v2_exit_hold_frames >= 2 &&
+           params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
+           ProbeFiniteInClosedRange(params.circle_v2_inner_trace_stall_yaw_min_deg, 0.0F, 720.0F) &&
+           ProbeFiniteInClosedRange(params.circle_v2_inner_trace_path_offset_m, 0.0F, 2.0F) &&
+           ProbeFiniteInClosedRange(params.circle_v2_opposite_straight_confidence_min, 0.0F, 1.0F) &&
+           params.circle_v2_entry_bottom_row_count >= 4 &&
+           params.circle_v2_entry_bottom_row_count <=
+               static_cast<int>(ls2k::port::kBevReferenceSampleCount) &&
+           ProbeFiniteInClosedRange(params.circle_v2_entry_bottom_forward_min_m, 0.0F, 2.0F) &&
+           ProbeFiniteInClosedRange(params.circle_v2_entry_bottom_forward_max_m, 0.0F, 2.0F) &&
+           params.circle_v2_entry_bottom_forward_max_m >=
+               params.circle_v2_entry_bottom_forward_min_m;
+}
+
 std::optional<ls2k::runtime::OrdinaryRoadModel> BuildProbeOrdinaryRoadModel(
     const BEVSimplePerceptionResult& facts,
     const RuntimeParameters& params) {
@@ -99,7 +121,8 @@ ls2k::runtime::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params
     ls2k::runtime::CircleV2Params circle_params{};
     circle_params.exit_yaw_threshold_rad =
         params.bev_element.circle_v2_exit_yaw_threshold_deg * kPi / 180.0F;
-    circle_params.exit_hold_frames = std::max(2, params.bev_element.circle_v2_exit_hold_frames);
+    circle_params.exit_hold_frames =
+        std::max(2, params.bev_element.circle_v2_exit_hold_frames);
     circle_params.inner_trace_stall_timeout_ms =
         std::max(1, params.bev_element.circle_v2_inner_trace_stall_timeout_ms);
     circle_params.inner_trace_stall_yaw_min_rad =
@@ -308,17 +331,16 @@ FieldReadStatus ReadStrictNumberField(const std::string& text,
 FieldReadStatus ReadStrictIntField(const std::string& text,
                                    const std::string& key,
                                    int& out) {
-    std::size_t value_pos = 0U;
-    if (!LocateFieldValue(text, key, value_pos)) {
-        return FieldReadStatus::kMissing;
+    double numeric = 0.0;
+    const FieldReadStatus status = ReadStrictNumberField(text, key, numeric);
+    if (status != FieldReadStatus::kRead) {
+        return status;
     }
-    const char* begin = text.c_str() + value_pos;
-    char* end = nullptr;
-    const long value = std::strtol(begin, &end, 10);
-    if (begin == end || !ValueHasTerminator(text, end)) {
+    const double rounded = std::round(numeric);
+    if (std::fabs(numeric - rounded) > 1.0e-6) {
         return FieldReadStatus::kMalformed;
     }
-    out = static_cast<int>(value);
+    out = static_cast<int>(rounded);
     return FieldReadStatus::kRead;
 }
 
@@ -474,36 +496,6 @@ void ReadStrictIntField(const std::string& block,
     }
 }
 
-bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& params) {
-    return std::isfinite(params.cross_wide_row_white_ratio_min) &&
-           params.cross_wide_row_white_ratio_min >= 0.0F &&
-           params.cross_wide_row_white_ratio_min <= 1.0F &&
-           std::isfinite(params.circle_v2_exit_yaw_threshold_deg) &&
-           params.circle_v2_exit_yaw_threshold_deg >= 1.0F &&
-           params.circle_v2_exit_yaw_threshold_deg <= 720.0F &&
-           params.circle_v2_exit_hold_frames >= 2 &&
-           params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
-           std::isfinite(params.circle_v2_inner_trace_stall_yaw_min_deg) &&
-           params.circle_v2_inner_trace_stall_yaw_min_deg >= 0.0F &&
-           params.circle_v2_inner_trace_stall_yaw_min_deg <= 720.0F &&
-           std::isfinite(params.circle_v2_inner_trace_path_offset_m) &&
-           params.circle_v2_inner_trace_path_offset_m >= 0.0F &&
-           params.circle_v2_inner_trace_path_offset_m <= 2.0F &&
-           std::isfinite(params.circle_v2_opposite_straight_confidence_min) &&
-           params.circle_v2_opposite_straight_confidence_min >= 0.0F &&
-           params.circle_v2_opposite_straight_confidence_min <= 1.0F &&
-           params.circle_v2_entry_bottom_row_count >= 4 &&
-           params.circle_v2_entry_bottom_row_count <=
-               static_cast<int>(ls2k::port::kBevReferenceSampleCount) &&
-           std::isfinite(params.circle_v2_entry_bottom_forward_min_m) &&
-           params.circle_v2_entry_bottom_forward_min_m >= 0.0F &&
-           params.circle_v2_entry_bottom_forward_min_m <= 2.0F &&
-           std::isfinite(params.circle_v2_entry_bottom_forward_max_m) &&
-           params.circle_v2_entry_bottom_forward_max_m >=
-               params.circle_v2_entry_bottom_forward_min_m &&
-           params.circle_v2_entry_bottom_forward_max_m <= 2.0F;
-}
-
 void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
     if (path.empty()) {
         return;
@@ -533,10 +525,32 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
         ReadFloatField(block, "SEARCH_LATERAL_LIMIT_M", params.bev_geometry.search_lateral_limit_m);
         ReadFloatField(block, "LATERAL_STEP_M", params.bev_geometry.lateral_step_m);
     }
-    if (ExtractObjectBlock(json, "BEV_CLASSIFICATION", block)) {
-        ReadFloatField(block, "WHITE_CONFIDENCE_MIN", params.bev_classification.white_confidence_min);
-        ReadFloatField(block, "UNKNOWN_CONFIDENCE_MIN", params.bev_classification.unknown_confidence_min);
-        ReadIntField(block, "HOLD_LAST_MAX_CYCLES", params.bev_classification.hold_last_max_cycles);
+    bool classification_malformed = false;
+    ObjectBlockStatus object_status =
+        ExtractStrictObjectBlock(json, "BEV_CLASSIFICATION", block);
+    if (object_status == ObjectBlockStatus::kMalformed) {
+        classification_malformed = true;
+    } else if (object_status == ObjectBlockStatus::kRead) {
+        ReadStrictFloatField(block,
+                             "WHITE_CONFIDENCE_MIN",
+                             params.bev_classification.white_confidence_min,
+                             classification_malformed);
+        ReadStrictFloatField(block,
+                             "UNKNOWN_CONFIDENCE_MIN",
+                             params.bev_classification.unknown_confidence_min,
+                             classification_malformed);
+        ReadStrictIntField(block,
+                           "HOLD_LAST_MAX_CYCLES",
+                           params.bev_classification.hold_last_max_cycles,
+                           classification_malformed);
+        if (!ls2k::port::IsValidBEVClassificationParameters(
+                params.bev_classification)) {
+            classification_malformed = true;
+        }
+    }
+    if (classification_malformed) {
+        params = RuntimeParameters{};
+        return;
     }
     if (ExtractObjectBlock(json, "BEV_CONTROL_MODEL", block)) {
         ReadDoubleField(block,
@@ -564,7 +578,7 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
                      params.bev_control_model.tracking_fit_min_samples);
     }
     bool element_malformed = false;
-    ObjectBlockStatus object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT", block);
+    object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT", block);
     if (object_status == ObjectBlockStatus::kMalformed) {
         element_malformed = true;
     } else if (object_status == ObjectBlockStatus::kRead) {
@@ -991,9 +1005,14 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                      ls2k::legacy::BEVProjector& projector,
                                      ls2k::legacy::BEVSampleProjectionLut& lut) {
     ProbePipelineResult result{};
-    result.threshold = ls2k::legacy::ComputeOtsuThreshold(frame_view);
+    const ls2k::legacy::OtsuThresholdResult otsu_result =
+        ls2k::legacy::ComputeOtsuThresholdResult(frame_view);
+    result.classification_model =
+        ls2k::legacy::MakeBEVPixelClassificationModel(otsu_result,
+                                                      params.bev_classification);
+    result.threshold = result.classification_model.threshold;
     result.simple = ls2k::legacy::RunBEVSimplePerception(frame_view,
-                                                         result.threshold,
+                                                         result.classification_model,
                                                          params,
                                                          projector,
                                                          &lut);
@@ -1004,7 +1023,7 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     element_input.sparse_rows = &result.simple.rows;
     element_input.frame = &frame_view;
     element_input.projector = &projector;
-    element_input.threshold = result.threshold;
+    element_input.classification_model = result.classification_model;
     element_input.line_candidate = line_candidate;
     const ls2k::legacy::VisualElementPipelineResult element_result =
         ls2k::legacy::RunVisualElementPipeline(element_input, params);
@@ -1043,7 +1062,7 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
         frame_view,
         projector,
-        result.threshold,
+        result.classification_model,
         params.bev_classification,
     };
     ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
@@ -1198,7 +1217,7 @@ int main(int argc, char** argv) {
         selected_reference_overlay.reference_mode = ls2k::legacy::ToString(pipeline.continuity.mode);
         selected_reference_overlay.reference_source = pipeline.continuity.source;
         const BEVSimpleImage debug_bev = ls2k::legacy::BuildDebugDenseBevImage(frame.View(frame_id, 1),
-                                                                               pipeline.threshold,
+                                                                               pipeline.classification_model,
                                                                                params,
                                                                                projector);
 
