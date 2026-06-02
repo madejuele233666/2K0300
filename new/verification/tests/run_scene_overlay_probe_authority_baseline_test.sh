@@ -15,28 +15,29 @@ mkdir -p "${ARTIFACT_DIR}"
 compile_test_binary \
   "${OUT_BIN}" \
   "${REPO_ROOT}/new/user/scene_overlay_probe.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_otsu_threshold.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_single_boundary_offset.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_connectivity.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_bev_simple_perception.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_bev_element_raster.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_circle_element_evidence.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_cross_exit_element_evidence.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_visual_element_pipeline.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_visual_reference_orchestration.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_usability.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_lateral_error.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_tracking_geometry.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_control_readiness.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_yaw_controller.cpp" \
-  "${REPO_ROOT}/new/code/runtime/steering_circle_v2_scene.cpp" \
-  "${REPO_ROOT}/new/code/runtime/steering_circle_v2_reference_adapter.cpp" \
-  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_event_observer.cpp" \
-  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_expansion_observer.cpp" \
-  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_reducer.cpp" \
-  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_geometry_observer.cpp" \
-  "${REPO_ROOT}/new/code/runtime/detail/steering_circle_v2_composer.cpp" \
+  "${REPO_ROOT}/new/code/vision/image/otsu_threshold.cpp" \
+  "${REPO_ROOT}/new/code/vision/bev/bev_projector.cpp" \
+  "${REPO_ROOT}/new/code/vision/bev/single_boundary_offset.cpp" \
+  "${REPO_ROOT}/new/code/vision/bev/reference_connectivity.cpp" \
+  "${REPO_ROOT}/new/code/vision/bev/bev_simple_perception.cpp" \
+  "${REPO_ROOT}/new/code/vision/bev/bev_element_raster.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_element_evidence.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/cross_exit_element_evidence.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/visual_element_pipeline.cpp" \
+  "${REPO_ROOT}/new/code/reference/visual_reference_orchestration.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_continuity.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_usability.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_lateral_error.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_tracking_geometry.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_control_readiness.cpp" \
+  "${REPO_ROOT}/new/code/control/steering_yaw_controller.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/circle_v2_scene.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/circle_v2_reference_adapter.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/detail/circle_v2_event_observer.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/detail/circle_v2_expansion_observer.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/detail/circle_v2_reducer.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/detail/circle_v2_geometry_observer.cpp" \
+  "${REPO_ROOT}/new/code/vision/elements/circle_v2/detail/circle_v2_composer.cpp" \
   "${REPO_ROOT}/new/code/port/perf_counter.cpp"
 
 require_token() {
@@ -123,7 +124,6 @@ source_path, target_path = sys.argv[1:3]
 with open(source_path, "r", encoding="utf-8") as file:
     params = json.load(file)
 params["BEV_ELEMENT"] = 1
-params.setdefault("BEV_ELEMENT_RASTER", {})["ENABLED"] = 0
 with open(target_path, "w", encoding="utf-8") as file:
     json.dump(params, file, indent=2)
     file.write("\n")
@@ -133,29 +133,6 @@ run_probe_case \
   "circle-2" \
   --label "circle-2-non-object-bev-element-fallback" \
   --params "${non_object_element_params_path}" \
-  "element_evidence.cross_exit.present=false" \
-  "circle_v2.frame_phase=approach" \
-  "circle_v2.dir=left" \
-  "circle_v2.reason=phase1_cue_left"
-
-non_object_raster_params_path="${ARTIFACT_DIR}/circle-non-object-bev-element-raster.json"
-python3 - "${PARAMS_PATH}" "${non_object_raster_params_path}" <<'PY'
-import json
-import sys
-
-source_path, target_path = sys.argv[1:3]
-with open(source_path, "r", encoding="utf-8") as file:
-    params = json.load(file)
-params["BEV_ELEMENT_RASTER"] = 1
-with open(target_path, "w", encoding="utf-8") as file:
-    json.dump(params, file, indent=2)
-    file.write("\n")
-PY
-
-run_probe_case \
-  "circle-2" \
-  --label "circle-2-non-object-bev-element-raster-fallback" \
-  --params "${non_object_raster_params_path}" \
   "element_evidence.cross_exit.present=false" \
   "circle_v2.frame_phase=approach" \
   "circle_v2.next_phase=approach" \

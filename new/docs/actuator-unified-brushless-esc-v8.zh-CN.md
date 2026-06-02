@@ -193,7 +193,7 @@ left_brushless_pwm / right_brushless_pwm = actuator brushless command source
 command = ActuatorCommandBuilder::Compose(...)
 ```
 
-左右无刷输出第一版保持显式输入，默认均为 0。若后续让无刷输出与当前速度目标同步，映射必须同时产出 left/right 两个通道，且只消费控制周期中已有的运动状态或生效速度目标，不读取视觉内部事实。硬件调试阶段固定输出必须通过显式 bench/env 参数进入 command，而不是在 adapter 内隐藏生成。
+左右无刷输出保持显式输入。`ActuatorCommand` 字段默认仍为 0；当前 runtime 调试默认通过 `brushless_debug_fixed_pwm_enabled=1`、`brushless_debug_fixed_pwm=600` 在 control loop 命令构造点给左右无刷通道写入固定 PWM。若后续让无刷输出与当前速度目标同步，映射必须同时产出 left/right 两个通道，且只消费控制周期中已有的运动状态或生效速度目标，不读取视觉内部事实。固定输出必须通过显式 runtime 参数或 bench/env 参数进入 command，而不是在 adapter 内隐藏生成。
 
 ## 6. 统一 Adapter 内部结构
 
@@ -422,7 +422,7 @@ drive PWM 限幅和 brushless PWM 限幅都在 builder 明确发生；
 emergency_stop 返回全零安全命令；
 left/right drive PWM 限幅保持原行为；
 left/right brushless PWM 限幅独立覆盖；
-left/right brushless PWM 默认 0 不改变原有 drive 行为。
+ActuatorCommand 字段默认 0；runtime 调试默认用显式参数给 left/right brushless PWM 固定 600。
 ```
 
 ### Step 3：Adapter 边界改名
@@ -544,7 +544,7 @@ actuator_command_builder_test:
   emergency_stop 默认安全；
   left/right drive PWM 限幅；
   left/right brushless PWM 限幅；
-  left/right brushless 默认 0 保持原 drive 行为。
+  command 字段默认 0，runtime 参数默认把左右 brushless 调试输出固定到 600。
 
 actuator_adapter_test:
   initialize all outputs；
@@ -773,7 +773,7 @@ struct ActuatorCommand {
 
 ### 16.5 命令构造层
 
-落点：`new/code/legacy/actuator_command_builder.hpp`
+落点：`new/code/control/actuator_command_builder.hpp`
 
 ```cpp
 port::ActuatorCommand Compose(int left_drive_pwm,
@@ -785,7 +785,7 @@ port::ActuatorCommand Compose(int left_drive_pwm,
                               int brushless_pwm_limit) const;
 ```
 
-落点：`new/code/legacy/actuator_command_builder.cpp`
+落点：`new/code/control/actuator_command_builder.cpp`
 
 ```cpp
 port::ActuatorCommand ActuatorCommandBuilder::Compose(int left_drive_pwm,
@@ -908,13 +908,13 @@ const int left_drive_pwm =
     left_wheel_pid_.Compute(wheel_targets.left, encoder.left, params_.pwm_limit);
 const int right_drive_pwm =
     right_wheel_pid_.Compute(wheel_targets.right, encoder.right, params_.pwm_limit);
-const int left_brushless_pwm = 0;
-const int right_brushless_pwm = 0;
+const int brushless_pwm =
+    params_.brushless_debug_fixed_pwm_enabled ? params_.brushless_debug_fixed_pwm : 0;
 
 command = actuator_command_builder_.Compose(left_drive_pwm,
                                             right_drive_pwm,
-                                            left_brushless_pwm,
-                                            right_brushless_pwm,
+                                            brushless_pwm,
+                                            brushless_pwm,
                                             false,
                                             params_.pwm_limit,
                                             1000);

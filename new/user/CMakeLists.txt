@@ -33,7 +33,6 @@ include_directories(
     ../code/port
     ../code/platform
     ../code/platform/true_ls2k0300
-    ../code/legacy
     ../code/runtime
     ${LS2K_LIB_ROOT}/zf_common
     ${LS2K_LIB_ROOT}/zf_device
@@ -64,10 +63,10 @@ set(NEW_SRCS
     ../code/platform/power_adapter.cpp
     ../code/platform/param_store.cpp
     ../code/platform/hardware_profile.cpp
-    ../code/platform/assistant_link.cpp
-    ../code/platform/assistant_protocol.cpp
-    ../code/platform/steering_media_link.cpp
-    ../code/platform/steering_media_protocol.cpp
+    ../code/transport/assistant_link.cpp
+    ../code/transport/assistant_protocol.cpp
+    ../code/transport/steering_media_link.cpp
+    ../code/transport/steering_media_protocol.cpp
     ../code/platform/camera_frame_source.cpp
     ../code/port/perf_counter.cpp
     ../code/platform/true_ls2k0300/camera_bridge.cpp
@@ -78,47 +77,49 @@ set(NEW_SRCS
     ../code/platform/true_ls2k0300/timer_bridge.cpp
     ../code/platform/true_ls2k0300/assistant_bridge.cpp
     ../code/platform/true_ls2k0300/steering_media_bridge.cpp
-    ../code/legacy/steering_yaw_controller.cpp
-    ../code/legacy/actuator_command_builder.cpp
-    ../code/legacy/wheel_target_mixer.cpp
-    ../code/legacy/wheel_pid.cpp
-    ../code/legacy/steering_otsu_threshold.cpp
-    ../code/legacy/steering_bev_projector.cpp
-    ../code/legacy/steering_single_boundary_offset.cpp
-    ../code/legacy/steering_reference_connectivity.cpp
-    ../code/legacy/steering_bev_simple_perception.cpp
-    ../code/legacy/steering_bev_element_raster.cpp
-    ../code/legacy/steering_circle_element_evidence.cpp
-    ../code/legacy/steering_cross_exit_element_evidence.cpp
-    ../code/legacy/steering_visual_element_evidence.cpp
-    ../code/legacy/steering_visual_element_pipeline.cpp
-    ../code/legacy/steering_visual_reference_orchestration.cpp
-    ../code/legacy/steering_reference_usability.cpp
-    ../code/legacy/steering_reference_lateral_error.cpp
-    ../code/legacy/steering_reference_tracking_geometry.cpp
-    ../code/legacy/steering_reference_control_readiness.cpp
-    ../code/runtime/startup.cpp
-    ../code/runtime/camera_frame_store.cpp
-    ../code/runtime/camera_capture_worker.cpp
-    ../code/runtime/steering_circle_v2_scene.cpp
-    ../code/runtime/steering_circle_v2_reference_adapter.cpp
-    ../code/runtime/detail/steering_circle_v2_event_observer.cpp
-    ../code/runtime/detail/steering_circle_v2_expansion_observer.cpp
-    ../code/runtime/detail/steering_circle_v2_reducer.cpp
-    ../code/runtime/detail/steering_circle_v2_geometry_observer.cpp
-    ../code/runtime/detail/steering_circle_v2_composer.cpp
-    ../code/runtime/steering_frame_perception_pipeline.cpp
+    ../code/control/steering_yaw_controller.cpp
+    ../code/control/actuator_command_builder.cpp
+    ../code/control/wheel_target_mixer.cpp
+    ../code/control/wheel_pid.cpp
+    ../code/vision/image/otsu_threshold.cpp
+    ../code/vision/bev/bev_projector.cpp
+    ../code/vision/bev/single_boundary_offset.cpp
+    ../code/vision/bev/reference_connectivity.cpp
+    ../code/vision/bev/bev_simple_perception.cpp
+    ../code/vision/bev/bev_element_raster.cpp
+    ../code/vision/elements/circle_element_evidence.cpp
+    ../code/vision/elements/cross_exit_element_evidence.cpp
+    ../code/vision/elements/visual_element_evidence.cpp
+    ../code/vision/elements/visual_element_pipeline.cpp
+    ../code/reference/visual_reference_orchestration.cpp
+    ../code/reference/reference_usability.cpp
+    ../code/reference/reference_continuity.cpp
+    ../code/reference/reference_lateral_error.cpp
+    ../code/reference/reference_tracking_geometry.cpp
+    ../code/reference/reference_control_readiness.cpp
+    ../code/runtime/lifecycle/startup.cpp
+    ../code/runtime/capture/camera_frame_store.cpp
+    ../code/runtime/capture/camera_capture_worker.cpp
+    ../code/vision/elements/circle_v2/circle_v2_scene.cpp
+    ../code/vision/elements/circle_v2/circle_v2_reference_adapter.cpp
+    ../code/vision/elements/circle_v2/detail/circle_v2_event_observer.cpp
+    ../code/vision/elements/circle_v2/detail/circle_v2_expansion_observer.cpp
+    ../code/vision/elements/circle_v2/detail/circle_v2_reducer.cpp
+    ../code/vision/elements/circle_v2/detail/circle_v2_geometry_observer.cpp
+    ../code/vision/elements/circle_v2/detail/circle_v2_composer.cpp
+    ../code/runtime/pipelines/steering_frame_pipeline.cpp
     ../code/runtime/perception_frontend.cpp
-    ../code/runtime/low_voltage_sampler.cpp
-    ../code/runtime/motion_supervisor.cpp
-    ../code/runtime/control_decision.cpp
-    ../code/runtime/steering_reference_time_alignment.cpp
-    ../code/runtime/control_loop.cpp
-    ../code/runtime/control_debug_reporter.cpp
-    ../code/runtime/assistant_service.cpp
-    ../code/runtime/steering_media_service.cpp
-    ../code/runtime/tuning_state.cpp
-    ../code/runtime/shutdown.cpp
+    ../code/safety/low_voltage_sampler.cpp
+    ../code/control/motion_supervisor.cpp
+    ../code/safety/control_gate.cpp
+    ../code/safety/control_apply_observation.cpp
+    ../code/reference/reference_time_alignment.cpp
+    ../code/runtime/loops/control_loop.cpp
+    ../code/observability/control_debug_reporter.cpp
+    ../code/runtime/services/assistant_service.cpp
+    ../code/runtime/services/steering_media_service.cpp
+    ../code/control/tuning_state.cpp
+    ../code/runtime/lifecycle/shutdown.cpp
 )
 set(LS2K_COMMON_SRCS
     ${LS2K_LIB_ROOT}/zf_common/zf_common_fifo.cpp
@@ -184,17 +185,18 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         bev_simple_perception_test
         ../verification/tests/bev_simple_perception_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_single_boundary_offset.cpp
-        ../code/legacy/steering_reference_connectivity.cpp
-        ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
-        ../code/legacy/steering_circle_element_evidence.cpp
-        ../code/legacy/steering_visual_element_evidence.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
-        ../code/legacy/steering_visual_element_pipeline.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
-        ../code/legacy/steering_reference_usability.cpp
+        ../code/vision/bev/bev_projector.cpp
+        ../code/vision/bev/single_boundary_offset.cpp
+        ../code/vision/bev/reference_connectivity.cpp
+        ../code/vision/bev/bev_simple_perception.cpp
+        ../code/vision/bev/bev_element_raster.cpp
+        ../code/vision/elements/circle_element_evidence.cpp
+        ../code/vision/elements/visual_element_evidence.cpp
+        ../code/vision/elements/cross_exit_element_evidence.cpp
+        ../code/vision/elements/visual_element_pipeline.cpp
+        ../code/reference/visual_reference_orchestration.cpp
+        ../code/reference/reference_usability.cpp
+        ../code/reference/reference_continuity.cpp
         ../code/port/perf_counter.cpp
     )
     target_link_libraries(
@@ -206,13 +208,14 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         reference_usability_lateral_error_test
         ../verification/tests/reference_usability_lateral_error_test.cpp
-        ../code/legacy/steering_reference_usability.cpp
-        ../code/legacy/steering_reference_lateral_error.cpp
-        ../code/legacy/steering_reference_tracking_geometry.cpp
-        ../code/legacy/steering_reference_control_readiness.cpp
+        ../code/reference/reference_usability.cpp
+        ../code/reference/reference_lateral_error.cpp
+        ../code/reference/reference_tracking_geometry.cpp
+        ../code/reference/reference_control_readiness.cpp
         ../code/port/perf_counter.cpp
-        ../code/legacy/steering_yaw_controller.cpp
-        ../code/runtime/control_decision.cpp
+        ../code/control/steering_yaw_controller.cpp
+        ../code/safety/control_gate.cpp
+        ../code/safety/control_apply_observation.cpp
     )
     target_link_libraries(
         reference_usability_lateral_error_test
@@ -223,8 +226,8 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         reference_tracking_geometry_test
         ../verification/tests/reference_tracking_geometry_test.cpp
-        ../code/legacy/steering_reference_usability.cpp
-        ../code/legacy/steering_reference_tracking_geometry.cpp
+        ../code/reference/reference_usability.cpp
+        ../code/reference/reference_tracking_geometry.cpp
     )
     target_link_libraries(
         reference_tracking_geometry_test
@@ -235,11 +238,11 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         visual_reference_orchestration_test
         ../verification/tests/visual_reference_orchestration_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_single_boundary_offset.cpp
-        ../code/legacy/steering_reference_connectivity.cpp
-        ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
+        ../code/vision/bev/bev_projector.cpp
+        ../code/vision/bev/single_boundary_offset.cpp
+        ../code/vision/bev/reference_connectivity.cpp
+        ../code/vision/bev/bev_simple_perception.cpp
+        ../code/reference/visual_reference_orchestration.cpp
     )
     target_link_libraries(
         visual_reference_orchestration_test
@@ -250,18 +253,18 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         steering_circle_v2_scene_test
         ../verification/tests/steering_circle_v2_scene_test.cpp
-        ../code/runtime/steering_circle_v2_scene.cpp
-        ../code/runtime/steering_circle_v2_reference_adapter.cpp
-        ../code/runtime/detail/steering_circle_v2_event_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_expansion_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_reducer.cpp
-        ../code/runtime/detail/steering_circle_v2_geometry_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_composer.cpp
-        ../code/legacy/steering_single_boundary_offset.cpp
-        ../code/legacy/steering_circle_element_evidence.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_bev_simple_perception.cpp
+        ../code/vision/elements/circle_v2/circle_v2_scene.cpp
+        ../code/vision/elements/circle_v2/circle_v2_reference_adapter.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_event_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_expansion_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_reducer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_geometry_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_composer.cpp
+        ../code/vision/bev/single_boundary_offset.cpp
+        ../code/vision/elements/circle_element_evidence.cpp
+        ../code/vision/bev/bev_element_raster.cpp
+        ../code/vision/bev/bev_projector.cpp
+        ../code/vision/bev/bev_simple_perception.cpp
     )
     target_link_libraries(
         steering_circle_v2_scene_test
@@ -272,15 +275,15 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         visual_element_evidence_test
         ../verification/tests/visual_element_evidence_test.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_single_boundary_offset.cpp
-        ../code/legacy/steering_reference_connectivity.cpp
-        ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
-        ../code/legacy/steering_circle_element_evidence.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
-        ../code/legacy/steering_visual_element_pipeline.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
+        ../code/vision/bev/bev_projector.cpp
+        ../code/vision/bev/single_boundary_offset.cpp
+        ../code/vision/bev/reference_connectivity.cpp
+        ../code/vision/bev/bev_simple_perception.cpp
+        ../code/vision/bev/bev_element_raster.cpp
+        ../code/vision/elements/circle_element_evidence.cpp
+        ../code/vision/elements/cross_exit_element_evidence.cpp
+        ../code/vision/elements/visual_element_pipeline.cpp
+        ../code/reference/visual_reference_orchestration.cpp
     )
     target_link_libraries(
         visual_element_evidence_test
@@ -291,8 +294,8 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         assistant_telemetry_selftest
         ../verification/tests/assistant_telemetry_selftest.cpp
-        ../code/platform/assistant_protocol.cpp
-        ../code/runtime/motion_supervisor.cpp
+        ../code/transport/assistant_protocol.cpp
+        ../code/control/motion_supervisor.cpp
     )
     target_link_libraries(
         assistant_telemetry_selftest
@@ -338,7 +341,7 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         startup_low_voltage_order_test
         ../verification/tests/startup_low_voltage_order_test.cpp
-        ../code/runtime/startup.cpp
+        ../code/runtime/lifecycle/startup.cpp
         ../code/platform/hardware_profile.cpp
     )
     target_link_libraries(
@@ -350,13 +353,14 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         steering_media_selftest
         ../user/steering_media_selftest.cpp
-        ../code/platform/steering_media_link.cpp
-        ../code/platform/steering_media_protocol.cpp
+        ../code/transport/steering_media_link.cpp
+        ../code/transport/steering_media_protocol.cpp
         ../code/platform/true_ls2k0300/steering_media_bridge.cpp
-        ../code/runtime/control_debug_reporter.cpp
-        ../code/runtime/control_decision.cpp
-        ../code/runtime/motion_supervisor.cpp
-        ../code/runtime/steering_media_service.cpp
+        ../code/observability/control_debug_reporter.cpp
+        ../code/safety/control_gate.cpp
+        ../code/safety/control_apply_observation.cpp
+        ../code/control/motion_supervisor.cpp
+        ../code/runtime/services/steering_media_service.cpp
         ../code/port/perf_counter.cpp
     )
     target_link_libraries(
@@ -368,28 +372,28 @@ if(LS2K_BUILD_VERIFICATION_HELPERS)
     add_executable(
         scene_overlay_probe
         ../user/scene_overlay_probe.cpp
-        ../code/legacy/steering_otsu_threshold.cpp
-        ../code/legacy/steering_bev_projector.cpp
-        ../code/legacy/steering_single_boundary_offset.cpp
-        ../code/legacy/steering_reference_connectivity.cpp
-        ../code/legacy/steering_bev_simple_perception.cpp
-        ../code/legacy/steering_bev_element_raster.cpp
-        ../code/legacy/steering_circle_element_evidence.cpp
-        ../code/legacy/steering_cross_exit_element_evidence.cpp
-        ../code/legacy/steering_visual_element_pipeline.cpp
-        ../code/legacy/steering_visual_reference_orchestration.cpp
-        ../code/legacy/steering_reference_usability.cpp
-        ../code/legacy/steering_reference_lateral_error.cpp
-        ../code/legacy/steering_reference_tracking_geometry.cpp
-        ../code/legacy/steering_reference_control_readiness.cpp
-        ../code/legacy/steering_yaw_controller.cpp
-        ../code/runtime/steering_circle_v2_scene.cpp
-        ../code/runtime/steering_circle_v2_reference_adapter.cpp
-        ../code/runtime/detail/steering_circle_v2_event_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_expansion_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_reducer.cpp
-        ../code/runtime/detail/steering_circle_v2_geometry_observer.cpp
-        ../code/runtime/detail/steering_circle_v2_composer.cpp
+        ../code/vision/image/otsu_threshold.cpp
+        ../code/vision/bev/bev_projector.cpp
+        ../code/vision/bev/single_boundary_offset.cpp
+        ../code/vision/bev/reference_connectivity.cpp
+        ../code/vision/bev/bev_simple_perception.cpp
+        ../code/vision/bev/bev_element_raster.cpp
+        ../code/vision/elements/circle_element_evidence.cpp
+        ../code/vision/elements/cross_exit_element_evidence.cpp
+        ../code/vision/elements/visual_element_pipeline.cpp
+        ../code/reference/visual_reference_orchestration.cpp
+        ../code/reference/reference_usability.cpp
+        ../code/reference/reference_lateral_error.cpp
+        ../code/reference/reference_tracking_geometry.cpp
+        ../code/reference/reference_control_readiness.cpp
+        ../code/control/steering_yaw_controller.cpp
+        ../code/vision/elements/circle_v2/circle_v2_scene.cpp
+        ../code/vision/elements/circle_v2/circle_v2_reference_adapter.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_event_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_expansion_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_reducer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_geometry_observer.cpp
+        ../code/vision/elements/circle_v2/detail/circle_v2_composer.cpp
         ../code/port/perf_counter.cpp
     )
     target_link_libraries(

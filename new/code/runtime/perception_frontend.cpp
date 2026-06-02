@@ -138,7 +138,7 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
         return;
     }
 
-    MotionHistory motion_history{};
+    port::MotionHistory motion_history{};
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
         motion_history = state_.motion_history;

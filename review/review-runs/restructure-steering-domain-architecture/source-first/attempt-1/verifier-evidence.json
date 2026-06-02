@@ -1,0 +1,62 @@
+{
+  "change": "restructure-steering-domain-architecture",
+  "review_goal": "implementation_correctness",
+  "review_phase": "source_first",
+  "risk_tier": "STRICT",
+  "template_id": "verify-reviewer-inline-v3",
+  "findings_contract": "shared-findings-v1",
+  "agent_id": "verify-reviewer-source-first-attempt-1",
+  "start_at": "2026-06-02T20:12:30+08:00",
+  "end_at": "2026-06-02T20:26:07+08:00",
+  "final_state": "completed",
+  "review_scope": {
+    "scope": "Full source-first review of the declared active steering-architecture migration surfaces: `new/code/{control,reference,vision,safety,observability,transport}/`, `new/code/runtime/runtime_state.hpp`, `new/code/runtime/{capture,lifecycle,loops,pipelines,services}/`, `new/code/port/motion_history_types.hpp`, active `new/user/` build/probe entrypoints, changed `new/verification/tests/` build scripts and tests, and active docs `README.md`, `new/docs/README.md`, `new/docs/actuator-unified-brushless-esc-v8.zh-CN.md`, plus the change proposal/design/tasks/specs used as acceptance references. Historical archive/superseded docs and archive code were excluded from blocking scope except for residual-path scans because the caller marked them as historical-only."
+  },
+  "review_coverage": {
+    "coverage_status": "complete",
+    "exhaustive": true,
+    "summary": "Reviewed all declared source-first surfaces, acceptance artifacts, dependency/residual scans, and active docs. The active code ownership split and dependency boundaries appear aligned with the change contract, but the active documentation layer still routes to deleted files, so the change cannot pass implementation-correctness review yet."
+  },
+  "reviewed_paths": [
+    "openspec/changes/restructure-steering-domain-architecture/proposal.md",
+    "openspec/changes/restructure-steering-domain-architecture/design.md",
+    "openspec/changes/restructure-steering-domain-architecture/tasks.md",
+    "openspec/changes/restructure-steering-domain-architecture/specs/steering-domain-architecture/spec.md",
+    "openspec/changes/restructure-steering-domain-architecture/specs/steering-architecture-migration-workflow/spec.md",
+    "README.md",
+    "docs/WORKFLOW.md",
+    "new/docs/README.md",
+    "new/docs/actuator-unified-brushless-esc-v8.zh-CN.md",
+    "new/code/port/README.md",
+    "new/code/control",
+    "new/code/reference",
+    "new/code/vision",
+    "new/code/safety",
+    "new/code/observability",
+    "new/code/transport",
+    "new/code/runtime/runtime_state.hpp",
+    "new/code/runtime/capture",
+    "new/code/runtime/lifecycle",
+    "new/code/runtime/loops",
+    "new/code/runtime/pipelines",
+    "new/code/runtime/services",
+    "new/code/port/motion_history_types.hpp",
+    "new/user/CMakeLists.txt",
+    "new/user/main.cpp",
+    "new/user/scene_overlay_probe.cpp",
+    "new/user/steering_media_selftest.cpp",
+    "new/user/STEERING_LIVE_VIEWER_README.md",
+    "new/verification/tests"
+  ],
+  "skipped_paths": [
+    "new/docs/superseded/**",
+    "docs/archive/**",
+    "new/code/archive/**"
+  ],
+  "reviewed_axes": [
+    "Completeness",
+    "Correctness",
+    "Coherence"
+  ],
+  "unreviewed_axes": []
+}

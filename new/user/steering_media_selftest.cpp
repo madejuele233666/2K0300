@@ -10,11 +10,11 @@
 #include <utility>
 #include <vector>
 
-#include "platform/steering_media_link.hpp"
-#include "platform/steering_media_protocol.hpp"
+#include "transport/steering_media_link.hpp"
+#include "transport/steering_media_protocol.hpp"
 #include "port/diagnostics.hpp"
-#include "runtime/control_debug_reporter.hpp"
-#include "runtime/steering_media_service.hpp"
+#include "observability/control_debug_reporter.hpp"
+#include "runtime/services/steering_media_service.hpp"
 
 namespace {
 
@@ -27,17 +27,17 @@ public:
     std::vector<ls2k::port::DiagnosticEvent> events{};
 };
 
-class FakeSteeringMediaTransport final : public ls2k::platform::ISteeringMediaTransport {
+class FakeSteeringMediaTransport final : public ls2k::transport::ISteeringMediaTransport {
 public:
-    bool Initialize(const ls2k::platform::SteeringMediaTransportConfig& config,
+    bool Initialize(const ls2k::transport::SteeringMediaTransportConfig& config,
                     std::string& detail) override {
         config_ = config;
         detail = "fake transport configured";
         return !config.host.empty() && config.port > 0;
     }
 
-    ls2k::platform::SteeringMediaTransportPollResult Poll() override {
-        ls2k::platform::SteeringMediaTransportPollResult result{};
+    ls2k::transport::SteeringMediaTransportPollResult Poll() override {
+        ls2k::transport::SteeringMediaTransportPollResult result{};
         result.state = state_;
         result.state_changed = state_dirty_;
         result.detail = detail_;
@@ -46,31 +46,31 @@ public:
     }
 
     bool Ready() const override {
-        return state_ == ls2k::platform::SteeringMediaTransportState::kReady;
+        return state_ == ls2k::transport::SteeringMediaTransportState::kReady;
     }
 
-    ls2k::platform::SteeringMediaTransportSendResult SendBytes(const std::uint8_t* data,
+    ls2k::transport::SteeringMediaTransportSendResult SendBytes(const std::uint8_t* data,
                                                                std::size_t length,
                                                                std::string& detail) override {
         if (!Ready()) {
             detail = "fake transport not ready";
-            return ls2k::platform::SteeringMediaTransportSendResult::kDisconnected;
+            return ls2k::transport::SteeringMediaTransportSendResult::kDisconnected;
         }
         if (accept_in_flight_) {
             sent_frames.emplace_back(data, data + length);
             detail = "fake transport accepted in-flight";
-            return ls2k::platform::SteeringMediaTransportSendResult::kAcceptedInFlight;
+            return ls2k::transport::SteeringMediaTransportSendResult::kAcceptedInFlight;
         }
         if (busy_) {
             detail = "fake transport busy";
-            return ls2k::platform::SteeringMediaTransportSendResult::kBusyRejected;
+            return ls2k::transport::SteeringMediaTransportSendResult::kBusyRejected;
         }
         sent_frames.emplace_back(data, data + length);
         detail.clear();
-        return ls2k::platform::SteeringMediaTransportSendResult::kSent;
+        return ls2k::transport::SteeringMediaTransportSendResult::kSent;
     }
 
-    void SetState(ls2k::platform::SteeringMediaTransportState state, std::string detail) {
+    void SetState(ls2k::transport::SteeringMediaTransportState state, std::string detail) {
         state_ = state;
         detail_ = std::move(detail);
         state_dirty_ = true;
@@ -84,12 +84,12 @@ public:
         accept_in_flight_ = accept_in_flight;
     }
 
-    ls2k::platform::SteeringMediaTransportConfig config_{};
+    ls2k::transport::SteeringMediaTransportConfig config_{};
     std::vector<std::vector<std::uint8_t>> sent_frames{};
 
 private:
-    ls2k::platform::SteeringMediaTransportState state_ =
-        ls2k::platform::SteeringMediaTransportState::kDisconnected;
+    ls2k::transport::SteeringMediaTransportState state_ =
+        ls2k::transport::SteeringMediaTransportState::kDisconnected;
     bool state_dirty_ = true;
     bool busy_ = false;
     bool accept_in_flight_ = false;
@@ -145,7 +145,7 @@ ls2k::port::VisualReferenceCandidate MakeCandidatePath(
     return candidate;
 }
 
-void AddCandidatePath(ls2k::runtime::SteeringDebugSnapshot& snapshot,
+void AddCandidatePath(ls2k::observability::SteeringDebugSnapshot& snapshot,
                       ls2k::port::VisualReferenceCandidateKind kind,
                       const std::string& source,
                       float lateral_base_m) {
@@ -156,15 +156,15 @@ void AddCandidatePath(ls2k::runtime::SteeringDebugSnapshot& snapshot,
 
 void TestReporterEmitsMinimalSteeringSnapshot() {
     CollectingDiagnostics diagnostics;
-    ls2k::runtime::ControlDebugReporter reporter;
+    ls2k::observability::ControlDebugReporter reporter;
     ls2k::port::RuntimeParameters params{};
     params.control_snapshot_emit_interval_ms = 1;
     reporter.Configure(params);
 
-    ls2k::runtime::ControlDebugSnapshot snapshot{};
+    ls2k::observability::ControlDebugSnapshot snapshot{};
     snapshot.valid = true;
     snapshot.timestamp_ms = 123;
-    snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+    snapshot.motion_phase = ls2k::control::MotionPhase::kDisarmed;
     snapshot.veto_active = true;
     snapshot.raw_turn_output = 0;
     snapshot.applied_turn_output = 0;
@@ -248,7 +248,7 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
     snapshot.steering.actuator.left_brushless_pwm_command = 501;
     snapshot.steering.actuator.right_brushless_pwm_command = 502;
     snapshot.steering.actuator.apply_outcome =
-        ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
+        ls2k::safety::ControlApplyOutcome::kDriveCommandApplied;
     snapshot.steering_internal.valid = true;
     snapshot.steering_internal.frame_id = 7;
     snapshot.steering_internal.capture_time_ms = 88;
@@ -398,7 +398,7 @@ void TestReporterEmitsMinimalSteeringSnapshot() {
 }
 
 void TestConfigEnvelopeIsMinimalBevContract() {
-    ls2k::platform::SteeringMediaConfigSnapshot config{};
+    ls2k::transport::SteeringMediaConfigSnapshot config{};
     config.publish_time_ms = 101;
     config.media_publish_interval_ms = 80;
     config.param_snapshot.running_speed_target = 100.0;
@@ -424,12 +424,12 @@ void TestConfigEnvelopeIsMinimalBevContract() {
 
     std::vector<std::uint8_t> encoded;
     std::string error;
-    Require(ls2k::platform::EncodeSteeringMediaConfigSnapshot(config, encoded, error),
+    Require(ls2k::transport::EncodeSteeringMediaConfigSnapshot(config, encoded, error),
             "config envelope should encode");
 
     std::string header_json;
     std::vector<std::uint8_t> payload;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size(), header_json, payload, error),
             "encoded envelope should decode");
     Require(payload.empty(), "config snapshot payload must be empty");
@@ -538,14 +538,14 @@ void TestConfigEnvelopeIsMinimalBevContract() {
     Require(!Contains(header_json, std::string("\"SAMPLE_") + "ROW_STEP_PX\""),
             "config snapshot must not expose removed row-step parameter");
 
-    Require(!ls2k::platform::DecodeSteeringMediaEnvelope(
+    Require(!ls2k::transport::DecodeSteeringMediaEnvelope(
                 encoded.data(), encoded.size() - 1, header_json, payload, error),
             "truncated envelope must fail length validation");
 }
 
 void TestImagePayloadValidation() {
     std::vector<std::uint8_t> payload(10, 0x11);
-    ls2k::platform::SteeringMediaImageFrame frame{};
+    ls2k::transport::SteeringMediaImageFrame frame{};
     frame.frame_id = 1;
     frame.capture_time_ms = 11;
     frame.publish_time_ms = 12;
@@ -557,7 +557,7 @@ void TestImagePayloadValidation() {
 
     std::vector<std::uint8_t> encoded;
     std::string error;
-    Require(!ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
+    Require(!ls2k::transport::EncodeSteeringMediaImageFrame(frame, encoded, error),
             "invalid image payload size must be rejected");
     Require(Contains(error, "exactly"), "payload validation error should mention exact size");
 }
@@ -579,7 +579,7 @@ void TestGray4ImagePayloadEncoding() {
         }
     }
 
-    ls2k::platform::SteeringMediaImageFrame frame{};
+    ls2k::transport::SteeringMediaImageFrame frame{};
     frame.frame_id = 9;
     frame.capture_time_ms = 90;
     frame.publish_time_ms = 91;
@@ -592,12 +592,12 @@ void TestGray4ImagePayloadEncoding() {
 
     std::vector<std::uint8_t> encoded;
     std::string error;
-    Require(ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
+    Require(ls2k::transport::EncodeSteeringMediaImageFrame(frame, encoded, error),
             "gray4 image frame should encode");
 
     std::string header_json;
     std::vector<std::uint8_t> decoded_payload;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(encoded.data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(encoded.data(),
                                                         encoded.size(),
                                                         header_json,
                                                         decoded_payload,
@@ -626,7 +626,7 @@ void TestGray2ImagePayloadEncoding() {
         packed[bit_index / 8U] = static_cast<std::uint8_t>(packed[bit_index / 8U] | (level << shift));
     }
 
-    ls2k::platform::SteeringMediaImageFrame frame{};
+    ls2k::transport::SteeringMediaImageFrame frame{};
     frame.frame_id = 10;
     frame.capture_time_ms = 100;
     frame.publish_time_ms = 101;
@@ -639,12 +639,12 @@ void TestGray2ImagePayloadEncoding() {
 
     std::vector<std::uint8_t> encoded;
     std::string error;
-    Require(ls2k::platform::EncodeSteeringMediaImageFrame(frame, encoded, error),
+    Require(ls2k::transport::EncodeSteeringMediaImageFrame(frame, encoded, error),
             "gray2 image frame should encode");
 
     std::string header_json;
     std::vector<std::uint8_t> decoded_payload;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(encoded.data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(encoded.data(),
                                                         encoded.size(),
                                                         header_json,
                                                         decoded_payload,
@@ -660,8 +660,8 @@ void TestGray2ImagePayloadEncoding() {
 
 void TestLinkQueuesLatestFrameOnBusySocket() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::platform::SteeringMediaLink link{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)};
+    ls2k::transport::SteeringMediaLink link{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -670,19 +670,19 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
     params.steering_media_port = 8890;
     Require(link.Initialize(params, diagnostics), "link should initialize");
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
-    const ls2k::platform::SteeringMediaLinkPollResult ready_poll = link.Poll(diagnostics);
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
+    const ls2k::transport::SteeringMediaLinkPollResult ready_poll = link.Poll(diagnostics);
     Require(ready_poll.became_ready && ready_poll.ready, "link should observe ready transition");
 
-    ls2k::platform::SteeringMediaConfigSnapshot config{};
+    ls2k::transport::SteeringMediaConfigSnapshot config{};
     config.publish_time_ms = 1;
     config.media_publish_interval_ms = 80;
     Require(link.PublishConfigSnapshot(config, diagnostics), "config snapshot should publish on ready link");
     Require(fake_transport->sent_frames.size() == 1, "config snapshot should be the first sent frame");
 
     std::vector<std::uint8_t> image_payload(
-        ls2k::platform::SteeringMediaImagePayloadBytes(320, 240), 0x33);
-    ls2k::platform::SteeringMediaImageFrame first_frame{};
+        ls2k::transport::SteeringMediaImagePayloadBytes(320, 240), 0x33);
+    ls2k::transport::SteeringMediaImageFrame first_frame{};
     first_frame.frame_id = 1;
     first_frame.capture_time_ms = 10;
     first_frame.publish_time_ms = 11;
@@ -696,10 +696,10 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
 
     fake_transport->set_busy(true);
     Require(link.PublishImageFrame(first_frame, diagnostics) ==
-                ls2k::platform::SteeringMediaPublishResult::kQueued,
+                ls2k::transport::SteeringMediaPublishResult::kQueued,
             "busy socket should queue the newest image frame");
 
-    ls2k::platform::SteeringMediaImageFrame second_frame = first_frame;
+    ls2k::transport::SteeringMediaImageFrame second_frame = first_frame;
     second_frame.frame_id = 2;
     second_frame.camera_metadata.source = "unit_v4l2";
     second_frame.camera_metadata.frame_id = 2;
@@ -717,7 +717,7 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
     second_frame.camera_store_health.dropped_frame_count = 2;
     second_frame.camera_store_health.lookup_miss_count = 3;
     Require(link.PublishImageFrame(second_frame, diagnostics) ==
-                ls2k::platform::SteeringMediaPublishResult::kQueued,
+                ls2k::transport::SteeringMediaPublishResult::kQueued,
             "second busy publish should replace the stale queued frame");
 
     fake_transport->set_busy(false);
@@ -728,7 +728,7 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.back().data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.back().data(),
                                                         fake_transport->sent_frames.back().size(),
                                                         header_json,
                                                         payload,
@@ -767,14 +767,14 @@ void TestLinkQueuesLatestFrameOnBusySocket() {
             "image frame snapshot must nest safety-gate state");
     Require(!Contains(header_json, std::string("\"w_") + "target\""),
             "image frame snapshot must not include removed legacy angular target field");
-    Require(payload.size() == ls2k::platform::SteeringMediaImagePayloadBytes(320, 240),
+    Require(payload.size() == ls2k::transport::SteeringMediaImagePayloadBytes(320, 240),
             "flushed image payload must remain intact");
 }
 
 void TestLinkDoesNotCacheFrameAcceptedInFlight() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::platform::SteeringMediaLink link{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)};
+    ls2k::transport::SteeringMediaLink link{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -783,12 +783,12 @@ void TestLinkDoesNotCacheFrameAcceptedInFlight() {
     params.steering_media_port = 8890;
     Require(link.Initialize(params, diagnostics), "link should initialize");
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     (void)link.Poll(diagnostics);
 
     std::vector<std::uint8_t> image_payload(
-        ls2k::platform::SteeringMediaImagePayloadBytes(320, 240), 0x55);
-    ls2k::platform::SteeringMediaImageFrame frame{};
+        ls2k::transport::SteeringMediaImagePayloadBytes(320, 240), 0x55);
+    ls2k::transport::SteeringMediaImageFrame frame{};
     frame.frame_id = 3;
     frame.capture_time_ms = 30;
     frame.publish_time_ms = 31;
@@ -800,7 +800,7 @@ void TestLinkDoesNotCacheFrameAcceptedInFlight() {
 
     fake_transport->set_accept_in_flight(true);
     Require(link.PublishImageFrame(frame, diagnostics) ==
-                ls2k::platform::SteeringMediaPublishResult::kQueued,
+                ls2k::transport::SteeringMediaPublishResult::kQueued,
             "accepted in-flight image should be reported as queued by the lower layer");
     fake_transport->set_accept_in_flight(false);
     Require(!link.FlushPendingImage(diagnostics),
@@ -811,8 +811,8 @@ void TestLinkDoesNotCacheFrameAcceptedInFlight() {
 
 void TestServicePublishesConfigSnapshotOnReadyTransition() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    ls2k::runtime::SteeringMediaService service{ls2k::transport::SteeringMediaLink{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)}};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -833,7 +833,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         state.control_debug_snapshot.valid = true;
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kRunning;
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
@@ -911,7 +911,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.control_debug_snapshot.steering.actuator.left_brushless_pwm_command = 501;
         state.control_debug_snapshot.steering.actuator.right_brushless_pwm_command = 502;
         state.control_debug_snapshot.steering.actuator.apply_outcome =
-            ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
+            ls2k::safety::ControlApplyOutcome::kDriveCommandApplied;
         ls2k::port::CameraRawFrameMetadata metadata{};
         metadata.source = "service_v4l2";
         metadata.v4l2_sequence = 88;
@@ -927,7 +927,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
         state.camera_frame_store_health.lookup_miss_count = 4;
     }
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     service.Tick(state, diagnostics);
 
     Require(fake_transport->sent_frames.size() >= 2,
@@ -936,7 +936,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.front().data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.front().data(),
                                                         fake_transport->sent_frames.front().size(),
                                                         header_json,
                                                         payload,
@@ -989,7 +989,7 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
     Require(!Contains(header_json, std::string("\"BEV_") + "PATH_POLICY\""),
             "service config snapshot must not expose removed BEV path policy");
 
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
                                                         header_json,
                                                         payload,
@@ -1111,8 +1111,8 @@ void TestServicePublishesConfigSnapshotOnReadyTransition() {
 
 void TestServicePublishesFromRecentMatchingCapture() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    ls2k::runtime::SteeringMediaService service{ls2k::transport::SteeringMediaLink{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)}};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -1126,7 +1126,7 @@ void TestServicePublishesFromRecentMatchingCapture() {
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         state.control_debug_snapshot.valid = true;
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kRunning;
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
@@ -1135,7 +1135,7 @@ void TestServicePublishesFromRecentMatchingCapture() {
         FillMatchingCapture(state, 42, 1249);
     }
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     service.Tick(state, diagnostics);
 
     Require(fake_transport->sent_frames.size() >= 2,
@@ -1144,7 +1144,7 @@ void TestServicePublishesFromRecentMatchingCapture() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
                                                         header_json,
                                                         payload,
@@ -1160,8 +1160,8 @@ void TestServicePublishesFromRecentMatchingCapture() {
 
 void TestServiceCanPublishLatestCameraFrameForLiveView() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    ls2k::runtime::SteeringMediaService service{ls2k::transport::SteeringMediaLink{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)}};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -1179,7 +1179,7 @@ void TestServiceCanPublishLatestCameraFrameForLiveView() {
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         state.control_debug_snapshot.valid = true;
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kDisarmed;
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 41;
         state.control_debug_snapshot.steering.capture_time_ms = 1234;
@@ -1187,7 +1187,7 @@ void TestServiceCanPublishLatestCameraFrameForLiveView() {
         FillMatchingCapture(state, 99, 2222);
     }
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     service.Tick(state, diagnostics);
 
     Require(fake_transport->sent_frames.size() >= 2,
@@ -1196,7 +1196,7 @@ void TestServiceCanPublishLatestCameraFrameForLiveView() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
                                                         header_json,
                                                         payload,
@@ -1216,8 +1216,8 @@ void TestServiceCanPublishLatestCameraFrameForLiveView() {
 
 void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    ls2k::runtime::SteeringMediaService service{ls2k::transport::SteeringMediaLink{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)}};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -1232,14 +1232,14 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         state.control_debug_snapshot.valid = true;
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kDisarmed;
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 1;
         state.control_debug_snapshot.steering.capture_time_ms = 10;
         FillMatchingCapture(state, 1, 10);
     }
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     service.Tick(state, diagnostics);
     Require(fake_transport->sent_frames.size() == 1,
             "DISARMED tick should publish only config_snapshot and skip image_frame");
@@ -1266,7 +1266,7 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
 
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kRunning;
         state.control_debug_snapshot.steering.frame_id = 3;
         state.control_debug_snapshot.steering.capture_time_ms = 30;
         FillMatchingCapture(state, 3, 30);
@@ -1278,7 +1278,7 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.back().data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames.back().data(),
                                                         fake_transport->sent_frames.back().size(),
                                                         header_json,
                                                         payload,
@@ -1292,8 +1292,8 @@ void TestServiceSkipsDisarmedImagesAndPublishesRunningImage() {
 
 void TestServiceCanPublishDisarmedImagesForCalibration() {
     auto* fake_transport = new FakeSteeringMediaTransport();
-    ls2k::runtime::SteeringMediaService service{ls2k::platform::SteeringMediaLink{
-        std::unique_ptr<ls2k::platform::ISteeringMediaTransport>(fake_transport)}};
+    ls2k::runtime::SteeringMediaService service{ls2k::transport::SteeringMediaLink{
+        std::unique_ptr<ls2k::transport::ISteeringMediaTransport>(fake_transport)}};
     CollectingDiagnostics diagnostics;
 
     ls2k::port::RuntimeParameters params{};
@@ -1310,14 +1310,14 @@ void TestServiceCanPublishDisarmedImagesForCalibration() {
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         state.control_debug_snapshot.valid = true;
-        state.control_debug_snapshot.motion_phase = ls2k::runtime::MotionPhase::kDisarmed;
+        state.control_debug_snapshot.motion_phase = ls2k::control::MotionPhase::kDisarmed;
         state.control_debug_snapshot.steering.valid = true;
         state.control_debug_snapshot.steering.frame_id = 8;
         state.control_debug_snapshot.steering.capture_time_ms = 80;
         FillMatchingCapture(state, 8, 80);
     }
 
-    fake_transport->SetState(ls2k::platform::SteeringMediaTransportState::kReady, "fake ready");
+    fake_transport->SetState(ls2k::transport::SteeringMediaTransportState::kReady, "fake ready");
     service.Tick(state, diagnostics);
     Require(fake_transport->sent_frames.size() >= 2,
             "enabled calibration mode should publish a DISARMED image_frame");
@@ -1325,7 +1325,7 @@ void TestServiceCanPublishDisarmedImagesForCalibration() {
     std::string header_json;
     std::vector<std::uint8_t> payload;
     std::string error;
-    Require(ls2k::platform::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
+    Require(ls2k::transport::DecodeSteeringMediaEnvelope(fake_transport->sent_frames[1].data(),
                                                         fake_transport->sent_frames[1].size(),
                                                         header_json,
                                                         payload,

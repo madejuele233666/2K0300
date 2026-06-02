@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_bev_projector.hpp"
-#include "legacy/steering_reference_connectivity.hpp"
-#include "legacy/steering_visual_reference_orchestration.hpp"
+#include "vision/bev/bev_projector.hpp"
+#include "vision/bev/reference_connectivity.hpp"
+#include "reference/visual_reference_orchestration.hpp"
 
 namespace {
 
@@ -21,9 +21,9 @@ void Expect(bool condition, const std::string& message) {
     }
 }
 
-ls2k::legacy::BEVPixelClassificationModel TestClassificationModel(int threshold = 100) {
-    ls2k::legacy::BEVPixelClassificationModel model{};
-    model.valid = ls2k::legacy::ValidGrayThreshold(threshold);
+ls2k::vision::BEVPixelClassificationModel TestClassificationModel(int threshold = 100) {
+    ls2k::vision::BEVPixelClassificationModel model{};
+    model.valid = ls2k::vision::ValidGrayThreshold(threshold);
     model.threshold = threshold;
     return model;
 }
@@ -73,7 +73,7 @@ void SetPixel(ls2k::port::LegacyCameraFrame& frame, int row, int col, std::uint8
                static_cast<std::size_t>(col)] = value;
 }
 
-ls2k::legacy::BEVProjector MakeIdentityConnectivityProjector() {
+ls2k::vision::BEVProjector MakeIdentityConnectivityProjector() {
     ls2k::port::BEVProjectorCalibration calibration{};
     calibration.source_points = {
         {ls2k::port::ImagePoint{0.0F, 0.0F},
@@ -85,7 +85,7 @@ ls2k::legacy::BEVProjector MakeIdentityConnectivityProjector() {
          ls2k::port::BEVPoint{0.0F, 9.0F},
          ls2k::port::BEVPoint{9.0F, 0.0F},
          ls2k::port::BEVPoint{9.0F, 9.0F}}};
-    ls2k::legacy::BEVProjector projector{};
+    ls2k::vision::BEVProjector projector{};
     Expect(projector.Configure(calibration),
            "identity connectivity projector must configure");
     return projector;
@@ -120,22 +120,22 @@ ls2k::port::VisualReferenceCandidate CandidateWithPath(
 }
 
 void AppendAllVisualKindsThroughConnectivityGate(
-    const ls2k::legacy::ReferenceConnectivityFrameView& frame,
+    const ls2k::vision::ReferenceConnectivityFrameView& frame,
     const ls2k::port::BEVReferencePath& path,
     std::vector<ls2k::port::VisualReferenceCandidate>& accepted) {
-    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+    ls2k::vision::AppendConnectedVisualReferenceCandidate(
         frame,
         CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kLine,
                           path,
                           "line"),
         accepted);
-    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+    ls2k::vision::AppendConnectedVisualReferenceCandidate(
         frame,
         CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kCrossExit,
                           path,
                           "cross_exit"),
         accepted);
-    ls2k::legacy::AppendConnectedVisualReferenceCandidate(
+    ls2k::vision::AppendConnectedVisualReferenceCandidate(
         frame,
         CandidateWithPath(ls2k::port::VisualReferenceCandidateKind::kCircleLeft,
                           path,
@@ -145,7 +145,7 @@ void AppendAllVisualKindsThroughConnectivityGate(
 
 void TestNoCandidatesSelectsNone() {
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({});
+        ls2k::reference::SelectVisualReference({});
     Expect(!selection.present, "empty candidate set must not select a visual reference");
     Expect(selection.reason == "no_visual_reference_candidate",
            "empty candidate set must explain missing visual reference");
@@ -155,9 +155,9 @@ void TestNoCandidatesSelectsNone() {
 void TestValidLineCandidateIsSelected() {
     const ls2k::port::BEVReferencePath line_path = MakePath(3);
     const ls2k::port::VisualReferenceCandidate line =
-        ls2k::legacy::MakeLineVisualReferenceCandidate(line_path, "simple_interval_center");
+        ls2k::reference::MakeLineVisualReferenceCandidate(line_path, "simple_interval_center");
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line});
+        ls2k::reference::SelectVisualReference({line});
     Expect(selection.present, "valid line candidate must be selected");
     Expect(selection.source == "simple_interval_center",
            "line selection must preserve factual reference source");
@@ -173,7 +173,7 @@ void TestMissingIndexZeroRejectsCandidate() {
         Candidate(ls2k::port::VisualReferenceCandidateKind::kLine, 3, 1.0F, "line");
     line.reference_path.sampled_path[0].present = false;
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line});
+        ls2k::reference::SelectVisualReference({line});
     Expect(!selection.present, "candidate without index zero must be rejected");
     Expect(selection.reason == "no_valid_visual_reference_candidate",
            "rejected-only set must expose no-valid reason");
@@ -186,7 +186,7 @@ void TestNoneModeRejectsCandidate() {
         Candidate(ls2k::port::VisualReferenceCandidateKind::kLine, 3, 1.0F, "line");
     line.reference_path.mode = ls2k::port::ReferenceMode::kNone;
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line});
+        ls2k::reference::SelectVisualReference({line});
     Expect(!selection.present, "kNone mode candidate must be rejected");
     Expect(selection.reason == "no_valid_visual_reference_candidate",
            "rejected-only kNone candidate must expose no-valid reason");
@@ -199,7 +199,7 @@ void TestHoldModeRejectsCandidate() {
         Candidate(ls2k::port::VisualReferenceCandidateKind::kLine, 3, 1.0F, "line");
     line.reference_path.mode = ls2k::port::ReferenceMode::kHoldLast;
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line});
+        ls2k::reference::SelectVisualReference({line});
     Expect(!selection.present, "kHoldLast mode candidate must be rejected");
     Expect(selection.reason == "no_valid_visual_reference_candidate",
            "rejected-only kHoldLast candidate must expose no-valid reason");
@@ -213,7 +213,7 @@ void TestLineWinsWhenSpecialIsAbsentOrLowConfidence() {
     ls2k::port::VisualReferenceCandidate cross =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kCrossExit, 3, 0.30F, "cross_exit");
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line, cross});
+        ls2k::reference::SelectVisualReference({line, cross});
     Expect(selection.present, "line must remain available when special candidate is low-confidence");
     Expect(selection.source == "line", "low-confidence special candidate must not displace line");
     Expect(selection.reason == "line_candidate_selected",
@@ -233,7 +233,7 @@ void TestPriorityExplainsMultipleSpecialCandidates() {
                   0.70F,
                   "roadblock_bypass");
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line, cross, circle, roadblock});
+        ls2k::reference::SelectVisualReference({line, cross, circle, roadblock});
     Expect(selection.present, "different-priority special candidates must be arbitrated");
     Expect(selection.source == "roadblock_bypass",
            "highest-priority special candidate must be selected");
@@ -250,7 +250,7 @@ void TestCrossExitPriorityExceedsCircle() {
     const ls2k::port::VisualReferenceCandidate circle =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleLeft, 3, 0.95F, "circle_v2_inner");
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line, circle, cross});
+        ls2k::reference::SelectVisualReference({line, circle, cross});
     Expect(selection.present, "cross and circle candidates must be arbitrated");
     Expect(selection.source == "cross_exit",
            "cross exit must outrank circle even when circle confidence is higher");
@@ -266,7 +266,7 @@ void TestEqualSpecialTieSelectsNone() {
     const ls2k::port::VisualReferenceCandidate circle_right =
         Candidate(ls2k::port::VisualReferenceCandidateKind::kCircleRight, 3, 0.80F, "circle_v2_exit");
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference({line, circle_left, circle_right});
+        ls2k::reference::SelectVisualReference({line, circle_left, circle_right});
     Expect(!selection.present, "equal-priority equal-confidence special tie must fail closed");
     Expect(selection.reason == "ambiguous_visual_reference_candidates",
            "special tie must be explainable");
@@ -275,13 +275,13 @@ void TestEqualSpecialTieSelectsNone() {
 
 void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
     ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVProjector projector =
+    const ls2k::vision::BEVProjector projector =
         MakeIdentityConnectivityProjector();
     const ls2k::port::BEVReferencePath path = MakeConnectivityPath();
 
     {
         ls2k::port::LegacyCameraFrame frame = MakeConnectivityFrame(255U);
-        const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
+        const ls2k::vision::ReferenceConnectivityFrameView connectivity_frame{
             frame.View(10, 10),
             projector,
             TestClassificationModel(),
@@ -296,7 +296,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
     {
         ls2k::port::LegacyCameraFrame blocked = MakeConnectivityFrame(255U);
         SetPixel(blocked, 0, 0, 0U);
-        const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
+        const ls2k::vision::ReferenceConnectivityFrameView blocked_frame{
             blocked.View(12, 12),
             projector,
             TestClassificationModel(),
@@ -318,7 +318,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
 
     ls2k::port::LegacyCameraFrame blocked = MakeConnectivityFrame(255U);
     SetPixel(blocked, 4, 4, 0U);
-    const ls2k::legacy::ReferenceConnectivityFrameView blocked_frame{
+    const ls2k::vision::ReferenceConnectivityFrameView blocked_frame{
         blocked.View(11, 11),
         projector,
         TestClassificationModel(),
@@ -347,7 +347,7 @@ void TestCentralConnectivityGateClipsDisconnectedVisualKinds() {
            "clipped candidates must remain visible in public candidate-path debug output");
 
     const ls2k::port::VisualReferenceSelection selection =
-        ls2k::legacy::SelectVisualReference(accepted);
+        ls2k::reference::SelectVisualReference(accepted);
     Expect(selection.present,
            "selector may select a clipped visual candidate; usability owns sample-count rejection");
     Expect(selection.candidate_count == 3U,

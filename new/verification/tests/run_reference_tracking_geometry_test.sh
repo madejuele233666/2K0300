@@ -8,10 +8,9 @@ OUT_BIN="${SCRIPT_DIR}/reference_tracking_geometry_test"
 c++ -std=c++17 -Wall -Wextra -Werror -pthread \
   -I"${REPO_ROOT}/new/code" \
   -I"${REPO_ROOT}/new/code/port" \
-  -I"${REPO_ROOT}/new/code/legacy" \
   "${REPO_ROOT}/new/verification/tests/reference_tracking_geometry_test.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_usability.cpp" \
-  "${REPO_ROOT}/new/code/legacy/steering_reference_tracking_geometry.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_usability.cpp" \
+  "${REPO_ROOT}/new/code/reference/reference_tracking_geometry.cpp" \
   -o "${OUT_BIN}"
 
 "${OUT_BIN}"

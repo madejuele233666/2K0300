@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "runtime/steering_reference_time_alignment.hpp"
+#include "reference/reference_time_alignment.hpp"
 
 namespace {
 
@@ -32,19 +32,19 @@ ls2k::port::BEVReferencePath MakeStraightPath() {
     return path;
 }
 
-ls2k::runtime::MotionHistory MakeMotionHistory(float gyro_z, std::uint64_t step_ms = 10) {
-    ls2k::runtime::MotionHistory history{};
+ls2k::port::MotionHistory MakeMotionHistory(float gyro_z, std::uint64_t step_ms = 10) {
+    ls2k::port::MotionHistory history{};
     for (std::uint64_t time_ms = 100; time_ms <= 130; time_ms += step_ms) {
         history.Push({time_ms, true, gyro_z, true, 0, 0});
     }
     return history;
 }
 
-ls2k::runtime::MotionHistory MakeMotionHistoryRange(std::uint64_t start_ms,
+ls2k::port::MotionHistory MakeMotionHistoryRange(std::uint64_t start_ms,
                                                     std::uint64_t end_ms,
                                                     float gyro_z,
                                                     std::uint64_t step_ms = 10) {
-    ls2k::runtime::MotionHistory history{};
+    ls2k::port::MotionHistory history{};
     for (std::uint64_t time_ms = start_ms; time_ms <= end_ms; time_ms += step_ms) {
         history.Push({time_ms, true, gyro_z, true, 0, 0});
     }
@@ -63,7 +63,7 @@ ls2k::port::RuntimeParameters EnabledParams() {
 
 void TestDisabledKeepsPath() {
     const auto path = MakeStraightPath();
-    const auto result = ls2k::runtime::AlignReferencePathToControlTime(
+    const auto result = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(0.0F), ls2k::port::RuntimeParameters{});
     Expect(result.facts.valid, "disabled alignment must be valid");
     Expect(result.facts.reason == "disabled", "disabled reason mismatch");
@@ -74,7 +74,7 @@ void TestDisabledKeepsPath() {
 void TestIdentityAndYawSign() {
     const auto path = MakeStraightPath();
     auto params = EnabledParams();
-    auto zero = ls2k::runtime::AlignReferencePathToControlTime(
+    auto zero = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(0.0F), params);
     Expect(zero.facts.valid, "zero yaw alignment invalid");
     Expect(zero.facts.reason == "aligned_yaw_only", "zero yaw reason mismatch");
@@ -84,7 +84,7 @@ void TestIdentityAndYawSign() {
                "identity forward mismatch");
     ExpectNear(zero.reference_path.sampled_path[2].point.lateral_m, 0.0, 1.0e-6, "identity lateral mismatch");
 
-    auto yaw = ls2k::runtime::AlignReferencePathToControlTime(
+    auto yaw = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(1.0F), params);
     Expect(yaw.facts.valid, "yaw alignment invalid");
     ExpectNear(yaw.facts.delta_yaw_rad, 0.03, 1.0e-6, "yaw integral mismatch");
@@ -96,25 +96,25 @@ void TestFailClosed() {
     const auto path = MakeStraightPath();
     auto params = EnabledParams();
     params.reference_time_alignment.max_age_ms = 20;
-    auto aged = ls2k::runtime::AlignReferencePathToControlTime(
+    auto aged = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(0.0F), params);
     Expect(!aged.facts.valid && aged.facts.reason == "age_exceeded", "age fail reason mismatch");
 
     params = EnabledParams();
     params.reference_time_alignment.max_integration_gap_ms = 5;
-    auto gap = ls2k::runtime::AlignReferencePathToControlTime(
+    auto gap = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(0.0F, 10), params);
     Expect(!gap.facts.valid && gap.facts.reason == "motion_history_unavailable",
            "gap fail reason mismatch");
 
     params = EnabledParams();
-    auto missing_start = ls2k::runtime::AlignReferencePathToControlTime(
+    auto missing_start = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistoryRange(110, 130, 0.0F), params);
     Expect(!missing_start.facts.valid &&
                missing_start.facts.reason == "motion_history_unavailable",
            "missing start coverage must fail closed");
 
-    auto missing_end = ls2k::runtime::AlignReferencePathToControlTime(
+    auto missing_end = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistoryRange(100, 120, 0.0F), params);
     Expect(!missing_end.facts.valid &&
                missing_end.facts.reason == "motion_history_unavailable",
@@ -126,7 +126,7 @@ void TestDoesNotCrossInputReferenceGap() {
     path.sampled_path[1].present = false;
     auto params = EnabledParams();
     params.reference_time_alignment.min_aligned_samples = 1;
-    auto result = ls2k::runtime::AlignReferencePathToControlTime(
+    auto result = ls2k::reference::AlignReferencePathToControlTime(
         path, 100, 130, MakeMotionHistory(0.0F), params);
     Expect(result.facts.valid, "single leading prefix sample should remain alignable");
     Expect(result.facts.aligned_sample_count == 1,

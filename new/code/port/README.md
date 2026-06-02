@@ -7,7 +7,7 @@ Do not create aggregate include headers for steering/reference/control types.
 ## Layered Type Headers
 
 - `camera_frame_types.hpp`: camera frame view/capture types.
-- `bev_element_raster_types.hpp`: optional full BEV element raster cell, projection-state, and parameter types. V1 circle/cross runtime recognition does not depend on full raster; see `../../docs/visual-element-sparse-circle-v1.zh-CN.md`.
+- `bev_element_raster_types.hpp`: optional full BEV element raster cell, projection-state, and explicit probe/legacy options. Active runtime parameters and media config snapshots do not carry full-raster settings.
 - `bev_geometry_types.hpp`: BEV points, calibration, geometry, classification, and control-model parameters.
 - `bev_reference_types.hpp`: reference path facts, point source, hold state, and continuity result.
 - `visual_reference_orchestration_types.hpp`: visual reference candidate and current visual selection summary.
@@ -26,7 +26,7 @@ Do not create aggregate include headers for steering/reference/control types.
 
 - BEV projector includes only `bev_geometry_types.hpp` and `camera_frame_types.hpp`.
 - BEV simple perception includes camera frame, BEV geometry, BEV reference, and runtime parameter types.
-- BEV element raster includes camera frame, BEV element raster, BEV geometry, and runtime parameter types.
+- BEV element raster includes camera frame, BEV element raster, BEV geometry, and runtime parameter types; raster enable/width are explicit call-site options, not active runtime configuration.
 - Visual-reference orchestration includes BEV reference and visual-reference orchestration types.
 - Visual element evidence includes BEV simple row facts, visual element evidence types, visual-reference candidate types, and runtime parameter types. V1 circle/cross Phase1 consumes BEV simple row facts; full raster is optional for debug, legacy, roadblock, ML, or future full-raster consumers.
 - Reference usability includes BEV reference, reference usability, and runtime parameter types.

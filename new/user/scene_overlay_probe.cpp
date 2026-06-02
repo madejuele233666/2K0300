@@ -12,28 +12,29 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_bev_projector.hpp"
-#include "legacy/steering_bev_simple_perception.hpp"
-#include "legacy/steering_otsu_threshold.hpp"
-#include "legacy/steering_reference_control_readiness.hpp"
-#include "legacy/steering_reference_connectivity.hpp"
-#include "legacy/steering_reference_lateral_error.hpp"
-#include "legacy/steering_reference_tracking_geometry.hpp"
-#include "legacy/steering_reference_usability.hpp"
-#include "legacy/steering_yaw_controller.hpp"
-#include "legacy/steering_visual_element_pipeline.hpp"
-#include "legacy/steering_visual_reference_orchestration.hpp"
+#include "vision/bev/bev_projector.hpp"
+#include "vision/bev/bev_simple_perception.hpp"
+#include "vision/image/otsu_threshold.hpp"
+#include "reference/reference_control_readiness.hpp"
+#include "reference/reference_continuity.hpp"
+#include "vision/bev/reference_connectivity.hpp"
+#include "reference/reference_lateral_error.hpp"
+#include "reference/reference_tracking_geometry.hpp"
+#include "reference/reference_usability.hpp"
+#include "control/steering_yaw_controller.hpp"
+#include "vision/elements/visual_element_pipeline.hpp"
+#include "reference/visual_reference_orchestration.hpp"
 #include "port/perception_result.hpp"
 #include "port/steering_state_types.hpp"
-#include "runtime/steering_circle_v2_reference_adapter.hpp"
-#include "runtime/steering_circle_v2_scene.hpp"
-#include "runtime/steering_scene_frame_view.hpp"
+#include "vision/elements/circle_v2/circle_v2_reference_adapter.hpp"
+#include "vision/elements/circle_v2/circle_v2_scene.hpp"
+#include "vision/elements/circle_v2/circle_v2_scene_frame_view.hpp"
 
 namespace {
 
-using ls2k::legacy::BEVSimplePerceptionResult;
-using ls2k::legacy::BEVSimplePixelClass;
-using ls2k::legacy::BEVSimpleImage;
+using ls2k::vision::BEVSimplePerceptionResult;
+using ls2k::vision::BEVSimplePixelClass;
+using ls2k::vision::BEVSimpleImage;
 using ls2k::port::BEVPathSample;
 using ls2k::port::LegacyCameraFrame;
 using ls2k::port::LegacyCameraFrameView;
@@ -51,11 +52,11 @@ struct ProbePipelineResult {
     ls2k::port::ReferenceLateralErrorEstimate lateral_error{};
     ls2k::port::ReferenceTrackingGeometry tracking_geometry{};
     ls2k::port::ReferenceControlReadiness reference_control{};
-    ls2k::legacy::TurnOutputTargetComputation turn_output_target{};
+    ls2k::control::TurnOutputTargetComputation turn_output_target{};
     ls2k::port::SteeringPerceptionMemory next_memory{};
     bool memory_update_valid = false;
     int threshold = 0;
-    ls2k::legacy::BEVPixelClassificationModel classification_model{};
+    ls2k::vision::BEVPixelClassificationModel classification_model{};
 };
 
 const char* BoolToken(bool value) {
@@ -105,20 +106,20 @@ bool ValidProbeBEVElementParameters(const ls2k::port::BEVElementParameters& para
                params.circle_v2_entry_bottom_forward_min_m;
 }
 
-std::optional<ls2k::runtime::OrdinaryRoadModel> BuildProbeOrdinaryRoadModel(
+std::optional<ls2k::vision::OrdinaryRoadModel> BuildProbeOrdinaryRoadModel(
     const BEVSimplePerceptionResult& facts,
     const RuntimeParameters& params) {
     if (!HasLeadingCenterPath(facts.reference_path)) {
         return std::nullopt;
     }
-    ls2k::runtime::OrdinaryRoadModel ordinary_road{};
+    ls2k::vision::OrdinaryRoadModel ordinary_road{};
     ordinary_road.center_path = facts.reference_path;
     ordinary_road.half_width.value_m = params.bev_geometry.nominal_road_half_width_m;
     return ordinary_road;
 }
 
-ls2k::runtime::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params) {
-    ls2k::runtime::CircleV2Params circle_params{};
+ls2k::vision::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params) {
+    ls2k::vision::CircleV2Params circle_params{};
     circle_params.exit_yaw_threshold_rad =
         params.bev_element.circle_v2_exit_yaw_threshold_deg * kPi / 180.0F;
     circle_params.exit_hold_frames =
@@ -142,21 +143,21 @@ ls2k::runtime::CircleV2Params MakeCircleV2Params(const RuntimeParameters& params
 
 ls2k::port::CircleV2TelemetrySnapshot MakeCircleV2Snapshot(
     bool enabled,
-    const ls2k::runtime::CircleV2Telemetry& telemetry) {
+    const ls2k::vision::CircleV2Telemetry& telemetry) {
     ls2k::port::CircleV2TelemetrySnapshot snapshot{};
     snapshot.enabled = enabled;
-    snapshot.frame_phase = ls2k::runtime::ToString(telemetry.frame_phase);
-    snapshot.next_phase = ls2k::runtime::ToString(telemetry.next_phase);
-    snapshot.dir = ls2k::runtime::ToString(telemetry.dir);
-    snapshot.reference_role = ls2k::runtime::ToString(telemetry.reference_role);
-    snapshot.reason = ls2k::runtime::ToString(telemetry.reason);
+    snapshot.frame_phase = ls2k::vision::ToString(telemetry.frame_phase);
+    snapshot.next_phase = ls2k::vision::ToString(telemetry.next_phase);
+    snapshot.dir = ls2k::vision::ToString(telemetry.dir);
+    snapshot.reference_role = ls2k::vision::ToString(telemetry.reference_role);
+    snapshot.reason = ls2k::vision::ToString(telemetry.reason);
     snapshot.motion_arc_available = telemetry.motion_arc_available;
     snapshot.inner_trace_elapsed_ms = telemetry.inner_trace_elapsed_ms;
     snapshot.directed_turn_angle_rad = telemetry.directed_turn_angle_rad;
     return snapshot;
 }
 
-bool CrossExitSuppressesCircleV2(const ls2k::legacy::VisualElementPipelineResult& element_result,
+bool CrossExitSuppressesCircleV2(const ls2k::vision::VisualElementPipelineResult& element_result,
                                  const RuntimeParameters& params) {
     return params.bev_element.cross_exit_takeover_enabled &&
            element_result.evidence.cross_exit.present;
@@ -554,16 +555,8 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
     }
     if (ExtractObjectBlock(json, "BEV_CONTROL_MODEL", block)) {
         ReadDoubleField(block,
-                        "LATERAL_ERROR_FAR_WEIGHT",
-                        params.bev_control_model.lateral_error_far_weight);
-        ReadDoubleField(block,
-                        "LATERAL_ERROR_TO_WHEEL_DELTA_GAIN",
-                        params.bev_control_model.lateral_offset_to_wheel_delta_gain);
-        ReadDoubleField(block,
                         "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN",
                         params.bev_control_model.lateral_offset_to_wheel_delta_gain);
-        params.bev_control_model.lateral_error_to_wheel_delta_gain =
-            params.bev_control_model.lateral_offset_to_wheel_delta_gain;
         ReadDoubleField(block,
                         "HEADING_ERROR_TO_WHEEL_DELTA_GAIN",
                         params.bev_control_model.heading_error_to_wheel_delta_gain);
@@ -631,16 +624,6 @@ void LoadRuntimeParamsJson(const std::string& path, RuntimeParameters& params) {
                              params.bev_element.circle_v2_entry_bottom_forward_max_m,
                              element_malformed);
         if (!ValidProbeBEVElementParameters(params.bev_element)) {
-            element_malformed = true;
-        }
-    }
-    object_status = ExtractStrictObjectBlock(json, "BEV_ELEMENT_RASTER", block);
-    if (object_status == ObjectBlockStatus::kMalformed) {
-        element_malformed = true;
-    } else if (object_status == ObjectBlockStatus::kRead) {
-        ReadStrictBoolField(block, "ENABLED", params.bev_element_raster.enabled, element_malformed);
-        ReadStrictIntField(block, "WIDTH", params.bev_element_raster.width, element_malformed);
-        if (params.bev_element_raster.width < 2) {
             element_malformed = true;
         }
     }
@@ -790,8 +773,8 @@ void DrawBevPanel(RgbImage& image,
         }
     }
 
-    for (const ls2k::legacy::BEVSimpleRowScan& row : simple.rows) {
-        for (const ls2k::legacy::BEVSimpleWhiteInterval& interval : row.intervals) {
+    for (const ls2k::vision::BEVSimpleRowScan& row : simple.rows) {
+        for (const ls2k::vision::BEVSimpleWhiteInterval& interval : row.intervals) {
             int x0 = 0;
             int y0 = 0;
             int x1 = 0;
@@ -870,7 +853,7 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
               << " visual_reference.candidate_count=" << pipeline.visual_selection.candidate_count
               << " visual_reference.rejected_candidate_reason="
               << pipeline.visual_selection.rejected_candidate_reason
-              << " reference.mode=" << ls2k::legacy::ToString(pipeline.continuity.mode)
+              << " reference.mode=" << ls2k::vision::ToString(pipeline.continuity.mode)
               << " reference.source=" << pipeline.continuity.source
               << " eligibility.usable=" << (pipeline.selected_usability.usable ? "true" : "false")
               << " eligibility.leading_usable_samples="
@@ -970,7 +953,7 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
                   << " present=" << (sample.present ? "true" : "false")
                   << " forward_m=" << sample.point.forward_m
                   << " lateral_m=" << sample.point.lateral_m
-                  << " source=" << ls2k::legacy::ToString(sample.source)
+                  << " source=" << ls2k::vision::ToString(sample.source)
                   << "\n";
     }
     for (std::size_t index = 0; index < pipeline.continuity.reference_path.sampled_path.size(); ++index) {
@@ -979,7 +962,7 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
                   << " present=" << (sample.present ? "true" : "false")
                   << " forward_m=" << sample.point.forward_m
                   << " lateral_m=" << sample.point.lateral_m
-                  << " source=" << ls2k::legacy::ToString(sample.source)
+                  << " source=" << ls2k::vision::ToString(sample.source)
                   << "\n";
     }
     for (std::size_t row_index = 0; row_index < simple.rows.size(); ++row_index) {
@@ -1002,56 +985,56 @@ void PrintSimpleDiagnostics(const BEVSimpleImage& bev,
 ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
                                      const RuntimeParameters& params,
                                      const ls2k::port::SteeringPerceptionMemory& prior_memory,
-                                     ls2k::legacy::BEVProjector& projector,
-                                     ls2k::legacy::BEVSampleProjectionLut& lut) {
+                                     ls2k::vision::BEVProjector& projector,
+                                     ls2k::vision::BEVSampleProjectionLut& lut) {
     ProbePipelineResult result{};
-    const ls2k::legacy::OtsuThresholdResult otsu_result =
-        ls2k::legacy::ComputeOtsuThresholdResult(frame_view);
+    const ls2k::vision::OtsuThresholdResult otsu_result =
+        ls2k::vision::ComputeOtsuThresholdResult(frame_view);
     result.classification_model =
-        ls2k::legacy::MakeBEVPixelClassificationModel(otsu_result,
+        ls2k::vision::MakeBEVPixelClassificationModel(otsu_result,
                                                       params.bev_classification);
     result.threshold = result.classification_model.threshold;
-    result.simple = ls2k::legacy::RunBEVSimplePerception(frame_view,
+    result.simple = ls2k::vision::RunBEVSimplePerception(frame_view,
                                                          result.classification_model,
                                                          params,
                                                          projector,
                                                          &lut);
     const ls2k::port::VisualReferenceCandidate line_candidate =
-        ls2k::legacy::MakeLineVisualReferenceCandidate(result.simple.reference_path,
-                                                       result.simple.reference_source);
-    ls2k::legacy::VisualElementPipelineInput element_input{};
+        ls2k::reference::MakeLineVisualReferenceCandidate(result.simple.reference_path,
+                                                          result.simple.reference_source);
+    ls2k::vision::VisualElementPipelineInput element_input{};
     element_input.sparse_rows = &result.simple.rows;
     element_input.frame = &frame_view;
     element_input.projector = &projector;
     element_input.classification_model = result.classification_model;
     element_input.line_candidate = line_candidate;
-    const ls2k::legacy::VisualElementPipelineResult element_result =
-        ls2k::legacy::RunVisualElementPipeline(element_input, params);
+    const ls2k::vision::VisualElementPipelineResult element_result =
+        ls2k::vision::RunVisualElementPipeline(element_input, params);
     result.element_evidence = element_result.evidence;
 
     std::optional<ls2k::port::VisualReferenceCandidate> circle_candidate{};
-    ls2k::runtime::CircleV2StepResult circle_result{};
+    ls2k::vision::CircleV2StepResult circle_result{};
     const bool cross_exit_takeover_active =
         CrossExitSuppressesCircleV2(element_result, params);
     const bool circle_v2_should_step =
         params.bev_element.circle_v2_enabled && !cross_exit_takeover_active;
     if (circle_v2_should_step) {
-        ls2k::runtime::SceneFrameView scene_frame{};
+        ls2k::vision::SceneFrameView scene_frame{};
         scene_frame.rows.rows =
-            ls2k::runtime::ConstArrayView<ls2k::legacy::BEVSimpleRowScan>(
+            ls2k::vision::ConstArrayView<ls2k::vision::BEVSimpleRowScan>(
                 result.simple.rows.data(),
                 result.simple.rows.size());
         scene_frame.ordinary_road = BuildProbeOrdinaryRoadModel(result.simple, params);
-        scene_frame.motion_arc = ls2k::runtime::MotionArcView(nullptr, StaticYawDelta);
+        scene_frame.motion_arc = ls2k::vision::MotionArcView(nullptr, StaticYawDelta);
         scene_frame.stamp.capture_time_ms = frame_view.capture_time_ms;
-        circle_result = ls2k::runtime::CircleV2Scene{}.Step(scene_frame,
+        circle_result = ls2k::vision::CircleV2Scene{}.Step(scene_frame,
                                                             prior_memory.circle_v2,
                                                             MakeCircleV2Params(params));
         result.circle_v2 = MakeCircleV2Snapshot(true, circle_result.telemetry);
         circle_candidate =
-            ls2k::runtime::AdaptCircleV2ReferencePlan(circle_result.reference_plan);
+            ls2k::vision::AdaptCircleV2ReferencePlan(circle_result.reference_plan);
     } else {
-        ls2k::runtime::CircleV2Telemetry telemetry{};
+        ls2k::vision::CircleV2Telemetry telemetry{};
         result.circle_v2 =
             MakeCircleV2Snapshot(params.bev_element.circle_v2_enabled, telemetry);
     }
@@ -1059,66 +1042,66 @@ ProbePipelineResult RunProbePipeline(const LegacyCameraFrameView& frame_view,
     std::vector<ls2k::port::VisualReferenceCandidate> candidates;
     candidates.reserve(1U + element_result.candidates.size() +
                        (circle_candidate.has_value() ? 1U : 0U));
-    const ls2k::legacy::ReferenceConnectivityFrameView connectivity_frame{
+    const ls2k::vision::ReferenceConnectivityFrameView connectivity_frame{
         frame_view,
         projector,
         result.classification_model,
         params.bev_classification,
     };
-    ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+    ls2k::vision::AppendConnectedVisualReferenceCandidate(connectivity_frame,
                                                           line_candidate,
                                                           candidates);
     for (const ls2k::port::VisualReferenceCandidate& candidate :
          element_result.candidates) {
-        ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+        ls2k::vision::AppendConnectedVisualReferenceCandidate(connectivity_frame,
                                                               candidate,
                                                               candidates);
     }
     if (circle_candidate.has_value()) {
-        ls2k::legacy::AppendConnectedVisualReferenceCandidate(connectivity_frame,
+        ls2k::vision::AppendConnectedVisualReferenceCandidate(connectivity_frame,
                                                               *circle_candidate,
                                                               candidates);
     }
-    result.visual_selection = ls2k::legacy::SelectVisualReference(candidates);
+    result.visual_selection = ls2k::reference::SelectVisualReference(candidates);
     const ls2k::port::ReferenceUsability current_usability =
-        ls2k::legacy::EvaluateReferenceUsability(result.visual_selection.reference_path, params);
+        ls2k::reference::EvaluateReferenceUsability(result.visual_selection.reference_path, params);
     if (current_usability.usable) {
         result.continuity.reference_path = result.visual_selection.reference_path;
         result.continuity.mode = result.visual_selection.reference_path.mode;
         result.continuity.source = result.visual_selection.source;
         result.continuity.reference_capture_time_ms = frame_view.capture_time_ms;
         result.continuity.next_hold_state =
-            ls2k::legacy::MakeReferenceHoldState(result.visual_selection.reference_path,
-                                                 frame_view.capture_time_ms,
-                                                 params);
+            ls2k::reference::MakeReferenceHoldState(result.visual_selection.reference_path,
+                                                    frame_view.capture_time_ms,
+                                                    params);
         result.selected_usability = current_usability;
     } else {
         const ls2k::port::ReferenceContinuityResult hold_candidate =
-            ls2k::legacy::BuildReferenceHoldCandidate(prior_memory.reference_hold, params);
+            ls2k::reference::BuildReferenceHoldCandidate(prior_memory.reference_hold, params);
         const ls2k::port::ReferenceUsability hold_usability =
-            ls2k::legacy::EvaluateReferenceUsability(hold_candidate.reference_path, params);
+            ls2k::reference::EvaluateReferenceUsability(hold_candidate.reference_path, params);
         if (hold_usability.usable) {
             result.continuity = hold_candidate;
             result.selected_usability = hold_usability;
         } else {
             result.continuity = {};
             result.selected_usability =
-                ls2k::legacy::EvaluateReferenceUsability(result.continuity.reference_path, params);
+                ls2k::reference::EvaluateReferenceUsability(result.continuity.reference_path, params);
         }
     }
     result.lateral_error =
-        ls2k::legacy::ComputeReferenceLateralError(result.continuity.reference_path,
-                                                  result.selected_usability,
-                                                  params);
-    result.tracking_geometry =
-        ls2k::legacy::ComputeReferenceTrackingGeometry(result.continuity.reference_path,
+        ls2k::reference::ComputeReferenceLateralError(result.continuity.reference_path,
                                                       result.selected_usability,
-                                                      params.bev_control_model);
+                                                      params);
+    result.tracking_geometry =
+        ls2k::reference::ComputeReferenceTrackingGeometry(result.continuity.reference_path,
+                                                          result.selected_usability,
+                                                          params.bev_control_model);
     result.reference_control =
-        ls2k::legacy::EvaluateReferenceControlReadiness(result.selected_usability,
-                                                        result.tracking_geometry,
-                                                        result.continuity.hold_selected);
-    ls2k::legacy::SteeringYawController yaw_controller{};
+        ls2k::reference::EvaluateReferenceControlReadiness(result.selected_usability,
+                                                           result.tracking_geometry,
+                                                           result.continuity.hold_selected);
+    ls2k::control::SteeringYawController yaw_controller{};
     ls2k::port::BEVControllerMemory probe_controller_memory{};
     yaw_controller.Configure(params);
     result.turn_output_target =
@@ -1177,11 +1160,11 @@ int main(int argc, char** argv) {
         }
         LoadRuntimeParamsJson(params_path, params);
 
-        ls2k::legacy::BEVProjector projector;
+        ls2k::vision::BEVProjector projector;
         if (!projector.Configure(params.bev_projector)) {
             throw std::runtime_error("failed to configure BEV projector");
         }
-        ls2k::legacy::BEVSampleProjectionLut lut{};
+        ls2k::vision::BEVSampleProjectionLut lut{};
         ls2k::port::SteeringPerceptionMemory prior_memory{};
         std::uint64_t frame_id = 1;
         for (const std::string& warmup_path : warmup_paths) {
@@ -1214,9 +1197,9 @@ int main(int argc, char** argv) {
 
         BEVSimplePerceptionResult selected_reference_overlay = pipeline.simple;
         selected_reference_overlay.reference_path = pipeline.continuity.reference_path;
-        selected_reference_overlay.reference_mode = ls2k::legacy::ToString(pipeline.continuity.mode);
+        selected_reference_overlay.reference_mode = ls2k::vision::ToString(pipeline.continuity.mode);
         selected_reference_overlay.reference_source = pipeline.continuity.source;
-        const BEVSimpleImage debug_bev = ls2k::legacy::BuildDebugDenseBevImage(frame.View(frame_id, 1),
+        const BEVSimpleImage debug_bev = ls2k::vision::BuildDebugDenseBevImage(frame.View(frame_id, 1),
                                                                                pipeline.classification_model,
                                                                                params,
                                                                                projector);

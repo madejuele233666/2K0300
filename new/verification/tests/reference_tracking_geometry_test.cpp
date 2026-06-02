@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 
-#include "legacy/steering_reference_tracking_geometry.hpp"
-#include "legacy/steering_reference_usability.hpp"
+#include "reference/reference_tracking_geometry.hpp"
+#include "reference/reference_usability.hpp"
 #include "port/runtime_parameter_types.hpp"
 
 namespace {
@@ -66,10 +66,10 @@ ls2k::port::ReferenceTrackingGeometry Compute(
     const ls2k::port::BEVReferencePath& path,
     const ls2k::port::RuntimeParameters& params) {
     const ls2k::port::ReferenceUsability usability =
-        ls2k::legacy::EvaluateReferenceUsability(path, params);
-    return ls2k::legacy::ComputeReferenceTrackingGeometry(path,
-                                                          usability,
-                                                          params.bev_control_model);
+        ls2k::reference::EvaluateReferenceUsability(path, params);
+    return ls2k::reference::ComputeReferenceTrackingGeometry(path,
+                                                       usability,
+                                                       params.bev_control_model);
 }
 
 void TestStraightReferenceProducesZeroCurvature() {

@@ -141,8 +141,8 @@ if [[ -e new/code/port/control_types.hpp ]]; then
 fi
 
 if [[ -e new/code/port/reference_curvature_types.hpp ||
-      -e new/code/legacy/steering_reference_curvature.cpp ||
-      -e new/code/legacy/steering_reference_curvature.hpp ]]; then
+      -e new/code/reference/reference_curvature.cpp ||
+      -e new/code/reference/reference_curvature.hpp ]]; then
   echo "bev_simple_residual_check failed: removed reference curvature files must not exist" >&2
   exit 1
 fi
@@ -208,9 +208,19 @@ if grep -q "$legacy_low_voltage_key" new/code/platform/param_store.cpp; then
   exit 1
 fi
 
-if ! grep -q "low_voltage_raw_threshold" new/code/platform/steering_media_protocol.hpp ||
-   ! grep -q "low_voltage_raw_threshold" new/code/platform/steering_media_protocol.cpp; then
+if ! grep -q "low_voltage_raw_threshold" new/code/transport/steering_media_protocol.hpp ||
+   ! grep -q "low_voltage_raw_threshold" new/code/transport/steering_media_protocol.cpp; then
   echo "bev_simple_residual_check failed: steering media config snapshot must expose low_voltage_raw_threshold" >&2
+  exit 1
+fi
+
+if grep -q '"BEV_ELEMENT_RASTER"\|"LATERAL_ERROR_FAR_WEIGHT"\|"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN"\|"camera_frame_width"\|"camera_frame_height"' new/config/default_params.json; then
+  echo "bev_simple_residual_check failed: default_params.json must not retain removed runtime parameter keys" >&2
+  exit 1
+fi
+
+if grep -q '"BEV_ELEMENT_RASTER"\|"LATERAL_ERROR_FAR_WEIGHT"\|"LATERAL_ERROR_TO_WHEEL_DELTA_GAIN"' new/code/platform/param_store.cpp new/code/transport/steering_media_protocol.cpp new/code/transport/steering_media_protocol.hpp; then
+  echo "bev_simple_residual_check failed: active runtime parser/media contract must not expose removed BEV debug/raster keys" >&2
   exit 1
 fi
 
@@ -220,52 +230,55 @@ if ! grep -Fq 'element_evidence.records[' new/user/scene_overlay_probe.cpp; then
 fi
 
 if rg -n "source ==|source !=|mode == port::ReferenceMode|mode != port::ReferenceMode|switch \\(mode\\)|ReferenceMode" \
-  new/code/runtime/control_loop.cpp \
-  new/code/legacy/steering_reference_control_readiness.cpp \
-  new/code/legacy/steering_reference_usability.cpp \
-  new/code/legacy/steering_reference_lateral_error.cpp \
-  new/code/legacy/steering_reference_tracking_geometry.cpp \
-  new/code/legacy/steering_yaw_controller.cpp; then
+  new/code/runtime/loops/control_loop.cpp \
+  new/code/reference/reference_control_readiness.cpp \
+  new/code/reference/reference_usability.cpp \
+  new/code/reference/reference_lateral_error.cpp \
+  new/code/reference/reference_tracking_geometry.cpp \
+  new/code/control/steering_yaw_controller.cpp; then
   echo "bev_simple_residual_check failed: control/usability/tracking/yaw layers must not decide from source or mode" >&2
   exit 1
 fi
 
 if rg -n "port::Perception""Result|perception_result\\.hpp" \
-  new/code/legacy \
+  new/code/vision \
+  new/code/reference \
+  new/code/control \
+  new/code/safety \
   -g '!new/code/archive/**'; then
-  echo "bev_simple_residual_check failed: legacy analysis must not include or construct Perception""Result" >&2
+  echo "bev_simple_residual_check failed: domain analysis must not include or construct Perception""Result" >&2
   exit 1
 fi
 
 if rg -n "perception_result\\.hpp" \
-  new/code/legacy/steering_reference_usability.cpp \
-  new/code/legacy/steering_reference_usability.hpp \
-  new/code/legacy/steering_reference_lateral_error.cpp \
-  new/code/legacy/steering_reference_lateral_error.hpp \
-  new/code/legacy/steering_reference_tracking_geometry.cpp \
-  new/code/legacy/steering_reference_tracking_geometry.hpp \
-  new/code/legacy/steering_yaw_controller.cpp \
-  new/code/legacy/steering_yaw_controller.hpp; then
+  new/code/reference/reference_usability.cpp \
+  new/code/reference/reference_usability.hpp \
+  new/code/reference/reference_lateral_error.cpp \
+  new/code/reference/reference_lateral_error.hpp \
+  new/code/reference/reference_tracking_geometry.cpp \
+  new/code/reference/reference_tracking_geometry.hpp \
+  new/code/control/steering_yaw_controller.cpp \
+  new/code/control/steering_yaw_controller.hpp; then
   echo "bev_simple_residual_check failed: reference/yaw layers must not include perception_result.hpp" >&2
   exit 1
 fi
 
 if rg -n "Reference""Usability|reference""_usability" \
-  new/code/legacy/steering_bev_simple_perception.cpp \
-  new/code/legacy/steering_bev_simple_perception.hpp; then
+  new/code/vision/bev/bev_simple_perception.cpp \
+  new/code/vision/bev/bev_simple_perception.hpp; then
   echo "bev_simple_residual_check failed: simple BEV perception and hold builders must not depend on reference usability" >&2
   exit 1
 fi
 
 if rg -n "ComputeEffective""SpeedTargetForState|ResolveRuntime""SpeedTarget" \
-  new/code/runtime/assistant_service.cpp; then
+  new/code/runtime/services/assistant_service.cpp; then
   echo "bev_simple_residual_check failed: assistant service must serialize published speed facts, not recompute them" >&2
   exit 1
 fi
 
 if rg -n "imu_valid" \
-  new/code/legacy/steering_yaw_controller.cpp \
-  new/code/legacy/steering_yaw_controller.hpp; then
+  new/code/control/steering_yaw_controller.cpp \
+  new/code/control/steering_yaw_controller.hpp; then
   echo "bev_simple_residual_check failed: yaw controller must not receive or branch on IMU validity" >&2
   exit 1
 fi

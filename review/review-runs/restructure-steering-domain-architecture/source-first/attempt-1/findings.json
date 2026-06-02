@@ -1,0 +1,16 @@
+{
+  "change": "restructure-steering-domain-architecture",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "WARNING",
+      "dimension": "Coherence",
+      "problem": "The active documentation entrypoints still route developers to deleted `new/docs/visual-element-sparse-circle-v1/v2/v5/v6` files, so the migrated steering ownership tree is not actually documented through valid current-authority paths.",
+      "evidence": "`README.md:11` names `new/docs/visual-element-sparse-circle-v1.zh-CN.md` as the current authority. `new/docs/README.md:10-15` lists V6, V5, V2, and V1 as active documents. A filesystem check during review confirmed that `new/docs/visual-element-sparse-circle-v1.zh-CN.md`, `new/docs/visual-element-sparse-circle-v2.zh-CN.md`, `new/docs/visual-element-sparse-circle-v5.zh-CN.md`, and `new/docs/visual-element-sparse-circle-v6.zh-CN.md` do not exist in the active tree. This conflicts with `openspec/changes/restructure-steering-domain-architecture/specs/steering-domain-architecture/spec.md:11-14` and the completed implementation tasks at `openspec/changes/restructure-steering-domain-architecture/tasks.md:108-109,134` that require active docs to describe the new ownership tree and distinguish active paths from superseded ones.",
+      "recommendation": "Restore current active copies of the referenced visual-element architecture documents at the paths named by the active docs, or update `README.md` and `new/docs/README.md` so they point only to existing active documents and explicitly route older V1/V2/V5/V6 material into `new/docs/superseded/` if that content is no longer current.",
+      "blocking": true,
+      "auto_fixable": false
+    }
+  ]
+}

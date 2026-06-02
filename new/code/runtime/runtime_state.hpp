@@ -9,13 +9,15 @@
 #include <mutex>
 
 #include "port/camera_frame_types.hpp"
+#include "port/motion_history_types.hpp"
 #include "port/perception_result.hpp"
 #include "port/sensor_sample_types.hpp"
 #include "port/steering_state_types.hpp"
-#include "runtime/control_decision.hpp"
-#include "runtime/control_debug_snapshot.hpp"
-#include "runtime/motion_types.hpp"
-#include "runtime/tuning_state.hpp"
+#include "safety/control_apply_observation.hpp"
+#include "safety/control_gate.hpp"
+#include "observability/control_debug_snapshot.hpp"
+#include "control/motion_types.hpp"
+#include "control/tuning_state.hpp"
 
 namespace ls2k::runtime {
 
@@ -102,46 +104,6 @@ struct CameraCaptureHistory {
     std::array<CameraFrameHandle, kCapacity> handles{};  ///< 环形缓冲区数组
     std::size_t next_index = 0;   ///< 下一个写入位置
     std::size_t count = 0;        ///< 有效句柄数量
-};
-
-/// 控制侧运动历史采样，只记录传感器事实
-struct MotionHistorySample {
-    uint64_t time_ms = 0;          ///< control tick 时间
-    bool imu_valid = false;        ///< IMU 是否有效
-    float gyro_z = 0.0F;           ///< yaw rate
-    bool encoder_valid = false;    ///< encoder 是否有效
-    int left_encoder_delta = 0;    ///< 左编码器增量
-    int right_encoder_delta = 0;   ///< 右编码器增量
-};
-
-/// 固定容量运动历史 ring buffer
-struct MotionHistory {
-    static constexpr std::size_t kCapacity = 2048;
-
-    void Push(const MotionHistorySample& sample) {
-        samples[next_index] = sample;
-        next_index = (next_index + 1) % kCapacity;
-        if (count < kCapacity) {
-            ++count;
-        }
-    }
-
-    std::array<MotionHistorySample, kCapacity> Ordered() const {
-        std::array<MotionHistorySample, kCapacity> ordered{};
-        for (std::size_t offset = 0; offset < count; ++offset) {
-            ordered[offset] = OldestOffset(offset);
-        }
-        return ordered;
-    }
-
-    const MotionHistorySample& OldestOffset(std::size_t offset) const {
-        const std::size_t src = (next_index + kCapacity - count + offset) % kCapacity;
-        return samples[src];
-    }
-
-    std::array<MotionHistorySample, kCapacity> samples{};
-    std::size_t next_index = 0;
-    std::size_t count = 0;
 };
 
 /// 物化自有相机帧：将 LegacyCameraFrameView 的数据复制到帧槽中并返回句柄
@@ -256,10 +218,10 @@ struct RuntimeState {
     std::size_t next_camera_frame_slot = 0;              ///< 下一帧槽轮转索引
     port::CameraFrameStoreHealth camera_frame_store_health{};  ///< 相机帧存储统计
     port::ActuatorCommand last_command{};                 ///< 上一周期执行器命令
-    ControlCycleObservation control_observation{};        ///< 控制周期观察结果
-    ControlDebugSnapshot control_debug_snapshot{};        ///< 控制调试快照
+    safety::ControlCycleObservation control_observation{};  ///< 控制周期观察结果
+    observability::ControlDebugSnapshot control_debug_snapshot{};  ///< 控制调试快照
     port::LowVoltageSample low_voltage_last_sample{};     ///< 上次低电压采样结果
-    MotionHistory motion_history{};                       ///< control tick 运动历史
+    port::MotionHistory motion_history{};                 ///< control tick 运动历史
 
     // Lifecycle flags.
     bool startup_complete = false;                        ///< 启动是否完成
@@ -269,9 +231,9 @@ struct RuntimeState {
     std::atomic<bool> stop_requested{false};              ///< 停止请求标志
     std::atomic<bool> exit_requested{false};              ///< 退出请求标志
     bool automation_start_fired = false;                  ///< 自动化启动是否已触发
-    MotionIntent motion_intent{};                         ///< 运动意图
-    MotionSupervisorState motion_state{};                 ///< 运动监督器状态
-    RuntimeTuningState tuning_state{};                    ///< 运行时调参状态
+    control::MotionIntent motion_intent{};                ///< 运动意图
+    control::MotionSupervisorState motion_state{};        ///< 运动监督器状态
+    control::RuntimeTuningState tuning_state{};           ///< 运行时调参状态
     std::atomic<bool> low_voltage_emergency{false};       ///< 低电压紧急标志
     std::atomic<uint64_t> perception_memory_reset_generation{0};  ///< 感知记忆复位代数
 

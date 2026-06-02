@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "legacy/steering_circle_element_evidence.hpp"
-#include "legacy/steering_cross_exit_element_evidence.hpp"
-#include "legacy/steering_visual_element_pipeline.hpp"
+#include "vision/elements/circle_element_evidence.hpp"
+#include "vision/elements/cross_exit_element_evidence.hpp"
+#include "vision/elements/visual_element_pipeline.hpp"
 
 namespace {
 
@@ -20,14 +20,14 @@ void Expect(bool condition, const std::string& message) {
     }
 }
 
-ls2k::legacy::BEVSimpleRowScan MakeRow(float forward_m,
+ls2k::vision::BEVSimpleRowScan MakeRow(float forward_m,
                                        std::size_t sampleable_count,
                                        std::size_t white_count,
                                        std::size_t unknown_count,
                                        float sampleable_width_m,
                                        float interval_left_m,
                                        float interval_right_m) {
-    ls2k::legacy::BEVSimpleRowScan row{};
+    ls2k::vision::BEVSimpleRowScan row{};
     row.valid = true;
     row.forward_m = forward_m;
     row.sampleable_count = sampleable_count;
@@ -40,7 +40,7 @@ ls2k::legacy::BEVSimpleRowScan MakeRow(float forward_m,
     row.sampleable_right_m = 0.5F * sampleable_width_m;
     row.sampleable_width_m = sampleable_width_m;
     if (interval_right_m > interval_left_m) {
-        ls2k::legacy::BEVSimpleWhiteInterval interval{};
+        ls2k::vision::BEVSimpleWhiteInterval interval{};
         interval.forward_m = forward_m;
         interval.left_m = interval_left_m;
         interval.right_m = interval_right_m;
@@ -51,16 +51,16 @@ ls2k::legacy::BEVSimpleRowScan MakeRow(float forward_m,
     return row;
 }
 
-std::vector<ls2k::legacy::BEVSimpleRowScan> WideCrossRows() {
+std::vector<ls2k::vision::BEVSimpleRowScan> WideCrossRows() {
     return {MakeRow(0.24F, 80U, 78U, 0U, 1.40F, -0.50F, 0.50F),
             MakeRow(0.30F, 80U, 78U, 0U, 1.40F, -0.58F, 0.58F),
             MakeRow(0.36F, 80U, 78U, 0U, 1.40F, -0.66F, 0.66F)};
 }
 
-std::vector<ls2k::legacy::BEVSimpleRowScan> MakeRowsFromReachRows(
+std::vector<ls2k::vision::BEVSimpleRowScan> MakeRowsFromReachRows(
     const std::vector<float>& left_reach_near_to_far,
     const std::vector<float>& right_reach_near_to_far) {
-    std::vector<ls2k::legacy::BEVSimpleRowScan> rows;
+    std::vector<ls2k::vision::BEVSimpleRowScan> rows;
     const std::size_t count = std::min(left_reach_near_to_far.size(),
                                        right_reach_near_to_far.size());
     rows.reserve(count);
@@ -72,7 +72,7 @@ std::vector<ls2k::legacy::BEVSimpleRowScan> MakeRowsFromReachRows(
                                                 0.0F,
                                                 1.0F) *
                                      65.0F);
-        ls2k::legacy::BEVSimpleRowScan row =
+        ls2k::vision::BEVSimpleRowScan row =
             MakeRow(0.06F + static_cast<float>(index) * 0.06F,
                     65U,
                     std::max<std::size_t>(1U, white_count),
@@ -86,7 +86,7 @@ std::vector<ls2k::legacy::BEVSimpleRowScan> MakeRowsFromReachRows(
     return rows;
 }
 
-std::vector<ls2k::legacy::BEVSimpleRowScan> LeftCircleRows() {
+std::vector<ls2k::vision::BEVSimpleRowScan> LeftCircleRows() {
     std::vector<float> left(24U, 0.42F);
     left[0] = 0.12F;
     left[1] = 0.18F;
@@ -95,11 +95,11 @@ std::vector<ls2k::legacy::BEVSimpleRowScan> LeftCircleRows() {
     return MakeRowsFromReachRows(left, right);
 }
 
-ls2k::legacy::BEVElementRasterFrame MakeRasterFromBounds(float near_left_m,
+ls2k::vision::BEVElementRasterFrame MakeRasterFromBounds(float near_left_m,
                                                          float near_right_m,
                                                          float far_left_m,
                                                          float far_right_m) {
-    ls2k::legacy::BEVElementRasterFrame raster{};
+    ls2k::vision::BEVElementRasterFrame raster{};
     raster.valid = true;
     raster.enabled = true;
     raster.width = 65;
@@ -126,10 +126,10 @@ ls2k::legacy::BEVElementRasterFrame MakeRasterFromBounds(float near_left_m,
     return raster;
 }
 
-ls2k::legacy::BEVElementRasterFrame MakeRasterFromReachRows(
+ls2k::vision::BEVElementRasterFrame MakeRasterFromReachRows(
     const std::vector<float>& left_reach_near_to_far,
     const std::vector<float>& right_reach_near_to_far) {
-    ls2k::legacy::BEVElementRasterFrame raster{};
+    ls2k::vision::BEVElementRasterFrame raster{};
     raster.valid = true;
     raster.enabled = true;
     raster.width = 65;
@@ -156,12 +156,12 @@ ls2k::legacy::BEVElementRasterFrame MakeRasterFromReachRows(
     return raster;
 }
 
-ls2k::legacy::BEVElementRasterFrame MakeRasterWithUnknownEdgeReachRows(
+ls2k::vision::BEVElementRasterFrame MakeRasterWithUnknownEdgeReachRows(
     const std::vector<float>& left_reach_near_to_far,
     const std::vector<float>& right_reach_near_to_far,
     bool left_unknown_prefix,
     bool right_unknown_suffix) {
-    ls2k::legacy::BEVElementRasterFrame raster{};
+    ls2k::vision::BEVElementRasterFrame raster{};
     raster.valid = true;
     raster.enabled = true;
     raster.width = 65;
@@ -193,7 +193,7 @@ ls2k::legacy::BEVElementRasterFrame MakeRasterWithUnknownEdgeReachRows(
     return raster;
 }
 
-void AddDetachedLeftIsland(ls2k::legacy::BEVElementRasterFrame& raster,
+void AddDetachedLeftIsland(ls2k::vision::BEVElementRasterFrame& raster,
                            std::size_t near_to_far_index,
                            float left_m,
                            float right_m) {
@@ -210,7 +210,7 @@ void AddDetachedLeftIsland(ls2k::legacy::BEVElementRasterFrame& raster,
     }
 }
 
-ls2k::legacy::BEVElementRasterFrame LeftCircleRaster() {
+ls2k::vision::BEVElementRasterFrame LeftCircleRaster() {
     std::vector<float> left(24U, 0.42F);
     left[0] = 0.12F;
     left[1] = 0.18F;
@@ -219,7 +219,7 @@ ls2k::legacy::BEVElementRasterFrame LeftCircleRaster() {
     return MakeRasterFromReachRows(left, right);
 }
 
-ls2k::legacy::BEVElementRasterFrame RightCircleRaster() {
+ls2k::vision::BEVElementRasterFrame RightCircleRaster() {
     std::vector<float> left(24U, 0.20F);
     std::vector<float> right(24U, 0.42F);
     right[0] = 0.12F;
@@ -263,7 +263,7 @@ ls2k::port::VisualReferenceCandidate MakeLineCandidate(int present_count) {
 void TestCrossPresentFromWideRows() {
     const ls2k::port::RuntimeParameters params{};
     const ls2k::port::CrossExitElementEvidence evidence =
-        ls2k::legacy::DetectCrossExitEvidence(WideCrossRows(), params);
+        ls2k::vision::DetectCrossExitEvidence(WideCrossRows(), params);
     Expect(evidence.present, "wide contiguous rows must produce cross evidence");
     Expect(evidence.reason == "present", "present evidence must expose present reason");
     Expect(evidence.confidence >= 0.70F, "present evidence must have configured confidence");
@@ -275,69 +275,69 @@ void TestCrossPresentFromWideRows() {
 
 void TestCrossAbsentReasons() {
     const ls2k::port::RuntimeParameters params{};
-    Expect(ls2k::legacy::DetectCrossExitEvidence({}, params).reason == "no_sparse_rows",
+    Expect(ls2k::vision::DetectCrossExitEvidence({}, params).reason == "no_sparse_rows",
            "empty rows must explain absence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> unsupported{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> unsupported{
         MakeRow(0.2F, 4U, 4U, 0U, 1.0F, -0.4F, 0.4F),
         MakeRow(0.3F, 4U, 4U, 0U, 1.0F, -0.4F, 0.4F),
         MakeRow(0.4F, 4U, 4U, 0U, 1.0F, -0.4F, 0.4F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(unsupported, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(unsupported, params).reason ==
                "insufficient_sampleable_support",
            "low sampleable support must fail closed");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> narrow{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> narrow{
         MakeRow(0.2F, 40U, 12U, 0U, 1.0F, -0.10F, 0.10F),
         MakeRow(0.3F, 40U, 12U, 0U, 1.0F, -0.10F, 0.10F),
         MakeRow(0.4F, 40U, 12U, 0U, 1.0F, -0.10F, 0.10F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(narrow, params).reason == "wide_white_rows_absent",
+    Expect(ls2k::vision::DetectCrossExitEvidence(narrow, params).reason == "wide_white_rows_absent",
            "narrow white rows must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> loose_white_ratio{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> loose_white_ratio{
         MakeRow(0.24F, 100U, 94U, 0U, 1.00F, -0.36F, 0.36F),
         MakeRow(0.30F, 100U, 94U, 0U, 1.00F, -0.43F, 0.43F),
         MakeRow(0.36F, 100U, 94U, 0U, 1.00F, -0.50F, 0.50F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(loose_white_ratio, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(loose_white_ratio, params).reason ==
                "wide_white_rows_absent",
            "wide rows below the configured white ratio must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> one_side_open{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> one_side_open{
         MakeRow(0.24F, 170U, 165U, 1U, 1.00F, -0.49F, 0.17F),
         MakeRow(0.30F, 170U, 165U, 1U, 1.00F, -0.49F, 0.17F),
         MakeRow(0.36F, 170U, 165U, 1U, 1.00F, -0.49F, 0.17F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(one_side_open, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(one_side_open, params).reason ==
                "wide_white_rows_absent",
            "one-side circle-like opening must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> one_side_open_with_straight_edge{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> one_side_open_with_straight_edge{
         MakeRow(0.24F, 170U, 165U, 0U, 1.00F, -0.49F, 0.25F),
         MakeRow(0.30F, 170U, 165U, 0U, 1.00F, -0.49F, 0.25F),
         MakeRow(0.36F, 170U, 165U, 0U, 1.00F, -0.49F, 0.25F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(one_side_open_with_straight_edge, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(one_side_open_with_straight_edge, params).reason ==
                "wide_white_rows_absent",
            "one-side opening with straight opposite edge must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> far_wide_bend{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> far_wide_bend{
         MakeRow(0.80F, 80U, 70U, 2U, 1.30F, -0.57F, 0.63F),
         MakeRow(0.86F, 80U, 70U, 2U, 1.30F, -0.61F, 0.61F),
         MakeRow(0.92F, 80U, 70U, 2U, 1.30F, -0.65F, 0.57F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(far_wide_bend, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(far_wide_bend, params).reason ==
                "wide_white_rows_absent",
            "far-only wide bend rows must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> transient_expansion{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> transient_expansion{
         MakeRow(0.24F, 100U, 98U, 0U, 1.00F, -0.36F, 0.36F),
         MakeRow(0.30F, 100U, 98U, 0U, 1.00F, -0.50F, 0.50F),
         MakeRow(0.36F, 100U, 98U, 0U, 1.00F, -0.36F, 0.36F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(transient_expansion, params).reason ==
+    Expect(ls2k::vision::DetectCrossExitEvidence(transient_expansion, params).reason ==
                "wide_white_rows_absent",
            "a one-row expansion spike must not become cross evidence");
 
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> below_cross_width_symmetric_expansion{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> below_cross_width_symmetric_expansion{
         MakeRow(0.18F, 100U, 98U, 0U, 1.00F, -0.36F, 0.36F),
         MakeRow(0.24F, 100U, 98U, 0U, 1.00F, -0.42F, 0.42F),
         MakeRow(0.30F, 100U, 98U, 0U, 1.00F, -0.44F, 0.44F)};
-    Expect(ls2k::legacy::DetectCrossExitEvidence(below_cross_width_symmetric_expansion,
+    Expect(ls2k::vision::DetectCrossExitEvidence(below_cross_width_symmetric_expansion,
                                                  params).reason ==
                "wide_white_rows_absent",
            "symmetric expansion below the cross width threshold must not become cross evidence");
@@ -346,12 +346,12 @@ void TestCrossAbsentReasons() {
 void TestCrossWhiteRatioCanBeParameterized() {
     ls2k::port::RuntimeParameters params{};
     params.bev_element.cross_wide_row_white_ratio_min = 0.98F;
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> strict{
+    const std::vector<ls2k::vision::BEVSimpleRowScan> strict{
         MakeRow(0.24F, 100U, 97U, 0U, 1.00F, -0.36F, 0.36F),
         MakeRow(0.30F, 100U, 97U, 0U, 1.00F, -0.43F, 0.43F),
         MakeRow(0.36F, 100U, 97U, 0U, 1.00F, -0.50F, 0.50F)};
     const ls2k::port::CrossExitElementEvidence evidence =
-        ls2k::legacy::DetectCrossExitEvidence(strict, params);
+        ls2k::vision::DetectCrossExitEvidence(strict, params);
     Expect(!evidence.present, "white ratio below an explicitly stricter threshold must fail");
     Expect(evidence.reason == "wide_white_rows_absent",
            "strict white-ratio rejection must remain fail-closed");
@@ -360,10 +360,10 @@ void TestCrossWhiteRatioCanBeParameterized() {
 void TestCandidateTakeoverEnabledByDefault() {
     const ls2k::port::RuntimeParameters params{};
     const ls2k::port::CrossExitElementEvidence evidence =
-        ls2k::legacy::DetectCrossExitEvidence(WideCrossRows(), params);
+        ls2k::vision::DetectCrossExitEvidence(WideCrossRows(), params);
     ls2k::port::VisualElementCandidateSummary summary{};
     const ls2k::port::VisualReferenceCandidate candidate =
-        ls2k::legacy::BuildCrossExitVisualReferenceCandidate(evidence,
+        ls2k::vision::BuildCrossExitVisualReferenceCandidate(evidence,
                                                             MakeLineCandidate(3),
                                                             params,
                                                             summary);
@@ -379,10 +379,10 @@ void TestCandidateCanBeExplicitlyIncluded() {
     ls2k::port::RuntimeParameters params{};
     params.bev_element.cross_exit_takeover_enabled = true;
     const ls2k::port::CrossExitElementEvidence evidence =
-        ls2k::legacy::DetectCrossExitEvidence(WideCrossRows(), params);
+        ls2k::vision::DetectCrossExitEvidence(WideCrossRows(), params);
     ls2k::port::VisualElementCandidateSummary summary{};
     const ls2k::port::VisualReferenceCandidate candidate =
-        ls2k::legacy::BuildCrossExitVisualReferenceCandidate(evidence,
+        ls2k::vision::BuildCrossExitVisualReferenceCandidate(evidence,
                                                             MakeLineCandidate(3),
                                                             params,
                                                             summary);
@@ -396,12 +396,12 @@ void TestCandidateRejectsGappedLineFacts() {
     ls2k::port::RuntimeParameters params{};
     params.bev_element.cross_exit_takeover_enabled = true;
     const ls2k::port::CrossExitElementEvidence evidence =
-        ls2k::legacy::DetectCrossExitEvidence(WideCrossRows(), params);
+        ls2k::vision::DetectCrossExitEvidence(WideCrossRows(), params);
     ls2k::port::VisualReferenceCandidate line = MakeLineCandidate(3);
     line.reference_path.sampled_path[1].present = false;
     ls2k::port::VisualElementCandidateSummary summary{};
     const ls2k::port::VisualReferenceCandidate candidate =
-        ls2k::legacy::BuildCrossExitVisualReferenceCandidate(evidence, line, params, summary);
+        ls2k::vision::BuildCrossExitVisualReferenceCandidate(evidence, line, params, summary);
     Expect(!candidate.present, "gapped line facts must not build a cross candidate");
     Expect(!summary.built, "gapped line facts must fail before candidate build");
     Expect(!summary.included_in_arbitration, "gapped candidate must never enter arbitration");
@@ -410,9 +410,9 @@ void TestCandidateRejectsGappedLineFacts() {
 
 void TestCircleLeftPresentFromRaster() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::BEVElementRasterFrame raster = LeftCircleRaster();
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(evidence.left_raw.id == "circle_left_raw", "left raw id must be stable");
     Expect(evidence.left_raw.present,
            "left opening plus right straight must produce left circle, reason=" +
@@ -429,9 +429,9 @@ void TestCircleLeftPresentFromRaster() {
 
 void TestCircleLeftPresentFromSparseRows() {
     const ls2k::port::RuntimeParameters params{};
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows = LeftCircleRows();
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(rows, params);
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows = LeftCircleRows();
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(rows, params);
     Expect(evidence.left_raw.id == "circle_left_raw", "sparse left raw id must be stable");
     Expect(evidence.left_raw.present,
            "sparse left opening plus right straight must produce left circle, reason=" +
@@ -443,9 +443,9 @@ void TestCircleLeftPresentFromSparseRows() {
 
 void TestCircleRightPresentFromRaster() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame raster = RightCircleRaster();
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::BEVElementRasterFrame raster = RightCircleRaster();
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(evidence.right_raw.id == "circle_right_raw", "right raw id must be stable");
     Expect(evidence.right_raw.present, "right opening plus left straight must produce right circle");
     Expect(evidence.right_raw.reason == "present", "right circle present reason must be present");
@@ -462,36 +462,36 @@ void TestCircleAbsentCases() {
     both_right[0] = 0.12F;
     both_right[1] = 0.18F;
     both_right[2] = 0.34F;
-    const ls2k::legacy::BEVElementRasterFrame both_open =
+    const ls2k::vision::BEVElementRasterFrame both_open =
         MakeRasterFromReachRows(both_left, both_right);
-    const ls2k::legacy::CircleElementEvidenceResult both =
-        ls2k::legacy::DetectCircleElementEvidence(&both_open, params);
+    const ls2k::vision::CircleElementEvidenceResult both =
+        ls2k::vision::DetectCircleElementEvidence(&both_open, params);
     Expect(!both.left_raw.present && !both.right_raw.present,
            "both-side opening must not produce circle evidence");
     Expect(both.left_raw.reason == "both_sides_open",
            "both-side opening must be distinguishable");
 
-    const ls2k::legacy::BEVElementRasterFrame straight =
+    const ls2k::vision::BEVElementRasterFrame straight =
         MakeRasterFromBounds(-0.12F, 0.12F, -0.12F, 0.12F);
-    const ls2k::legacy::CircleElementEvidenceResult no_open =
-        ls2k::legacy::DetectCircleElementEvidence(&straight, params);
+    const ls2k::vision::CircleElementEvidenceResult no_open =
+        ls2k::vision::DetectCircleElementEvidence(&straight, params);
     Expect(!no_open.left_raw.present && !no_open.right_raw.present,
            "no opening must not produce circle evidence");
     Expect(no_open.left_raw.reason == "no_opening", "no opening reason must be stable");
 
-    const ls2k::legacy::CircleElementEvidenceResult missing =
-        ls2k::legacy::DetectCircleElementEvidence(nullptr, params);
+    const ls2k::vision::CircleElementEvidenceResult missing =
+        ls2k::vision::DetectCircleElementEvidence(nullptr, params);
     Expect(missing.left_raw.reason == "raster_unavailable",
            "missing raster must fail closed");
 }
 
 void TestCircleRejectsSampleableBoundaryClippedOpening() {
     const ls2k::port::RuntimeParameters params{};
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows =
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows =
         MakeRowsFromReachRows({0.12F, 0.18F, 0.65F, 0.65F},
                               {0.20F, 0.20F, 0.20F, 0.20F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(rows, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(rows, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
            "sampleable-boundary clipped rows must not become circle evidence");
     Expect(evidence.left_raw.reason == "insufficient_sampleable_support",
@@ -502,13 +502,13 @@ void TestCircleRejectsUnknownScreenEdgeClippedRasterOpening() {
     const ls2k::port::RuntimeParameters params{};
     const std::vector<float> left_open{0.12F, 0.18F, 0.34F, 0.42F, 0.42F};
     const std::vector<float> right_straight(5U, 0.20F);
-    const ls2k::legacy::BEVElementRasterFrame left_unknown =
+    const ls2k::vision::BEVElementRasterFrame left_unknown =
         MakeRasterWithUnknownEdgeReachRows(left_open,
                                            right_straight,
                                            true,
                                            false);
-    const ls2k::legacy::CircleElementEvidenceResult left_evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&left_unknown, params);
+    const ls2k::vision::CircleElementEvidenceResult left_evidence =
+        ls2k::vision::DetectCircleElementEvidence(&left_unknown, params);
     Expect(!left_evidence.left_raw.present && !left_evidence.right_raw.present,
            "left unknown screen-edge prefix must not become raster circle evidence");
     Expect(left_evidence.left_raw.reason == "insufficient_sampleable_support",
@@ -516,13 +516,13 @@ void TestCircleRejectsUnknownScreenEdgeClippedRasterOpening() {
 
     const std::vector<float> left_straight(5U, 0.20F);
     const std::vector<float> right_open{0.12F, 0.18F, 0.34F, 0.42F, 0.42F};
-    const ls2k::legacy::BEVElementRasterFrame right_unknown =
+    const ls2k::vision::BEVElementRasterFrame right_unknown =
         MakeRasterWithUnknownEdgeReachRows(left_straight,
                                            right_open,
                                            false,
                                            true);
-    const ls2k::legacy::CircleElementEvidenceResult right_evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&right_unknown, params);
+    const ls2k::vision::CircleElementEvidenceResult right_evidence =
+        ls2k::vision::DetectCircleElementEvidence(&right_unknown, params);
     Expect(!right_evidence.left_raw.present && !right_evidence.right_raw.present,
            "right unknown screen-edge suffix must not become raster circle evidence");
     Expect(right_evidence.right_raw.reason == "insufficient_sampleable_support",
@@ -531,11 +531,11 @@ void TestCircleRejectsUnknownScreenEdgeClippedRasterOpening() {
 
 void TestCircleOpeningUsesNetExpansionNotStrictMonotonic() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame net_open =
+    const ls2k::vision::BEVElementRasterFrame net_open =
         MakeRasterFromReachRows({0.10F, 0.30F, 0.29F, 0.29F},
                                 {0.24F, 0.24F, 0.24F, 0.24F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&net_open, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&net_open, params);
     Expect(evidence.left_raw.present,
            "net left expansion with a small later contraction must remain left circle");
     Expect(evidence.left_raw.reason == "present",
@@ -548,11 +548,11 @@ void TestCircleOpeningUsesNetExpansionNotStrictMonotonic() {
 
 void TestCircleRejectsTransientOpeningSpike() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame spike =
+    const ls2k::vision::BEVElementRasterFrame spike =
         MakeRasterFromReachRows({0.20F, 0.32F, 0.20F, 0.20F},
                                 {0.24F, 0.24F, 0.24F, 0.24F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&spike, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&spike, params);
     Expect(!evidence.left_raw.present,
            "a transient left expansion spike must not become circle evidence");
     Expect(evidence.left_raw.reason == "no_opening",
@@ -561,15 +561,15 @@ void TestCircleRejectsTransientOpeningSpike() {
 
 void TestCircleIgnoresDetachedWhiteIslandOutsideMainBand() {
     const ls2k::port::RuntimeParameters params{};
-    ls2k::legacy::BEVElementRasterFrame raster =
+    ls2k::vision::BEVElementRasterFrame raster =
         MakeRasterFromReachRows({0.17F, 0.17F, 0.17F, 0.17F, 0.17F, 0.17F},
                                 {0.21F, 0.29F, 0.35F, 0.41F, 0.49F, 0.55F});
     AddDetachedLeftIsland(raster, 2U, -0.65F, -0.57F);
     AddDetachedLeftIsland(raster, 3U, -0.65F, -0.55F);
     AddDetachedLeftIsland(raster, 4U, -0.65F, -0.55F);
 
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present,
            "detached left white island must not become a left opening");
     Expect(evidence.left_raw.reason == "no_opening",
@@ -582,11 +582,11 @@ void TestCircleIgnoresDetachedWhiteIslandOutsideMainBand() {
 
 void TestCircleAllowsSmallOppositeFittedDrift() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame raster =
+    const ls2k::vision::BEVElementRasterFrame raster =
         MakeRasterFromReachRows({0.19F, 0.47F, 0.35F, 0.20F, 0.65F, 0.65F, 0.15F, 0.15F},
                                 {0.21F, 0.22F, 0.23F, 0.24F, 0.25F, 0.27F, 0.28F, 0.29F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(evidence.left_raw.present,
            "left opening plus fitted-straight right boundary must remain left circle, reason=" +
                evidence.left_raw.reason);
@@ -596,11 +596,11 @@ void TestCircleAllowsSmallOppositeFittedDrift() {
 
 void TestCircleRejectsSaturatedWideWhiteRows() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame raster =
+    const ls2k::vision::BEVElementRasterFrame raster =
         MakeRasterFromReachRows({0.12F, 0.42F, 0.65F, 0.65F},
                                 {0.20F, 0.20F, 0.65F, 0.65F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
            "two-sided wide opening must stay out of raw circle evidence");
     Expect(evidence.left_raw.reason == "insufficient_sampleable_support",
@@ -609,11 +609,11 @@ void TestCircleRejectsSaturatedWideWhiteRows() {
 
 void TestCircleReportsBendForFragmentedDoubleOpening() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame raster =
+    const ls2k::vision::BEVElementRasterFrame raster =
         MakeRasterFromReachRows({0.18F, 0.34F, 0.50F, 0.65F, 0.65F, 0.00F, 0.00F, 0.00F},
                                 {0.22F, 0.10F, 0.00F, 0.00F, 0.00F, 0.22F, 0.48F, 0.65F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&raster, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&raster, params);
     Expect(!evidence.left_raw.present && !evidence.right_raw.present,
            "fragmented bend-like double opening must not produce circle evidence");
     Expect(evidence.left_raw.reason == "both_sides_open",
@@ -625,11 +625,11 @@ void TestCircleReportsBendForFragmentedDoubleOpening() {
 
 void TestCircleRejectsOppositeShrinkAsBend() {
     const ls2k::port::RuntimeParameters params{};
-    const ls2k::legacy::BEVElementRasterFrame bend =
+    const ls2k::vision::BEVElementRasterFrame bend =
         MakeRasterFromReachRows({0.10F, 0.30F, 0.29F, 0.29F},
                                 {0.30F, 0.20F, 0.18F, 0.18F});
-    const ls2k::legacy::CircleElementEvidenceResult evidence =
-        ls2k::legacy::DetectCircleElementEvidence(&bend, params);
+    const ls2k::vision::CircleElementEvidenceResult evidence =
+        ls2k::vision::DetectCircleElementEvidence(&bend, params);
     Expect(!evidence.left_raw.present,
            "one-side expansion with opposite shrink must be bend, not circle");
     Expect(evidence.left_raw.reason == "bend",
@@ -640,16 +640,16 @@ void TestCircleRejectsOppositeShrinkAsBend() {
 }
 
 void TestPipelineDoesNotAppendCircleRecordsFromRasterPath() {
-    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
-    ls2k::legacy::VisualElementRasterCompatibilityInput input{};
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows{};
+    const ls2k::vision::BEVElementRasterFrame raster = LeftCircleRaster();
+    ls2k::vision::VisualElementRasterCompatibilityInput input{};
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows{};
     input.sparse_rows = &rows;
     input.element_raster = &raster;
     input.line_candidate = MakeLineCandidate(3);
     ls2k::port::RuntimeParameters params{};
     params.bev_element.cross_exit_takeover_enabled = false;
-    const ls2k::legacy::VisualElementPipelineResult result =
-        ls2k::legacy::RunVisualElementRasterCompatibilityPipeline(
+    const ls2k::vision::VisualElementPipelineResult result =
+        ls2k::vision::RunVisualElementRasterCompatibilityPipeline(
             input,
             params);
     Expect(FindRecord(result.evidence, "circle_left_raw") == nullptr,
@@ -664,12 +664,12 @@ void TestPipelineDoesNotAppendCircleRecordsFromRasterPath() {
 }
 
 void TestSparsePipelineDoesNotAppendCircleRecords() {
-    ls2k::legacy::VisualElementPipelineInput input{};
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows = LeftCircleRows();
+    ls2k::vision::VisualElementPipelineInput input{};
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows = LeftCircleRows();
     input.sparse_rows = &rows;
     input.line_candidate = MakeLineCandidate(3);
-    const ls2k::legacy::VisualElementPipelineResult result =
-        ls2k::legacy::RunVisualElementPipeline(input, ls2k::port::RuntimeParameters{});
+    const ls2k::vision::VisualElementPipelineResult result =
+        ls2k::vision::RunVisualElementPipeline(input, ls2k::port::RuntimeParameters{});
     const ls2k::port::VisualElementEvidenceRecord* left_raw =
         FindRecord(result.evidence, "circle_left_raw");
     const ls2k::port::VisualElementEvidenceRecord* left =
@@ -683,14 +683,14 @@ void TestSparsePipelineDoesNotAppendCircleRecords() {
 void TestPipelineNeverPushesLegacyCircleCandidate() {
     ls2k::port::RuntimeParameters params{};
     params.bev_element.circle_v2_enabled = true;
-    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
-    ls2k::legacy::VisualElementRasterCompatibilityInput input{};
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows{};
+    const ls2k::vision::BEVElementRasterFrame raster = LeftCircleRaster();
+    ls2k::vision::VisualElementRasterCompatibilityInput input{};
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows{};
     input.sparse_rows = &rows;
     input.element_raster = &raster;
     input.line_candidate = MakeLineCandidate(3);
-    const ls2k::legacy::VisualElementPipelineResult result =
-        ls2k::legacy::RunVisualElementRasterCompatibilityPipeline(input, params);
+    const ls2k::vision::VisualElementPipelineResult result =
+        ls2k::vision::RunVisualElementRasterCompatibilityPipeline(input, params);
     Expect(result.candidates.empty(),
            "CircleV2 enablement must not make legacy visual element pipeline push circles");
     Expect(FindRecord(result.evidence, "circle_left") == nullptr,
@@ -698,16 +698,16 @@ void TestPipelineNeverPushesLegacyCircleCandidate() {
 }
 
 void TestPipelineCrossDoesNotCreateSuppressedCircleRecords() {
-    const ls2k::legacy::BEVElementRasterFrame raster = LeftCircleRaster();
-    const std::vector<ls2k::legacy::BEVSimpleRowScan> rows = WideCrossRows();
-    ls2k::legacy::VisualElementRasterCompatibilityInput input{};
+    const ls2k::vision::BEVElementRasterFrame raster = LeftCircleRaster();
+    const std::vector<ls2k::vision::BEVSimpleRowScan> rows = WideCrossRows();
+    ls2k::vision::VisualElementRasterCompatibilityInput input{};
     input.sparse_rows = &rows;
     input.element_raster = &raster;
     input.line_candidate = MakeLineCandidate(3);
     ls2k::port::RuntimeParameters params{};
     params.bev_element.cross_exit_takeover_enabled = false;
-    const ls2k::legacy::VisualElementPipelineResult result =
-        ls2k::legacy::RunVisualElementRasterCompatibilityPipeline(
+    const ls2k::vision::VisualElementPipelineResult result =
+        ls2k::vision::RunVisualElementRasterCompatibilityPipeline(
             input,
             params);
     const ls2k::port::VisualElementEvidenceRecord* left_raw =

@@ -8,17 +8,18 @@
 #include <thread>
 
 #include "platform/bootstrap.hpp"
+#include "control/motion_types.hpp"
 #include "port/diagnostics.hpp"
 #include "port/perf_counter.hpp"
-#include "runtime/assistant_service.hpp"
-#include "runtime/camera_capture_worker.hpp"
-#include "runtime/camera_frame_store.hpp"
-#include "runtime/control_loop.hpp"
-#include "runtime/low_voltage_sampler.hpp"
+#include "runtime/services/assistant_service.hpp"
+#include "runtime/capture/camera_capture_worker.hpp"
+#include "runtime/capture/camera_frame_store.hpp"
+#include "runtime/loops/control_loop.hpp"
+#include "safety/low_voltage_sampler.hpp"
 #include "runtime/perception_frontend.hpp"
-#include "runtime/shutdown.hpp"
-#include "runtime/startup.hpp"
-#include "runtime/steering_media_service.hpp"
+#include "runtime/lifecycle/shutdown.hpp"
+#include "runtime/lifecycle/startup.hpp"
+#include "runtime/services/steering_media_service.hpp"
 
 namespace {
 
@@ -71,7 +72,7 @@ struct AutomationConfig {
 };
 
 struct MotionSnapshot {
-    ls2k::runtime::MotionPhase phase = ls2k::runtime::MotionPhase::kDisarmed;
+    ls2k::control::MotionPhase phase = ls2k::control::MotionPhase::kDisarmed;
     bool reset_ready = false;
     bool exit_requested = false;
 };
@@ -159,7 +160,7 @@ void RequestFaultReset(ls2k::runtime::RuntimeState& state,
     bool already_pending = false;
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
-        if (state.motion_state.phase == ls2k::runtime::MotionPhase::kFailSafeLatched) {
+        if (state.motion_state.phase == ls2k::control::MotionPhase::kFailSafeLatched) {
             already_pending = state.motion_intent.reset_fault_requested;
             state.motion_intent.reset_fault_requested = true;
             accepted = !already_pending;
@@ -368,7 +369,7 @@ int main() {
 
     ls2k::runtime::PerceptionFrontend perception(camera_frame_store, runtime_state, diagnostics);
     (void)perception.Configure(params);
-    ls2k::runtime::LowVoltageSampler low_voltage_sampler;
+    ls2k::safety::LowVoltageSampler low_voltage_sampler;
     low_voltage_sampler.Configure(params);
     ls2k::runtime::AssistantService assistant_service;
     ls2k::runtime::SteeringMediaService steering_media_service;
@@ -417,7 +418,21 @@ int main() {
             RequestStart(runtime_state, diagnostics, "LS2K_AUTO_START");
         }
 
-        low_voltage_sampler.Tick(*platform.power, runtime_state, diagnostics, now_ms);
+        ls2k::safety::LowVoltageSamplerSnapshot low_voltage_snapshot{};
+        {
+            std::lock_guard<std::mutex> lock(runtime_state.shared_mutex);
+            low_voltage_snapshot.last_sample = runtime_state.low_voltage_last_sample;
+        }
+        low_voltage_snapshot.low_voltage_emergency = runtime_state.low_voltage_emergency.load();
+        const ls2k::safety::LowVoltageSamplerUpdate low_voltage_update =
+            low_voltage_sampler.Tick(*platform.power, low_voltage_snapshot, diagnostics, now_ms);
+        if (low_voltage_update.sampled) {
+            runtime_state.low_voltage_emergency.store(low_voltage_update.low_voltage_emergency);
+            {
+                std::lock_guard<std::mutex> lock(runtime_state.shared_mutex);
+                runtime_state.low_voltage_last_sample = low_voltage_update.sample;
+            }
+        }
         perception.ProcessOneFrame(params);
         assistant_service.Tick(runtime_state, diagnostics);
         steering_media_service.Tick(runtime_state, diagnostics);
@@ -435,16 +450,16 @@ int main() {
         }
 
         const MotionSnapshot motion = ReadMotionSnapshot(runtime_state);
-        if (automation.auto_reset_fault && motion.phase == ls2k::runtime::MotionPhase::kFailSafeLatched &&
+        if (automation.auto_reset_fault && motion.phase == ls2k::control::MotionPhase::kFailSafeLatched &&
             motion.reset_ready && !auto_reset_sent) {
             RequestFaultReset(runtime_state, diagnostics, "LS2K_AUTO_RESET_FAULT");
             auto_reset_sent = true;
         }
-        if (motion.phase != ls2k::runtime::MotionPhase::kFailSafeLatched) {
+        if (motion.phase != ls2k::control::MotionPhase::kFailSafeLatched) {
             auto_reset_sent = false;
         }
 
-        if (motion.exit_requested && motion.phase == ls2k::runtime::MotionPhase::kDisarmed) {
+        if (motion.exit_requested && motion.phase == ls2k::control::MotionPhase::kDisarmed) {
             runtime_state.stop_requested.store(true);
             diagnostics.Info("main.exit.ready", "controlled stop reached DISARMED; process may now exit");
             break;

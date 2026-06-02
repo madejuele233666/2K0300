@@ -1,11 +1,14 @@
 # BEV Simple Reference Extension Rules
 
+当前仓库工作规范与落地流程见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。
+本文保留 BEV simple reference extension 的分层合同与架构边界。
+
 本文档定义 `bev-simple-reference-extension` 分支后续扩展必须继承的架构约束。
 当前参数合同见 `new/config/default_params.md`，port 类型与 include 边界见 `new/code/port/README.md`；本文档只补充后续扩展必须遵守的设计边界。
 
 当前基线 `04d6da13b Simplify BEV reference control contract` 是“干净基础寻线”基线。后续扩展可以增加能力，但不能破坏现有分层语义，不能把旧 topology / policy / scene / trusted / memory 体系带回 active runtime。
 
-> V1 更新标记：cross/circle 后续实现以 `new/docs/visual-element-sparse-circle-v1.zh-CN.md` 为准。本文中把 circle Phase1 直接绑定 full `BEVElementRasterFrame` / full BEV element raster 的旧表述，均已被 V1 sparse-first 架构取代；保留相关标记仅用于说明历史上下文和迁移边界。
+> 当前更新标记：cross/circle 后续实现以本文的 sparse-first 视觉事实面和 `new/code/vision/elements/`、`new/code/vision/elements/circle_v2/` 的当前源码为准。本文中把 circle Phase1 直接绑定 full `BEVElementRasterFrame` / full BEV element raster 的旧表述，均已被 sparse-first 架构取代；完整旧表述已归档到 `docs/archive/historical-statements/bev-circle-raster-first-v1.md`，旧 V1/V2/V5/V6 讨论材料保存在 `new/docs/superseded/steering-domain-reorg/`。
 
 ## 1. 思想
 
@@ -38,7 +41,7 @@ line candidate + element candidates
 -> reference continuity / hold selection
 -> selected BEVReferencePath
 -> reference usability
--> reference lateral error
+-> reference tracking geometry
 -> reference-control readiness
 -> safety gate
 -> turn-output target
@@ -54,9 +57,9 @@ line candidate + element candidates
 
 - `reference_path` 只表达白点事实。
 - `present` 只表达白点事实存在。
-- `source` / `mode` 只用于 debug、overlay、protocol，不参与可用性、lateral error、控制、安全决策。
+- `source` / `mode` 只用于 debug、overlay、protocol，不参与可用性、tracking geometry、控制、安全决策。
 - `usable` 只属于 reference usability 层。
-- `computed` 只属于 reference lateral-error 层。
+- `computed` 只属于 reference tracking-geometry 层。
 - `ready` 只属于 reference-control readiness 层。
 - safety gate 是唯一 safety owner。
 - yaw/turn controller 不知道 validity，不知道 source/mode，不知道 `PerceptionResult`。
@@ -68,7 +71,7 @@ line candidate + element candidates
 正确顺序：
 
 ```text
-视觉事实 -> 元素证据 -> reference facts -> usability / lateral error / control
+视觉事实 -> 元素证据 -> reference facts -> usability / tracking geometry / control
 ```
 
 禁止顺序：
@@ -94,7 +97,7 @@ debug、overlay、media、assistant telemetry 只能序列化事实，不能参�
 - 需要二维邻接事实时，优先使用局部 ROI metric sampler，而不是每帧构建 full raster。
 - BEV element raster 与 debug/overlay 输出必须分离命名和接口，debug 输出不能反向参与 runtime 决策。
 - visual reference orchestration 是唯一把 line candidate 与 element candidates 汇总成 current visual `BEVReferencePath` 的层。
-- reference continuity / usability / lateral error / readiness / safety / yaw 链路只消费 orchestration 后的 selected reference facts，不直接消费 raster 或元素内部细节。
+- reference continuity / usability / tracking geometry / readiness / safety / yaw 链路只消费 orchestration 后的 selected reference facts，不直接消费 raster 或元素内部细节。
 
 ### 采样与分类
 
@@ -124,7 +127,7 @@ debug、overlay、media、assistant telemetry 只能序列化事实，不能参�
 
 ### Control
 
-- `ReferenceControlReadiness` 只判断 selected reference + lateral error 是否足够进入控制。
+- `ReferenceControlReadiness` 只判断 selected reference + tracking geometry 是否足够进入控制。
 - low voltage、projector/perception health、stale、IMU、encoder 只属于 safety gate。
 - safety gate 主因优先级固定为：
 
@@ -139,7 +142,7 @@ none
 ```
 
 - gate veto、emergency stop、hold disarmed、no-drive 时，不调用 yaw/turn controller，不更新 yaw/turn memory。
-- turn-output target 只由 weighted lateral error + speed target 计算。
+- turn-output target 只由 `tracking_geometry` + speed target 计算；legacy weighted lateral-error 只作为迁移期 debug 对照事实。
 - gyro feedback 只在 gate clear 且 motion allow-drive 时运行。
 
 ### Low Voltage
@@ -177,7 +180,7 @@ none
 - ML 输出必须先落成可解释 BEV metric visual evidence，不能直接输出运行模式、控制模式或 actuator 意图。
 - 元素识别只负责识别事实，不直接控制 actuator。
 - visual reference orchestration 只负责把当前帧视觉事实汇总成 current visual reference candidate，不负责 hold、安全、yaw 或 actuator。
-- 元素识别后的路径策略必须先进入 current visual reference facts，再经过 reference continuity / usability / lateral error / safety gate 链路。
+- 元素识别后的路径策略必须先进入 current visual reference facts，再经过 reference continuity / usability / tracking geometry / readiness / safety gate 链路。
 
 ### 元素 Evidence 层
 
@@ -198,78 +201,26 @@ sparse BEV row scans / ROI metric sampler / optional BEV element raster
 - detector 不生成 `BEVReferencePath`，不读 hold memory，不读 safety、IMU、encoder、low voltage、actuator 或 yaw memory。
 - candidate builder 是唯一允许把 element evidence 转成 `VisualReferenceCandidate` 的元素层组件。
 - candidate builder 必须构造从 index 0 开始的近端连续 `BEVReferencePath`；不能跨 gap、不能补远端点、不能把 unknown / image border / FOV boundary 当路径事实。
-- candidate 的 `source` / `reason` / `confidence` 只用于 orchestration debug 和仲裁解释，不能被 usability / lateral error / readiness / safety / yaw 读取。
+- candidate 的 `source` / `reason` / `confidence` 只用于 orchestration debug 和仲裁解释，不能被 usability / tracking geometry / readiness / safety / yaw 读取。
 - 第一版新增元素必须默认只进入 evidence/debug；candidate 可以构造但 takeover 默认关闭，直到对应 detector、candidate builder、离线帧和受控发车证据都稳定。
 - ML 只能落成 BEV metric visual evidence；不得绕过 candidate builder 直接输出模式、路径接管结论、速度、转角或 actuator 意图。
 
 ### 当前 circle/cross V1 边界
 
-circle/cross V1 具体架构见 `new/docs/visual-element-sparse-circle-v1.zh-CN.md`。当前有效边界：
+circle/cross 的当前有效边界以 `new/code/vision/elements/` 和 `new/code/vision/elements/circle_v2/` 为准：
 
 - cross/circle Phase1 都只消费 sparse BEV row facts。
 - cross detector 不知道 circle，circle detector 不知道 cross。
-- cross suppression 只在 `steering_visual_element_pipeline.*` 聚合层发生。
+- cross suppression 只在 `vision/elements/visual_element_pipeline.*` 聚合层发生。
 - circle Phase2 只在 effective circle present 且 `BEV_ELEMENT.CIRCLE_ENTRY_TAKEOVER_ENABLED=1` 时运行。
 - circle Phase2 使用 ROI metric sampler 判断后方黑白 frontier，不每帧构建 full element raster。
-- ordinary path、hold、usability、lateral error、readiness、safety、yaw、actuator 不因 circle/cross V1 改变语义。
+- ordinary path、hold、usability、tracking geometry、readiness、safety、yaw、actuator 不因 circle/cross V1 改变语义。
 
-#### 旧表述标记：circle + ML raster-first 并行开发边界
+#### 历史迁移记录
 
-以下段落中的 circle raster-first 输入约束已被 V1 sparse-first 架构取代；仅保留用于说明历史迁移背景。后续 circle/cross 实现不得继续以这些句子作为依据。
-
-当前并行开发只做 circle 和 ML 的 visual element evidence，不做 ordinary path 优化。ordinary path 相关行为冻结：
-
-- 不改 `steering_bev_simple_perception.*`。
-- 不删除 lateral jump。
-- 不新增普通路径远近点连线判黑。
-- 不改变 `BEVReferencePath` 近端连续语义。
-- 不改变 hold、usability、lateral error、readiness、safety、yaw 或 actuator。
-
-circle 与 ML 的共同输入只能来自当前帧视觉事实：
-
-- 旧表述，已被 V1 取代：首选输入是 `BEVElementRasterFrame`。
-- 不各自重新做 camera -> BEV 投影。
-- 不各自重新构建 dense/debug BEV。
-- 不把 overlay/media/debug 输出反向当 detector 输入。
-- 不读取 hold memory、safety、IMU、encoder、yaw memory、actuator 或 control phase。
-
-circle 分支职责：
-
-- 新增 `steering_circle_element_evidence.*`。
-- 旧表述，已被 V1 取代：从 `BEVElementRasterFrame` 产生 `circle_left` / `circle_right` evidence。
-- evidence 必须包含 present、confidence、BEV metric support/bounds、projection/sampleability、reason。
-- 第一阶段只输出 evidence/debug，不 push circle `VisualReferenceCandidate`。
-- 不继承 archive 里的 opening score、scene FSM、inner island memory 或 trusted path 逻辑。
-
-ML 分支职责：
-
-- 新增独立 ML evidence / inference adapter 文件，例如 `steering_ml_element_evidence.*`。
-- ML 输出必须先转换成可解释 BEV metric evidence，再进入 element extension record。
-- evidence 必须标识 model/version、input raster contract、confidence、BEV metric support/bounds、reason。
-- ML 不得直接输出 reference mode、candidate takeover、速度、转角、safety gate 或 actuator 意图。
-- ML 推理失败、模型缺失、输入不可采样时必须输出 absent / not_evaluated evidence，而不是静默改控制链路。
-
-cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` 聚合层：
-
-- cross detector 不知道 circle。
-- circle detector 不知道 cross。
-- pipeline 可根据 `cross_exit.present` 给 circle evidence 标记 suppressed reason。
-- suppression 不删除原始 circle detector 事实；debug 应能看出 raw evidence 与 suppressed result 的区别。
-- suppression 不影响 ML evidence，除非后续有独立的、明确定义的 ML suppression 合同。
-
-并行开发文件所有权：
-
-- circle 分支主要修改 `steering_circle_element_evidence.*` 和对应测试。
-- ML 分支主要修改 ML adapter/evidence 文件和对应测试。
-- 共享修改只允许集中在 `steering_visual_element_pipeline.*` 的注册/聚合点。
-- 协议新增字段优先走 element extension record，不为每个新元素反复改老 typed 字段。
-- 如果确实需要新增共享 helper，必须先放在 raster/evidence 层，并证明 circle 与 ML 都只依赖它的事实输出。
-
-合并顺序建议：
-
-1. 先合入不改变 runtime 行为的 detector 文件和单测。
-2. 再合入 `steering_visual_element_pipeline.*` 注册行。
-3. 最后做板端 evidence capture；没有 evidence 稳定前不进入 visual reference arbitration。
+circle raster-first / ML 并行开发的旧表述已移入
+`docs/archive/historical-statements/bev-circle-raster-first-v1.md`。这些内容只解释
+V1 sparse-first 架构的迁移背景，不再作为 active circle/cross 实现依据。
 
 ## 3. 代码细节
 
@@ -308,7 +259,7 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 
 - 负责汇总 cross / circle / roadblock / ML grounded element evidence detector 和对应 candidate builder。
 - detector 输出 element evidence；candidate builder 输出 `VisualReferenceCandidate`。
-- 不直接写 `PerceptionResult`，不直接选择 selected reference，不执行 hold，不判断 usability / lateral error / readiness / safety / yaw。
+- 不直接写 `PerceptionResult`，不直接选择 selected reference，不执行 hold，不判断 usability / tracking geometry / readiness / safety / yaw。
 - 每个元素必须有独立测试覆盖 absent、low confidence、invalid geometry、gap rejection、candidate takeover disabled 等情况。
 
 `steering_visual_reference_orchestration.*`（后续扩展）
@@ -324,16 +275,21 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 - 只看 `present + finite geometry + configured leading sample count`。
 - 不看 source/mode。
 
-`steering_reference_lateral_error.*`
+`steering_reference_tracking_geometry.*`
 
-- 只从 selected reference facts + usability 计算 weighted lateral error。
+- 只从 selected reference facts + usability 计算 lateral offset、heading error、curvature。
 - 不依赖 speed。
 - 不看 source/mode。
 - 不读 `PerceptionResult`。
 
+`steering_reference_lateral_error.*`
+
+- 只保留 legacy weighted lateral-error 迁移对照事实。
+- 不作为 V6 readiness 或 yaw target 的主控输入。
+
 `steering_reference_control_readiness.*`
 
-- 只看 selected usability、lateral error、hold_selected。
+- 只看 selected usability、tracking geometry、hold_selected。
 - 不接收 low voltage、projector、IMU、encoder、stale。
 - hold ready 时 degraded reason 为 `reference_hold`。
 
@@ -343,7 +299,7 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 - 负责 camera capture、fault injection、empty-frame fallback、state publish、memory reset。
 - 不直接调用 cross / circle / roadblock / ML detector。
 
-`steering_frame_perception_pipeline.*`
+`runtime/pipelines/steering_frame_pipeline.*`
 
 - runtime single-frame perception owner。
 - 负责调用 sparse perception、visual element evidence、visual reference orchestration 和 reference continuity。
@@ -383,8 +339,9 @@ cross 对 circle 的压制只能发生在 `steering_visual_element_pipeline.*` �
 - `BEVPathPointSource`：`kNone`、`kIntervalCenter`、`kHold`。
 - `ReferenceMode`：`kNone`、`kIntervalCenter`、`kHoldLast`。
 - `ReferenceUsability::usable`：reference 是否足够连续。
-- `ReferenceLateralErrorEstimate::computed`：weighted lateral error 是否算出。
-- `ReferenceControlReadiness::ready`：reference + lateral error 是否足够进入控制。
+- `ReferenceTrackingGeometry::computed`：reference tracking geometry 是否算出。
+- `ReferenceLateralErrorEstimate::computed`：legacy weighted lateral error 是否算出，仅作迁移对照。
+- `ReferenceControlReadiness::ready`：reference + tracking geometry 是否足够进入控制。
 - `ControlGateDecision::veto_active`：safety gate 是否禁止控制。
 - `PerceptionResult`：runtime transport snapshot，不是依赖捷径。
 
@@ -399,6 +356,7 @@ debug JSON 分组应保持：
   "reference": {},
   "eligibility": {},
   "lateral_error": {},
+  "tracking_geometry": {},
   "reference_control": {},
   "safety_gate": {},
   "degraded": {},
@@ -420,11 +378,11 @@ steering media config snapshot 必须暴露当前真实参数，包括：
   "BEV_CLASSIFICATION": {},
   "BEV_CONTROL_MODEL": {},
   "BEV_ELEMENT": {
-    "CROSS_EXIT_TAKEOVER_ENABLED": 0,
+    "CROSS_EXIT_TAKEOVER_ENABLED": 1,
     "CROSS_WIDE_ROW_WHITE_RATIO_MIN": 0.95,
-    "CIRCLE_EVIDENCE_ENABLED": 1,
-    "CIRCLE_OPENING_EXPANSION_RATIO_MIN": 0.10,
-    "CIRCLE_OPPOSITE_SHRINK_RATIO_MIN": 0.10
+    "CIRCLE_V2_ENABLED": 1,
+    "CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG": 330,
+    "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT": 3
   }
 }
 ```
@@ -453,13 +411,14 @@ rtk bash new/verification/tests/run_startup_low_voltage_order_test.sh
 rtk bash new/verification/tests/run_bev_simple_perception_test.sh
 rtk bash new/verification/tests/run_visual_reference_orchestration_test.sh
 rtk bash new/verification/tests/run_reference_usability_lateral_error_test.sh
+rtk bash new/verification/tests/run_reference_tracking_geometry_test.sh
 rtk bash new/verification/tests/run_assistant_telemetry_selftest.sh
 rtk bash new/verification/tests/run_steering_media_selftest.sh
 rtk bash new/verification/tests/run_bev_simple_residual_check.sh
 rtk bash new/verification/tests/run_perf_counter_test.sh
 rtk env SKIP_UPLOAD=1 new/user/build.sh
 rtk git diff --check
-rtk code-index refresh
+rtk codegraph sync
 ```
 
 ## 4. 禁止做的事
@@ -493,7 +452,7 @@ rtk code-index refresh
 - media/header 反向影响 runtime。
 - overlay probe 另写一套和 runtime 类似但分叉的 pipeline。
 - 用 debug 字段决定 control。
-- 用 `reference.source` 或 `reference.mode` 判断 usable / lateral error / readiness / gate / yaw。
+- 用 `reference.source` 或 `reference.mode` 判断 usable / tracking geometry / readiness / gate / yaw。
 
 ### 禁止混淆路径语义
 
@@ -558,7 +517,7 @@ rtk code-index refresh
 
 - 为了修个别图像效果恢复复杂 score。
 - 为了路径连续性在 builder 层预留空 options。
-- 在 simple perception 里做 hold、usability、lateral error 或 control。
+- 在 simple perception 里做 hold、usability、tracking geometry 或 control。
 - 在路径层补救元素证据层断裂。
 - 用平滑算法掩盖底层白点/边界证据错误。
 - 为特殊场景开硬编码模板，除非先有明确视觉事实与测试夹具支撑。

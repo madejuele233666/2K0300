@@ -1,0 +1,20 @@
+{
+  "schema": "verification-cycle-agent-table-v1",
+  "change": "restructure-steering-domain-architecture",
+  "agents": [
+    {
+      "id": "019e8817-5adb-7c51-b9b3-d34460e60ee3",
+      "role": "verify-reviewer",
+      "status": "non_active",
+      "review_goal": "implementation_correctness",
+      "review_phase": "docs_first",
+      "attempt": 2,
+      "findings_path": "review/review-runs/restructure-steering-domain-architecture/docs-first/attempt-2/findings.json",
+      "verifier_evidence_path": "review/review-runs/restructure-steering-domain-architecture/docs-first/attempt-2/verifier-evidence.json",
+      "spawn_reason_code": "no_usable_active_agent",
+      "continuation_reason": "repair_after_block",
+      "final_verdict": "pass",
+      "final_state": "completed_pass"
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "legacy/wheel_target_mixer.hpp"
+#include "control/wheel_target_mixer.hpp"
 
 namespace {
 
@@ -24,42 +24,42 @@ void ExpectNear(double actual, double expected, const std::string& label) {
     }
 }
 
-ls2k::legacy::WheelSpeedTargets ComputeWithPwmLimit(int pwm_limit, int applied_turn_output) {
+ls2k::control::WheelSpeedTargets ComputeWithPwmLimit(int pwm_limit, int applied_turn_output) {
     (void)pwm_limit;
-    ls2k::legacy::WheelTargetMixer mixer;
+    ls2k::control::WheelTargetMixer mixer;
     return mixer.Compute(140.0, applied_turn_output);
 }
 
 void TestPwmLimitDoesNotScaleWheelTargets() {
-    const ls2k::legacy::WheelSpeedTargets first = ComputeWithPwmLimit(5000, 28);
-    const ls2k::legacy::WheelSpeedTargets second = ComputeWithPwmLimit(9000, 28);
+    const ls2k::control::WheelSpeedTargets first = ComputeWithPwmLimit(5000, 28);
+    const ls2k::control::WheelSpeedTargets second = ComputeWithPwmLimit(9000, 28);
 
     ExpectNear(first.left, second.left, "left target independent of pwm_limit");
     ExpectNear(first.right, second.right, "right target independent of pwm_limit");
 }
 
 void TestPositiveTurnOutputSplitsWheelTargets() {
-    const ls2k::legacy::WheelSpeedTargets targets = ComputeWithPwmLimit(5000, 28);
+    const ls2k::control::WheelSpeedTargets targets = ComputeWithPwmLimit(5000, 28);
 
     ExpectNear(targets.left, 168.0, "positive turn left target");
     ExpectNear(targets.right, 112.0, "positive turn right target");
 }
 
 void TestNegativeTurnOutputSplitsWheelTargets() {
-    const ls2k::legacy::WheelSpeedTargets negative = ComputeWithPwmLimit(5000, -28);
+    const ls2k::control::WheelSpeedTargets negative = ComputeWithPwmLimit(5000, -28);
     ExpectNear(negative.left, 112.0, "negative turn left target");
     ExpectNear(negative.right, 168.0, "negative turn right target");
 }
 
 void TestZeroTurnOutputKeepsBothWheelsAtBaseTarget() {
-    const ls2k::legacy::WheelSpeedTargets zero = ComputeWithPwmLimit(5000, 0);
+    const ls2k::control::WheelSpeedTargets zero = ComputeWithPwmLimit(5000, 0);
     ExpectNear(zero.left, 140.0, "zero turn left target");
     ExpectNear(zero.right, 140.0, "zero turn right target");
 }
 
 void TestLargeTurnOnlyClampsNegativeWheelSpeed() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets = mixer.Compute(50.0, -100);
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets = mixer.Compute(50.0, -100);
 
     ExpectNear(targets.left, 0.0, "large turn left target");
     ExpectNear(targets.right, 150.0, "large turn right target");
@@ -67,16 +67,16 @@ void TestLargeTurnOnlyClampsNegativeWheelSpeed() {
 }
 
 void TestTurnBeyondHalfSpeedStillChangesBothTargets() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets = mixer.Compute(250.0, 200);
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets = mixer.Compute(250.0, 200);
 
     ExpectNear(targets.left, 450.0, "beyond half-speed turn left target");
     ExpectNear(targets.right, 50.0, "beyond half-speed turn right target");
 }
 
 void TestPositiveTurnUsesAccelLeftAndDecelRightScales() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets =
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets =
         mixer.Compute(140.0, 20, {2.0, 0.5});
 
     ExpectNear(targets.left, 180.0, "positive turn scaled accel-side left target");
@@ -84,8 +84,8 @@ void TestPositiveTurnUsesAccelLeftAndDecelRightScales() {
 }
 
 void TestNegativeTurnUsesAccelRightAndDecelLeftScales() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets =
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets =
         mixer.Compute(140.0, -20, {2.0, 0.5});
 
     ExpectNear(targets.left, 130.0, "negative turn scaled decel-side left target");
@@ -93,8 +93,8 @@ void TestNegativeTurnUsesAccelRightAndDecelLeftScales() {
 }
 
 void TestZeroDecelScaleOnlyChangesAccelSide() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets =
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets =
         mixer.Compute(140.0, 20, {1.5, 0.0});
 
     ExpectNear(targets.left, 170.0, "zero decel scale positive turn left target");
@@ -102,8 +102,8 @@ void TestZeroDecelScaleOnlyChangesAccelSide() {
 }
 
 void TestZeroAccelScaleOnlyChangesDecelSide() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets =
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets =
         mixer.Compute(140.0, -20, {0.0, 1.5});
 
     ExpectNear(targets.left, 110.0, "zero accel scale negative turn left target");
@@ -111,8 +111,8 @@ void TestZeroAccelScaleOnlyChangesDecelSide() {
 }
 
 void TestScaledDecelStillClampsNegativeWheelSpeed() {
-    ls2k::legacy::WheelTargetMixer mixer;
-    const ls2k::legacy::WheelSpeedTargets targets =
+    ls2k::control::WheelTargetMixer mixer;
+    const ls2k::control::WheelSpeedTargets targets =
         mixer.Compute(50.0, 40, {2.0, 2.0});
 
     ExpectNear(targets.left, 130.0, "scaled large turn left target");

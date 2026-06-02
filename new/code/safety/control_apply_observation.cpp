@@ -1,0 +1,63 @@
+#include "safety/control_apply_observation.hpp"
+
+namespace ls2k::safety {
+
+bool IsNonZeroDriveCommand(const port::ActuatorCommand& command) {
+    return !command.emergency_stop &&
+           (command.left_drive_pwm != 0 || command.right_drive_pwm != 0 ||
+            command.left_brushless_pwm != 0 || command.right_brushless_pwm != 0);
+}
+
+ControlCycleObservation ObserveControlCycle(const ControlCycleInputs& inputs) {
+    ControlCycleObservation observation{};
+    observation.veto_active = inputs.gate.veto_active;
+    observation.veto_reason = inputs.gate.veto_reason;
+    observation.motion_phase = inputs.motion_phase;
+    observation.hold_disarmed = inputs.hold_disarmed;
+    observation.requested_nonzero_output = IsNonZeroDriveCommand(inputs.command);
+    observation.applied_left_drive_pwm = inputs.command.left_drive_pwm;
+    observation.applied_right_drive_pwm = inputs.command.right_drive_pwm;
+    observation.applied_left_brushless_pwm = inputs.command.left_brushless_pwm;
+    observation.applied_right_brushless_pwm = inputs.command.right_brushless_pwm;
+
+    if (inputs.apply_suppressed_by_profile) {
+        observation.apply_outcome = ControlApplyOutcome::kSuppressedByProfile;
+    } else if (inputs.hold_disarmed) {
+        observation.apply_outcome = ControlApplyOutcome::kHeldDisarmedApplied;
+    } else if (!inputs.apply_ok) {
+        observation.apply_outcome = ControlApplyOutcome::kApplyFailed;
+    } else if (inputs.command.emergency_stop) {
+        observation.apply_outcome = ControlApplyOutcome::kEmergencyStopApplied;
+    } else if (observation.requested_nonzero_output) {
+        observation.apply_outcome = ControlApplyOutcome::kDriveCommandApplied;
+    } else {
+        observation.apply_outcome = ControlApplyOutcome::kZeroCommandApplied;
+    }
+
+    observation.actuators_armed = !inputs.apply_suppressed_by_profile && !inputs.hold_disarmed &&
+                                  inputs.apply_ok && !inputs.command.emergency_stop;
+    observation.arming_transition = observation.actuators_armed != inputs.previously_armed;
+    return observation;
+}
+
+const char* ToString(ControlApplyOutcome outcome) {
+    switch (outcome) {
+        case ControlApplyOutcome::kNotRequested:
+            return "not_requested";
+        case ControlApplyOutcome::kSuppressedByProfile:
+            return "suppressed_by_profile";
+        case ControlApplyOutcome::kHeldDisarmedApplied:
+            return "held_disarmed_applied";
+        case ControlApplyOutcome::kEmergencyStopApplied:
+            return "emergency_stop_applied";
+        case ControlApplyOutcome::kZeroCommandApplied:
+            return "zero_command_applied";
+        case ControlApplyOutcome::kDriveCommandApplied:
+            return "drive_command_applied";
+        case ControlApplyOutcome::kApplyFailed:
+            return "apply_failed";
+    }
+    return "unknown";
+}
+
+}  // namespace ls2k::safety

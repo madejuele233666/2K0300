@@ -2,8 +2,8 @@
 #include <iostream>
 #include <string>
 
-#include "platform/assistant_protocol.hpp"
-#include "runtime/assistant_telemetry_view.hpp"
+#include "transport/assistant_protocol.hpp"
+#include "observability/assistant_telemetry_view.hpp"
 
 namespace {
 
@@ -21,10 +21,10 @@ bool Contains(const std::string& haystack, const std::string& needle) {
     return haystack.find(needle) != std::string::npos;
 }
 
-ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
-    ls2k::runtime::ControlDebugSnapshot snapshot{};
+ls2k::observability::ControlDebugSnapshot MakeSnapshot() {
+    ls2k::observability::ControlDebugSnapshot snapshot{};
     snapshot.valid = true;
-    snapshot.motion_phase = ls2k::runtime::MotionPhase::kRunning;
+    snapshot.motion_phase = ls2k::control::MotionPhase::kRunning;
     snapshot.steering.element_evidence.cross_exit.present = true;
     snapshot.steering.element_evidence.cross_exit.confidence = 0.82;
     snapshot.steering.element_evidence.cross_exit.forward_min_m = 0.20;
@@ -94,7 +94,7 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
     snapshot.steering.actuator.applied_turn_output = 10;
     snapshot.raw_turn_output = 12;
     snapshot.applied_turn_output = 10;
-    snapshot.apply_outcome = ls2k::runtime::ControlApplyOutcome::kDriveCommandApplied;
+    snapshot.apply_outcome = ls2k::safety::ControlApplyOutcome::kDriveCommandApplied;
     snapshot.tuning_mode_enabled = true;
     snapshot.turn_suppressed = false;
     snapshot.effective_speed_target = 1.2;
@@ -110,8 +110,8 @@ ls2k::runtime::ControlDebugSnapshot MakeSnapshot() {
 }
 
 void TestSnapshotFactsMapToAssistantView() {
-    const ls2k::platform::AssistantTelemetryView telemetry =
-        ls2k::runtime::BuildAssistantTelemetryView(MakeSnapshot());
+    const ls2k::transport::AssistantTelemetryView telemetry =
+        ls2k::observability::BuildAssistantTelemetryView(MakeSnapshot());
     Expect(telemetry.motion_phase == "RUNNING", "motion phase must be mapped");
     Expect(telemetry.element_evidence.cross_exit.present,
            "cross evidence presence must be copied");
@@ -163,9 +163,9 @@ void TestSnapshotFactsMapToAssistantView() {
 }
 
 void TestAssistantTelemetryJsonEmitsVisualReferenceFacts() {
-    const ls2k::platform::AssistantTelemetryView telemetry =
-        ls2k::runtime::BuildAssistantTelemetryView(MakeSnapshot());
-    const std::string json = ls2k::platform::EncodeAssistantTelemetry(telemetry);
+    const ls2k::transport::AssistantTelemetryView telemetry =
+        ls2k::observability::BuildAssistantTelemetryView(MakeSnapshot());
+    const std::string json = ls2k::transport::EncodeAssistantTelemetry(telemetry);
     Expect(Contains(json, "\"element_evidence\":{\"cross_exit\":{\"present\":true"),
            "assistant telemetry must include element evidence object");
     Expect(Contains(json, "\"candidate\":{\"built\":true"),

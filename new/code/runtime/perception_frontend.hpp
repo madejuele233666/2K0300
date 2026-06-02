@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
-#include "runtime/camera_frame_store.hpp"
+#include "runtime/capture/camera_frame_store.hpp"
 #include "runtime/runtime_state.hpp"
-#include "runtime/steering_frame_perception_pipeline.hpp"
+#include "runtime/pipelines/steering_frame_pipeline.hpp"
 
 namespace ls2k::runtime {
 
@@ -36,7 +36,7 @@ private:
     CameraFrameStore& frame_store_;                     ///< 相机帧存储
     RuntimeState& state_;                               ///< 运行时状态引用
     port::DiagnosticSink& diagnostics_;                  ///< 诊断输出引用
-    SteeringFramePerceptionPipeline frame_pipeline_{};   ///< 转向帧感知管线
+    SteeringFramePipeline frame_pipeline_{};             ///< 转向帧管线
     uint64_t processed_frames_ = 0;                      ///< 已处理的帧计数
     uint64_t last_processed_frame_id_ = 0;                ///< 已处理的最新相机帧ID
     uint64_t consumed_perception_memory_reset_generation_ = 0;  ///< 已消费的复位代数

@@ -5,8 +5,8 @@
 #include <stdexcept>
 
 #include "platform/camera_v4l2_timestamp.hpp"
-#include "runtime/camera_capture_worker.hpp"
-#include "runtime/camera_frame_store.hpp"
+#include "runtime/capture/camera_capture_worker.hpp"
+#include "runtime/capture/camera_frame_store.hpp"
 
 namespace {
 

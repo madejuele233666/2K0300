@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "runtime/startup.hpp"
+#include "runtime/lifecycle/startup.hpp"
 
 namespace {
 

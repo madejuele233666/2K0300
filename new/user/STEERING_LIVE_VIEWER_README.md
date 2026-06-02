@@ -181,7 +181,7 @@ Windows 热点常用 host 地址是 `192.168.137.1`。板端连接这个地址�
 左侧图像默认显示 host-only BEV 变换图像；旧的元素框、中心线和横向误差 overlay 默认关闭。BEV 显示只消费板端已经发送的图像和真实运行参数，不向板端回写，也不重新定义控制决策：
 
 - `config_snapshot.param_snapshot.BEV_PROJECTOR` 提供真实运行参数里的四点标定。
-- 网页用与 `legacy/steering_bev_projector.cpp` 相同的 DLT 8 元线性方程和 3x3 单应矩阵，把每个 BEV 像素 `(lateral_m, forward_m)` 反投影到源图像，再从当前收到的 gray payload 做双线性采样。
+- 网页用与 `vision/bev/bev_projector.cpp` 相同的 DLT 8 元线性方程和 3x3 单应矩阵，把每个 BEV 像素 `(lateral_m, forward_m)` 反投影到源图像，再从当前收到的 gray payload 做双线性采样。
 - BEV 显示不再把 `BEV_GEOMETRY.SEARCH_LATERAL_LIMIT_M` 当作左右显示边界。网页会沿 `FORWARD_SAMPLE_0..FORWARD_SAMPLE_23` 抽样，计算每个前向截面能反投影到源图内的 lateral 范围，再用这些范围合成完整相机可见梯形，避免远端左右被控制搜索宽度裁掉。
 - BEV 显示宽度以 `DEBUG_GRID_WIDTH` 为基础并加宽到可见梯形范围，前向范围来自 `BEV_GEOMETRY.FORWARD_SAMPLE_*`；如果找不到有效可见范围，才退回 `SEARCH_LATERAL_LIMIT_M`。
 - 如果 `config_snapshot` 尚未到达或 projector 参数无效，网页自动退回 raw 显示并在 Display 字段标出 fallback。

@@ -11,7 +11,7 @@ mkdir -p "${OUT_DIR}"
 compile_test_binary \
   "${OUT_DIR}/startup_low_voltage_order_test" \
   "${REPO_ROOT}/new/verification/tests/startup_low_voltage_order_test.cpp" \
-  "${REPO_ROOT}/new/code/runtime/startup.cpp" \
+  "${REPO_ROOT}/new/code/runtime/lifecycle/startup.cpp" \
   "${REPO_ROOT}/new/code/platform/hardware_profile.cpp"
 
 "${OUT_DIR}/startup_low_voltage_order_test"
