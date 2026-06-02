@@ -1,5 +1,0 @@
-{
-  "change": "fix-ordinary-reference-lost-boundary-v4",
-  "verdict": "pass",
-  "findings": []
-}

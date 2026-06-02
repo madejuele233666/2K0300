@@ -1,7 +1,0 @@
-{
-  "change": "fix-ordinary-reference-lost-boundary-v4",
-  "status": "pass",
-  "verdict": "pass",
-  "summary": "Source-first re-review passed. The repaired ordinary single-edge candidate construction now retains per-interval helper-backed candidates before final center selection, the scene overlay probe mirrors runtime ordinary-road presence and raw-row InnerTrace fallback behavior, and local verification now includes direct compile coverage for steering_frame_perception_pipeline.cpp in addition to the focused test scripts and strict OpenSpec validation.",
-  "findings": []
-}
