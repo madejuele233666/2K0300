@@ -7,8 +7,12 @@
 namespace ls2k::platform {
 namespace {
 
+/// 最大入站行字节数，超过此长度将丢弃缓存并返回输入拒绝
 constexpr std::size_t kMaxInboundLineBytes = 4096;
 
+/// @brief 将助手桥接状态转换为诊断标记字符串
+/// @param state 桥接状态枚举值
+/// @return 对应的诊断标记名称
 const char* ToStateMarker(true_ls2k0300::AssistantBridgeState state) {
     switch (state) {
         case true_ls2k0300::AssistantBridgeState::kUnconfigured:
@@ -25,6 +29,9 @@ const char* ToStateMarker(true_ls2k0300::AssistantBridgeState state) {
     return "assistant.unknown";
 }
 
+/// @brief 将助手桥接状态映射为诊断级别
+/// @param state 桥接状态枚举值
+/// @return 对应的诊断级别（kInfo 或 kWarning）
 port::DiagnosticLevel ToStateLevel(true_ls2k0300::AssistantBridgeState state) {
     switch (state) {
         case true_ls2k0300::AssistantBridgeState::kReady:
@@ -45,7 +52,7 @@ bool AssistantLink::Initialize(const port::RuntimeParameters& params, port::Diag
     ready_ = false;
     disconnect_pending_ = false;
     last_state_code_ = static_cast<int>(true_ls2k0300::AssistantBridgeState::kUnconfigured);
-    max_target_speed_ = params.Speed_base;
+    max_target_speed_ = params.running_speed_target;
     inbound_buffer_.clear();
     if (!params.assistant_enabled) {
         return false;
@@ -118,47 +125,6 @@ bool AssistantLink::PublishJsonLine(const std::string& line,
         }
         diagnostics.Emit({port::DiagnosticLevel::kWarning,
                           "assistant.json.failed",
-                          detail,
-                          port::NowMs()});
-    }
-    return ok;
-}
-
-bool AssistantLink::PublishWaveform(const AssistantWaveformFrame& frame, port::DiagnosticSink& diagnostics) {
-    if (!ready_) {
-        return false;
-    }
-    const bool was_ready = ready_;
-    std::string detail;
-    const bool ok = true_ls2k0300::SendAssistantOscilloscope(frame.values, frame.channel_count, detail);
-    if (!ok) {
-        ready_ = true_ls2k0300::AssistantBridgeReady();
-        if (was_ready && !ready_) {
-            disconnect_pending_ = true;
-        }
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "assistant.wave.failed",
-                          detail,
-                          port::NowMs()});
-    }
-    return ok;
-}
-
-bool AssistantLink::PublishImage(const port::CameraCapture& capture, port::DiagnosticSink& diagnostics) {
-    if (!ready_ || !capture.has_frame) {
-        return false;
-    }
-    const bool was_ready = ready_;
-    std::string detail;
-    const bool ok = true_ls2k0300::SendAssistantImage(
-        capture.frame.gray.data(), capture.frame.width, capture.frame.height, detail);
-    if (!ok) {
-        ready_ = true_ls2k0300::AssistantBridgeReady();
-        if (was_ready && !ready_) {
-            disconnect_pending_ = true;
-        }
-        diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                          "assistant.image.failed",
                           detail,
                           port::NowMs()});
     }

@@ -38,6 +38,9 @@ void WheelPidController::Reset() {
     filtered_measured_ready_ = false;
 }
 
+// PID 输出基于固定控制周期计算：P 使用当前误差，I 累积误差，D 使用相邻周期误差差分。
+// 当前接口没有 dt 参数，因此 D 项不是按秒归一化的微分项，也不存在 dt 除零路径。
+// 如果未来控制周期变为可变周期，应同步调整接口和 D 项语义，而不是只改这里的注释。
 int WheelPidController::Compute(double target_speed, double measured_speed, int pwm_limit) {
     filtered_measured_speed_ =
         FilterMeasuredSpeed(measured_speed, filtered_measured_speed_, filtered_measured_ready_, measurement_filter_alpha_);

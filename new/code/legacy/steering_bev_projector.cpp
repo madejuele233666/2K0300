@@ -1,6 +1,6 @@
 #include "legacy/steering_bev_projector.hpp"
 
-// BEV 投影器实现。通过 4 对对应点（图像↔BEV）解算 3x3 单应矩阵，
+// BEV 投影器实现。通过 4 对对应点（图像<->BEV）解算 3x3 单应矩阵，
 // 实现图像坐标与车辆坐标系之间的双向投影。
 
 #include <algorithm>
@@ -10,14 +10,16 @@
 namespace ls2k::legacy {
 namespace {
 
-// 二维点（双精度，用于单应矩阵计算）
+/// 二维点结构（双精度，用于单应矩阵计算）
 struct Point2D {
     double x = 0.0;
     double y = 0.0;
 };
 
-// 用高斯消元法（部分主元）解 8 元线性方程组
-// 矩阵大小为 8x9（最后一列为增广列）。用于从 4 组对应点解单应矩阵的 8 个自由度
+/// 用高斯消元法（部分主元）解 8 元线性方程组
+/// 矩阵大小为 8x9（最后一列为增广列），用于从 4 组对应点解算单应矩阵的 8 个自由度（h33固定为1）
+/// @param matrix 8x9 增广矩阵，会被修改为行阶梯形式
+/// @return 是否成功求解（矩阵非奇异）
 bool SolveLinearSystem8(std::array<std::array<double, 9>, 8>& matrix) {
     for (int col = 0; col < 8; ++col) {
         // 列主元选择：寻找当前列绝对值最大的行
@@ -61,10 +63,13 @@ bool SolveLinearSystem8(std::array<std::array<double, 9>, 8>& matrix) {
     return true;
 }
 
-// 从 4 组对应点构建 3x3 单应矩阵
-// src: 源坐标（图像或 BEV），dst: 目标坐标（BEV 或图像）
-// homography: 输出 3x3 单应矩阵（以 row-major array 形式存储，最后一项 h33=1.0）
-// 构造经典 DLT（Direct Linear Transform）方程组，每组对应点生成 2 个方程
+/// 从 4 组对应点构建 3x3 单应矩阵
+/// 使用经典的 DLT（Direct Linear Transform）算法
+/// 每组对应点生成 2 个方程，总共 8 个方程解 8 个自由度
+/// @param src 源坐标点集（图像或BEV坐标系）
+/// @param dst 目标坐标点集（BEV或图像坐标系）
+/// @param homography [输出] 3x3 单应矩阵（行主序数组，最后一项 h33=1.0）
+/// @return 单应矩阵是否构建成功
 bool BuildHomography(const std::array<Point2D, port::kBevCalibrationPointCount>& src,
                      const std::array<Point2D, port::kBevCalibrationPointCount>& dst,
                      std::array<double, 9>& homography) {
@@ -76,8 +81,7 @@ bool BuildHomography(const std::array<Point2D, port::kBevCalibrationPointCount>&
         const double v = dst[i].y;
         const std::size_t row = i * 2;
 
-        // 第一行: -u = (h11*x + h12*y + h13 - h31*x*u - h32*y*u) / h33
-        // 整理成 Ax = b 形式：h11*x + h12*y + h13 + 0 + 0 + 0 - h31*x*u - h32*y*u = u
+        // 第一行方程: h11*x + h12*y + h13 - h31*x*u - h32*y*u = u
         matrix[row][0] = x;
         matrix[row][1] = y;
         matrix[row][2] = 1.0;
@@ -88,7 +92,7 @@ bool BuildHomography(const std::array<Point2D, port::kBevCalibrationPointCount>&
         matrix[row][7] = -u * y;
         matrix[row][8] = u;
 
-        // 第二行: -v = (h21*x + h22*y + h23 - h31*x*v - h32*y*v) / h33
+        // 第二行方程: h21*x + h22*y + h23 - h31*x*v - h32*y*v = v
         matrix[row + 1][0] = 0.0;
         matrix[row + 1][1] = 0.0;
         matrix[row + 1][2] = 0.0;
@@ -118,7 +122,12 @@ bool BuildHomography(const std::array<Point2D, port::kBevCalibrationPointCount>&
     return true;
 }
 
-// 应用单应矩阵，将点 (x,y) 从源平面投影到目标平面
+/// 应用单应矩阵，将点 (x,y) 从源平面投影到目标平面
+/// @param homography 3x3 单应矩阵（行主序）
+/// @param x 源点x坐标
+/// @param y 源点y坐标
+/// @param out [输出] 投影后的目标点
+/// @return 投影是否成功（分母不为零且结果有限）
 bool ApplyHomography(const std::array<double, 9>& homography, double x, double y, Point2D& out) {
     // 分母为 h31*x + h32*y + h33，用于透视除法和齐次坐标归一化
     const double denom = homography[6] * x + homography[7] * y + homography[8];
@@ -130,7 +139,10 @@ bool ApplyHomography(const std::array<double, 9>& homography, double x, double y
     return std::isfinite(out.x) && std::isfinite(out.y);
 }
 
-// 从标定参数中提取图像坐标点（列, 行 → x, y）
+/// 从标定参数中提取图像坐标点集
+/// 将 source_points（行列像素）转换为 Point2D（x=列, y=行）
+/// @param calibration 标定参数
+/// @return 图像坐标点数组
 std::array<Point2D, port::kBevCalibrationPointCount> BuildImagePoints(
     const port::BEVProjectorCalibration& calibration) {
     std::array<Point2D, port::kBevCalibrationPointCount> points{};
@@ -141,7 +153,10 @@ std::array<Point2D, port::kBevCalibrationPointCount> BuildImagePoints(
     return points;
 }
 
-// 从标定参数中提取 BEV 坐标点（横向, 前向 → x, y）
+/// 从标定参数中提取车辆/BEV坐标点集
+/// 将 target_points（横向, 前向）转换为 Point2D（x=横向, y=前向）
+/// @param calibration 标定参数
+/// @return 车辆坐标点数组
 std::array<Point2D, port::kBevCalibrationPointCount> BuildVehiclePoints(
     const port::BEVProjectorCalibration& calibration) {
     std::array<Point2D, port::kBevCalibrationPointCount> points{};
@@ -154,7 +169,8 @@ std::array<Point2D, port::kBevCalibrationPointCount> BuildVehiclePoints(
 
 }  // namespace
 
-// 用标定参数配置投影器，计算正向和反向两个单应矩阵
+/// BEVProjector::Configure 实现
+/// 用标定参数配置投影器，同时计算图像到BEV和BEV到图像两个方向的单应矩阵
 bool BEVProjector::Configure(const port::BEVProjectorCalibration& calibration) {
     calibration_ = calibration;
     configured_ = false;
@@ -162,7 +178,7 @@ bool BEVProjector::Configure(const port::BEVProjectorCalibration& calibration) {
         return false;
     }
 
-    // 构造图像→BEV 和 BEV→图像的两个单应矩阵
+    // 从标定数据中提取图像点和BEV点，分别构建两个方向的单应矩阵
     const std::array<Point2D, port::kBevCalibrationPointCount> image_points =
         BuildImagePoints(calibration);
     const std::array<Point2D, port::kBevCalibrationPointCount> vehicle_points =
@@ -178,7 +194,8 @@ bool BEVProjector::Configure(const port::BEVProjectorCalibration& calibration) {
     return true;
 }
 
-// 图像坐标 → BEV 坐标（通过图像→BEV 单应矩阵）
+/// BEVProjector::ProjectImageToVehicle 实现
+/// 通过图像到BEV的单应矩阵，将图像像素坐标转换为车辆坐标系下的BEV点
 bool BEVProjector::ProjectImageToVehicle(const port::ImagePoint& image_point,
                                          port::BEVPoint& vehicle_point) const {
     if (!configured_) {
@@ -194,7 +211,8 @@ bool BEVProjector::ProjectImageToVehicle(const port::ImagePoint& image_point,
     return true;
 }
 
-// BEV 坐标 → 图像坐标（通过 BEV→图像 单应矩阵）
+/// BEVProjector::ProjectVehicleToImage 实现
+/// 通过BEV到图像的单应矩阵，将车辆坐标系下的BEV点转换为图像像素坐标
 bool BEVProjector::ProjectVehicleToImage(const port::BEVPoint& vehicle_point,
                                          port::ImagePoint& image_point) const {
     if (!configured_) {

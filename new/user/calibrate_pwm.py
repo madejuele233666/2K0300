@@ -123,8 +123,8 @@ def sample_remote(
     allow_degraded_startup: bool,
     pulse_ms: int,
     settle_ms: int,
-    left_pwm: int,
-    right_pwm: int,
+    left_drive_pwm: int,
+    right_drive_pwm: int,
     max_attempts: int,
 ) -> tuple[dict[str, str], str]:
     env_parts = [
@@ -132,8 +132,8 @@ def sample_remote(
         f"LS2K_PROFILE_PATH={remote_profile}",
         f"LS2K_BENCH_PWM_MS={pulse_ms}",
         f"LS2K_BENCH_SETTLE_MS={settle_ms}",
-        f"LS2K_BENCH_PWM_LEFT={left_pwm}",
-        f"LS2K_BENCH_PWM_RIGHT={right_pwm}",
+        f"LS2K_BENCH_DRIVE_LEFT_PWM={left_drive_pwm}",
+        f"LS2K_BENCH_DRIVE_RIGHT_PWM={right_drive_pwm}",
     ]
     if allow_degraded_startup:
         env_parts.insert(0, "LS2K_ALLOW_DEGRADED_STARTUP=1")
@@ -162,8 +162,8 @@ def build_rows(args: argparse.Namespace, sequence: list[int]) -> list[dict[str, 
     for side in sides:
         for pwm in sequence:
             for repeat in range(1, args.repeats + 1):
-                left_pwm = pwm if side == "left" else 0
-                right_pwm = pwm if side == "right" else 0
+                left_drive_pwm = pwm if side == "left" else 0
+                right_drive_pwm = pwm if side == "right" else 0
                 fields, stdout = sample_remote(
                     board_user=args.board_user,
                     board_ip=args.board_ip,
@@ -173,15 +173,15 @@ def build_rows(args: argparse.Namespace, sequence: list[int]) -> list[dict[str, 
                     allow_degraded_startup=args.allow_degraded_startup,
                     pulse_ms=args.pulse_ms,
                     settle_ms=args.settle_ms,
-                    left_pwm=left_pwm,
-                    right_pwm=right_pwm,
+                    left_drive_pwm=left_drive_pwm,
+                    right_drive_pwm=right_drive_pwm,
                     max_attempts=args.max_attempts,
                 )
                 row: dict[str, object] = {
                     "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                     "side": side,
-                    "command_left_pwm": left_pwm,
-                    "command_right_pwm": right_pwm,
+                    "command_left_drive_pwm": left_drive_pwm,
+                    "command_right_drive_pwm": right_drive_pwm,
                     "pwm": pwm,
                     "repeat": repeat,
                     "apply_ok": int(to_bool(fields, "apply_ok")),
@@ -220,8 +220,8 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     fieldnames = [
         "timestamp_utc",
         "side",
-        "command_left_pwm",
-        "command_right_pwm",
+        "command_left_drive_pwm",
+        "command_right_drive_pwm",
         "pwm",
         "repeat",
         "apply_ok",

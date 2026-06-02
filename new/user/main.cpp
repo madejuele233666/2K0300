@@ -1,6 +1,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -8,8 +9,12 @@
 
 #include "platform/bootstrap.hpp"
 #include "port/diagnostics.hpp"
+#include "port/perf_counter.hpp"
 #include "runtime/assistant_service.hpp"
+#include "runtime/camera_capture_worker.hpp"
+#include "runtime/camera_frame_store.hpp"
 #include "runtime/control_loop.hpp"
+#include "runtime/low_voltage_sampler.hpp"
 #include "runtime/perception_frontend.hpp"
 #include "runtime/shutdown.hpp"
 #include "runtime/startup.hpp"
@@ -197,20 +202,29 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
         return false;
     }
 
-    const int left_pwm = ReadIntEnv("LS2K_BENCH_PWM_LEFT", 0);
-    const int right_pwm = ReadIntEnv("LS2K_BENCH_PWM_RIGHT", left_pwm);
+    const int left_drive_pwm = ReadIntEnv("LS2K_BENCH_DRIVE_LEFT_PWM", 0);
+    const int right_drive_pwm = ReadIntEnv("LS2K_BENCH_DRIVE_RIGHT_PWM", left_drive_pwm);
+    const int left_brushless_pwm = ReadIntEnv("LS2K_BENCH_LEFT_BRUSHLESS_PWM", 0);
+    const int right_brushless_pwm = ReadIntEnv("LS2K_BENCH_RIGHT_BRUSHLESS_PWM", left_brushless_pwm);
     const int settle_ms = ReadIntEnv("LS2K_BENCH_SETTLE_MS", 80);
 
     diagnostics.Emit({ls2k::port::DiagnosticLevel::kWarning,
                       "bench.pwm.start",
-                      "running bench PWM pulse test with logical_left=" + std::to_string(left_pwm) +
-                          " logical_right=" + std::to_string(right_pwm) +
+                      "running bench PWM pulse test with left_drive=" + std::to_string(left_drive_pwm) +
+                          " right_drive=" + std::to_string(right_drive_pwm) +
+                          " left_brushless=" + std::to_string(left_brushless_pwm) +
+                          " right_brushless=" + std::to_string(right_brushless_pwm) +
                           " pulse_ms=" + std::to_string(pulse_ms),
                       ls2k::port::NowMs()});
 
-    const ls2k::port::LowVoltageSample power_sample = platform.power->SampleLowVoltage(diagnostics);
-    const bool low_voltage_emergency =
-        runtime_state.low_voltage_emergency.load() || !power_sample.valid || power_sample.emergency;
+    ls2k::port::LowVoltageSample power_sample{};
+    {
+        std::lock_guard<std::mutex> lock(runtime_state.shared_mutex);
+        power_sample = runtime_state.low_voltage_last_sample;
+    }
+    const bool low_voltage_emergency = runtime_state.low_voltage_emergency.load() ||
+                                       !power_sample.valid ||
+                                       power_sample.emergency;
     if (low_voltage_emergency) {
         std::ostringstream blocked;
         blocked << "bench PWM pulse blocked by low-voltage fail-safe"
@@ -228,14 +242,20 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(0, settle_ms)));
     const ls2k::port::EncoderDelta before = platform.encoder->ReadDelta(diagnostics);
 
-    const ls2k::port::ActuatorCommand pulse = {left_pwm, right_pwm, false};
-    const bool apply_ok = platform.motor->Apply(pulse, diagnostics);
+    const ls2k::port::ActuatorCommand pulse = {
+        left_drive_pwm,
+        right_drive_pwm,
+        left_brushless_pwm,
+        right_brushless_pwm,
+        false,
+    };
+    const bool apply_ok = platform.actuator->Apply(pulse, diagnostics);
     const int first_slice_ms = std::max(1, pulse_ms / 2);
     const int second_slice_ms = std::max(0, pulse_ms - first_slice_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(first_slice_ms));
     const ls2k::port::EncoderDelta during = platform.encoder->ReadDelta(diagnostics);
     std::this_thread::sleep_for(std::chrono::milliseconds(second_slice_ms));
-    platform.motor->Disable(diagnostics);
+    platform.actuator->Disable(diagnostics);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(0, settle_ms)));
     const ls2k::port::EncoderDelta after_first = platform.encoder->ReadDelta(diagnostics);
@@ -244,6 +264,10 @@ bool RunBenchPwmPulse(ls2k::port::PlatformBundle& platform,
 
     std::ostringstream summary;
     summary << "bench PWM pulse apply_ok=" << (apply_ok ? "true" : "false")
+            << " command_left_drive=" << left_drive_pwm
+            << " command_right_drive=" << right_drive_pwm
+            << " command_left_brushless=" << left_brushless_pwm
+            << " command_right_brushless=" << right_brushless_pwm
             << " before_valid=" << (before.valid ? "true" : "false")
             << " before_left=" << before.left
             << " before_right=" << before.right
@@ -275,6 +299,7 @@ int main() {
 
     ls2k::port::StdoutDiagnostics diagnostics;
     diagnostics.Info("main.start", "starting ls2k migration runtime");
+    (void)ls2k::port::InitializePerfCounter();
 
     ls2k::port::HardwareProfile profile{};
     ls2k::port::RuntimeParameters params{};
@@ -309,7 +334,7 @@ int main() {
     diagnostics.Info("profile.imu", std::string(ls2k::port::ToString(profile.imu.mode)) + ":" + profile.imu.hook);
     diagnostics.Info("profile.encoder",
                      std::string(ls2k::port::ToString(profile.encoder.mode)) + ":" + profile.encoder.hook);
-    diagnostics.Info("profile.motor", std::string(ls2k::port::ToString(profile.motor.mode)) + ":" + profile.motor.hook);
+    diagnostics.Info("profile.actuator", std::string(ls2k::port::ToString(profile.actuator.mode)) + ":" + profile.actuator.hook);
     diagnostics.Info("profile.timer", std::string(ls2k::port::ToString(profile.timer.mode)) + ":" + profile.timer.hook);
 
     if (!ls2k::runtime::RunStartup(profile, params, platform, runtime_state, diagnostics)) {
@@ -331,8 +356,20 @@ int main() {
         return 1;
     }
 
-    ls2k::runtime::PerceptionFrontend perception(
-        *platform.camera, *platform.power, runtime_state, diagnostics);
+    ls2k::runtime::CameraFrameStore camera_frame_store(runtime_state);
+    ls2k::runtime::CameraCaptureWorker camera_capture_worker(camera_frame_store, diagnostics);
+    if (!camera_capture_worker.Start(params)) {
+        diagnostics.FailSafe("main.camera_capture_worker",
+                             "camera capture worker start failed");
+        control_loop.Stop();
+        ls2k::runtime::RunShutdown(platform, runtime_state, diagnostics);
+        return 1;
+    }
+
+    ls2k::runtime::PerceptionFrontend perception(camera_frame_store, runtime_state, diagnostics);
+    (void)perception.Configure(params);
+    ls2k::runtime::LowVoltageSampler low_voltage_sampler;
+    low_voltage_sampler.Configure(params);
     ls2k::runtime::AssistantService assistant_service;
     ls2k::runtime::SteeringMediaService steering_media_service;
     assistant_service.Start(params, diagnostics);
@@ -341,10 +378,12 @@ int main() {
     EmitHarnessContext(diagnostics, automation);
 
     const uint64_t loop_start_ms = ls2k::port::NowMs();
+    uint64_t last_perf_report_ms = loop_start_ms;
     int processed_frames = 0;
     bool auto_reset_sent = false;
 
     while (!runtime_state.stop_requested.load()) {
+        LS2K_PERF_SCOPE(ls2k::port::PerfStage::kMainLoop);
         if (g_start_signal != 0) {
             g_start_signal = 0;
             RequestStart(runtime_state, diagnostics, "SIGUSR2");
@@ -367,6 +406,10 @@ int main() {
         }
 
         const uint64_t now_ms = ls2k::port::NowMs();
+        if (now_ms >= last_perf_report_ms && now_ms - last_perf_report_ms >= 1000U) {
+            ls2k::port::EmitPerfWindowDiagnostics(diagnostics, now_ms);
+            last_perf_report_ms = now_ms;
+        }
         const uint64_t elapsed_ms = now_ms >= loop_start_ms ? now_ms - loop_start_ms : 0;
         if (automation.auto_start && !runtime_state.automation_start_fired &&
             elapsed_ms >= static_cast<uint64_t>(automation.auto_start_delay_ms)) {
@@ -374,6 +417,7 @@ int main() {
             RequestStart(runtime_state, diagnostics, "LS2K_AUTO_START");
         }
 
+        low_voltage_sampler.Tick(*platform.power, runtime_state, diagnostics, now_ms);
         perception.ProcessOneFrame(params);
         assistant_service.Tick(runtime_state, diagnostics);
         steering_media_service.Tick(runtime_state, diagnostics);
@@ -409,6 +453,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
+    camera_capture_worker.Stop();
     control_loop.Stop();
     ls2k::runtime::RunShutdown(platform, runtime_state, diagnostics);
     diagnostics.Info("main.exit", "runtime exit complete");

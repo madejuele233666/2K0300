@@ -1,6 +1,6 @@
 name: ai-enforced-workflow
-version: 8
-description: Spec-driven workflow with unified verification-cycle checkpoints, optional external `.index/` reference material, current-state active verifier baselines, and valid-pass termination
+version: 9
+description: Spec-driven workflow with unified verification-cycle checkpoints, current-state active verifier baselines, valid-pass termination, and shared engineering discipline
 artifacts:
   - id: proposal
     generates: proposal.md
@@ -28,6 +28,9 @@ artifacts:
         must be.
       - Do not use abstract labels like "improve architecture" without naming
         concrete capabilities or artifacts that will change.
+      - Follow `engineering-principles.md`: resolve load-bearing ambiguity
+        before drafting downstream artifacts, use existing domain language when
+        available, and treat missing glossary/ADR context as a soft dependency.
     requires: []
 
   - id: specs
@@ -64,6 +67,9 @@ artifacts:
 
       For workflow and architecture-related capabilities, requirements MUST be
       testable as document or process checks, not only as code behavior.
+      Requirement and scenario names SHOULD use existing project domain
+      language from specs, `CONTEXT.md`, design docs, or ADRs when those files
+      exist.
     requires:
       - proposal
 
@@ -100,6 +106,7 @@ artifacts:
       - alternatives considered
       - why this option was chosen
       - at least one verification hook
+      - the feedback loop that will prove the decision during apply or review
 
 
       ANTI-ABSTRACTION GUARDRAILS:
@@ -114,6 +121,16 @@ artifacts:
       - **Verification Hook**
 
 
+      ENGINEERING DISCIPLINE:
+
+      Follow
+      `openspec/schemas/ai-enforced-workflow/engineering-principles.md`.
+      Design decisions SHOULD document domain-language inputs, ADRs consulted,
+      the primary feedback loop, and any prototype question whose answer must be
+      captured. These are soft dependencies unless the change makes them
+      load-bearing; do not turn them into auxiliary review gates.
+
+
       SKILL ORCHESTRATION:
 
       - If the change references, aligns with, or replicates an existing
@@ -123,8 +140,6 @@ artifacts:
       - All verification stages MUST use the shared sequence
         `verify-sequence/default` from
         `openspec/schemas/ai-enforced-workflow/verification-sequence.md`.
-      - Repository-level indexing, when published under `.index/`, is external
-        reference material only and MUST NOT become a Stage A gate.
       - `openspec-artifact-verify` and `openspec-verify-change` MUST stay thin
         and delegate orchestration to the shared sequence.
       - The docs-first artifact gate belongs to the caller that finishes the
@@ -148,14 +163,11 @@ artifacts:
       - contracts: `verification-cycle-core-v1.json`,
         `verification-cycle-openspec-adapter-v1.json`,
         `verification-cycle-agent-table-v1.json`
-      - verifier agent: `.codex/agents/verify-reviewer.toml`
+      - verifier agent: `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml`
       - invocation: built-in subagent API, `fork_context=false`, template
         `verify-reviewer-inline-v3`
       - agent lifecycle: follow `cycle_rules` in
         `verification-cycle-core-v1.json`
-      - external repository indexing, if documented, MUST reference `.index/`
-        as non-authoritative background only; it MUST NOT add verifier bundle
-        fields, spawn authority, repair routing, or closure authority
       - transition ownership: only the orchestrator may authorize resume,
         spawn, repair, or termination
 
@@ -190,6 +202,10 @@ artifacts:
 
       - Tasks MUST name concrete outputs
       - Tasks MUST include verification work, not only implementation work
+      - Tasks SHOULD be organized as vertical tracer slices: each slice should
+        deliver one observable outcome with its own behavior-level feedback loop
+      - Tasks SHOULD avoid horizontal batching across all schemas, all code, or
+        all tests when a smaller independently verifiable slice is practical
       - Tasks for workflow behavior MUST mention how the behavior will be
         exercised or audited
       - Verification tasks in `STANDARD` or `STRICT` changes MUST reference
@@ -216,7 +232,7 @@ artifacts:
 
       RISK-TIER GATING:
 
-      - `LIGHT`: verifier-subagent review
+      - `LIGHT`: `openspec validate` plus focused local verification
       - `STANDARD`: explicit verification-cycle checkpoints
       - `STRICT`: same as `STANDARD`, plus explicit exercises
 
@@ -251,9 +267,19 @@ apply:
   instruction: |
     Read context files, work through pending tasks, and mark complete as you go.
 
+    Apply `engineering-principles.md` while implementing:
+    - preserve domain language and ADR constraints when present
+    - work in vertical tracer slices where practical
+    - before repairing implementation defects, establish a focused feedback loop
+      and use it to verify the fix
+    - prototype only to answer a concrete design question, then delete or absorb
+      the prototype and capture the decision
+
     For any verification or checkpoint task in `ai-enforced-workflow`:
     - execute shared sequence `verify-sequence/default`
-    - use verifier agent `.codex/agents/verify-reviewer.toml` in read-only mode
+    - use verifier agent
+      `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml` in
+      read-only mode
     - bundle fields: `verification-cycle-openspec-adapter-v1.json` ->
       `required_fields`; output paths: `verification-cycle-core-v1.json` ->
       `output_paths_required`
@@ -263,8 +289,6 @@ apply:
       recovery re-attempts
     - maintain `agent-table.json` as authoritative agent-state record
     - use built-in subagent API; do not substitute shell/exec
-    - treat `.index/` as optional external background only; do not turn it
-      into a verifier bundle field or review-completion dependency
     - assume docs-first artifact gate already closed before apply started
     - require findings JSON, verifier evidence JSON (with `review_scope` and
       `review_coverage`), and caller-maintained `agent-table.json`

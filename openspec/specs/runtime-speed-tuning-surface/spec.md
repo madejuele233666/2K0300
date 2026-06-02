@@ -52,9 +52,9 @@ The accepted first-release `set_target_speed.value` SHALL use the runtime's exis
 - it is encoded as a JSON number
 - it is finite
 - it is greater than or equal to `0`
-- it is less than or equal to the startup-loaded `Speed_base`
+- it is less than or equal to the startup-loaded `RUNNING_SPEED_TARGET`
 
-If `set_target_speed.value` is invalid (missing, non-numeric, non-finite, negative, or greater than the startup-loaded `Speed_base`), the runtime SHALL reject the command with `outcome="rejected"` and a human-readable `reason` string describing the violation, and it SHALL NOT alter the active tuning snapshot, active override value, or override expiry.
+If `set_target_speed.value` is invalid (missing, non-numeric, non-finite, negative, or greater than the startup-loaded `RUNNING_SPEED_TARGET`), the runtime SHALL reject the command with `outcome="rejected"` and a human-readable `reason` string describing the violation, and it SHALL NOT alter the active tuning snapshot, active override value, or override expiry.
 
 The accepted first-release ACK feedback SHALL identify at minimum:
 
@@ -105,10 +105,13 @@ The accepted first-release telemetry frames SHALL identify at minimum:
 - `right_speed_target`
 - `left_measured_speed`
 - `right_measured_speed`
-- `left_pwm_command`
-- `right_pwm_command`
+- `left_drive_pwm_command`
+- `right_drive_pwm_command`
+- `left_brushless_pwm_command`
+- `right_brushless_pwm_command`
 - `raw_turn_output`
 - `applied_turn_output`
+- `actuator_apply_outcome`
 
 For first-release telemetry, `target_speed_override_value` and `effective_speed_target` SHALL use the same encoding rules defined above for `state` frames.
 
@@ -250,3 +253,12 @@ The accepted steering tuning workflow for this change SHALL expose steering-rela
 - **WHEN** the host workflow captures steering tuning evidence for a run
 - **THEN** it MAY record the current startup-loaded steering parameter snapshot as part of steering media observability
 - **AND** the accepted first-release command set SHALL NOT include any steering-parameter write or override command
+
+### Requirement: Runtime Parameter Snapshots Include BEV Element Raster Settings
+The accepted runtime parameter snapshot surfaces SHALL include `BEV_ELEMENT_RASTER` so host tools and evidence bundles can interpret whether runtime raster facts were enabled and what raster width was used.
+
+#### Scenario: Parameter snapshot carries raster settings
+- **WHEN** the runtime publishes a config or telemetry parameter snapshot that includes BEV steering context
+- **THEN** the snapshot SHALL include `BEV_ELEMENT_RASTER.ENABLED`
+- **AND** it SHALL include `BEV_ELEMENT_RASTER.WIDTH`
+- **AND** the values SHALL reflect the startup-loaded runtime parameters or their documented fallback defaults

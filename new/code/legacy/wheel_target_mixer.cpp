@@ -1,24 +1,33 @@
 #include "legacy/wheel_target_mixer.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace ls2k::legacy {
 
-void WheelTargetMixer::Configure(const port::RuntimeParameters& params) {
-    turn_target_scale_ = params.wheel_turn_target_scale;
-}
-
+/// WheelTargetMixer::Compute 实现
+/// 根据差速转向原理计算左右轮目标速度
+/// 正转向输出：左轮加速、右轮减速
+/// 负转向输出：左轮减速、右轮加速
 WheelSpeedTargets WheelTargetMixer::Compute(double effective_speed_target,
-                                            int turn_pwm_command,
-                                            int pwm_limit) const {
-    const double safe_pwm_limit = pwm_limit <= 0 ? 1.0 : static_cast<double>(pwm_limit);
-    const double turn_ratio =
-        std::clamp(static_cast<double>(turn_pwm_command) / safe_pwm_limit, -1.0, 1.0);
-    const double turn_delta = turn_ratio * turn_target_scale_;
+                                            int applied_turn_output,
+                                            const WheelTargetMixerParameters& params) const {
+    const double base_target = std::max(0.0, effective_speed_target);
+    const double turn_delta = std::abs(static_cast<double>(applied_turn_output));
+    const double accel_delta = turn_delta * params.accel_delta_scale;
+    const double decel_delta = turn_delta * params.decel_delta_scale;
 
     WheelSpeedTargets targets{};
-    targets.left = std::max(0.0, effective_speed_target + turn_delta);
-    targets.right = std::max(0.0, effective_speed_target - turn_delta);
+    if (applied_turn_output > 0) {
+        targets.left = std::max(0.0, base_target + accel_delta);
+        targets.right = std::max(0.0, base_target - decel_delta);
+    } else if (applied_turn_output < 0) {
+        targets.left = std::max(0.0, base_target - decel_delta);
+        targets.right = std::max(0.0, base_target + accel_delta);
+    } else {
+        targets.left = base_target;
+        targets.right = base_target;
+    }
     return targets;
 }
 

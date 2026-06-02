@@ -7,10 +7,12 @@
 #include <array>
 #include <cstdlib>
 #include <dirent.h>
+#include <fcntl.h>
 #include <fstream>
 #include <optional>
 #include <sys/stat.h>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 #include "zf_device_imu_core.h"
@@ -27,8 +29,124 @@ struct ResolvedImu {
     std::array<std::string, kSensorPathCount> data_paths{};
 };
 
+struct ImuChannel {
+    std::string path;
+    int fd = -1;
+};
+
 ImuInitResult g_imu_init{};
 std::array<std::string, kSensorPathCount> g_imu_paths{};
+std::array<ImuChannel, kSensorPathCount> g_imu_channels{};
+std::size_t g_required_sensor_count = 0;
+bool g_use_persistent_fd = false;
+
+std::size_t RequiredSensorCount(uint8_t imu_type) {
+    return imu_type == DEV_IMU963RA ? kSensorPathCount : 6;
+}
+
+bool IsAsciiSpace(char value) {
+    return value == ' ' || value == '\t' || value == '\n' || value == '\r' ||
+           value == '\f' || value == '\v';
+}
+
+bool IsAsciiDigit(char value) {
+    return value >= '0' && value <= '9';
+}
+
+bool ParseAsciiInt16(const char* data, ssize_t length, int16_t& out) {
+    if (data == nullptr || length <= 0) {
+        return false;
+    }
+
+    ssize_t index = 0;
+    while (index < length && IsAsciiSpace(data[index])) {
+        ++index;
+    }
+    if (index >= length) {
+        return false;
+    }
+
+    int sign = 1;
+    if (data[index] == '+' || data[index] == '-') {
+        sign = data[index] == '-' ? -1 : 1;
+        ++index;
+    }
+    if (index >= length || !IsAsciiDigit(data[index])) {
+        return false;
+    }
+
+    int magnitude = 0;
+    const int max_magnitude = sign < 0 ? 32768 : 32767;
+    while (index < length && IsAsciiDigit(data[index])) {
+        magnitude = magnitude * 10 + (data[index] - '0');
+        if (magnitude > max_magnitude) {
+            return false;
+        }
+        ++index;
+    }
+    while (index < length) {
+        if (!IsAsciiSpace(data[index]) && data[index] != '\0') {
+            return false;
+        }
+        ++index;
+    }
+
+    out = static_cast<int16_t>(sign * magnitude);
+    return true;
+}
+
+bool ReadIntFromFd(int fd, int16_t& out) {
+    if (fd < 0) {
+        return false;
+    }
+    if (lseek(fd, 0, SEEK_SET) < 0) {
+        return false;
+    }
+
+    char buffer[32]{};
+    const ssize_t bytes = read(fd, buffer, sizeof(buffer) - 1U);
+    if (bytes <= 0) {
+        return false;
+    }
+    return ParseAsciiInt16(buffer, bytes, out);
+}
+
+void ClosePersistentImuFds() {
+    for (ImuChannel& channel : g_imu_channels) {
+        if (channel.fd >= 0) {
+            (void)close(channel.fd);
+            channel.fd = -1;
+        }
+        channel.path.clear();
+    }
+    g_required_sensor_count = 0;
+    g_use_persistent_fd = false;
+}
+
+bool OpenPersistentImuFds(const std::array<std::string, kSensorPathCount>& paths,
+                          uint8_t imu_type,
+                          std::string& detail) {
+    ClosePersistentImuFds();
+    g_required_sensor_count = RequiredSensorCount(imu_type);
+    for (std::size_t index = 0; index < g_required_sensor_count; ++index) {
+        ImuChannel& channel = g_imu_channels[index];
+        channel.path = paths[index];
+        channel.fd = open(channel.path.c_str(), O_RDONLY | O_CLOEXEC);
+        if (channel.fd < 0) {
+            detail = "imu persistent fd open failed: " + channel.path;
+            ClosePersistentImuFds();
+            return false;
+        }
+        int16_t ignored = 0;
+        if (!ReadIntFromFd(channel.fd, ignored)) {
+            detail = "imu persistent fd read failed: " + channel.path;
+            ClosePersistentImuFds();
+            return false;
+        }
+    }
+    g_use_persistent_fd = true;
+    return true;
+}
 
 // 从 sysfs 文件读取单行字符串令牌
 std::optional<std::string> ReadTokenFile(const std::string& path) {
@@ -90,11 +208,10 @@ std::array<std::string, kSensorPathCount> BuildImuPaths(const std::string& devic
 
 // 探测 IMU 数据路径集合的可读性（IMU963RA 需 9 路，其他 6 路）
 bool ProbePathSet(const std::array<std::string, kSensorPathCount>& paths, uint8_t imu_type, std::string& detail) {
-    const std::size_t required_count = (imu_type == DEV_IMU963RA) ? kSensorPathCount : 6;
+    const std::size_t required_count = RequiredSensorCount(imu_type);
     for (std::size_t i = 0; i < required_count; ++i) {
-        std::ifstream input(paths[i]);
-        if (!input.is_open()) {
-            detail = "imu resource unavailable: " + paths[i];
+        if (!ReadIntFile(paths[i]).has_value()) {
+            detail = "imu resource unreadable: " + paths[i];
             return false;
         }
     }
@@ -183,6 +300,7 @@ std::optional<ResolvedImu> ResolveImuDevice(std::string& detail) {
 
 // 初始化 IMU —— 解析设备 → 探测路径 → 设置全局类型
 ImuInitResult InitializeImu() {
+    ClosePersistentImuFds();
     g_imu_init = {};
     g_imu_paths = {};
 
@@ -197,9 +315,11 @@ ImuInitResult InitializeImu() {
     g_imu_init.imu_type = resolved->imu_type;
     g_imu_init.source = resolved->source;
     g_imu_paths = resolved->data_paths;
+    g_required_sensor_count = RequiredSensorCount(g_imu_init.imu_type);
 
     std::string detail;
-    if (!ProbePathSet(g_imu_paths, g_imu_init.imu_type, detail)) {
+    const bool persistent_ok = OpenPersistentImuFds(g_imu_paths, g_imu_init.imu_type, detail);
+    if (!persistent_ok && !ProbePathSet(g_imu_paths, g_imu_init.imu_type, detail)) {
         imu_type = DEV_NO_FIND;
         g_imu_init.detail = detail;
         return g_imu_init;
@@ -207,7 +327,9 @@ ImuInitResult InitializeImu() {
 
     imu_type = g_imu_init.imu_type;
     g_imu_init.ready = true;
-    g_imu_init.detail = "resolved IMU resource at " + resolved->device_dir;
+    g_imu_init.detail = "resolved IMU resource at " + resolved->device_dir +
+                        (persistent_ok ? " with persistent fd"
+                                       : " with open/read/close fallback (" + detail + ")");
     return g_imu_init;
 }
 
@@ -222,6 +344,16 @@ ImuBridgeSample ReadImuSample() {
     }
 
     auto read_required = [&](std::size_t index, int16_t& out) -> bool {
+        if (g_use_persistent_fd) {
+            if (index >= g_required_sensor_count || !ReadIntFromFd(g_imu_channels[index].fd, out)) {
+                sample.detail = "imu sample fd read failed: " +
+                                (index < g_imu_channels.size() ? g_imu_channels[index].path
+                                                               : std::string("index out of range"));
+                return false;
+            }
+            return true;
+        }
+
         const std::optional<int> value = ReadIntFile(g_imu_paths[index]);
         if (!value.has_value()) {
             sample.detail = "imu sample read failed: " + g_imu_paths[index];
@@ -246,6 +378,14 @@ ImuBridgeSample ReadImuSample() {
 
     sample.valid = true;
     return sample;
+}
+
+// 关闭 IMU 桥接层持有的 sysfs 资源
+void ShutdownImu() {
+    ClosePersistentImuFds();
+    g_imu_init = {};
+    g_imu_paths = {};
+    imu_type = DEV_NO_FIND;
 }
 
 }  // namespace ls2k::platform::true_ls2k0300

@@ -11,9 +11,9 @@
     "mode": "direct-match",
     "hook": "absolute-count-delta-baseline"
   },
-  "motor": {
+  "actuator": {
     "mode": "direct-match",
-    "hook": "pwm-gpio-free-function"
+    "hook": "differential-motor-plus-brushless-esc"
   },
   "timer": {
     "mode": "direct-match",

@@ -27,32 +27,11 @@ COMMON_INCLUDES=(
   -I"${REPO_ROOT}/new/user"
 )
 
-CAMERA_PIPELINE_SOURCES=(
-  "${REPO_ROOT}/new/code/legacy/camera_logic.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_bev_projector.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_bev_sparse_sampler.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_bev_element_evidence.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_corridor_intervals.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_corridor_graph.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_topology_hypotheses.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_topology_evidence.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_bev_geometry.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_observation_assembly.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_scene_fsm.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_reference_policy.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_control_error_model.cpp"
-  "${REPO_ROOT}/new/code/legacy/steering_gyro_continuity.cpp"
-)
-
-PID_SOURCES=(
-  "${REPO_ROOT}/new/code/legacy/pid_control.cpp"
-  "${REPO_ROOT}/new/code/legacy/fuzzy_pid_ucas.cpp"
-)
-
 STEERING_MEDIA_SOURCES=(
   "${REPO_ROOT}/new/code/platform/steering_media_link.cpp"
   "${REPO_ROOT}/new/code/platform/steering_media_protocol.cpp"
   "${REPO_ROOT}/new/code/platform/true_ls2k0300/steering_media_bridge.cpp"
+  "${REPO_ROOT}/new/code/port/perf_counter.cpp"
   "${REPO_ROOT}/new/code/runtime/control_debug_reporter.cpp"
   "${REPO_ROOT}/new/code/runtime/control_decision.cpp"
   "${REPO_ROOT}/new/code/runtime/motion_supervisor.cpp"

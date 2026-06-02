@@ -1,17 +1,22 @@
 #include "runtime/perception_frontend.hpp"
 
-// 感知前端实现 —— 运行时感知管线调度。
-// 负责故障注入、诊断发布、感知结果缓存和前端线程生命周期管理。
+/// 感知前端实现 —— 运行时感知管线调度。
+/// 负责故障注入、诊断发布、感知结果缓存和前端线程生命周期管理。
 
 #include <cstdlib>
+#include <optional>
 #include <string>
 
-#include "legacy/camera_logic.hpp"
+#include "port/perf_counter.hpp"
 
 namespace ls2k::runtime {
 namespace {
 
-// 从环境变量读取正整数值（用于故障注入间隔）
+/// 从环境变量读取正整数值（用于故障注入间隔）
+/// @param key         环境变量名
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳
+/// @return            正整数值，无效或不存在时返回 0
 int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
     const char* value = std::getenv(key);
     if (value == nullptr || value[0] == '\0') {
@@ -33,7 +38,9 @@ int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, 
     return 0;
 }
 
-// 构建丢帧回退感知结果（用于故障注入场景）
+/// 构建丢帧回退感知结果（用于故障注入场景 —— 模拟帧丢失，保持帧 ID 但标记为不新鲜）
+/// @param capture  相机捕获信息
+/// @return         构建的降级感知结果
 port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capture) {
     port::PerceptionResult fallback{};
     fallback.published = true;
@@ -41,72 +48,76 @@ port::PerceptionResult BuildDroppedFrameFallback(const port::CameraCapture& capt
     fallback.frame_id = capture.frame_id;
     fallback.capture_time_ms = capture.capture_time_ms;
     fallback.publish_time_ms = capture.capture_time_ms;
-    fallback.geometry_veto = true;
-    fallback.emergency_veto = true;
     fallback.perception_tag = "injected-drop-frame";
     return fallback;
 }
 
-// 缓存最新相机帧到运行时状态
-void RememberCameraCapture(RuntimeState& state, const port::CameraCapture& capture) {
-    state.latest_camera_capture = capture;
-    state.recent_camera_captures.Push(capture);
-}
-
-// 将感知分析结果应用到转向运行时状态
-void ApplyPerceptionToSteeringState(const legacy::SteeringAnalysisResult& analysis, RuntimeState& state) {
-    if (analysis.steering_state_update_valid) {
-        state.steering_state = analysis.steering_state_update;
-        return;
-    }
-
-    state.steering_state.active_module = analysis.perception.active_module;
-    state.steering_state.scene_phase = analysis.perception.scene_phase;
-    state.steering_state.last_bev_track = analysis.track_estimate;
-    state.steering_state.gyro_continuity = analysis.gyro_continuity_state;
-}
-
 }  // namespace
 
-PerceptionFrontend::PerceptionFrontend(port::ICameraAdapter& camera,
-                                       port::IPowerMonitorAdapter& power,
+/// 构造感知前端：保存相机适配器、运行时状态和诊断接口引用
+/// @param camera      相机适配器
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
+PerceptionFrontend::PerceptionFrontend(CameraFrameStore& frame_store,
                                        RuntimeState& state,
                                        port::DiagnosticSink& diagnostics)
-    : camera_(camera), power_(power), state_(state), diagnostics_(diagnostics) {}
+    : frame_store_(frame_store), state_(state), diagnostics_(diagnostics) {}
 
-// 刷新低电压状态 —— 从电源监控采样并更新紧急标志
-void PerceptionFrontend::RefreshLowVoltageState() {
-    const port::LowVoltageSample sample = power_.SampleLowVoltage(diagnostics_);
-    if (!sample.valid) {
-        if (!state_.low_voltage_emergency.load()) {
-            diagnostics_.Emit({port::DiagnosticLevel::kFailSafe,
-                               "power.low_voltage.invalid",
-                               "low-voltage sample unavailable at runtime; forcing emergency veto",
-                               port::NowMs()});
-        }
-        state_.low_voltage_emergency.store(true);
+/// 配置感知前端：委派到帧感知管线的配置
+/// @param params  运行时参数
+/// @return        配置是否成功
+bool PerceptionFrontend::Configure(const port::RuntimeParameters& params) {
+    return frame_pipeline_.Configure(params, diagnostics_);
+}
+
+/// 消费普通参考连续性复位请求：检查复位代数，若有新请求则清空 reference hold
+void PerceptionFrontend::ConsumeMemoryResetRequest() {
+    const uint64_t generation = state_.perception_memory_reset_generation.load();
+    if (generation == consumed_perception_memory_reset_generation_) {
+        return;
+    }
+    frame_pipeline_.ResetReferenceMemory();
+    consumed_perception_memory_reset_generation_ = generation;
+}
+
+/// 处理一帧图像：故障注入 → 空帧处理 → Otsu → sparse BEV 感知 → 结果缓存。
+/// 支持通过环境变量 LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N 模拟帧丢失。
+/// @param params  运行时参数
+void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) {
+    LS2K_PERF_SCOPE(port::PerfStage::kPerceptionFrame);
+    ConsumeMemoryResetRequest();
+
+    const std::optional<CameraFrameHandle> latest =
+        frame_store_.TryGetLatestAfter(last_processed_frame_id_);
+    if (!latest.has_value()) {
+        return;
+    }
+    port::LegacyCameraFrame frame{};
+    if (!frame_store_.CopyFrame(*latest, frame)) {
+        port::EmitRateLimited(diagnostics_,
+                              {port::DiagnosticLevel::kWarning,
+                               "perception.frame_store.copy_miss",
+                               "latest camera frame was overwritten before perception could copy it",
+                               port::NowMs()},
+                              1000);
+        last_processed_frame_id_ = latest->frame_id;
         return;
     }
 
-    const bool previous = state_.low_voltage_emergency.load();
-    state_.low_voltage_emergency.store(sample.emergency);
-    if (sample.emergency != previous) {
-        diagnostics_.Emit({sample.emergency ? port::DiagnosticLevel::kFailSafe
-                                            : port::DiagnosticLevel::kInfo,
-                           "power.low_voltage.transition",
-                           sample.emergency ? "runtime low-voltage emergency asserted"
-                                            : "runtime low-voltage emergency cleared",
-                           sample.capture_time_ms});
-    }
-}
-
-// 处理一帧图像：低电压检查 → 故障注入 → 空帧处理 → AnalyzeFrame 感知
-void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) {
-    RefreshLowVoltageState();
     ++processed_frames_;
-
-    // Foreground frame-ready path. Heavy perception stays outside PIT callback.
-    const port::CameraCapture capture = camera_.Capture(diagnostics_);
+    last_processed_frame_id_ = latest->frame_id;
+    port::CameraCapture capture{};
+    capture.has_frame = true;
+    capture.marker = port::CameraGeometryMarker::kPhase1Adapted;
+    capture.frame_id = latest->frame_id;
+    capture.capture_time_ms = latest->capture_time_ms;
+    capture.source_width = latest->width;
+    capture.source_height = latest->height;
+    capture.view = frame.View(latest->frame_id, latest->capture_time_ms);
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kCameraFrameAge);
+        (void)capture.capture_time_ms;
+    }
     const int drop_frame_every_n =
         ReadPositiveIntervalEnv("LS2K_FAULT_INJECT_DROP_FRAME_EVERY_N", diagnostics_, port::NowMs());
     if (drop_frame_every_n > 0 && processed_frames_ % static_cast<uint64_t>(drop_frame_every_n) == 0) {
@@ -118,71 +129,29 @@ void PerceptionFrontend::ProcessOneFrame(const port::RuntimeParameters& params) 
                               1000);
         port::PerceptionResult fallback = BuildDroppedFrameFallback(capture);
         fallback.publish_time_ms = port::NowMs();
-        std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        RememberCameraCapture(state_, capture);
-        state_.perception = fallback;
-        ++state_.perception_publish_count;
-        return;
-    }
-
-    if (!capture.has_frame) {
-        port::PerceptionResult fallback{};
-        fallback.published = true;
-        fallback.fresh = false;
-        fallback.frame_id = capture.frame_id;
-        fallback.capture_time_ms = capture.capture_time_ms;
-        fallback.publish_time_ms = port::NowMs();
-        fallback.geometry_veto = true;
-        fallback.emergency_veto = true;
-
-        switch (capture.marker) {
-            case port::CameraGeometryMarker::kEmptyFrame:
-                fallback.perception_tag = "camera-empty";
-                break;
-            case port::CameraGeometryMarker::kAdapterNotReady:
-                fallback.perception_tag = "camera-not-ready";
-                break;
-            case port::CameraGeometryMarker::kNonPhase1Geometry:
-                fallback.perception_tag = "camera-bad-geometry";
-                break;
-            case port::CameraGeometryMarker::kAdaptationHookRouted:
-                fallback.perception_tag = "camera-hook-routed";
-                break;
-            default:
-                fallback.perception_tag = "camera-marker-unknown";
-                break;
+        {
+            LS2K_PERF_SCOPE(port::PerfStage::kPerceptionPublish);
+            std::lock_guard<std::mutex> lock(state_.shared_mutex);
+            state_.perception = fallback;
+            ++state_.perception_publish_count;
         }
-
-        std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        RememberCameraCapture(state_, capture);
-        state_.perception = fallback;
-        ++state_.perception_publish_count;
         return;
     }
 
-    port::LegacySteeringState prior_state{};
-    port::ImuSample imu{};
+    MotionHistory motion_history{};
     {
         std::lock_guard<std::mutex> lock(state_.shared_mutex);
-        prior_state = state_.steering_state;
-        imu = state_.imu;
+        motion_history = state_.motion_history;
     }
-    const legacy::SteeringAnalysisResult analysis =
-        legacy::AnalyzeFrame(capture.frame,
-                             params,
-                             prior_state,
-                             imu,
-                             state_.low_voltage_emergency.load(),
-                             capture.frame_id,
-                             capture.capture_time_ms);
-    port::PerceptionResult perception = analysis.perception;
-    perception.publish_time_ms = port::NowMs();
+    port::PerceptionResult perception =
+        frame_pipeline_.ProcessFrame(capture, params, motion_history);
 
-    std::lock_guard<std::mutex> lock(state_.shared_mutex);
-    RememberCameraCapture(state_, capture);
-    state_.perception = perception;
-    ApplyPerceptionToSteeringState(analysis, state_);
-    ++state_.perception_publish_count;
+    {
+        LS2K_PERF_SCOPE(port::PerfStage::kPerceptionPublish);
+        std::lock_guard<std::mutex> lock(state_.shared_mutex);
+        state_.perception = perception;
+        ++state_.perception_publish_count;
+    }
 }
 
 }  // namespace ls2k::runtime

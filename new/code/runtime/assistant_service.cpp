@@ -1,73 +1,23 @@
 #include "runtime/assistant_service.hpp"
 
-#include <algorithm>
-#include <cmath>
+#include <utility>
+
+#include "port/perf_counter.hpp"
+#include "runtime/assistant_telemetry_view.hpp"
 
 namespace ls2k::runtime {
 namespace {
 
+/// ACK 确认后的安全等待时间（ms），确保控制层 ACK 排空后再提交运动意图
 constexpr uint64_t kLifecycleCommandAckGuardMs = 75;
 
-platform::AssistantWaveformFrame BuildWaveformFrame(const ControlDebugSnapshot& snapshot) {
-    platform::AssistantWaveformFrame frame{};
-    frame.channel_count = 8;
-    frame.values[0] = static_cast<float>(snapshot.left_speed_target);
-    frame.values[1] = static_cast<float>(snapshot.right_speed_target);
-    frame.values[2] = static_cast<float>(snapshot.left_measured_speed);
-    frame.values[3] = static_cast<float>(snapshot.right_measured_speed);
-    frame.values[4] = static_cast<float>(snapshot.left_pwm_command);
-    frame.values[5] = static_cast<float>(snapshot.right_pwm_command);
-    frame.values[6] = static_cast<float>(snapshot.raw_turn_output);
-    frame.values[7] = static_cast<float>(snapshot.applied_turn_output);
-    return frame;
-}
-
-uint64_t SafeElapsedMs(uint64_t now_ms, uint64_t start_ms) {
-    return now_ms >= start_ms ? now_ms - start_ms : 0;
-}
-
-double ClampRatio(uint64_t elapsed_ms, int window_ms) {
-    if (window_ms <= 0) {
-        return 1.0;
-    }
-    return std::clamp(static_cast<double>(elapsed_ms) / static_cast<double>(window_ms), 0.0, 1.0);
-}
-
-double StopDecayTarget(double entry_speed_target, uint64_t elapsed_ms, int stop_ms) {
-    if (stop_ms <= 0) {
-        return 0.0;
-    }
-    const double stop_ratio = 1.0 - ClampRatio(elapsed_ms, stop_ms);
-    return std::max(0.0, entry_speed_target * std::max(0.0, stop_ratio));
-}
-
-double ComputeEffectiveSpeedTargetForState(const MotionSupervisorState& motion_state,
-                                           const RuntimeTuningSnapshot& tuning_snapshot,
-                                           const port::RuntimeParameters& params,
-                                           uint64_t now_ms) {
-    const double running_speed_target = ResolveRuntimeSpeedTarget(tuning_snapshot, params.Speed_base, now_ms);
-    switch (motion_state.phase) {
-        case MotionPhase::kDisarmed:
-        case MotionPhase::kStartRequested:
-        case MotionPhase::kFailSafeLatched:
-            return 0.0;
-        case MotionPhase::kSpinup: {
-            const uint64_t elapsed_ms = SafeElapsedMs(now_ms, motion_state.phase_entry_ms);
-            return running_speed_target * ClampRatio(elapsed_ms, params.motion_spinup_ms);
-        }
-        case MotionPhase::kRunning:
-            return running_speed_target;
-        case MotionPhase::kStopping: {
-            const uint64_t elapsed_ms = SafeElapsedMs(now_ms, motion_state.phase_entry_ms);
-            return StopDecayTarget(motion_state.stop_entry_speed_target, elapsed_ms, params.motion_stop_ms);
-        }
-    }
-    return 0.0;
-}
-
-platform::AssistantStatusView BuildStatusView(const MotionSupervisorState& motion_state,
-                                              const RuntimeTuningSnapshot& tuning_snapshot,
-                                              const port::RuntimeParameters& params,
+/// 构建辅助状态视图 —— 从调参快照和控制快照组装发送给辅助进程的状态信息
+/// @param tuning_snapshot    当前运行时调参状态快照
+/// @param control_snapshot   当前控制调试快照
+/// @param now_ms             当前时间戳（ms）
+/// @return                   组装好的 AssistantStatusView
+platform::AssistantStatusView BuildStatusView(const RuntimeTuningSnapshot& tuning_snapshot,
+                                              const ControlDebugSnapshot& control_snapshot,
                                               uint64_t now_ms) {
     platform::AssistantStatusView status{};
     status.tuning_mode_enabled = tuning_snapshot.tuning_mode_enabled;
@@ -75,72 +25,13 @@ platform::AssistantStatusView BuildStatusView(const MotionSupervisorState& motio
     status.target_speed_override_enabled = RuntimeTuningOverrideActiveAt(tuning_snapshot, now_ms);
     status.target_speed_override_value =
         status.target_speed_override_enabled ? tuning_snapshot.target_speed_override_value : 0.0;
-    status.effective_speed_target =
-        ComputeEffectiveSpeedTargetForState(motion_state, tuning_snapshot, params, now_ms);
+    status.effective_speed_target = control_snapshot.valid ? control_snapshot.effective_speed_target : 0.0;
     return status;
 }
 
-platform::AssistantTelemetryView BuildTelemetryView(const ControlDebugSnapshot& snapshot) {
-    platform::AssistantTelemetryView telemetry{};
-    telemetry.motion_phase = ToString(snapshot.motion_phase);
-    telemetry.active_module = snapshot.steering.active_module;
-    telemetry.scene_phase = snapshot.steering.scene_phase;
-    telemetry.scene_override_source = snapshot.steering.scene_override_source;
-    telemetry.reference_mode = snapshot.steering.reference_mode;
-    telemetry.near_lateral_error = snapshot.steering.near_lateral_error;
-    telemetry.far_heading_error = snapshot.steering.far_heading_error;
-    telemetry.preview_curvature = snapshot.steering.preview_curvature;
-    telemetry.lookahead_distance_m = snapshot.steering.lookahead_distance_m;
-    telemetry.lookahead_lateral_error = snapshot.steering.lookahead_lateral_error;
-    telemetry.lookahead_heading_error = snapshot.steering.lookahead_heading_error;
-    telemetry.reference_curvature = snapshot.steering.reference_curvature;
-    telemetry.curvature_command = snapshot.steering.curvature_command;
-    telemetry.yaw_rate_target = snapshot.steering.yaw_rate_target;
-    telemetry.visible_range_m = snapshot.steering.visible_range_m;
-    telemetry.track_confidence = snapshot.steering.track_confidence;
-    telemetry.tuning_mode_enabled = snapshot.tuning_mode_enabled;
-    telemetry.turn_suppressed = snapshot.turn_suppressed;
-    telemetry.target_speed_override_enabled = snapshot.target_speed_override_enabled;
-    telemetry.target_speed_override_value = snapshot.target_speed_override_value;
-    telemetry.effective_speed_target = snapshot.effective_speed_target;
-    telemetry.left_speed_target = snapshot.left_speed_target;
-    telemetry.right_speed_target = snapshot.right_speed_target;
-    telemetry.left_measured_speed = snapshot.left_measured_speed;
-    telemetry.right_measured_speed = snapshot.right_measured_speed;
-    telemetry.left_pwm_command = snapshot.left_pwm_command;
-    telemetry.right_pwm_command = snapshot.right_pwm_command;
-    telemetry.raw_turn_output = snapshot.raw_turn_output;
-    telemetry.applied_turn_output = snapshot.applied_turn_output;
-    telemetry.circle_direction = snapshot.steering.circle_direction;
-    telemetry.circle_reference_mode = snapshot.steering.circle_reference_mode;
-    telemetry.circle_heading_delta_deg = snapshot.steering.circle_heading_delta_deg;
-    telemetry.circle_yaw_accum_deg = snapshot.steering.circle_yaw_accum_deg;
-    telemetry.circle_path_phase = snapshot.steering.circle_path_phase;
-    telemetry.reference_compatibility_error_m = snapshot.steering.reference_compatibility_error_m;
-    telemetry.reference_source = snapshot.steering.reference_source;
-    telemetry.circle_entry_signal_active = snapshot.steering.circle_entry_signal_active;
-    telemetry.inner_island_memory_active = snapshot.steering.inner_island_memory_active;
-    telemetry.inner_island_memory_age = snapshot.steering.inner_island_memory_age;
-    telemetry.inner_island_memory_confidence = snapshot.steering.inner_island_memory_confidence;
-    telemetry.left_inner_island_present = snapshot.steering.left_inner_island_present;
-    telemetry.right_inner_island_present = snapshot.steering.right_inner_island_present;
-    telemetry.inner_edge_compatible = snapshot.steering.inner_edge_compatible;
-    telemetry.inner_island_trace_present = snapshot.steering.inner_island_trace_present;
-    telemetry.inner_island_trace_start_forward_m =
-        snapshot.steering.inner_island_trace_start_forward_m;
-    telemetry.inner_island_trace_end_forward_m =
-        snapshot.steering.inner_island_trace_end_forward_m;
-    telemetry.inner_island_trace_confidence =
-        snapshot.steering.inner_island_trace_confidence;
-    telemetry.inner_island_trace_support_layers =
-        snapshot.steering.inner_island_trace_support_layers;
-    telemetry.inner_island_trace_gap_layers =
-        snapshot.steering.inner_island_trace_gap_layers;
-    telemetry.inner_island_rejected_far_segments =
-        snapshot.steering.inner_island_rejected_far_segments;
-    return telemetry;
-}
-
+/// 将运行时调参事件类型转换为字符串名称
+/// @param type  调参事件类型
+/// @return      对应的事件名称字符串
 const char* ToEventName(RuntimeTuningEventType type) {
     switch (type) {
         case RuntimeTuningEventType::kOverrideCleared:
@@ -153,6 +44,9 @@ const char* ToEventName(RuntimeTuningEventType type) {
     return "";
 }
 
+/// 将辅助命令类型转换为字符串名称（用于诊断输出）
+/// @param type  辅助命令类型
+/// @return      对应的命令名称字符串
 const char* ToCommandName(platform::AssistantCommandType type) {
     switch (type) {
         case platform::AssistantCommandType::kEnableTuningMode:
@@ -171,6 +65,9 @@ const char* ToCommandName(platform::AssistantCommandType type) {
     return "unknown";
 }
 
+/// 构造辅助命令的描述字符串（序列号 + 类型 + 参数，用于诊断日志）
+/// @param command  辅助命令
+/// @return         格式化的命令描述
 std::string DescribeCommand(const platform::AssistantCommand& command) {
     std::string detail = std::string("seq=") + std::to_string(command.seq) +
                          " cmd=" + ToCommandName(command.type);
@@ -193,25 +90,17 @@ std::string DescribeCommand(const platform::AssistantCommand& command) {
 
 }  // namespace
 
+/// 启动辅助服务：初始化参数、链路连接，并设置遥测间隔。若辅助功能禁用则直接返回。
+/// @param params       运行时参数（含 assistant_enabled 标志）
+/// @param diagnostics  诊断输出接口
 void AssistantService::Start(const port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) {
     configured_ = true;
     enabled_ = params.assistant_enabled;
-    periodic_publish_armed_ = false;
-    publish_policy_ = PublishPolicy::kControlAndMedia;
-    control_priority_connection_ = false;
     ResetDeferredMotionIntent();
-    params_ = params;
-    waveform_interval_ms_ = std::max(0, params.assistant_waveform_publish_interval_ms);
-    // The TCP assistant path becomes unstable under sustained small-frame bursts.
-    // Keep telemetry slower than the control loop when waveform streaming is off.
-    telemetry_interval_ms_ = waveform_interval_ms_ > 0 ? waveform_interval_ms_ : 200;
-    image_interval_ms_ = std::max(0, params.assistant_image_publish_interval_ms);
-    last_wave_publish_ms_ = 0;
+    // Keep telemetry slower than the control loop. Images and media diagnostics use steering media.
+    telemetry_interval_ms_ = 200;
     last_telemetry_publish_ms_ = 0;
-    last_image_publish_ms_ = 0;
-    last_wave_cycle_ = 0;
     last_telemetry_cycle_ = 0;
-    last_image_frame_id_ = 0;
     pending_feedback_.clear();
     if (!enabled_) {
         diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -223,48 +112,15 @@ void AssistantService::Start(const port::RuntimeParameters& params, port::Diagno
     (void)link_.Initialize(params, diagnostics);
 }
 
-AssistantService::PublishPolicy AssistantService::DeterminePublishPolicy(
-    const ControlDebugSnapshot& snapshot,
-    bool session_boundary_reset) const {
-    // Runtime control and optional media share one TCP stream. Once a client
-    // starts issuing commands on a connection, keep that whole session on a
-    // control-only lane until disconnect so trailing stop/disable/close steps
-    // cannot be disrupted by a late media burst reclaiming the socket.
-    if (control_priority_connection_) {
-        return PublishPolicy::kControlOnly;
-    }
-    // A fresh or torn-down session should not inherit a stale debug snapshot
-    // from the previous connection. Let the new session start from the default
-    // mixed publish lane until it actually sends a command.
-    if (session_boundary_reset) {
-        return PublishPolicy::kControlAndMedia;
-    }
-    if (snapshot.tuning_mode_enabled) {
-        return PublishPolicy::kControlOnly;
-    }
-    return PublishPolicy::kControlAndMedia;
-}
-
-void AssistantService::UpdatePublishPolicy(PublishPolicy next_policy,
-                                           port::DiagnosticSink& diagnostics,
-                                           uint64_t now_ms) {
-    if (publish_policy_ == next_policy) {
-        return;
-    }
-
-    publish_policy_ = next_policy;
-    diagnostics.Emit({port::DiagnosticLevel::kInfo,
-                      "assistant.publish_policy",
-                      std::string("assistant publish policy switched to ") +
-                          (next_policy == PublishPolicy::kControlOnly ? "control_only"
-                                                                      : "control_and_media"),
-                      now_ms});
-}
-
+/// 重置延迟运动意图（清空结构体）
 void AssistantService::ResetDeferredMotionIntent() {
     deferred_motion_intent_ = {};
 }
 
+/// 延迟运动意图：记录意图类型和序列号，设置就绪时间为当前时间 + ACK 防护间隔
+/// @param type    运动意图类型（启动/停止）
+/// @param seq     命令序列号
+/// @param now_ms  当前时间戳（ms）
 void AssistantService::DeferMotionIntent(DeferredMotionIntentType type,
                                          std::uint64_t seq,
                                          uint64_t now_ms) {
@@ -273,6 +129,10 @@ void AssistantService::DeferMotionIntent(DeferredMotionIntentType type,
     deferred_motion_intent_.ready_at_ms = now_ms + kLifecycleCommandAckGuardMs;
 }
 
+/// 若延迟运动意图就绪（已过防护时间、无待发送反馈、链路就绪），则提交到 state.motion_intent
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::ApplyDeferredMotionIntentIfReady(RuntimeState& state,
                                                         port::DiagnosticSink& diagnostics,
                                                         uint64_t now_ms) {
@@ -314,25 +174,22 @@ void AssistantService::ApplyDeferredMotionIntentIfReady(RuntimeState& state,
     diagnostics.Emit({port::DiagnosticLevel::kInfo, code, detail, now_ms});
 }
 
+/// 辅助服务 Tick：轮询链路消息、处理入站命令、执行延迟意图、处理超时事件、发布遥测
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
 void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnostics) {
+    LS2K_PERF_SCOPE(port::PerfStage::kAssistantTick);
     if (!configured_ || !enabled_) {
         return;
     }
 
     const uint64_t now_ms = port::NowMs();
     const platform::AssistantPollResult poll_result = link_.Poll(diagnostics);
-    const bool session_boundary_reset = poll_result.became_ready || poll_result.connection_lost;
     if (poll_result.became_ready) {
-        // Delay periodic telemetry on a fresh connection until the host sends
-        // a command. This shrinks the unstable connect-then-command window.
-        periodic_publish_armed_ = false;
-        control_priority_connection_ = false;
         pending_feedback_.clear();
         ResetDeferredMotionIntent();
     }
     if (poll_result.connection_lost) {
-        periodic_publish_armed_ = false;
-        control_priority_connection_ = false;
         pending_feedback_.clear();
         ResetDeferredMotionIntent();
         RuntimeTuningEvent disconnect_event{};
@@ -360,12 +217,10 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
 
     RuntimeTuningEvent expiry_event{};
     ControlDebugSnapshot snapshot{};
-    port::CameraCapture capture{};
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
         expiry_event = ClearExpiredRuntimeTuningOverride(state.tuning_state, now_ms);
         snapshot = state.control_debug_snapshot;
-        capture = state.latest_camera_capture;
     }
     if (expiry_event.type != RuntimeTuningEventType::kNone) {
         diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -375,8 +230,6 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         PublishStateEvent(state, ToEventName(expiry_event.type), expiry_event.reason, diagnostics, now_ms);
     }
 
-    UpdatePublishPolicy(DeterminePublishPolicy(snapshot, session_boundary_reset), diagnostics, now_ms);
-
     FlushFeedback(diagnostics);
     if (!poll_result.ready) {
         return;
@@ -385,11 +238,12 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
     const bool telemetry_phase_allowed =
         snapshot.motion_phase == MotionPhase::kRunning ||
         snapshot.motion_phase == MotionPhase::kStopping;
-    if (periodic_publish_armed_ && telemetry_phase_allowed && snapshot.valid &&
+    if (telemetry_phase_allowed && snapshot.valid &&
         snapshot.cycle_count != last_telemetry_cycle_ &&
         (last_telemetry_publish_ms_ == 0 ||
          now_ms - last_telemetry_publish_ms_ >= static_cast<uint64_t>(telemetry_interval_ms_))) {
-        if (link_.PublishJsonLine(platform::EncodeAssistantTelemetry(BuildTelemetryView(snapshot)),
+        if (link_.PublishJsonLine(platform::EncodeAssistantTelemetry(
+                                      BuildAssistantTelemetryView(snapshot)),
                                   platform::AssistantJsonSendReliability::kBestEffort,
                                   diagnostics)) {
             last_telemetry_publish_ms_ = now_ms;
@@ -397,31 +251,16 @@ void AssistantService::Tick(RuntimeState& state, port::DiagnosticSink& diagnosti
         }
     }
 
-    const bool media_publish_allowed = publish_policy_ == PublishPolicy::kControlAndMedia;
-
-    if (periodic_publish_armed_ && media_publish_allowed && waveform_interval_ms_ > 0 && snapshot.valid &&
-        snapshot.cycle_count != last_wave_cycle_ &&
-        (last_wave_publish_ms_ == 0 || now_ms - last_wave_publish_ms_ >= static_cast<uint64_t>(waveform_interval_ms_))) {
-        if (link_.PublishWaveform(BuildWaveformFrame(snapshot), diagnostics)) {
-            last_wave_publish_ms_ = now_ms;
-            last_wave_cycle_ = snapshot.cycle_count;
-        }
-    }
-
-    if (periodic_publish_armed_ && media_publish_allowed && image_interval_ms_ > 0 && capture.has_frame &&
-        capture.frame_id != last_image_frame_id_ &&
-        (last_image_publish_ms_ == 0 || now_ms - last_image_publish_ms_ >= static_cast<uint64_t>(image_interval_ms_))) {
-        if (link_.PublishImage(capture, diagnostics)) {
-            last_image_publish_ms_ = now_ms;
-            last_image_frame_id_ = capture.frame_id;
-        }
-    }
 }
 
+/// 将反馈行加入待发送队列
+/// @param line 反馈消息字符串（已编码的 JSON 行）
 void AssistantService::EnqueueFeedback(std::string line) {
     pending_feedback_.push_back(std::move(line));
 }
 
+/// 刷新待发送反馈队列：当链路就绪时逐条发送，直到发送失败或队列清空
+/// @param diagnostics 诊断输出接口
 void AssistantService::FlushFeedback(port::DiagnosticSink& diagnostics) {
     while (!pending_feedback_.empty() && link_.Ready()) {
         if (!link_.PublishJsonLine(pending_feedback_.front(),
@@ -433,24 +272,35 @@ void AssistantService::FlushFeedback(port::DiagnosticSink& diagnostics) {
     }
 }
 
+/// 发布状态事件：采集调参快照和控制快照，编码为状态事件消息并发送
+/// @param state       运行时状态
+/// @param event       事件名称
+/// @param reason      事件原因描述
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::PublishStateEvent(RuntimeState& state,
                                          const std::string& event,
                                          const std::string& reason,
                                          port::DiagnosticSink& diagnostics,
                                          uint64_t now_ms) {
-    MotionSupervisorState motion_state{};
     RuntimeTuningSnapshot tuning_snapshot{};
+    ControlDebugSnapshot control_snapshot{};
     {
         std::lock_guard<std::mutex> lock(state.shared_mutex);
-        motion_state = state.motion_state;
         tuning_snapshot = SnapshotRuntimeTuningState(state.tuning_state);
+        control_snapshot = state.control_debug_snapshot;
     }
     const platform::AssistantStatusView status =
-        BuildStatusView(motion_state, tuning_snapshot, params_, now_ms);
+        BuildStatusView(tuning_snapshot, control_snapshot, now_ms);
     EnqueueFeedback(platform::EncodeAssistantState(event, reason, status));
     FlushFeedback(diagnostics);
 }
 
+/// 处理入站消息集合：根据消息类型分发到拒绝处理、ACK拒绝处理或命令处理
+/// @param inbound_messages  入站消息列表
+/// @param state             运行时状态
+/// @param diagnostics       诊断输出接口
+/// @param now_ms            当前时间戳（ms）
 void AssistantService::HandleInboundMessages(
     const std::vector<platform::AssistantInboundMessage>& inbound_messages,
     RuntimeState& state,
@@ -480,11 +330,15 @@ void AssistantService::HandleInboundMessages(
     }
 }
 
+/// 处理单条辅助命令：执行调参模式切换、转向抑制、目标速度覆盖、运动启动/停止
+/// @param command     辅助命令
+/// @param state       运行时状态
+/// @param diagnostics 诊断输出接口
+/// @param now_ms      当前时间戳（ms）
 void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                      RuntimeState& state,
                                      port::DiagnosticSink& diagnostics,
                                      uint64_t now_ms) {
-    control_priority_connection_ = true;
     diagnostics.Emit({port::DiagnosticLevel::kInfo,
                       "assistant.command.rx",
                       DescribeCommand(command),
@@ -519,7 +373,6 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
                                                   command.target_speed_value,
                                                   now_ms + static_cast<uint64_t>(command.ttl_ms),
                                                   command.seq);
-                    periodic_publish_armed_ = true;
                 }
                 break;
             case platform::AssistantCommandType::kStart:
@@ -550,17 +403,17 @@ void AssistantService::HandleCommand(const platform::AssistantCommand& command,
     }
 
     if (enqueue_state_event) {
-        MotionSupervisorState motion_state{};
         RuntimeTuningSnapshot tuning_snapshot{};
+        ControlDebugSnapshot control_snapshot{};
         {
             std::lock_guard<std::mutex> lock(state.shared_mutex);
-            motion_state = state.motion_state;
             tuning_snapshot = SnapshotRuntimeTuningState(state.tuning_state);
+            control_snapshot = state.control_debug_snapshot;
         }
         EnqueueFeedback(platform::EncodeAssistantState(
             ToEventName(tuning_event.type),
             tuning_event.reason,
-            BuildStatusView(motion_state, tuning_snapshot, params_, now_ms)));
+            BuildStatusView(tuning_snapshot, control_snapshot, now_ms)));
     }
     diagnostics.Emit({accepted ? port::DiagnosticLevel::kInfo : port::DiagnosticLevel::kWarning,
                       accepted ? "assistant.command.accepted" : "assistant.command.rejected",

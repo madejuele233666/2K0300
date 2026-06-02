@@ -1,8 +1,8 @@
 #include "port/platform_adapter.hpp"
 
-// 参数存储实现 —— 从 JSON 配置文件中加载运行时参数。
+// 参数存储实现 —— 从 JSON 配置文件中加载当前运行时参数。
 // 支持 JSON 注释剥离、文件读取、OpenCV FileStorage 解析。
-// 负责加载所有感知/控制子系统参数（几何、采样器、走廊图、FSM、PID 等）。
+// 缺文件或解析失败时回退到 RuntimeParameters 的内建镜像默认值。
 
 #include <array>
 #include <cstddef>
@@ -16,7 +16,12 @@
 namespace ls2k::platform {
 namespace {
 
-// 读取文件全部内容到字符串
+/**
+ * 读取文件全部内容到字符串。
+ * @param path 文件路径
+ * @param out 输出参数，接收文件内容字符串
+ * @return true 表示读取成功，false 表示文件无法打开
+ */
 bool ReadText(const std::string& path, std::string& out) {
     std::ifstream input(path);
     if (!input.is_open()) {
@@ -28,8 +33,9 @@ bool ReadText(const std::string& path, std::string& out) {
     return true;
 }
 
-// 剥离 JSON 中的注释（C风格 // 和 /* */），输出纯 JSON。
-// 追踪字符串字面量上下文避免误删字符串内的 '//'。
+// 在交给 OpenCV FileStorage 前先剥离 JSON 注释。
+// 解析过程会跟踪字符串字面量和转义字符，避免把 URL、路径等字符串中的双斜杠误判为行注释。
+// 这里只做配置文本的预处理，不改变 JSON 字段含义或默认值回退策略。
 std::string StripJsonComments(const std::string& text) {
     std::string output;
     output.reserve(text.size());
@@ -99,7 +105,13 @@ std::string StripJsonComments(const std::string& text) {
     return output;
 }
 
-// 基于 OpenCV FileStorage 解析 JSON 字符串为结构化节点树
+/**
+ * 基于 OpenCV FileStorage 解析 JSON 字符串为结构化节点树。
+ * 先剥离注释再解析，确保解析结果是一个非空的 JSON 对象。
+ * @param text 原始 JSON 字符串（可含注释）
+ * @param storage 输出参数，解析后的 FileStorage 对象
+ * @return true 表示解析成功且根节点为非空 Map
+ */
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
         const std::string sanitized = StripJsonComments(text);
@@ -115,7 +127,12 @@ bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     return !root.empty() && root.isMap();
 }
 
-// 从 JSON 节点读取数值（整数或浮点数）
+/**
+ * 从 JSON 节点读取数值（整数或浮点数）。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadNumberNode(const cv::FileNode& node, double& value) {
     if (node.empty() || (!node.isInt() && !node.isReal())) {
         return false;
@@ -124,12 +141,23 @@ bool ReadNumberNode(const cv::FileNode& node, double& value) {
     return true;
 }
 
-// 读取必填数值参数，缺失则返回 false
+/**
+ * 读取必填数值参数，节点缺失或类型不匹配则返回 false。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNumber(const cv::FileNode& root, const char* key, double& value) {
     return ReadNumberNode(root[key], value);
 }
 
-// 读取整数值，验证数值是否为整数（允许浮点数但必须有整数精度）
+/**
+ * 读取整数值 —— 允许浮点数但要求其四舍五入后与原值的误差不超过 1e-6。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功且数值精度满足整数要求
+ */
 bool ReadIntegerValue(const cv::FileNode& node, int& value) {
     double numeric = 0.0;
     if (!ReadNumberNode(node, numeric)) {
@@ -143,11 +171,23 @@ bool ReadIntegerValue(const cv::FileNode& node, int& value) {
     return true;
 }
 
+/**
+ * 读取必填整数值（封装 ReadIntegerValue 的键查找版本）。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredInt(const cv::FileNode& root, const char* key, int& value) {
     return ReadIntegerValue(root[key], value);
 }
 
-// 读取布尔值，支持整数/字符串格式（true/TRUE/1/yes/on 等）
+/**
+ * 读取布尔值，支持整数（非零为 true）和字符串表示（true/TRUE/1/yes/on/false/FALSE/0/no/off）。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的布尔值
+ * @return true 表示读取成功
+ */
 bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     if (node.empty()) {
         return false;
@@ -170,7 +210,12 @@ bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     return false;
 }
 
-// 读取字符串值
+/**
+ * 读取字符串值。
+ * @param node OpenCV JSON 节点
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功（节点非空且为字符串类型）
+ */
 bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     if (node.empty() || !node.isString()) {
         return false;
@@ -179,7 +224,13 @@ bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     return true;
 }
 
-// 读取可选数值参数（缺失不报错，格式错误标记 malformed）
+/**
+ * 读取可选数值参数 —— 键缺失时不报错（保留默认值），格式错误时设置 malformed 标志。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的数值（若缺失则不变）
+ * @param malformed 输出参数，格式错误时置为 true
+ */
 void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -190,7 +241,29 @@ void ReadOptionalNumber(const cv::FileNode& root, const char* key, double& value
     }
 }
 
-// 读取可选整数参数
+void ReadOptionalNonNegativeFiniteNumber(const cv::FileNode& root,
+                                         const char* key,
+                                         double& value,
+                                         bool& malformed) {
+    const cv::FileNode node = root[key];
+    if (node.empty()) {
+        return;
+    }
+    double parsed = value;
+    if (!ReadNumberNode(node, parsed) || !std::isfinite(parsed) || parsed < 0.0) {
+        malformed = true;
+        return;
+    }
+    value = parsed;
+}
+
+/**
+ * 读取可选整数参数。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的整数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -201,7 +274,13 @@ void ReadOptionalInt(const cv::FileNode& root, const char* key, int& value, bool
     }
 }
 
-// 读取可选布尔参数
+/**
+ * 读取可选布尔参数。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的布尔值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bool& malformed) {
     const cv::FileNode node = root[key];
     if (node.empty()) {
@@ -212,7 +291,14 @@ void ReadOptionalBool(const cv::FileNode& root, const char* key, bool& value, bo
     }
 }
 
-// 读取嵌套可选数值参数（const char* child, double 版本）
+/**
+ * 读取嵌套可选数值参数（const char* child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -235,7 +321,14 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选数值参数（std::string child, double 版本）
+/**
+ * 读取嵌套可选数值参数（std::string child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -258,7 +351,15 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     }
 }
 
-// float 特化的嵌套数值读取（const char* child, float 版本，通过 double 中转）
+/**
+ * 读取嵌套可选数值参数（float 特化，const char* child 版本）。
+ * 通过 double 中转读取后再转换为 float。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的浮点值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -269,7 +370,14 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
-// float 特化嵌套数值读取（std::string child, float 版本）
+/**
+ * 读取嵌套可选数值参数（float 特化，std::string child 版本）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的浮点值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const std::string& child,
@@ -280,7 +388,15 @@ void ReadOptionalNestedNumber(const cv::FileNode& root,
     value = static_cast<float>(temporary);
 }
 
-// 读取嵌套可选浮点数组（固定长度 N）
+/**
+ * 读取嵌套可选浮点数组（固定长度 N）。
+ * @tparam N 数组长度
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param values 输出参数，读取到的浮点数组
+ * @param malformed 格式错误时置为 true
+ */
 template <std::size_t N>
 void ReadOptionalNestedFloatArray(const cv::FileNode& root,
                                   const char* parent,
@@ -313,7 +429,14 @@ void ReadOptionalNestedFloatArray(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选布尔值
+/**
+ * 读取嵌套可选布尔值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的布尔值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedBool(const cv::FileNode& root,
                             const char* parent,
                             const char* child,
@@ -336,7 +459,14 @@ void ReadOptionalNestedBool(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选整数
+/**
+ * 读取嵌套可选整数。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的整数值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -359,7 +489,14 @@ void ReadOptionalNestedInt(const cv::FileNode& root,
     }
 }
 
-// 读取嵌套可选字符串
+/**
+ * 读取嵌套可选字符串。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的字符串值
+ * @param malformed 格式错误时置为 true
+ */
 void ReadOptionalNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -382,7 +519,14 @@ void ReadOptionalNestedString(const cv::FileNode& root,
     }
 }
 
-// 读取必填嵌套数值参数（缺失返回 false）
+/**
+ * 读取必填嵌套数值参数（缺失或类型不匹配返回 false）。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedNumber(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -394,7 +538,14 @@ bool ReadRequiredNestedNumber(const cv::FileNode& root,
     return ReadNumberNode(parent_node[child], value);
 }
 
-// 读取必填嵌套字符串值
+/**
+ * 读取必填嵌套字符串值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedString(const cv::FileNode& root,
                               const char* parent,
                               const char* child,
@@ -406,7 +557,14 @@ bool ReadRequiredNestedString(const cv::FileNode& root,
     return ReadStringValue(parent_node[child], value);
 }
 
-// 读取必填嵌套整数值
+/**
+ * 读取必填嵌套整数值。
+ * @param root JSON 根节点
+ * @param parent 父级键名
+ * @param child 子级键名
+ * @param value 输出参数，读取到的整数值
+ * @return true 表示读取成功
+ */
 bool ReadRequiredNestedInt(const cv::FileNode& root,
                            const char* parent,
                            const char* child,
@@ -418,7 +576,81 @@ bool ReadRequiredNestedInt(const cv::FileNode& root,
     return ReadIntegerValue(parent_node[child], value);
 }
 
-// 读取必填字符串值
+/**
+ * 检查数值是否为有限值且处于闭区间 [min_value, max_value] 内。
+ * @param value 待检查的数值
+ * @param min_value 区间下限
+ * @param max_value 区间上限
+ * @return true 表示数值有限且在区间范围内
+ */
+bool IsFiniteInRange(double value, double min_value, double max_value) {
+    return std::isfinite(value) && value >= min_value && value <= max_value;
+}
+
+/**
+ * 校验 BEV 控制模型参数是否在合理范围内。
+ * @param params BEV 控制模型参数结构体
+ * @return true 表示所有参数均通过合法性校验
+ */
+bool ValidateBEVControlModel(const port::BEVControlModelParameters& params) {
+    return IsFiniteInRange(params.lateral_offset_to_wheel_delta_gain, 0.0, 1000.0) &&
+           IsFiniteInRange(params.heading_error_to_wheel_delta_gain, 0.0, 1000.0) &&
+           IsFiniteInRange(params.curvature_to_wheel_delta_gain, 0.0, 1000.0) &&
+           params.tracking_fit_min_samples >= 3 &&
+           params.tracking_fit_min_samples <= static_cast<int>(port::kBevReferenceSampleCount);
+}
+
+bool ValidateBEVGeometry(const port::BEVGeometryParameters& params) {
+    return IsFiniteInRange(params.nominal_road_half_width_m, 0.01, 2.0) &&
+           IsFiniteInRange(params.reference_lateral_jump_gate_m, 0.0, 1000.0) &&
+           IsFiniteInRange(params.boundary_trace_max_adjacent_distance_m, 1.0e-6, 1000.0) &&
+           params.sparse_row_count >= 1 &&
+           params.sparse_row_count <= static_cast<int>(port::kBevReferenceSampleCount);
+}
+
+bool ValidateBEVElement(const port::BEVElementParameters& params) {
+    return IsFiniteInRange(params.cross_wide_row_white_ratio_min, 0.0, 1.0) &&
+           IsFiniteInRange(params.circle_v2_exit_yaw_threshold_deg, 1.0, 720.0) &&
+           params.circle_v2_exit_hold_frames >= 2 &&
+           params.circle_v2_inner_trace_stall_timeout_ms >= 1 &&
+           IsFiniteInRange(params.circle_v2_inner_trace_stall_yaw_min_deg, 0.0, 720.0) &&
+           IsFiniteInRange(params.circle_v2_inner_trace_path_offset_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_v2_opposite_straight_confidence_min, 0.0, 1.0) &&
+           params.circle_v2_entry_bottom_row_count >= 1 &&
+           params.circle_v2_entry_bottom_row_count <=
+               static_cast<int>(port::kBevReferenceSampleCount) &&
+           IsFiniteInRange(params.circle_v2_entry_bottom_forward_min_m, 0.0, 2.0) &&
+           IsFiniteInRange(params.circle_v2_entry_bottom_forward_max_m, 0.0, 2.0) &&
+           params.circle_v2_entry_bottom_forward_max_m >=
+               params.circle_v2_entry_bottom_forward_min_m;
+}
+
+bool ValidateReferenceTimeAlignment(const port::ReferenceTimeAlignmentParameters& params) {
+    return params.max_age_ms >= 1 &&
+           params.max_integration_gap_ms >= 1 &&
+           IsFiniteInRange(params.max_delta_yaw_rad, 0.0, 6.28319) &&
+           params.min_aligned_samples >= 1;
+}
+
+bool ValidateCameraSource(const port::CameraSourceParameters& params) {
+    return !params.backend.empty() &&
+           !params.device.empty() &&
+           params.width > 0 &&
+           params.height > 0 &&
+           params.width <= port::kCompiledCameraFrameWidth &&
+           params.height <= port::kCompiledCameraFrameHeight &&
+           params.fps >= 1 &&
+           params.buffer_count >= 2 &&
+           params.poll_timeout_ms >= 1;
+}
+
+/**
+ * 读取必填字符串值。
+ * @param root JSON 根节点
+ * @param key 参数键名
+ * @param value 输出参数，读取到的字符串
+ * @return true 表示读取成功
+ */
 bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& value) {
     const cv::FileNode node = root[key];
     if (node.empty() || !node.isString()) {
@@ -428,7 +660,13 @@ bool ReadRequiredString(const cv::FileNode& root, const char* key, std::string& 
     return true;
 }
 
-// 解析子系统模式文本枚举
+/**
+ * 解析子系统模式文本枚举。
+ * 支持 "adaptation-hook"、"disabled"、"direct-match" 三种文本到枚举值的映射。
+ * @param mode_text 模式文本字符串
+ * @param mode 输出参数，解析后的子系统模式枚举值
+ * @return true 表示解析成功
+ */
 bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     if (mode_text == "adaptation-hook") {
         mode = port::SubsystemMode::kAdaptationHook;
@@ -445,7 +683,13 @@ bool ParseMode(const std::string& mode_text, port::SubsystemMode& mode) {
     return false;
 }
 
-// 解析硬件配置文件的子系统块（mode + hook）
+/**
+ * 解析硬件配置文件中单个子系统的配置块（包含 mode 和 hook 字段）。
+ * @param root JSON 根节点
+ * @param key 子系统键名（如 "camera"、"actuator" 等）
+ * @param out_profile 输出参数，解析后的子系统配置
+ * @return true 表示解析成功
+ */
 bool ParseProfileBlock(const cv::FileNode& root,
                        const char* key,
                        port::SubsystemProfile& out_profile) {
@@ -468,16 +712,34 @@ bool ParseProfileBlock(const cv::FileNode& root,
     return true;
 }
 
-// 生成子系统解析错误详情字符串
+/**
+ * 生成子系统解析错误详情字符串。
+ * @param key 子系统键名
+ * @return 格式化的错误描述字符串
+ */
 std::string ProfileBlockError(const char* key) {
     return std::string("hardware profile parse failure for subsystem '") + key +
            "' (missing block or malformed mode/hook)";
 }
 
+/**
+ * 参数存储实现类 —— 实现 port::IParamStore 接口。
+ * 从 JSON 配置文件中加载运行时参数和硬件配置。
+ * 支持 JSON 注释剥离、文件读取、OpenCV FileStorage 解析。
+ * 缺失文件或解析失败时回退到 RuntimeParameters 的内建默认值。
+ */
 class ParamStore final : public port::IParamStore {
 public:
-    // 从 JSON 文件加载全部运行时参数。先读文件→剥注释→解析 JSON→
-    // 依次提取必填字段和可选字段→校验完整性→回退默认值保护。
+    /**
+     * 从 JSON 文件加载全部运行时参数。
+     * 流程：读取文件 -> 剥离注释 -> 解析 JSON -> 提取必填字段和可选字段 -> 校验完整性。
+     * 文件缺失或解析失败时会回退到默认值并通过诊断输出告警。
+     * @param path JSON 配置文件路径
+     * @param out 输出参数，加载后的运行时参数
+     * @param diagnostics 诊断输出接收器
+     * @return true 表示加载过程完成（即使回退默认值也返回 true，仅校验不通过但
+     *         仍返回 true 以保证系统可启动，具体成败由 out 中的字段指示）
+     */
     bool LoadRuntimeParameters(const std::string& path,
                                port::RuntimeParameters& out,
                                port::DiagnosticSink& diagnostics) override {
@@ -508,10 +770,8 @@ public:
         port::RuntimeParameters parsed{};
         bool all_ok = true;
         // --- 必填参数：缺失直接导致解析失败 ---
-        all_ok &= ReadRequiredNumber(root, "Speed_base", parsed.Speed_base);
-        all_ok &= ReadRequiredNumber(root, "see_max", parsed.see_max);
-        all_ok &= ReadRequiredNestedNumber(root, "PID_TURN_GYRO_CAMERA", "D", parsed.pid_turn_gyro_camera_d);
-        all_ok &= ReadRequiredInt(root, "P_Mode", parsed.P_Mode);
+        all_ok &= ReadRequiredNumber(root, "RUNNING_SPEED_TARGET", parsed.running_speed_target);
+        all_ok &= ReadRequiredNestedNumber(root, "YAW_RATE_PID", "D", parsed.yaw_rate_pid_d);
         all_ok &= ReadRequiredInt(root, "exp_light", parsed.exp_light);
         all_ok &= ReadRequiredNestedNumber(root, "LEFT_WHEEL_PID", "P", parsed.left_wheel_pid.p);
         all_ok &= ReadRequiredNestedNumber(root, "LEFT_WHEEL_PID", "I", parsed.left_wheel_pid.i);
@@ -528,17 +788,36 @@ public:
 
         // --- 可选参数：缺失使用结构体默认值，格式错误标记 malformed ---
         bool optional_malformed = false;
-        ReadOptionalInt(root, "emergency_threshold", parsed.emergency_threshold, optional_malformed);
+        ReadOptionalInt(root, "low_voltage_raw_threshold", parsed.low_voltage_raw_threshold, optional_malformed);
         ReadOptionalInt(root, "control_period_ms", parsed.control_period_ms, optional_malformed);
         ReadOptionalInt(root, "perception_stale_ms", parsed.perception_stale_ms, optional_malformed);
         ReadOptionalInt(root, "pwm_limit", parsed.pwm_limit, optional_malformed);
         ReadOptionalInt(root, "raw_turn_output_limit", parsed.raw_turn_output_limit, optional_malformed);
+        ReadOptionalNonNegativeFiniteNumber(root,
+                                            "wheel_turn_accel_delta_scale",
+                                            parsed.wheel_turn_accel_delta_scale,
+                                            optional_malformed);
+        ReadOptionalNonNegativeFiniteNumber(root,
+                                            "wheel_turn_decel_delta_scale",
+                                            parsed.wheel_turn_decel_delta_scale,
+                                            optional_malformed);
         ReadOptionalInt(root, "pwm_floor", parsed.pwm_floor, optional_malformed);
         ReadOptionalBool(root, "prohibit_reverse_pwm", parsed.prohibit_reverse_pwm, optional_malformed);
         ReadOptionalInt(root,
                         "prohibit_reverse_pwm_step_limit",
                         parsed.prohibit_reverse_pwm_step_limit,
                         optional_malformed);
+        ReadOptionalBool(root,
+                         "brushless_debug_fixed_pwm_enabled",
+                         parsed.brushless_debug_fixed_pwm_enabled,
+                         optional_malformed);
+        ReadOptionalInt(root,
+                        "brushless_debug_fixed_pwm",
+                        parsed.brushless_debug_fixed_pwm,
+                        optional_malformed);
+        if (parsed.brushless_debug_fixed_pwm < 0 || parsed.brushless_debug_fixed_pwm > 1000) {
+            optional_malformed = true;
+        }
         ReadOptionalInt(root,
                         "motion_unveto_confirm_cycles",
                         parsed.motion_unveto_confirm_cycles,
@@ -558,57 +837,55 @@ public:
                         "motion_fault_rearm_hold_ms",
                         parsed.motion_fault_rearm_hold_ms,
                         optional_malformed);
-        ReadOptionalNumber(root, "wheel_turn_target_scale", parsed.wheel_turn_target_scale, optional_malformed);
         ReadOptionalInt(root,
                         "control_snapshot_emit_interval_ms",
                         parsed.control_snapshot_emit_interval_ms,
                         optional_malformed);
         ReadOptionalBool(root, "assistant_enabled", parsed.assistant_enabled, optional_malformed);
-        ReadOptionalInt(root,
-                        "assistant_waveform_publish_interval_ms",
-                        parsed.assistant_waveform_publish_interval_ms,
-                        optional_malformed);
-        ReadOptionalInt(root,
-                        "assistant_image_publish_interval_ms",
-                        parsed.assistant_image_publish_interval_ms,
-                        optional_malformed);
         ReadOptionalBool(root, "steering_media_enabled", parsed.steering_media_enabled, optional_malformed);
         ReadOptionalInt(root, "steering_media_port", parsed.steering_media_port, optional_malformed);
         ReadOptionalInt(root,
                         "steering_media_publish_interval_ms",
                         parsed.steering_media_publish_interval_ms,
                         optional_malformed);
-        ReadOptionalInt(root, "camera_frame_width", parsed.camera_frame_width, optional_malformed);
-        ReadOptionalInt(root, "camera_frame_height", parsed.camera_frame_height, optional_malformed);
+        ReadOptionalInt(root,
+                        "steering_media_downsample",
+                        parsed.steering_media_downsample,
+                        optional_malformed);
+        if (parsed.steering_media_downsample < 1 || parsed.steering_media_downsample > 8) {
+            optional_malformed = true;
+        }
+        ReadOptionalBool(root,
+                         "steering_media_publish_latest_frame",
+                         parsed.steering_media_publish_latest_frame,
+                         optional_malformed);
+        ReadOptionalInt(root,
+                        "steering_media_gray_bits",
+                        parsed.steering_media_gray_bits,
+                        optional_malformed);
+        if (parsed.steering_media_gray_bits != 1 &&
+            parsed.steering_media_gray_bits != 2 &&
+            parsed.steering_media_gray_bits != 4 &&
+            parsed.steering_media_gray_bits != 8) {
+            optional_malformed = true;
+        }
+        ReadOptionalBool(root,
+                         "steering_media_publish_disarmed",
+                         parsed.steering_media_publish_disarmed,
+                         optional_malformed);
+        ReadOptionalInt(root,
+                        "low_voltage_sample_interval_ms",
+                        parsed.low_voltage_sample_interval_ms,
+                        optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "PID_TURN_CAMERA",
-                                 "D",
-                                 parsed.pid_turn_camera_d,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "PID_TURN_CAMERA",
+                                 "YAW_RATE_PID",
                                  "P",
-                                 parsed.pid_turn_camera_p,
+                                 parsed.yaw_rate_pid_p,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "PID_TURN_CAMERA",
-                                 "P_SCALE",
-                                 parsed.pid_turn_camera_p_scale,
-                                 optional_malformed);
-        ReadOptionalNestedBool(root,
-                               "PID_TURN_CAMERA",
-                               "USE_FUZZY",
-                               parsed.pid_turn_camera_use_fuzzy,
-                               optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "PID_TURN_GYRO_CAMERA",
-                                 "P",
-                                 parsed.pid_turn_gyro_camera_p,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "PID_TURN_GYRO_CAMERA",
+                                 "YAW_RATE_PID",
                                  "I",
-                                 parsed.pid_turn_gyro_camera_i,
+                                 parsed.yaw_rate_pid_i,
                                  optional_malformed);
         ReadOptionalNestedBool(root, "BEV_PROJECTOR", "VALID", parsed.bev_projector.valid, optional_malformed);
         ReadOptionalNestedInt(root,
@@ -655,7 +932,7 @@ public:
                                      optional_malformed);
         }
         // --- 可选参数：BEV 几何配置 ---
-        for (int index = 0; index < static_cast<int>(port::kBevTrackSampleCount); ++index) {
+        for (int index = 0; index < static_cast<int>(port::kBevReferenceSampleCount); ++index) {
             ReadOptionalNestedNumber(root,
                                      "BEV_GEOMETRY",
                                      "FORWARD_SAMPLE_" + std::to_string(index),
@@ -674,388 +951,214 @@ public:
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_GEOMETRY",
-                                 "NOMINAL_LANE_WIDTH_M",
-                                 parsed.bev_geometry.nominal_lane_width_m,
+                                 "NOMINAL_ROAD_HALF_WIDTH_M",
+                                 parsed.bev_geometry.nominal_road_half_width_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_GEOMETRY",
-                                 "MIN_LANE_WIDTH_M",
-                                 parsed.bev_geometry.min_lane_width_m,
+                                 "REFERENCE_LATERAL_JUMP_GATE_M",
+                                 parsed.bev_geometry.reference_lateral_jump_gate_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
                                  "BEV_GEOMETRY",
-                                 "MAX_LANE_WIDTH_M",
-                                 parsed.bev_geometry.max_lane_width_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_GEOMETRY",
-                                 "MIN_VISIBLE_RANGE_M",
-                                 parsed.bev_geometry.min_visible_range_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_GEOMETRY",
-                                 "MIN_TRACK_CONFIDENCE",
-                                 parsed.bev_geometry.min_track_confidence,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_GEOMETRY",
-                                 "CONTINUITY_BREAK_THRESHOLD_M",
-                                 parsed.bev_geometry.continuity_break_threshold_m,
+                                 "BOUNDARY_TRACE_MAX_ADJACENT_DISTANCE_M",
+                                 parsed.bev_geometry.boundary_trace_max_adjacent_distance_m,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_GEOMETRY",
-                              "SAMPLE_ROW_STEP_PX",
-                              parsed.bev_geometry.sample_row_step_px,
+                              "SPARSE_ROW_COUNT",
+                              parsed.bev_geometry.sparse_row_count,
                               optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_GEOMETRY",
-                              "IMAGE_BORDER_TRUNCATION_MARGIN_PX",
-                              parsed.bev_geometry.image_border_truncation_margin_px,
-                              optional_malformed);
-        parsed.bev_corridor_graph.nominal_lane_width_m = parsed.bev_geometry.nominal_lane_width_m;
-        // --- BEV 拓扑采样器参数 ---
-        ReadOptionalNestedFloatArray(root,
-                                     "BEV_TOPOLOGY_SAMPLER",
-                                     "FORWARD_SAMPLES_M",
-                                     parsed.bev_topology_sampler.forward_samples_m,
-                                     optional_malformed);
-        for (int index = 0; index < static_cast<int>(port::kBevTrackSampleCount); ++index) {
-            ReadOptionalNestedNumber(root,
-                                     "BEV_TOPOLOGY_SAMPLER",
-                                     "FORWARD_SAMPLE_" + std::to_string(index),
-                                     parsed.bev_topology_sampler.forward_samples_m[static_cast<std::size_t>(index)],
-                                     optional_malformed);
+        if (!ValidateBEVGeometry(parsed.bev_geometry)) {
+            optional_malformed = true;
         }
+        // --- BEV 分类与白点 hold 参数 ---
         ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_SAMPLER",
-                                 "LATERAL_MIN_M",
-                                 parsed.bev_topology_sampler.lateral_min_m,
+                                 "BEV_CLASSIFICATION",
+                                 "WHITE_CONFIDENCE_MIN",
+                                 parsed.bev_classification.white_confidence_min,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_SAMPLER",
-                                 "LATERAL_MAX_M",
-                                 parsed.bev_topology_sampler.lateral_max_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_SAMPLER",
-                                 "LATERAL_STEP_M",
-                                 parsed.bev_topology_sampler.lateral_step_m,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_TOPOLOGY_SAMPLER",
-                              "SAMPLE_PATCH_RADIUS_PX",
-                              parsed.bev_topology_sampler.sample_patch_radius_px,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_SAMPLER",
-                                 "DRIVABLE_CONFIDENCE_MIN",
-                                 parsed.bev_topology_sampler.drivable_confidence_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_SAMPLER",
+                                 "BEV_CLASSIFICATION",
                                  "UNKNOWN_CONFIDENCE_MIN",
-                                 parsed.bev_topology_sampler.unknown_confidence_min,
-                                 optional_malformed);
-        // --- BEV 走廊图参数 ---
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "NOMINAL_LANE_WIDTH_M",
-                                 parsed.bev_corridor_graph.nominal_lane_width_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "MIN_INTERVAL_WIDTH_M",
-                                 parsed.bev_corridor_graph.min_interval_width_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "MAX_INTERVAL_WIDTH_M",
-                                 parsed.bev_corridor_graph.max_interval_width_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "MAX_CENTER_JUMP_M",
-                                 parsed.bev_corridor_graph.max_center_jump_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "MAX_WIDTH_CHANGE_M",
-                                 parsed.bev_corridor_graph.max_width_change_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "MAX_CURVATURE_ABS",
-                                 parsed.bev_corridor_graph.max_curvature_abs,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CORRIDOR_GRAPH",
-                                 "PRIOR_CARRY_CONFIDENCE_SCALE",
-                                 parsed.bev_corridor_graph.prior_carry_confidence_scale,
-                                 optional_malformed);
-        // --- BEV 拓扑证据参数 ---
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "CROSS_ENTER_SCORE",
-                                 parsed.bev_topology_evidence.cross_enter_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "CROSS_RELEASE_SCORE",
-                                 parsed.bev_topology_evidence.cross_release_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "CIRCLE_ENTER_SCORE",
-                                 parsed.bev_topology_evidence.circle_enter_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "CIRCLE_RELEASE_SCORE",
-                                 parsed.bev_topology_evidence.circle_release_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "ZEBRA_ENTER_SCORE",
-                                 parsed.bev_topology_evidence.zebra_enter_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "ZEBRA_RELEASE_SCORE",
-                                 parsed.bev_topology_evidence.zebra_release_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "ORDINARY_RELEASE_SCORE",
-                                 parsed.bev_topology_evidence.ordinary_release_score,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_TOPOLOGY_EVIDENCE",
-                                 "EVIDENCE_DECAY",
-                                 parsed.bev_topology_evidence.evidence_decay,
-                                 optional_malformed);
-        // --- BEV 路径策略参数 ---
-        ReadOptionalNestedInt(root,
-                              "BEV_PATH_POLICY",
-                              "CROSS_EXIT_MIN_LAYERS",
-                              parsed.bev_reference_policy.hold_last_max_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_REFERENCE_POLICY",
-                              "BLEND_MIN_CYCLES",
-                              parsed.bev_reference_policy.blend_min_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_REFERENCE_POLICY",
-                                 "ARC_FOLLOW_CONFIDENCE_MIN",
-                                 parsed.bev_reference_policy.arc_follow_confidence_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_REFERENCE_POLICY",
-                                 "STABLE_BOUNDARY_CONFIDENCE_MIN",
-                                 parsed.bev_reference_policy.stable_boundary_confidence_min,
+                                 parsed.bev_classification.unknown_confidence_min,
                                  optional_malformed);
         ReadOptionalNestedInt(root,
-                              "BEV_PATH_POLICY",
-                              "CROSS_EXIT_MIN_LAYERS",
-                              parsed.bev_path_policy.cross_exit_min_layers,
+                              "BEV_CLASSIFICATION",
+                              "HOLD_LAST_MAX_CYCLES",
+                              parsed.bev_classification.hold_last_max_cycles,
                               optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "CROSS_EXIT_AFTER_BAND_MIN_M",
-                                 parsed.bev_path_policy.cross_exit_after_band_min_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "CROSS_EXIT_HEADING_ABS_MAX_RAD",
-                                 parsed.bev_path_policy.cross_exit_heading_abs_max_rad,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_PATH_POLICY",
-                              "CIRCLE_INNER_MIN_LAYERS",
-                              parsed.bev_path_policy.circle_inner_min_layers,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "CIRCLE_TANGENT_PARALLEL_ABS_MAX_RAD",
-                                 parsed.bev_path_policy.circle_tangent_parallel_abs_max_rad,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "CIRCLE_EXIT_YAW_DEG",
-                                 parsed.bev_path_policy.circle_exit_yaw_deg,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_PATH_POLICY",
-                              "REFERENCE_BLEND_CYCLES",
-                              parsed.bev_path_policy.reference_blend_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "TRUSTED_REFERENCE_DECAY",
-                                 parsed.bev_path_policy.trusted_reference_decay,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "REFERENCE_COMPATIBILITY_TAU_M",
-                                 parsed.bev_path_policy.reference_compatibility_tau_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_PATH_POLICY",
-                                 "REFERENCE_COMPATIBILITY_MAX_ERROR_M",
-                                 parsed.bev_path_policy.reference_compatibility_max_error_m,
-                                 optional_malformed);
-        // --- BEV 场景 FSM 参数 ---
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "BEND_SEVERITY_CONFIRM",
-                                 parsed.bev_scene_fsm.bend_severity_confirm,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "CROSS_EXPAND_RATIO_MIN",
-                                 parsed.bev_scene_fsm.cross_expand_ratio_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "CROSS_BILATERAL_OPEN_MIN_M",
-                                 parsed.bev_scene_fsm.cross_bilateral_open_min_m,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_SCENE_FSM",
-                              "CROSS_CONFIRM_CYCLES",
-                              parsed.bev_scene_fsm.cross_confirm_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_SCENE_FSM",
-                              "CROSS_HOLD_CYCLES",
-                              parsed.bev_scene_fsm.cross_hold_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "ZEBRA_TRANSITION_DENSITY_MIN",
-                                 parsed.bev_scene_fsm.zebra_transition_density_min,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_SCENE_FSM",
-                              "ZEBRA_HOLD_CYCLES",
-                              parsed.bev_scene_fsm.zebra_hold_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "CIRCLE_OPEN_SCORE_MIN",
-                                 parsed.bev_scene_fsm.circle_open_score_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "CIRCLE_CONTRACT_SCORE_MIN",
-                                 parsed.bev_scene_fsm.circle_contract_score_min,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "CIRCLE_OPPOSITE_HEADING_ABS_MAX",
-                                 parsed.bev_scene_fsm.circle_opposite_heading_abs_max,
-                                 optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_SCENE_FSM",
-                              "CIRCLE_CONFIRM_CYCLES",
-                              parsed.bev_scene_fsm.circle_confirm_cycles,
-                              optional_malformed);
-        ReadOptionalNestedInt(root,
-                              "BEV_SCENE_FSM",
-                              "CIRCLE_RELEASE_CYCLES",
-                              parsed.bev_scene_fsm.circle_release_cycles,
-                              optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_SCENE_FSM",
-                                 "RELEASE_TRACK_CONFIDENCE_MIN",
-                                 parsed.bev_scene_fsm.release_track_confidence_min,
-                                 optional_malformed);
+        if (!port::IsValidBEVClassificationParameters(parsed.bev_classification)) {
+            optional_malformed = true;
+        }
         // --- BEV 控制模型参数 ---
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "LATERAL_OFFSET_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.lateral_offset_to_wheel_delta_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "HEADING_ERROR_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.heading_error_to_wheel_delta_gain,
+                                 optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_CONTROL_MODEL",
+                                 "CURVATURE_TO_WHEEL_DELTA_GAIN",
+                                 parsed.bev_control_model.curvature_to_wheel_delta_gain,
+                                 optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_CONTROL_MODEL",
-                              "NEAR_SAMPLE_INDEX",
-                              parsed.bev_control_model.near_sample_index,
+                              "MIN_LEADING_REFERENCE_SAMPLES",
+                              parsed.bev_control_model.min_leading_reference_samples,
                               optional_malformed);
         ReadOptionalNestedInt(root,
                               "BEV_CONTROL_MODEL",
-                              "FAR_SAMPLE_INDEX",
-                              parsed.bev_control_model.far_sample_index,
+                              "TRACKING_FIT_MIN_SAMPLES",
+                              parsed.bev_control_model.tracking_fit_min_samples,
+                              optional_malformed);
+        if (!ValidateBEVControlModel(parsed.bev_control_model)) {
+            optional_malformed = true;
+        }
+        ReadOptionalNestedBool(root,
+                               "BEV_ELEMENT",
+                               "CROSS_EXIT_TAKEOVER_ENABLED",
+                               parsed.bev_element.cross_exit_takeover_enabled,
+                               optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CROSS_WIDE_ROW_WHITE_RATIO_MIN",
+                                 parsed.bev_element.cross_wide_row_white_ratio_min,
+                                 optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "BEV_ELEMENT",
+                               "CIRCLE_V2_ENABLED",
+                               parsed.bev_element.circle_v2_enabled,
+                               optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_EXIT_YAW_THRESHOLD_DEG",
+                                 parsed.bev_element.circle_v2_exit_yaw_threshold_deg,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_V2_EXIT_HOLD_FRAMES",
+                              parsed.bev_element.circle_v2_exit_hold_frames,
                               optional_malformed);
         ReadOptionalNestedInt(root,
-                              "BEV_CONTROL_MODEL",
-                              "CURVATURE_SAMPLE_INDEX",
-                              parsed.bev_control_model.curvature_sample_index,
+                              "BEV_ELEMENT",
+                              "CIRCLE_V2_INNER_TRACE_STALL_TIMEOUT_MS",
+                              parsed.bev_element.circle_v2_inner_trace_stall_timeout_ms,
                               optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_VISIBLE_RANGE_RATIO",
-                                 parsed.bev_control_model.lookahead_visible_range_ratio,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_INNER_TRACE_STALL_YAW_MIN_DEG",
+                                 parsed.bev_element.circle_v2_inner_trace_stall_yaw_min_deg,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_MIN_M",
-                                 parsed.bev_control_model.lookahead_min_m,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_INNER_TRACE_PATH_OFFSET_M",
+                                 parsed.bev_element.circle_v2_inner_trace_path_offset_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOOKAHEAD_MAX_M",
-                                 parsed.bev_control_model.lookahead_max_m,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_OPPOSITE_STRAIGHT_CONFIDENCE_MIN",
+                                 parsed.bev_element.circle_v2_opposite_straight_confidence_min,
+                                 optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "BEV_ELEMENT",
+                              "CIRCLE_V2_ENTRY_BOTTOM_ROW_COUNT",
+                              parsed.bev_element.circle_v2_entry_bottom_row_count,
+                              optional_malformed);
+        ReadOptionalNestedNumber(root,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MIN_M",
+                                 parsed.bev_element.circle_v2_entry_bottom_forward_min_m,
                                  optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "PURE_PURSUIT_GAIN",
-                                 parsed.bev_control_model.pure_pursuit_gain,
+                                 "BEV_ELEMENT",
+                                 "CIRCLE_V2_ENTRY_BOTTOM_FORWARD_MAX_M",
+                                 parsed.bev_element.circle_v2_entry_bottom_forward_max_m,
                                  optional_malformed);
+        if (!ValidateBEVElement(parsed.bev_element)) {
+            optional_malformed = true;
+        }
+        ReadOptionalNestedBool(root,
+                               "REFERENCE_TIME_ALIGNMENT",
+                               "ENABLED",
+                               parsed.reference_time_alignment.enabled,
+                               optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MAX_AGE_MS",
+                              parsed.reference_time_alignment.max_age_ms,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MAX_INTEGRATION_GAP_MS",
+                              parsed.reference_time_alignment.max_integration_gap_ms,
+                              optional_malformed);
         ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "HEADING_CURVATURE_GAIN",
-                                 parsed.bev_control_model.heading_curvature_gain,
+                                 "REFERENCE_TIME_ALIGNMENT",
+                                 "MAX_DELTA_YAW_RAD",
+                                 parsed.reference_time_alignment.max_delta_yaw_rad,
                                  optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "CURVATURE_FEEDFORWARD_GAIN",
-                                 parsed.bev_control_model.curvature_feedforward_gain,
+        ReadOptionalNestedInt(root,
+                              "REFERENCE_TIME_ALIGNMENT",
+                              "MIN_ALIGNED_SAMPLES",
+                              parsed.reference_time_alignment.min_aligned_samples,
+                              optional_malformed);
+        if (!ValidateReferenceTimeAlignment(parsed.reference_time_alignment)) {
+            optional_malformed = true;
+        }
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "BACKEND",
+                                 parsed.camera_source.backend,
                                  optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "CURVATURE_COMMAND_LIMIT",
-                                 parsed.bev_control_model.curvature_command_limit,
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "DEVICE",
+                                 parsed.camera_source.device,
                                  optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "CURVATURE_TO_W_TARGET_GAIN",
-                                 parsed.bev_control_model.curvature_to_w_target_gain,
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "WIDTH",
+                              parsed.camera_source.width,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "HEIGHT",
+                              parsed.camera_source.height,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "FPS",
+                              parsed.camera_source.fps,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "BUFFER_COUNT",
+                              parsed.camera_source.buffer_count,
+                              optional_malformed);
+        ReadOptionalNestedInt(root,
+                              "CAMERA_SOURCE",
+                              "POLL_TIMEOUT_MS",
+                              parsed.camera_source.poll_timeout_ms,
+                              optional_malformed);
+        ReadOptionalNestedBool(root,
+                               "CAMERA_SOURCE",
+                               "DRAIN_READY_BUFFERS",
+                               parsed.camera_source.drain_ready_buffers,
+                               optional_malformed);
+        ReadOptionalNestedString(root,
+                                 "CAMERA_SOURCE",
+                                 "FALLBACK_BACKEND",
+                                 parsed.camera_source.fallback_backend,
                                  optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOW_CONFIDENCE_THRESHOLD",
-                                 parsed.bev_control_model.low_confidence_threshold,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "STEERING_SUPPRESSION_CONFIDENCE",
-                                 parsed.bev_control_model.steering_suppression_confidence,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "LOW_VISIBLE_RANGE_M",
-                                 parsed.bev_control_model.low_visible_range_m,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "MIN_GAIN_SCALE",
-                                 parsed.bev_control_model.min_gain_scale,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "MIN_SPEED_LIMIT_SCALE",
-                                 parsed.bev_control_model.min_speed_limit_scale,
-                                 optional_malformed);
-        ReadOptionalNestedNumber(root,
-                                 "BEV_CONTROL_MODEL",
-                                 "MAX_REFERENCE_BIAS_M",
-                                 parsed.bev_control_model.max_reference_bias_m,
-                                 optional_malformed);
+        if (!ValidateCameraSource(parsed.camera_source)) {
+            optional_malformed = true;
+        }
         ReadOptionalNestedNumber(root,
                                  "LEFT_WHEEL_PID",
                                  "MEASUREMENT_FILTER_ALPHA",
@@ -1085,17 +1188,19 @@ public:
                               "params.loaded",
                               "runtime parameters loaded from " + path,
                               port::NowMs()});
-            if (std::fabs(out.pid_turn_camera_d) > 1e-6) {
-                diagnostics.Emit({port::DiagnosticLevel::kWarning,
-                                  "params.deprecated.pid_turn_camera_d",
-                                  "PID_TURN_CAMERA.D is deprecated and ignored by the current camera outer-loop; keep it at 0.0",
-                                  port::NowMs()});
-            }
         }
         return true;
     }
 
-    // 从 JSON 文件加载硬件配置（camera/imu/encoder/motor/timer/persistence/display 子系统）
+    /**
+     * 从 JSON 文件加载硬件配置。
+     * 按顺序解析 camera/imu/encoder/actuator/timer/persistence/display 共 7 个子系统配置块。
+     * 任何子系统解析失败都将导致整体加载失败（fail-closed 策略）。
+     * @param path JSON 硬件配置文件路径
+     * @param out 输出参数，加载后的完整硬件配置
+     * @param diagnostics 诊断输出接收器
+     * @return true 表示所有子系统均解析成功，false 表示任一子系统解析失败
+     */
     bool LoadHardwareProfile(const std::string& path,
                              port::HardwareProfile& out,
                              port::DiagnosticSink& diagnostics) override {
@@ -1140,10 +1245,10 @@ public:
                               port::NowMs()});
             return false;
         }
-        if (!ParseProfileBlock(root, "motor", parsed.motor)) {
+        if (!ParseProfileBlock(root, "actuator", parsed.actuator)) {
             diagnostics.Emit({port::DiagnosticLevel::kFailSafe,
-                              "profile.parse.motor",
-                              ProfileBlockError("motor"),
+                              "profile.parse.actuator",
+                              ProfileBlockError("actuator"),
                               port::NowMs()});
             return false;
         }
@@ -1177,17 +1282,23 @@ public:
         return true;
     }
 
-    // 应用启动物联网关键参数（P_Mode, exp_light）有效性校验
+    /**
+     * 应用启动关键参数的有效性校验。
+     * 检查 exp_light（曝光值）是否在 [0, 2500] 区间内，
+     * 如果不合法则标记 startup_critical_applied 为 false 阻止执行器布署。
+     * 当 exp_light 为非默认值（65）时发出额外警告，提示可能缺少适配钩子。
+     * @param params 运行时参数（将被修改，设置 startup_critical_applied 标志）
+     * @param diagnostics 诊断输出接收器
+     */
     void ApplyStartupCritical(port::RuntimeParameters& params, port::DiagnosticSink& diagnostics) override {
-        const bool p_mode_ok = params.P_Mode >= 0 && params.P_Mode <= 4;
         const bool exposure_ok = params.exp_light >= 0 && params.exp_light <= 2500;
-        params.startup_critical_applied = p_mode_ok && exposure_ok;
+        params.startup_critical_applied = exposure_ok;
         diagnostics.Emit({params.startup_critical_applied ? port::DiagnosticLevel::kInfo
                                                           : port::DiagnosticLevel::kFailSafe,
                           "params.critical.apply",
                           params.startup_critical_applied
-                              ? "applied startup-critical fields P_Mode and exp_light before adapter bring-up"
-                              : "startup-critical fields invalid; refusing actuator arming",
+                              ? "applied startup-critical exp_light before adapter bring-up"
+                              : "startup-critical exp_light invalid; refusing actuator arming",
                           port::NowMs()});
         if (params.startup_critical_applied && params.exp_light != 65) {
             diagnostics.Emit({port::DiagnosticLevel::kWarning,
@@ -1200,6 +1311,10 @@ public:
 
 }  // namespace
 
+/**
+ * 创建参数存储实例（工厂函数）。
+ * @return 指向 IParamStore 接口的唯一指针
+ */
 std::unique_ptr<port::IParamStore> MakeParamStore() {
     return std::make_unique<ParamStore>();
 }

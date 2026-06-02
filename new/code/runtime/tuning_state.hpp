@@ -22,6 +22,9 @@ struct RuntimeTuningState {
     std::uint64_t last_seq = 0;
 };
 
+// RuntimeTuningState 存放在 RuntimeState 中，由 RuntimeState::shared_mutex 保护。
+// RuntimeTuningSnapshot 是在持锁期间复制出来的值对象，复制完成后可在锁外读取。
+// 这里不是原子结构，也不是无锁快照；线程安全契约由调用方持锁保证。
 struct RuntimeTuningSnapshot {
     bool tuning_mode_enabled = false;
     bool turn_suppressed = false;
@@ -37,6 +40,8 @@ struct RuntimeTuningEvent {
     std::string reason;
 };
 
+// 调用方必须持有 RuntimeState::shared_mutex，再复制 RuntimeTuningState。
+// 这样可以避免控制线程和 assistant 线程同时读写调参状态时看到部分更新。
 RuntimeTuningSnapshot SnapshotRuntimeTuningState(const RuntimeTuningState& state);
 bool RuntimeTuningSnapshotActive(const RuntimeTuningSnapshot& snapshot);
 bool RuntimeTuningOverrideActiveAt(const RuntimeTuningSnapshot& snapshot, std::uint64_t now_ms);

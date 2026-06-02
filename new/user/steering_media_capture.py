@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-SOCKET_BUFFER_BYTES = 256 * 1024
+SOCKET_BUFFER_BYTES = 4 * 1024 * 1024
 
 
 def now_monotonic_ms() -> int:
@@ -19,6 +19,15 @@ def now_monotonic_ms() -> int:
 
 def utc_timestamp() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def nested(frame: Dict[str, Any], *keys: str, default: Any = "") -> Any:
+    value: Any = frame
+    for key in keys:
+        if not isinstance(value, dict):
+            return default
+        value = value.get(key, default)
+    return value
 
 
 class SteeringMediaListener:
@@ -49,13 +58,27 @@ class SteeringMediaListener:
             "metadata_path": str(output_dir / "frame_metadata.jsonl"),
             "frame_dir": str(output_dir / "frames"),
             "frame_count": 0,
+            "payload_bytes": 0,
+            "decoded_payload_bytes": 0,
             "receiver_error": None,
             "first_host_receive_monotonic_ms": None,
             "last_host_receive_monotonic_ms": None,
+            "first_frame_host_receive_monotonic_ms": None,
+            "last_frame_host_receive_monotonic_ms": None,
+            "min_frame_interval_ms": None,
+            "max_frame_interval_ms": None,
+            "mean_frame_interval_ms": None,
+            "effective_fps": 0.0,
+            "last_frame_id": None,
+            "last_capture_time_ms": None,
         }
         self._metadata_lock = threading.Lock()
         self._ever_connected = False
         self._accept_timeout_logged = False
+        self._last_frame_receive_monotonic_ms: Optional[int] = None
+        self._frame_interval_total_ms = 0
+        self._frame_interval_count = 0
+        self._last_progress_log_ms = 0
 
     def start(self) -> None:
         self._output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,12 +104,25 @@ class SteeringMediaListener:
         if self._thread is not None:
             self._thread.join(timeout=2.0)
             self._thread = None
+        self._finalize_summary()
         summary_path = self._output_dir / "summary.json"
         with summary_path.open("w", encoding="utf-8") as file:
             json.dump(self._summary, file, indent=2, ensure_ascii=False)
             file.write("\n")
         self._summary["summary_path"] = str(summary_path)
         return dict(self._summary)
+
+    def _finalize_summary(self) -> None:
+        if self._frame_interval_count > 0:
+            self._summary["mean_frame_interval_ms"] = (
+                self._frame_interval_total_ms / self._frame_interval_count
+            )
+        first_frame_ms = self._summary.get("first_frame_host_receive_monotonic_ms")
+        last_frame_ms = self._summary.get("last_frame_host_receive_monotonic_ms")
+        frame_count = int(self._summary.get("frame_count", 0) or 0)
+        if isinstance(first_frame_ms, int) and isinstance(last_frame_ms, int) and frame_count > 1:
+            duration_s = max(0.001, (last_frame_ms - first_frame_ms) / 1000.0)
+            self._summary["effective_fps"] = (frame_count - 1) / duration_s
 
     def _run(self) -> None:
         assert self._server is not None
@@ -195,7 +231,7 @@ class SteeringMediaListener:
             self._log(
                 "[media] config_snapshot "
                 f"interval_ms={header.get('media_publish_interval_ms')} "
-                f"pid_turn_camera_d={header.get('param_snapshot', {}).get('pid_turn_camera_d')}"
+                f"yaw_rate_pid_p={header.get('param_snapshot', {}).get('yaw_rate_pid', {}).get('p')}"
             )
             return
 
@@ -205,7 +241,7 @@ class SteeringMediaListener:
 
         frame_width = int(header.get("width", 0))
         frame_height = int(header.get("height", 0))
-        expected_payload_bytes = max(0, frame_width) * max(0, frame_height)
+        expected_payload_bytes = self._expected_payload_bytes(header, frame_width, frame_height)
         if frame_width <= 0 or frame_height <= 0:
             self._summary["receiver_error"] = (
                 f"invalid steering image dimensions: width={frame_width}, height={frame_height}"
@@ -220,8 +256,13 @@ class SteeringMediaListener:
             return
 
         frame_id = int(header.get("frame_id", 0))
+        decoded_payload = self._decode_image_payload(header, payload, frame_width, frame_height)
         frame_path = self._output_dir / "frames" / f"frame-{frame_id:06d}.raw"
-        frame_path.write_bytes(payload)
+        frame_path.write_bytes(decoded_payload)
+        self._update_frame_stats(header, payload, receive_monotonic_ms)
+        self._summary["decoded_payload_bytes"] = (
+            int(self._summary["decoded_payload_bytes"]) + len(decoded_payload)
+        )
         metadata = {
             "host_received_utc": utc_timestamp(),
             "host_received_monotonic_ms": receive_monotonic_ms,
@@ -233,23 +274,105 @@ class SteeringMediaListener:
             with metadata_path.open("a", encoding="utf-8") as file:
                 file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
         self._summary["frame_count"] = int(self._summary["frame_count"]) + 1
-        if self._summary["frame_count"] % 25 == 0:
+        if self._should_log_progress(receive_monotonic_ms):
             steering = header.get("steering_snapshot", {})
             self._log(
                 "[media] "
-                f"frame_id={frame_id} phase={header.get('motion_phase')} "
-                f"module={steering.get('active_module')} scene={steering.get('scene_phase')} "
-                f"circle={steering.get('circle_direction')}/{steering.get('circle_reference_mode')} "
-                f"entry_signal={steering.get('circle_entry_signal_active')} "
-                f"ref={steering.get('reference_mode')} "
-                f"near_lateral_error={steering.get('near_lateral_error')} "
-                f"lookahead_m={steering.get('lookahead_distance_m')} "
-                f"lookahead_y={steering.get('lookahead_lateral_error')} "
-                f"lookahead_heading={steering.get('lookahead_heading_error')} "
-                f"ref_curvature={steering.get('reference_curvature')} "
-                f"curvature_command={steering.get('curvature_command')} "
-                f"yaw_rate_target={steering.get('yaw_rate_target')} "
-                f"visible_range_m={steering.get('visible_range_m')} "
-                f"track_confidence={steering.get('track_confidence')} "
-                f"raw_turn={steering.get('raw_turn_output')} applied_turn={steering.get('applied_turn_output')}"
+                f"frames={self._summary['frame_count']} frame_id={frame_id} "
+                f"fps={self._summary.get('effective_fps', 0.0):.2f} "
+                f"encoding={header.get('payload_encoding', header.get('pixel_format', 'raw'))} "
+                f"frame_source={header.get('frame_source')} "
+                f"phase={header.get('motion_phase')} "
+                f"ref={nested(steering, 'reference', 'mode')} "
+                f"source={nested(steering, 'reference', 'source')} "
+                f"path_candidates={nested(steering, 'visual_reference', 'path_candidates', 'count')} "
+                f"usable={nested(steering, 'eligibility', 'usable')} "
+                f"gate={nested(steering, 'safety_gate', 'reason')} "
+                f"lateral_error={nested(steering, 'lateral_error', 'weighted_lateral_error_m')} "
+                f"turn_output_target={nested(steering, 'yaw_control', 'turn_output_target')} "
+                f"raw_turn={nested(steering, 'actuator', 'raw_turn_output')} "
+                f"applied_turn={nested(steering, 'actuator', 'applied_turn_output')} "
+                f"left_drive_pwm={nested(steering, 'actuator', 'left_drive_pwm_command')} "
+                f"right_drive_pwm={nested(steering, 'actuator', 'right_drive_pwm_command')} "
+                f"left_brushless_pwm={nested(steering, 'actuator', 'left_brushless_pwm_command')} "
+                f"right_brushless_pwm={nested(steering, 'actuator', 'right_brushless_pwm_command')} "
+                f"apply_outcome={nested(steering, 'actuator', 'apply_outcome')}"
             )
+
+    def _expected_payload_bytes(self, header: Dict[str, Any], width: int, height: int) -> int:
+        pixels = max(0, width) * max(0, height)
+        bits = self._packed_gray_bits(header)
+        if bits is not None:
+            return (pixels * bits + 7) // 8
+        return pixels
+
+    def _packed_gray_bits(self, header: Dict[str, Any]) -> Optional[int]:
+        encoding = header.get("payload_encoding")
+        pixel_format = header.get("pixel_format")
+        if encoding == "gray1_packed" or pixel_format == "gray1":
+            return 1
+        if encoding == "gray2_packed" or pixel_format == "gray2":
+            return 2
+        if encoding == "gray4_packed" or pixel_format == "gray4":
+            return 4
+        return None
+
+    def _decode_image_payload(
+        self, header: Dict[str, Any], payload: bytes, width: int, height: int
+    ) -> bytes:
+        bits = self._packed_gray_bits(header)
+        if bits is None:
+            return payload
+        max_level = (1 << bits) - 1
+        decoded = bytearray(width * height)
+        for index in range(width * height):
+            bit_index = index * bits
+            packed = payload[bit_index // 8]
+            shift = 8 - bits - (bit_index % 8)
+            level = (packed >> shift) & max_level
+            decoded[index] = (level * 255) // max(1, max_level)
+        return bytes(decoded)
+
+    def _update_frame_stats(
+        self, header: Dict[str, Any], payload: bytes, receive_monotonic_ms: int
+    ) -> None:
+        first_frame_ms = self._summary["first_frame_host_receive_monotonic_ms"]
+        self._summary["first_frame_host_receive_monotonic_ms"] = (
+            receive_monotonic_ms if first_frame_ms is None else first_frame_ms
+        )
+        self._summary["last_frame_host_receive_monotonic_ms"] = receive_monotonic_ms
+        self._summary["payload_bytes"] = int(self._summary["payload_bytes"]) + len(payload)
+        self._summary["last_frame_id"] = header.get("frame_id")
+        self._summary["last_capture_time_ms"] = header.get("capture_time_ms")
+
+        if self._last_frame_receive_monotonic_ms is not None:
+            interval_ms = receive_monotonic_ms - self._last_frame_receive_monotonic_ms
+            self._frame_interval_total_ms += interval_ms
+            self._frame_interval_count += 1
+            min_interval = self._summary["min_frame_interval_ms"]
+            max_interval = self._summary["max_frame_interval_ms"]
+            self._summary["min_frame_interval_ms"] = (
+                interval_ms if min_interval is None else min(int(min_interval), interval_ms)
+            )
+            self._summary["max_frame_interval_ms"] = (
+                interval_ms if max_interval is None else max(int(max_interval), interval_ms)
+            )
+            self._summary["mean_frame_interval_ms"] = (
+                self._frame_interval_total_ms / self._frame_interval_count
+            )
+
+        self._last_frame_receive_monotonic_ms = receive_monotonic_ms
+        frame_count = int(self._summary.get("frame_count", 0) or 0) + 1
+        first = self._summary.get("first_frame_host_receive_monotonic_ms")
+        if isinstance(first, int) and frame_count > 1:
+            duration_s = max(0.001, (receive_monotonic_ms - first) / 1000.0)
+            self._summary["effective_fps"] = (frame_count - 1) / duration_s
+
+    def _should_log_progress(self, receive_monotonic_ms: int) -> bool:
+        if self._last_progress_log_ms == 0:
+            self._last_progress_log_ms = receive_monotonic_ms
+            return True
+        if receive_monotonic_ms - self._last_progress_log_ms < 1000:
+            return False
+        self._last_progress_log_ms = receive_monotonic_ms
+        return True

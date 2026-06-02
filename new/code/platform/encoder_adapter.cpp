@@ -8,9 +8,16 @@
 namespace ls2k::platform {
 namespace {
 
+/// 左编码器方向符号（正向保持原始符号）
 constexpr int kLeftEncoderDirectionSign = 1;
+/// 右编码器方向符号（取反以匹配逻辑坐标系）
 constexpr int kRightEncoderDirectionSign = -1;
 
+/// @brief 从环境变量读取正整数（用于故障注入间隔配置）
+/// @param key 环境变量名
+/// @param diagnostics 诊断输出接口
+/// @param now_ms 当前时间戳
+/// @return 解析得到的正整数，无效或未设置时返回 0
 int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, uint64_t now_ms) {
     const char* value = std::getenv(key);
     if (value == nullptr || value[0] == '\0') {
@@ -32,8 +39,17 @@ int ReadPositiveIntervalEnv(const char* key, port::DiagnosticSink& diagnostics, 
     return 0;
 }
 
+/// @brief 编码器适配器类
+///
+/// 实现 port::IEncoderAdapter 接口，封装 true_ls2k0300 桥接层的
+/// 编码器初始化、增量读取和关闭操作。支持 direct-match 和 adaptation-hook 两种模式。
+/// 对左右编码器原始计数值应用方向符号归一化。
 class EncoderAdapter final : public port::IEncoderAdapter {
 public:
+    /// @brief 初始化编码器适配器
+    /// @param profile 硬件描述文件（检查编码器子系统是否启用及其模式）
+    /// @param diagnostics 诊断输出接口
+    /// @return 初始化成功返回 true
     bool Initialize(const port::HardwareProfile& profile, port::DiagnosticSink& diagnostics) override {
         if (!port::IsEnabled(profile.encoder)) {
             diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -76,6 +92,9 @@ public:
         return ready_;
     }
 
+    /// @brief 读取编码器增量数据
+    /// @param diagnostics 诊断输出接口
+    /// @return 编码器增量值（含左右计数和时间戳）
     port::EncoderDelta ReadDelta(port::DiagnosticSink& diagnostics) override {
         port::EncoderDelta out{};
         out.capture_time_ms = port::NowMs();
@@ -134,6 +153,8 @@ public:
         return out;
     }
 
+    /// @brief 关闭编码器适配器
+    /// @param diagnostics 诊断输出接口
     void Shutdown(port::DiagnosticSink& diagnostics) override {
         ready_ = false;
         diagnostics.Emit({port::DiagnosticLevel::kInfo,
@@ -142,18 +163,27 @@ public:
                           port::NowMs()});
     }
 
+    /// @brief 检查编码器是否已就绪
+    /// @return true 表示编码器可用
     bool Ready() const override { return ready_; }
 
 private:
+    /// 编码器子系统是否启用
     bool enabled_ = false;
+    /// 编码器是否已就绪
     bool ready_ = false;
+    /// 是否使用适配钩子模式
     bool adaptation_hook_ = false;
+    /// 适配钩子名称
     std::string hook_name_ = "direct-match";
+    /// 读取计数（用于故障注入周期性）
     uint64_t read_count_ = 0;
 };
 
 }  // namespace
 
+/// @brief 创建编码器适配器实例
+/// @return 新创建的 EncoderAdapter 智能指针
 std::unique_ptr<port::IEncoderAdapter> MakeEncoderAdapter() {
     return std::make_unique<EncoderAdapter>();
 }

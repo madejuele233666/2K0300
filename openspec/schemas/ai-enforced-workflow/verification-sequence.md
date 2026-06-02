@@ -26,13 +26,17 @@ continue active verifier
   -> terminate on valid active pass
 ```
 
-Repository-level indexing, when present under `.index/`, is external reference
-material only. It is outside the verifier bundle and never the authority for
-termination.
+Engineering discipline such as alignment before artifacts, domain language,
+feedback loops, vertical tracer slices, and prototype cleanup lives in
+`engineering-principles.md`. Those principles shape caller behavior, while this
+sequence remains the hard verifier lifecycle authority.
 
 ## Verifier Agent Contract
 
-- Agent definition: `.codex/agents/verify-reviewer.toml`
+- Canonical agent definition:
+  `openspec/schemas/ai-enforced-workflow/agents/verify-reviewer.toml`
+- Local runtime install path, when needed by Codex:
+  `.codex/agents/verify-reviewer.toml`
 - Role: reviewer only
 - Parent-context rule: verifier spawns MUST use `fork_context=false`
 - Bundle rule: pass only the minimal verification bundle and `output_paths`

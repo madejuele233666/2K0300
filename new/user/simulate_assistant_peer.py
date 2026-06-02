@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Local assistant peer simulator for host-workflow verification."""
+"""Local assistant peer simulator for host-workflow verification.
+
+All telemetry emitted by this script is synthetic and is not board/runtime
+authority.
+"""
 
 from __future__ import annotations
 
@@ -23,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="127.0.0.1", help="listener host exposed by tune_speed.py")
     parser.add_argument("--port", type=int, default=8888, help="listener port exposed by tune_speed.py")
     parser.add_argument("--connect-timeout-s", type=float, default=10.0, help="max time to wait for the host listener")
-    parser.add_argument("--max-target-speed", type=float, default=77.0, help="accepted target-speed upper bound")
+    parser.add_argument("--max-target-speed", type=float, default=100.0, help="accepted target-speed upper bound")
     return parser.parse_args()
 
 
@@ -56,24 +60,34 @@ def emit_telemetry(connection: socket.socket,
                 "right_speed_target": right_target,
                 "left_measured_speed": left_measured,
                 "right_measured_speed": right_measured,
-                "left_pwm_command": int(left_target * 100),
-                "right_pwm_command": int(right_target * 100),
                 "raw_turn_output": raw_turn,
                 "applied_turn_output": applied_turn,
-                "active_module": "straight",
-                "scene_phase": "idle",
-                "reference_mode": "centerline",
-                "near_lateral_error": 0.0,
-                "far_heading_error": 0.0,
-                "preview_curvature": 0.0,
-                "lookahead_distance_m": 1.4,
-                "lookahead_lateral_error": 0.0,
-                "lookahead_heading_error": 0.0,
-                "reference_curvature": 0.0,
-                "curvature_command": raw_turn / 12000.0,
-                "yaw_rate_target": 0.0,
-                "visible_range_m": 4.5,
-                "track_confidence": 1.0,
+                "left_drive_pwm_command": int(left_target * 100),
+                "right_drive_pwm_command": int(right_target * 100),
+                "left_brushless_pwm_command": 0,
+                "right_brushless_pwm_command": 0,
+                "actuator_apply_outcome": "drive_command_applied",
+                "telemetry_source": "simulate_assistant_peer_synthetic",
+                "reference": {"mode": "interval_center", "source": "simple_interval_center"},
+                "eligibility": {
+                    "usable": True,
+                    "leading_usable_samples": 4,
+                    "leading_min_forward_m": 0.061,
+                    "leading_max_forward_m": 0.249,
+                    "reason": "ok",
+                },
+                "lateral_error": {
+                    "computed": True,
+                    "synthetic": True,
+                    "weighted_lateral_error_m": raw_turn / 12000.0,
+                    "weighted_sample_count": 4,
+                    "weight_sum": 3.75,
+                    "reason": "ok",
+                },
+                "reference_control": {"ready": True, "reason": "ok"},
+                "safety_gate": {"veto_active": False, "reason": "none"},
+                "degraded": {"active": False, "reason": "none"},
+                "yaw_control": {"turn_output_target": 0.0},
             },
         )
         time.sleep(0.03)
@@ -138,7 +152,7 @@ def main() -> int:
                     emit_telemetry(connection, motion_phase, tuning_mode_enabled, turn_suppressed, override_enabled, override_value, effective_speed_target, 0.0, 0.0, 0.0, 0.0, 0, 0, frames=2)
                     continue
                 if value > args.max_target_speed:
-                    send_json_line(connection, {"type": "ack", "seq": seq, "outcome": "rejected", "reason": "invalid target speed: value exceeds Speed_base"})
+                    send_json_line(connection, {"type": "ack", "seq": seq, "outcome": "rejected", "reason": "invalid target speed: value exceeds running_speed_target"})
                     continue
                 send_json_line(connection, {"type": "ack", "seq": seq, "outcome": "accepted"})
                 override_enabled = True

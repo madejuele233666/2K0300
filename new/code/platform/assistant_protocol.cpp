@@ -11,9 +11,15 @@
 
 #include <opencv2/core/persistence.hpp>
 
+#include "platform/visual_element_evidence_json.hpp"
+
 namespace ls2k::platform {
 namespace {
 
+/// @brief 尝试将文本解析为 JSON 对象
+/// @param text 输入 JSON 文本
+/// @param storage 输出参数：解析后的 FileStorage 对象
+/// @return 解析成功且根节点为非空 Map 时返回 true
 bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     try {
         if (!storage.open(text,
@@ -28,6 +34,10 @@ bool ParseJsonObject(const std::string& text, cv::FileStorage& storage) {
     return !root.empty() && root.isMap();
 }
 
+/// @brief 从 JSON 节点读取字符串值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的字符串
+/// @return 读取成功返回 true
 bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     if (node.empty() || !node.isString()) {
         return false;
@@ -36,6 +46,10 @@ bool ReadStringValue(const cv::FileNode& node, std::string& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取有限数值（非 NaN / Inf）
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 double 值
+/// @return 读取成功且为有限数值时返回 true
 bool ReadFiniteNumber(const cv::FileNode& node, double& value) {
     if (node.empty() || (!node.isInt() && !node.isReal())) {
         return false;
@@ -44,6 +58,10 @@ bool ReadFiniteNumber(const cv::FileNode& node, double& value) {
     return std::isfinite(value);
 }
 
+/// @brief 从 JSON 节点读取非负整数值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 uint64 值
+/// @return 读取成功且为非负整数时返回 true
 bool ReadNonNegativeInteger(const cv::FileNode& node, std::uint64_t& value) {
     double numeric = 0.0;
     if (!ReadFiniteNumber(node, numeric) || numeric < 0.0) {
@@ -60,6 +78,10 @@ bool ReadNonNegativeInteger(const cv::FileNode& node, std::uint64_t& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取正整数（值为 int 且 > 0）
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 int 值
+/// @return 读取成功且为正整数时返回 true
 bool ReadPositiveInt(const cv::FileNode& node, int& value) {
     std::uint64_t parsed = 0;
     if (!ReadNonNegativeInteger(node, parsed) || parsed == 0 ||
@@ -70,6 +92,10 @@ bool ReadPositiveInt(const cv::FileNode& node, int& value) {
     return true;
 }
 
+/// @brief 从 JSON 节点读取布尔值
+/// @param node JSON 节点
+/// @param value 输出参数：读取的 bool 值
+/// @return 读取成功返回 true
 bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     if (node.empty() || !node.isInt()) {
         return false;
@@ -82,6 +108,9 @@ bool ReadBoolValue(const cv::FileNode& node, bool& value) {
     return false;
 }
 
+/// @brief 构造"输入被拒"消息
+/// @param reason 拒绝原因
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeInputRejected(std::string reason) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kInputRejected;
@@ -89,6 +118,10 @@ AssistantInboundMessage MakeInputRejected(std::string reason) {
     return message;
 }
 
+/// @brief 构造"命令确认被拒"消息
+/// @param seq 被拒命令的序列号
+/// @param reason 拒绝原因
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeAckRejected(std::uint64_t seq, std::string reason) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kAckRejected;
@@ -97,6 +130,9 @@ AssistantInboundMessage MakeAckRejected(std::uint64_t seq, std::string reason) {
     return message;
 }
 
+/// @brief 构造命令消息
+/// @param command 命令结构体
+/// @return 构造好的 AssistantInboundMessage
 AssistantInboundMessage MakeCommand(AssistantCommand command) {
     AssistantInboundMessage message{};
     message.type = AssistantInboundMessageType::kCommand;
@@ -104,6 +140,9 @@ AssistantInboundMessage MakeCommand(AssistantCommand command) {
     return message;
 }
 
+/// @brief 将字符串值以 JSON 格式追加到输出流（含转义处理）
+/// @param stream 输出流
+/// @param value 要编码的字符串
 void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
     for (const char ch : value) {
@@ -137,16 +176,26 @@ void AppendJsonString(std::ostringstream& stream, const std::string& value) {
     stream << '"';
 }
 
+/// @brief 将双精度数值以 JSON 格式追加到输出流
+/// @param stream 输出流
+/// @param value 要编码的数值
 void AppendJsonNumber(std::ostringstream& stream, double value) {
     stream << std::setprecision(12) << value;
 }
 
+/// @brief 将布尔值以 JSON 格式追加到输出流
+/// @param stream 输出流
+/// @param value 要编码的布尔值
 void AppendJsonBool(std::ostringstream& stream, bool value) {
     stream << (value ? "true" : "false");
 }
 
 }  // namespace
 
+/// @brief 解码一行 JSON 格式的助手入站消息
+/// @param line 原始 JSON 行字符串
+/// @param max_target_speed 最大允许目标速度，用于校验速度指令
+/// @return 解码后的入站消息结构体
 AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double max_target_speed) {
     if (line.empty()) {
         return MakeInputRejected("empty command line");
@@ -221,7 +270,7 @@ AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double 
             return MakeAckRejected(seq, "invalid target speed: value must be >= 0");
         }
         if (value > max_target_speed) {
-            return MakeAckRejected(seq, "invalid target speed: value exceeds Speed_base");
+            return MakeAckRejected(seq, "invalid target speed: value exceeds running_speed_target");
         }
 
         int ttl_ms = 0;
@@ -244,6 +293,11 @@ AssistantInboundMessage DecodeAssistantJsonLine(const std::string& line, double 
     return MakeInputRejected("unsupported command");
 }
 
+/// @brief 编码助手应答（ACK/NAK）JSON 消息
+/// @param seq 对应命令的序列号
+/// @param accepted 是否接受
+/// @param reason 拒绝原因（仅 accepted=false 时使用）
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantAck(std::uint64_t seq, bool accepted, const std::string& reason) {
     std::ostringstream stream;
     stream << "{\"type\":\"ack\",\"seq\":" << seq << ",\"outcome\":\""
@@ -256,6 +310,11 @@ std::string EncodeAssistantAck(std::uint64_t seq, bool accepted, const std::stri
     return stream.str();
 }
 
+/// @brief 编码助手状态变更 JSON 消息
+/// @param event 事件名称
+/// @param reason 事件原因
+/// @param status 当前状态快照
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantState(const std::string& event,
                                  const std::string& reason,
                                  const AssistantStatusView& status) {
@@ -282,40 +341,92 @@ std::string EncodeAssistantState(const std::string& event,
     return stream.str();
 }
 
+/// @brief 编码完整助手遥测 JSON 消息
+/// @param telemetry 遥测数据视图
+/// @return 编码后的 JSON 字符串
 std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     std::ostringstream stream;
     stream << "{\"type\":\"telemetry\",\"motion_phase\":";
     AppendJsonString(stream, telemetry.motion_phase);
-    stream << ",\"active_module\":";
-    AppendJsonString(stream, telemetry.active_module);
-    stream << ",\"scene_phase\":";
-    AppendJsonString(stream, telemetry.scene_phase);
-    stream << ",\"scene_override_source\":";
-    AppendJsonString(stream, telemetry.scene_override_source);
-    stream << ",\"reference_mode\":";
-    AppendJsonString(stream, telemetry.reference_mode);
-    stream << ",\"near_lateral_error\":";
-    AppendJsonNumber(stream, telemetry.near_lateral_error);
-    stream << ",\"far_heading_error\":";
-    AppendJsonNumber(stream, telemetry.far_heading_error);
-    stream << ",\"preview_curvature\":";
-    AppendJsonNumber(stream, telemetry.preview_curvature);
-    stream << ",\"lookahead_distance_m\":";
-    AppendJsonNumber(stream, telemetry.lookahead_distance_m);
-    stream << ",\"lookahead_lateral_error\":";
-    AppendJsonNumber(stream, telemetry.lookahead_lateral_error);
-    stream << ",\"lookahead_heading_error\":";
-    AppendJsonNumber(stream, telemetry.lookahead_heading_error);
-    stream << ",\"reference_curvature\":";
-    AppendJsonNumber(stream, telemetry.reference_curvature);
-    stream << ",\"curvature_command\":";
-    AppendJsonNumber(stream, telemetry.curvature_command);
-    stream << ",\"yaw_rate_target\":";
-    AppendJsonNumber(stream, telemetry.yaw_rate_target);
-    stream << ",\"visible_range_m\":";
-    AppendJsonNumber(stream, telemetry.visible_range_m);
-    stream << ",\"track_confidence\":";
-    AppendJsonNumber(stream, telemetry.track_confidence);
+    stream << ",\"perception_health\":{\"projector_ok\":";
+    AppendJsonBool(stream, telemetry.perception_health.projector_ok);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.perception_health.reason);
+    stream << "}";
+    stream << ",\"element_evidence\":";
+    AppendVisualElementEvidenceJson(stream, telemetry.element_evidence);
+    stream << ",\"visual_reference\":{\"present\":";
+    AppendJsonBool(stream, telemetry.visual_reference.present);
+    stream << ",\"source\":";
+    AppendJsonString(stream, telemetry.visual_reference.source);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.visual_reference.reason);
+    stream << ",\"candidate_count\":" << telemetry.visual_reference.candidate_count;
+    stream << ",\"rejected_candidate_reason\":";
+    AppendJsonString(stream, telemetry.visual_reference.rejected_candidate_reason);
+    stream << "}";
+    stream << ",\"reference\":{\"mode\":";
+    AppendJsonString(stream, telemetry.reference.mode);
+    stream << ",\"source\":";
+    AppendJsonString(stream, telemetry.reference.source);
+    stream << "}";
+    stream << ",\"eligibility\":{\"usable\":";
+    AppendJsonBool(stream, telemetry.eligibility.usable);
+    stream << ",\"leading_usable_samples\":" << telemetry.eligibility.leading_usable_samples;
+    stream << ",\"leading_min_forward_m\":";
+    AppendJsonNumber(stream, telemetry.eligibility.leading_min_forward_m);
+    stream << ",\"leading_max_forward_m\":";
+    AppendJsonNumber(stream, telemetry.eligibility.leading_max_forward_m);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.eligibility.reason);
+    stream << "}";
+    stream << ",\"lateral_error\":{\"computed\":";
+    AppendJsonBool(stream, telemetry.lateral_error.computed);
+    stream << ",\"weighted_lateral_error_m\":";
+    AppendJsonNumber(stream, telemetry.lateral_error.weighted_lateral_error_m);
+    stream << ",\"weighted_sample_count\":" << telemetry.lateral_error.weighted_sample_count;
+    stream << ",\"weight_sum\":";
+    AppendJsonNumber(stream, telemetry.lateral_error.weight_sum);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.lateral_error.reason);
+    stream << "}";
+    stream << ",\"tracking_geometry\":{\"computed\":";
+    AppendJsonBool(stream, telemetry.tracking_geometry.computed);
+    stream << ",\"lateral_offset_m\":";
+    AppendJsonNumber(stream, telemetry.tracking_geometry.lateral_offset_m);
+    stream << ",\"heading_error_rad\":";
+    AppendJsonNumber(stream, telemetry.tracking_geometry.heading_error_rad);
+    stream << ",\"curvature_m_inv\":";
+    AppendJsonNumber(stream, telemetry.tracking_geometry.curvature_m_inv);
+    stream << ",\"sample_count\":" << telemetry.tracking_geometry.sample_count;
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.tracking_geometry.reason);
+    stream << "}";
+    stream << ",\"reference_control\":{\"ready\":";
+    AppendJsonBool(stream, telemetry.reference_control.ready);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.reference_control.reason);
+    stream << "}";
+    stream << ",\"safety_gate\":{\"veto_active\":";
+    AppendJsonBool(stream, telemetry.safety_gate.veto_active);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.safety_gate.reason);
+    stream << "}";
+    stream << ",\"degraded\":";
+    stream << "{\"active\":";
+    AppendJsonBool(stream, telemetry.degraded.active);
+    stream << ",\"reason\":";
+    AppendJsonString(stream, telemetry.degraded.reason);
+    stream << "}";
+    stream << ",\"yaw_control\":{\"turn_output_target\":";
+    AppendJsonNumber(stream, telemetry.yaw_control.turn_output_target);
+    stream << ",\"lateral_term\":";
+    AppendJsonNumber(stream, telemetry.yaw_control.lateral_term);
+    stream << ",\"heading_term\":";
+    AppendJsonNumber(stream, telemetry.yaw_control.heading_term);
+    stream << ",\"curvature_term\":";
+    AppendJsonNumber(stream, telemetry.yaw_control.curvature_term);
+    stream << "}";
     stream << ",\"tuning_mode_enabled\":";
     AppendJsonBool(stream, telemetry.tuning_mode_enabled);
     stream << ",\"turn_suppressed\":";
@@ -338,56 +449,21 @@ std::string EncodeAssistantTelemetry(const AssistantTelemetryView& telemetry) {
     AppendJsonNumber(stream, telemetry.left_measured_speed);
     stream << ",\"right_measured_speed\":";
     AppendJsonNumber(stream, telemetry.right_measured_speed);
-    stream << ",\"left_pwm_command\":" << telemetry.left_pwm_command;
-    stream << ",\"right_pwm_command\":" << telemetry.right_pwm_command;
     stream << ",\"raw_turn_output\":" << telemetry.raw_turn_output;
     stream << ",\"applied_turn_output\":" << telemetry.applied_turn_output;
-    stream << ",\"circle_direction\":";
-    AppendJsonString(stream, telemetry.circle_direction);
-    stream << ",\"circle_reference_mode\":";
-    AppendJsonString(stream, telemetry.circle_reference_mode);
-    stream << ",\"circle_heading_delta_deg\":";
-    AppendJsonNumber(stream, telemetry.circle_heading_delta_deg);
-    stream << ",\"circle_yaw_accum_deg\":";
-    AppendJsonNumber(stream, telemetry.circle_yaw_accum_deg);
-    stream << ",\"circle_path_phase\":";
-    AppendJsonString(stream, telemetry.circle_path_phase);
-    stream << ",\"reference_compatibility_error_m\":";
-    AppendJsonNumber(stream, telemetry.reference_compatibility_error_m);
-    stream << ",\"reference_source\":";
-    AppendJsonString(stream, telemetry.reference_source);
-    stream << ",\"circle_entry_signal_active\":";
-    AppendJsonBool(stream, telemetry.circle_entry_signal_active);
-    stream << ",\"inner_island_memory_active\":";
-    AppendJsonBool(stream, telemetry.inner_island_memory_active);
-    stream << ",\"inner_island_memory_age\":";
-    AppendJsonNumber(stream, telemetry.inner_island_memory_age);
-    stream << ",\"inner_island_memory_confidence\":";
-    AppendJsonNumber(stream, telemetry.inner_island_memory_confidence);
-    stream << ",\"left_inner_island_present\":";
-    AppendJsonBool(stream, telemetry.left_inner_island_present);
-    stream << ",\"right_inner_island_present\":";
-    AppendJsonBool(stream, telemetry.right_inner_island_present);
-    stream << ",\"inner_edge_compatible\":";
-    AppendJsonBool(stream, telemetry.inner_edge_compatible);
-    stream << ",\"inner_island_trace_present\":";
-    AppendJsonBool(stream, telemetry.inner_island_trace_present);
-    stream << ",\"inner_island_trace_start_forward_m\":";
-    AppendJsonNumber(stream, telemetry.inner_island_trace_start_forward_m);
-    stream << ",\"inner_island_trace_end_forward_m\":";
-    AppendJsonNumber(stream, telemetry.inner_island_trace_end_forward_m);
-    stream << ",\"inner_island_trace_confidence\":";
-    AppendJsonNumber(stream, telemetry.inner_island_trace_confidence);
-    stream << ",\"inner_island_trace_support_layers\":";
-    AppendJsonNumber(stream, telemetry.inner_island_trace_support_layers);
-    stream << ",\"inner_island_trace_gap_layers\":";
-    AppendJsonNumber(stream, telemetry.inner_island_trace_gap_layers);
-    stream << ",\"inner_island_rejected_far_segments\":";
-    AppendJsonNumber(stream, telemetry.inner_island_rejected_far_segments);
+    stream << ",\"left_drive_pwm_command\":" << telemetry.left_drive_pwm_command;
+    stream << ",\"right_drive_pwm_command\":" << telemetry.right_drive_pwm_command;
+    stream << ",\"left_brushless_pwm_command\":" << telemetry.left_brushless_pwm_command;
+    stream << ",\"right_brushless_pwm_command\":" << telemetry.right_brushless_pwm_command;
+    stream << ",\"actuator_apply_outcome\":";
+    AppendJsonString(stream, telemetry.actuator_apply_outcome);
     stream << '}';
     return stream.str();
 }
 
+/// @brief 将助手命令类型枚举值转换为可读字符串
+/// @param type 命令类型枚举
+/// @return 命令名称字符串
 const char* ToString(AssistantCommandType type) {
     switch (type) {
         case AssistantCommandType::kStart:
